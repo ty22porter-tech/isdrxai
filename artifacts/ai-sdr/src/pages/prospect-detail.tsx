@@ -11,6 +11,7 @@ import {
   useCreateEmail,
   useGenerateCallScript,
   useCreateCall,
+  useCreateAppointment,
   getGetProspectQueryKey,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
@@ -78,6 +79,43 @@ export default function ProspectDetail() {
   const [generatedScript, setGeneratedScript] = useState<any>(null);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [callNotes, setCallNotes] = useState("");
+
+  const createAppointment = useCreateAppointment();
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const [walkthroughDate, setWalkthroughDate] = useState("");
+  const [walkthroughTime, setWalkthroughTime] = useState("10:00");
+  const [walkthroughLocation, setWalkthroughLocation] = useState("");
+  const [walkthroughNotes, setWalkthroughNotes] = useState("");
+
+  const handleBookWalkthrough = (e: React.FormEvent) => {
+    e.preventDefault();
+    const scheduledAt = new Date(`${walkthroughDate}T${walkthroughTime}`).toISOString();
+    createAppointment.mutate(
+      {
+        data: {
+          prospectId,
+          type: "walkthrough",
+          scheduledAt,
+          location: walkthroughLocation || undefined,
+          notes: walkthroughNotes || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Walkthrough booked!", description: `Scheduled for ${new Date(scheduledAt).toLocaleString()}` });
+          setWalkthroughOpen(false);
+          setWalkthroughDate("");
+          setWalkthroughTime("10:00");
+          setWalkthroughLocation("");
+          setWalkthroughNotes("");
+          updateProspect.mutate({ id: prospectId, data: { status: "appointment_set" } }, {
+            onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetProspectQueryKey(prospectId) }),
+          });
+        },
+        onError: () => toast({ title: "Failed to book walkthrough", variant: "destructive" }),
+      }
+    );
+  };
 
   const handleGenerateEmail = () => {
     setIsGeneratingEmail(true);
@@ -274,7 +312,64 @@ export default function ProspectDetail() {
               </DialogContent>
             </Dialog>
             
-            <Button variant="outline" className="w-full"><Calendar className="mr-2 h-4 w-4" /> Book Walkthrough</Button>
+            <Dialog open={walkthroughOpen} onOpenChange={setWalkthroughOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full"><Calendar className="mr-2 h-4 w-4" /> Book Walkthrough</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[480px]">
+                <DialogHeader>
+                  <DialogTitle>Book a Walkthrough</DialogTitle>
+                  <DialogDescription>Schedule an on-site visit with {prospect.companyName}. The prospect status will be automatically updated to "Appointment Set".</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleBookWalkthrough} className="space-y-4 pt-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Date</label>
+                      <Input
+                        type="date"
+                        required
+                        value={walkthroughDate}
+                        min={new Date().toISOString().split("T")[0]}
+                        onChange={e => setWalkthroughDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Time</label>
+                      <Input
+                        type="time"
+                        required
+                        value={walkthroughTime}
+                        onChange={e => setWalkthroughTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Location <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <Input
+                      placeholder={`e.g. ${prospect.city} office, Suite 200`}
+                      value={walkthroughLocation}
+                      onChange={e => setWalkthroughLocation(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <Textarea
+                      placeholder="What to bring, parking info, who to ask for..."
+                      rows={3}
+                      value={walkthroughNotes}
+                      onChange={e => setWalkthroughNotes(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setWalkthroughOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={createAppointment.isPending}>
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {createAppointment.isPending ? "Booking…" : "Confirm Walkthrough"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
