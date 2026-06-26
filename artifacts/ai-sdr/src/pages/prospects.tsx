@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Plus, Building2, MapPin, Phone, Mail } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Prospects() {
@@ -16,6 +16,7 @@ export default function Prospects() {
   const { data: prospects, isLoading, refetch } = useListProspects({ search });
   const createProspect = useCreateProspect();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -140,11 +141,15 @@ export default function Prospects() {
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No prospects found.</TableCell></TableRow>
                 ) : (
                   prospects?.map(prospect => (
-                    <TableRow key={prospect.id}>
+                    <TableRow
+                      key={prospect.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/prospects/${prospect.id}`)}
+                    >
                       <TableCell>
-                        <Link href={`/prospects/${prospect.id}`} className="font-medium hover:underline text-primary">
+                        <div className="font-medium text-primary">
                           {prospect.companyName}
-                        </Link>
+                        </div>
                         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                           <Building2 className="h-3 w-3" /> {prospect.industry}
                         </div>

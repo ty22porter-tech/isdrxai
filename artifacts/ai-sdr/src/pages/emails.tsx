@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Clock, Eye, Reply } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 export default function Emails() {
   const { data: emails, isLoading } = useListEmails();
+  const [, navigate] = useLocation();
 
   return (
     <Layout>
@@ -36,7 +37,11 @@ export default function Emails() {
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No emails sent yet.</TableCell></TableRow>
                 ) : (
                   emails?.map(email => (
-                    <TableRow key={email.id}>
+                    <TableRow
+                      key={email.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/prospects/${email.prospectId}`)}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Mail className="h-4 w-4 text-muted-foreground" />
@@ -44,9 +49,7 @@ export default function Emails() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/prospects/${email.prospectId}`} className="text-primary hover:underline text-sm font-medium">
-                          View Prospect
-                        </Link>
+                        <span className="text-primary text-sm font-medium">View Prospect</span>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">

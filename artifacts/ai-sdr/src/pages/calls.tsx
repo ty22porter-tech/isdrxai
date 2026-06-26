@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Clock, FileText } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 export default function Calls() {
   const { data: calls, isLoading } = useListCalls();
+  const [, navigate] = useLocation();
 
   return (
     <Layout>
@@ -36,7 +37,11 @@ export default function Calls() {
                   <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No calls logged yet.</TableCell></TableRow>
                 ) : (
                   calls?.map(call => (
-                    <TableRow key={call.id}>
+                    <TableRow
+                      key={call.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/prospects/${call.prospectId}`)}
+                    >
                       <TableCell className="text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
@@ -44,9 +49,7 @@ export default function Calls() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/prospects/${call.prospectId}`} className="text-primary hover:underline text-sm font-medium">
-                          View Prospect
-                        </Link>
+                        <span className="text-primary text-sm font-medium">View Prospect</span>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
