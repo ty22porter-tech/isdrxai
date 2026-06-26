@@ -290,6 +290,38 @@ export interface GeneratedCallScript {
   objectionHandlers: GeneratedCallScriptObjectionHandlersItem[];
 }
 
+export interface ProspectSearchRequest {
+  city: string;
+  state: string;
+  industry: string;
+  count: number;
+}
+
+export type ProspectLeadConfidence = typeof ProspectLeadConfidence[keyof typeof ProspectLeadConfidence];
+
+
+export const ProspectLeadConfidence = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export interface ProspectLead {
+  companyName: string;
+  contactName: string;
+  contactTitle: string;
+  email: string;
+  phone: string;
+  industry: string;
+  city: string;
+  state: string;
+  website?: string;
+  estimatedEmployees: number;
+  estimatedSquareFootage: number;
+  whyTarget: string;
+  confidence: ProspectLeadConfidence;
+}
+
 export type DashboardStatsProspectsByStatusItem = {
   status: string;
   count: number;

@@ -11,6 +11,7 @@ import Campaigns from "@/pages/campaigns";
 import Appointments from "@/pages/appointments";
 import Emails from "@/pages/emails";
 import Calls from "@/pages/calls";
+import Prospecting from "@/pages/prospecting";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/appointments" component={Appointments} />
       <Route path="/emails" component={Emails} />
       <Route path="/calls" component={Calls} />
+      <Route path="/prospecting" component={Prospecting} />
       <Route component={NotFound} />
     </Switch>
   );

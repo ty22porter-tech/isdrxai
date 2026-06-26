@@ -41,5 +41,8 @@ export * from './listEmailsParams';
 export * from './listProspectsParams';
 export * from './prospect';
 export * from './prospectInput';
+export * from './prospectLead';
+export * from './prospectLeadConfidence';
+export * from './prospectSearchRequest';
 export * from './prospectStatus';
 export * from './prospectUpdate';

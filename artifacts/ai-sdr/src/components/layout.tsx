@@ -8,7 +8,8 @@ import {
   Calendar, 
   Send,
   Building2,
-  Bell
+  Bell,
+  Telescope
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface LayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
+  { name: "Prospect Search", href: "/prospecting", icon: Telescope },
   { name: "Prospects", href: "/prospects", icon: Users },
   { name: "Campaigns", href: "/campaigns", icon: Send },
   { name: "Emails", href: "/emails", icon: Mail },

@@ -532,6 +532,34 @@ export const GenerateCallScriptResponse = zod.object({
 
 
 /**
+ * @summary Generate a batch of prospect leads for a given city, state, and industry
+ */
+export const ProspectSearchBody = zod.object({
+  "city": zod.string(),
+  "state": zod.string(),
+  "industry": zod.string(),
+  "count": zod.number()
+})
+
+export const ProspectSearchResponseItem = zod.object({
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "contactTitle": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "industry": zod.string(),
+  "city": zod.string(),
+  "state": zod.string(),
+  "website": zod.string().optional(),
+  "estimatedEmployees": zod.number(),
+  "estimatedSquareFootage": zod.number(),
+  "whyTarget": zod.string(),
+  "confidence": zod.enum(['high', 'medium', 'low'])
+})
+export const ProspectSearchResponse = zod.array(ProspectSearchResponseItem)
+
+
+/**
  * @summary Get dashboard summary statistics
  */
 export const GetDashboardStatsResponse = zod.object({

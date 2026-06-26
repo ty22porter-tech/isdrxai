@@ -46,6 +46,8 @@ import type {
   ListProspectsParams,
   Prospect,
   ProspectInput,
+  ProspectLead,
+  ProspectSearchRequest,
   ProspectUpdate
 } from './api.schemas';
 
@@ -1773,6 +1775,76 @@ export const useGenerateCallScript = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getGenerateCallScriptMutationOptions(options));
+    }
+
+export const getProspectSearchUrl = () => {
+
+
+
+
+  return `/api/ai/prospect-search`
+}
+
+/**
+ * @summary Generate a batch of prospect leads for a given city, state, and industry
+ */
+export const prospectSearch = async (prospectSearchRequest: ProspectSearchRequest, options?: RequestInit): Promise<ProspectLead[]> => {
+
+  return customFetch<ProspectLead[]>(getProspectSearchUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(prospectSearchRequest)
+  }
+);}
+
+
+
+
+export const getProspectSearchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext> => {
+
+const mutationKey = ['prospectSearch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof prospectSearch>>, {data: BodyType<ProspectSearchRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  prospectSearch(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProspectSearchMutationResult = NonNullable<Awaited<ReturnType<typeof prospectSearch>>>
+    export type ProspectSearchMutationBody = BodyType<ProspectSearchRequest>
+    export type ProspectSearchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a batch of prospect leads for a given city, state, and industry
+ */
+export const useProspectSearch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof prospectSearch>>,
+        TError,
+        {data: BodyType<ProspectSearchRequest>},
+        TContext
+      > => {
+      return useMutation(getProspectSearchMutationOptions(options));
     }
 
 export const getGetDashboardStatsUrl = () => {

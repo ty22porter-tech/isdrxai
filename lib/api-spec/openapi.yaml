@@ -465,6 +465,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/GeneratedCallScript"
 
+  /ai/prospect-search:
+    post:
+      operationId: prospectSearch
+      tags: [ai]
+      summary: Generate a batch of prospect leads for a given city, state, and industry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectSearchRequest"
+      responses:
+        "200":
+          description: Generated prospect leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProspectLead"
+
   /stats/dashboard:
     get:
       operationId: getDashboardStats
@@ -867,6 +888,51 @@ components:
                 type: string
               response:
                 type: string
+
+    ProspectSearchRequest:
+      type: object
+      required: [city, state, industry, count]
+      properties:
+        city:
+          type: string
+        state:
+          type: string
+        industry:
+          type: string
+        count:
+          type: integer
+
+    ProspectLead:
+      type: object
+      required: [companyName, contactName, contactTitle, email, phone, industry, city, state, estimatedEmployees, estimatedSquareFootage, whyTarget, confidence]
+      properties:
+        companyName:
+          type: string
+        contactName:
+          type: string
+        contactTitle:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        industry:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        website:
+          type: string
+        estimatedEmployees:
+          type: integer
+        estimatedSquareFootage:
+          type: integer
+        whyTarget:
+          type: string
+        confidence:
+          type: string
+          enum: [high, medium, low]
 
     DashboardStats:
       type: object
