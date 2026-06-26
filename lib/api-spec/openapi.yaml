@@ -1,22 +1,34 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI SDR API for janitorial company outreach
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: prospects
+    description: Prospect management
+  - name: campaigns
+    description: Campaign management
+  - name: emails
+    description: Email outreach
+  - name: calls
+    description: Call tracking
+  - name: appointments
+    description: Appointments and walkthroughs
+  - name: ai
+    description: AI generation
+  - name: stats
+    description: Dashboard stats
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +36,468 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /prospects:
+    get:
+      operationId: listProspects
+      tags: [prospects]
+      summary: List all prospects
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: campaignId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of prospects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prospect"
+    post:
+      operationId: createProspect
+      tags: [prospects]
+      summary: Create a prospect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prospect"
+
+  /prospects/{id}:
+    get:
+      operationId: getProspect
+      tags: [prospects]
+      summary: Get a prospect by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Prospect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prospect"
+    patch:
+      operationId: updateProspect
+      tags: [prospects]
+      summary: Update a prospect
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectUpdate"
+      responses:
+        "200":
+          description: Updated prospect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prospect"
+    delete:
+      operationId: deleteProspect
+      tags: [prospects]
+      summary: Delete a prospect
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List campaigns
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get campaign by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Update a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignUpdate"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    delete:
+      operationId: deleteCampaign
+      tags: [campaigns]
+      summary: Delete a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /emails:
+    get:
+      operationId: listEmails
+      tags: [emails]
+      summary: List email outreach records
+      parameters:
+        - name: prospectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: campaignId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of emails
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Email"
+    post:
+      operationId: createEmail
+      tags: [emails]
+      summary: Save a sent email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Email"
+
+  /emails/{id}:
+    patch:
+      operationId: updateEmail
+      tags: [emails]
+      summary: Update email status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailUpdate"
+      responses:
+        "200":
+          description: Updated email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Email"
+
+  /calls:
+    get:
+      operationId: listCalls
+      tags: [calls]
+      summary: List call records
+      parameters:
+        - name: prospectId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of calls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Call"
+    post:
+      operationId: createCall
+      tags: [calls]
+      summary: Log a call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Call"
+
+  /calls/{id}:
+    patch:
+      operationId: updateCall
+      tags: [calls]
+      summary: Update a call record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallUpdate"
+      responses:
+        "200":
+          description: Updated call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Call"
+
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Create an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+
+  /appointments/{id}:
+    patch:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentUpdate"
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+    delete:
+      operationId: deleteAppointment
+      tags: [appointments]
+      summary: Delete an appointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /ai/generate-email:
+    post:
+      operationId: generateEmail
+      tags: [ai]
+      summary: AI-generate a personalized email for a prospect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateEmailRequest"
+      responses:
+        "200":
+          description: Generated email content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedEmail"
+
+  /ai/generate-call-script:
+    post:
+      operationId: generateCallScript
+      tags: [ai]
+      summary: AI-generate a call script for a prospect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCallScriptRequest"
+      responses:
+        "200":
+          description: Generated call script
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedCallScript"
+
+  /stats/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [stats]
+      summary: Get dashboard summary statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /stats/activity:
+    get:
+      operationId: getActivityFeed
+      tags: [stats]
+      summary: Get recent activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +505,414 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Prospect:
+      type: object
+      required: [id, companyName, contactName, email, phone, industry, city, state, status, createdAt]
+      properties:
+        id:
+          type: integer
+        companyName:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        industry:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        website:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        employeeCount:
+          type: ["integer", "null"]
+        squareFootage:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [new, contacted, interested, qualified, appointment_set, closed_won, closed_lost]
+        lastContactedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ProspectInput:
+      type: object
+      required: [companyName, contactName, email, phone, industry, city, state]
+      properties:
+        companyName:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        industry:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        website:
+          type: string
+        notes:
+          type: string
+        employeeCount:
+          type: integer
+        squareFootage:
+          type: integer
+
+    ProspectUpdate:
+      type: object
+      properties:
+        companyName:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        industry:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        website:
+          type: string
+        notes:
+          type: string
+        employeeCount:
+          type: integer
+        squareFootage:
+          type: integer
+        status:
+          type: string
+
+    Campaign:
+      type: object
+      required: [id, name, status, type, targetIndustry, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, paused, completed]
+        type:
+          type: string
+          enum: [email, call, mixed]
+        targetIndustry:
+          type: string
+        description:
+          type: ["string", "null"]
+        emailTemplate:
+          type: ["string", "null"]
+        callScript:
+          type: ["string", "null"]
+        prospectCount:
+          type: integer
+        emailsSent:
+          type: integer
+        callsMade:
+          type: integer
+        appointmentsSet:
+          type: integer
+        createdAt:
+          type: string
+
+    CampaignInput:
+      type: object
+      required: [name, type, targetIndustry]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        targetIndustry:
+          type: string
+        description:
+          type: string
+        emailTemplate:
+          type: string
+        callScript:
+          type: string
+
+    CampaignUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+        targetIndustry:
+          type: string
+        description:
+          type: string
+        emailTemplate:
+          type: string
+        callScript:
+          type: string
+
+    Email:
+      type: object
+      required: [id, prospectId, subject, body, status, sentAt]
+      properties:
+        id:
+          type: integer
+        prospectId:
+          type: integer
+        campaignId:
+          type: ["integer", "null"]
+        subject:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, opened, replied, bounced]
+        sentAt:
+          type: string
+        openedAt:
+          type: ["string", "null"]
+        repliedAt:
+          type: ["string", "null"]
+
+    EmailInput:
+      type: object
+      required: [prospectId, subject, body]
+      properties:
+        prospectId:
+          type: integer
+        campaignId:
+          type: integer
+        subject:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+
+    EmailUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        openedAt:
+          type: string
+        repliedAt:
+          type: string
+
+    Call:
+      type: object
+      required: [id, prospectId, status, createdAt]
+      properties:
+        id:
+          type: integer
+        prospectId:
+          type: integer
+        status:
+          type: string
+          enum: [scheduled, completed, no_answer, voicemail, callback_requested]
+        duration:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        outcome:
+          type: ["string", "null"]
+        callScript:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    CallInput:
+      type: object
+      required: [prospectId, status]
+      properties:
+        prospectId:
+          type: integer
+        status:
+          type: string
+        duration:
+          type: integer
+        notes:
+          type: string
+        outcome:
+          type: string
+        callScript:
+          type: string
+
+    CallUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        duration:
+          type: integer
+        notes:
+          type: string
+        outcome:
+          type: string
+
+    Appointment:
+      type: object
+      required: [id, prospectId, type, scheduledAt, status, createdAt]
+      properties:
+        id:
+          type: integer
+        prospectId:
+          type: integer
+        type:
+          type: string
+          enum: [walkthrough, demo, discovery_call, proposal_review]
+        scheduledAt:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled, no_show, rescheduled]
+        location:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AppointmentInput:
+      type: object
+      required: [prospectId, type, scheduledAt]
+      properties:
+        prospectId:
+          type: integer
+        type:
+          type: string
+        scheduledAt:
+          type: string
+        location:
+          type: string
+        notes:
+          type: string
+
+    AppointmentUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+        scheduledAt:
+          type: string
+        status:
+          type: string
+        location:
+          type: string
+        notes:
+          type: string
+
+    GenerateEmailRequest:
+      type: object
+      required: [prospectId]
+      properties:
+        prospectId:
+          type: integer
+        tone:
+          type: string
+        campaignId:
+          type: integer
+
+    GeneratedEmail:
+      type: object
+      required: [subject, body]
+      properties:
+        subject:
+          type: string
+        body:
+          type: string
+
+    GenerateCallScriptRequest:
+      type: object
+      required: [prospectId]
+      properties:
+        prospectId:
+          type: integer
+        objective:
+          type: string
+
+    GeneratedCallScript:
+      type: object
+      required: [script, keyPoints, objectionHandlers]
+      properties:
+        script:
+          type: string
+        keyPoints:
+          type: array
+          items:
+            type: string
+        objectionHandlers:
+          type: array
+          items:
+            type: object
+            required: [objection, response]
+            properties:
+              objection:
+                type: string
+              response:
+                type: string
+
+    DashboardStats:
+      type: object
+      required: [totalProspects, activeProspects, emailsSent, callsMade, appointmentsSet, appointmentsCompleted, conversionRate, thisWeekActivity]
+      properties:
+        totalProspects:
+          type: integer
+        activeProspects:
+          type: integer
+        emailsSent:
+          type: integer
+        callsMade:
+          type: integer
+        appointmentsSet:
+          type: integer
+        appointmentsCompleted:
+          type: integer
+        conversionRate:
+          type: number
+        thisWeekActivity:
+          type: integer
+        prospectsByStatus:
+          type: array
+          items:
+            type: object
+            required: [status, count]
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [email_sent, call_made, appointment_set, prospect_added, status_changed]
+        description:
+          type: string
+        prospectId:
+          type: ["integer", "null"]
+        prospectName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
