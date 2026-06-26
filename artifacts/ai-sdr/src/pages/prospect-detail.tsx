@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useParams } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { 
-  useGetProspect, 
+  useGetProspect,
+  useUpdateProspect,
   useListEmails, 
   useListCalls, 
   useListAppointments,
   useGenerateEmail,
   useCreateEmail,
   useGenerateCallScript,
-  useCreateCall
+  useCreateCall,
+  getGetProspectQueryKey,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,28 +19,55 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Building2, MapPin, Phone, Mail, Globe, Users, Maximize, 
-  Sparkles, Send, PhoneCall, Calendar
+  Sparkles, Send, PhoneCall, Calendar, ChevronRight
 } from "lucide-react";
+
+const PIPELINE_STAGES = [
+  { value: "new",               label: "New",               color: "bg-blue-100 text-blue-800 border-blue-200" },
+  { value: "contacted",         label: "Contacted",         color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  { value: "interested",        label: "Interested",        color: "bg-orange-100 text-orange-800 border-orange-200" },
+  { value: "qualified",         label: "Qualified",         color: "bg-purple-100 text-purple-800 border-purple-200" },
+  { value: "appointment_set",   label: "Appointment Set",   color: "bg-green-100 text-green-800 border-green-200" },
+  { value: "closed_won",        label: "Closed Won",        color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  { value: "closed_lost",       label: "Closed Lost",       color: "bg-red-100 text-red-800 border-red-200" },
+];
 
 export default function ProspectDetail() {
   const { id } = useParams<{ id: string }>();
   const prospectId = parseInt(id, 10);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: prospect, isLoading } = useGetProspect(prospectId, { query: { enabled: !!prospectId } });
   const { data: emails } = useListEmails({ prospectId });
   const { data: calls } = useListCalls({ prospectId });
   const { data: appointments } = useListAppointments({ status: "scheduled" });
 
+  const updateProspect = useUpdateProspect();
   const generateEmail = useGenerateEmail();
   const createEmail = useCreateEmail();
   const generateCallScript = useGenerateCallScript();
   const createCall = useCreateCall();
+
+  const handleStatusChange = (newStatus: string) => {
+    updateProspect.mutate(
+      { id: prospectId, data: { status: newStatus } },
+      {
+        onSuccess: () => {
+          const stage = PIPELINE_STAGES.find(s => s.value === newStatus);
+          toast({ title: `Status updated to "${stage?.label ?? newStatus}"` });
+          queryClient.invalidateQueries({ queryKey: getGetProspectQueryKey(prospectId) });
+        },
+        onError: () => toast({ title: "Failed to update status", variant: "destructive" }),
+      }
+    );
+  };
 
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
@@ -118,9 +148,30 @@ export default function ProspectDetail() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 bg-card p-6 rounded-lg border shadow-sm">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-3xl font-bold tracking-tight">{prospect.companyName}</h2>
-              <Badge className="uppercase tracking-widest">{prospect.status.replace(/_/g, " ")}</Badge>
+              <div className="flex items-center gap-2">
+                <Select value={prospect.status} onValueChange={handleStatusChange} disabled={updateProspect.isPending}>
+                  <SelectTrigger className={`h-7 text-xs font-semibold border px-2.5 py-0 rounded-full w-auto gap-1.5 ${PIPELINE_STAGES.find(s => s.value === prospect.status)?.color ?? ""}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PIPELINE_STAGES.map((stage, i) => (
+                      <SelectItem key={stage.value} value={stage.value}>
+                        <div className="flex items-center gap-2">
+                          {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${stage.color}`}>
+                            {stage.label}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {updateProspect.isPending && (
+                  <span className="text-xs text-muted-foreground animate-pulse">Saving…</span>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" /> {prospect.contactName}</div>
