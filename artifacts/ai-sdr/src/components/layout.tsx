@@ -9,7 +9,8 @@ import {
   Send,
   Building2,
   Bell,
-  Telescope
+  Telescope,
+  GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Prospect Search", href: "/prospecting", icon: Telescope },
   { name: "Prospects", href: "/prospects", icon: Users },
   { name: "Campaigns", href: "/campaigns", icon: Send },
+  { name: "Sequences", href: "/sequences", icon: GitBranch },
   { name: "Emails", href: "/emails", icon: Mail },
   { name: "Calls", href: "/calls", icon: PhoneCall },
   { name: "Appointments", href: "/appointments", icon: Calendar },

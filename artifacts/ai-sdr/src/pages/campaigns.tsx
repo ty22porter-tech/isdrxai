@@ -72,9 +72,52 @@ const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> =
   mixed: { label: "Mixed Touches",  icon: Send,      color: "text-purple-600" },
 };
 
-const BLANK_FORM = {
+interface SequenceStep {
+  dayDelay: number;
+  subject: string;
+  body: string;
+}
+
+interface CampaignForm {
+  name: string;
+  type: string;
+  targetIndustry: string;
+  description: string;
+  emailTemplate: string;
+  followUp1: SequenceStep;
+  followUp2: SequenceStep;
+}
+
+const BLANK_FORM: CampaignForm = {
   name: "", type: "email", targetIndustry: "", description: "", emailTemplate: "",
+  followUp1: { dayDelay: 3, subject: "Following up — {{companyName}}", body: "Hi {{contactName}},\n\nJust following up on my previous email about janitorial services for {{companyName}}. Would you be open to a quick 15-minute call this week?\n\nBest,\nYour SDR Team" },
+  followUp2: { dayDelay: 7, subject: "Last note — {{companyName}}", body: "Hi {{contactName}},\n\nI know your time is valuable, so I'll keep this brief. If janitorial services for {{companyName}} aren't a priority right now, no worries at all — I'll stop reaching out.\n\nIf timing changes, we'd love to help. Wishing you a great week!\n\nBest,\nYour SDR Team" },
 };
+
+function parseFormFromCampaign(c: any): CampaignForm {
+  let followUp1 = BLANK_FORM.followUp1;
+  let followUp2 = BLANK_FORM.followUp2;
+  if (c.callScript) {
+    try {
+      const parsed = JSON.parse(c.callScript);
+      if (parsed.followUp1) followUp1 = parsed.followUp1;
+      if (parsed.followUp2) followUp2 = parsed.followUp2;
+    } catch {}
+  }
+  return {
+    name: c.name,
+    type: c.type,
+    targetIndustry: c.targetIndustry,
+    description: c.description ?? "",
+    emailTemplate: c.emailTemplate ?? "",
+    followUp1,
+    followUp2,
+  };
+}
+
+function buildCallScript(form: CampaignForm): string {
+  return JSON.stringify({ followUp1: form.followUp1, followUp2: form.followUp2 });
+}
 
 export default function Campaigns() {
   const { toast } = useToast();
@@ -95,7 +138,15 @@ export default function Campaigns() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     createCampaign.mutate(
-      { data: { ...form, targetIndustry: form.targetIndustry || "General" } },
+      { data: {
+          name: form.name,
+          type: form.type,
+          targetIndustry: form.targetIndustry || "General",
+          description: form.description,
+          emailTemplate: form.emailTemplate,
+          callScript: buildCallScript(form),
+        }
+      },
       {
         onSuccess: () => {
           toast({ title: "Campaign created" });
@@ -112,7 +163,15 @@ export default function Campaigns() {
     e.preventDefault();
     if (!editCampaign) return;
     updateCampaign.mutate(
-      { id: editCampaign.id, data: form },
+      { id: editCampaign.id, data: {
+          name: form.name,
+          type: form.type,
+          targetIndustry: form.targetIndustry,
+          description: form.description,
+          emailTemplate: form.emailTemplate,
+          callScript: buildCallScript(form),
+        }
+      },
       {
         onSuccess: () => {
           toast({ title: "Campaign updated" });
@@ -151,13 +210,7 @@ export default function Campaigns() {
   };
 
   const openEdit = (c: any) => {
-    setForm({
-      name: c.name,
-      type: c.type,
-      targetIndustry: c.targetIndustry,
-      description: c.description ?? "",
-      emailTemplate: c.emailTemplate ?? "",
-    });
+    setForm(parseFormFromCampaign(c));
     setEditCampaign(c);
   };
 
@@ -312,8 +365,11 @@ export default function Campaigns() {
     );
   };
 
+  const showEmailSteps = form.type === "email" || form.type === "mixed";
+
   const CampaignForm = ({ onSubmit, isPending }: { onSubmit: (e: React.FormEvent) => void; isPending: boolean }) => (
-    <form onSubmit={onSubmit} className="space-y-4 pt-2">
+    <form onSubmit={onSubmit} className="space-y-5 pt-2">
+      {/* Basics */}
       <div className="space-y-2">
         <Label>Campaign Name</Label>
         <Input
@@ -327,9 +383,7 @@ export default function Campaigns() {
         <div className="space-y-2">
           <Label>Type</Label>
           <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="email">Email Sequence</SelectItem>
               <SelectItem value="call">Call Blitz</SelectItem>
@@ -340,9 +394,7 @@ export default function Campaigns() {
         <div className="space-y-2">
           <Label>Target Industry</Label>
           <Select value={form.targetIndustry} onValueChange={v => setForm({ ...form, targetIndustry: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select industry" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
             <SelectContent>
               {INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
             </SelectContent>
@@ -358,19 +410,92 @@ export default function Campaigns() {
           onChange={e => setForm({ ...form, description: e.target.value })}
         />
       </div>
-      <div className="space-y-2">
-        <Label>Email Template <span className="text-muted-foreground font-normal">(optional)</span></Label>
-        <Textarea
-          rows={4}
-          placeholder={"Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
-          value={form.emailTemplate}
-          onChange={e => setForm({ ...form, emailTemplate: e.target.value })}
-          className="font-mono text-xs"
-        />
-        <p className="text-xs text-muted-foreground">
-          Use &#123;&#123;contactName&#125;&#125;, &#123;&#123;companyName&#125;&#125;, &#123;&#123;city&#125;&#125;, &#123;&#123;industry&#125;&#125; as merge fields.
-        </p>
-      </div>
+
+      {/* Email sequence steps */}
+      {showEmailSteps && (
+        <div className="space-y-4">
+          <Separator />
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">1</div>
+            <Label className="text-sm font-semibold">Step 1 — Intro Email (sent immediately)</Label>
+          </div>
+          <Textarea
+            rows={4}
+            placeholder={"Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
+            value={form.emailTemplate}
+            onChange={e => setForm({ ...form, emailTemplate: e.target.value })}
+            className="font-mono text-xs"
+          />
+
+          <Separator />
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 rounded-full bg-yellow-500 text-white text-xs flex items-center justify-center font-bold shrink-0">2</div>
+            <Label className="text-sm font-semibold">Step 2 — Follow-up (if no reply)</Label>
+            <div className="flex items-center gap-1 ml-auto">
+              <Label className="text-xs text-muted-foreground">Send after</Label>
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                className="w-16 h-7 text-xs"
+                value={form.followUp1.dayDelay}
+                onChange={e => setForm({ ...form, followUp1: { ...form.followUp1, dayDelay: parseInt(e.target.value) || 3 } })}
+              />
+              <Label className="text-xs text-muted-foreground">days</Label>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Input
+              placeholder="Subject line…"
+              value={form.followUp1.subject}
+              onChange={e => setForm({ ...form, followUp1: { ...form.followUp1, subject: e.target.value } })}
+              className="text-sm"
+            />
+            <Textarea
+              rows={3}
+              value={form.followUp1.body}
+              onChange={e => setForm({ ...form, followUp1: { ...form.followUp1, body: e.target.value } })}
+              className="font-mono text-xs"
+            />
+          </div>
+
+          <Separator />
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold shrink-0">3</div>
+            <Label className="text-sm font-semibold">Step 3 — Breakup Email (if still no reply)</Label>
+            <div className="flex items-center gap-1 ml-auto">
+              <Label className="text-xs text-muted-foreground">Send after</Label>
+              <Input
+                type="number"
+                min={1}
+                max={60}
+                className="w-16 h-7 text-xs"
+                value={form.followUp2.dayDelay}
+                onChange={e => setForm({ ...form, followUp2: { ...form.followUp2, dayDelay: parseInt(e.target.value) || 7 } })}
+              />
+              <Label className="text-xs text-muted-foreground">days</Label>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Input
+              placeholder="Subject line…"
+              value={form.followUp2.subject}
+              onChange={e => setForm({ ...form, followUp2: { ...form.followUp2, subject: e.target.value } })}
+              className="text-sm"
+            />
+            <Textarea
+              rows={3}
+              value={form.followUp2.body}
+              onChange={e => setForm({ ...form, followUp2: { ...form.followUp2, body: e.target.value } })}
+              className="font-mono text-xs"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Merge fields: &#123;&#123;contactName&#125;&#125;, &#123;&#123;companyName&#125;&#125;, &#123;&#123;city&#125;&#125;, &#123;&#123;industry&#125;&#125;
+          </p>
+        </div>
+      )}
+
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); setEditCampaign(null); }}>
           Cancel
