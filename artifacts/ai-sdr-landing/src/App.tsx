@@ -244,7 +244,63 @@ function FeaturesGrid() {
   );
 }
 
-function DeepDiveSection({ reversed, imageSrc, pretitle, title, description, items }: any) {
+function EmailMockup() {
+  return (
+    <div className="relative rounded-2xl border border-white/10 shadow-2xl bg-[#0d1829] w-full overflow-hidden">
+      {/* Window chrome */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-white/[0.03]">
+        <div className="w-3 h-3 rounded-full bg-red-500/70" />
+        <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+        <div className="w-3 h-3 rounded-full bg-green-500/70" />
+        <span className="ml-3 text-xs text-muted-foreground font-medium">New Message — AI Personalized</span>
+        <div className="ml-auto flex items-center gap-1 text-xs text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
+          <Sparkles className="w-3 h-3" /> AI Generated
+        </div>
+      </div>
+
+      {/* Email headers */}
+      <div className="px-5 py-4 space-y-2 border-b border-white/5 text-sm">
+        <div className="flex gap-3">
+          <span className="text-muted-foreground w-10 shrink-0">To:</span>
+          <span className="text-white font-medium">sarah.kim@peakstonerealty.com</span>
+        </div>
+        <div className="flex gap-3">
+          <span className="text-muted-foreground w-10 shrink-0">From:</span>
+          <span className="text-white">Mike Torres &lt;mike@apexclean.com&gt;</span>
+        </div>
+        <div className="flex gap-3">
+          <span className="text-muted-foreground w-10 shrink-0">Re:</span>
+          <span className="text-white font-semibold">Keeping Peakstone's offices spotless</span>
+        </div>
+      </div>
+
+      {/* Email body */}
+      <div className="px-5 py-5 text-sm text-gray-300 leading-relaxed space-y-3">
+        <p>Hi Sarah,</p>
+        <p>
+          I noticed Peakstone Realty recently expanded to your new Riverside office — congratulations on the growth.
+          Managing cleanliness across multiple locations can get complicated fast, especially with client-facing spaces.
+        </p>
+        <p>
+          We specialize in commercial cleaning for property management firms in the Denver metro. We currently handle
+          three office complexes on the same block as your downtown location, so scheduling and access are never an issue.
+        </p>
+        <p>Would a 15-minute call this week make sense to see if we're a fit?</p>
+        <p className="text-white font-medium">— Mike Torres, Apex Facility Services</p>
+      </div>
+
+      {/* AI badge strip */}
+      <div className="px-5 py-3 bg-primary/5 border-t border-primary/10 flex items-center gap-3">
+        <Bot className="w-4 h-4 text-primary shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          <span className="text-primary font-medium">AI research used:</span> LinkedIn expansion announcement · Google Maps office locations · Yelp reviews
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DeepDiveSection({ reversed, imageSrc, graphic, pretitle, title, description, items }: any) {
   return (
     <section className="py-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
@@ -284,11 +340,13 @@ function DeepDiveSection({ reversed, imageSrc, pretitle, title, description, ite
             className="flex-1 relative"
           >
             <div className="absolute -inset-4 bg-gradient-to-tr from-primary/20 to-accent/20 rounded-[2rem] blur-2xl opacity-50"></div>
-            <img 
-              src={imageSrc} 
-              alt={title} 
-              className="relative rounded-2xl border border-white/10 shadow-2xl bg-card w-full"
-            />
+            {graphic ?? (
+              <img 
+                src={imageSrc} 
+                alt={title} 
+                className="relative rounded-2xl border border-white/10 shadow-2xl bg-card w-full"
+              />
+            )}
           </motion.div>
 
         </div>
@@ -398,7 +456,7 @@ function LandingPage() {
         <FeaturesGrid />
         
         <DeepDiveSection 
-          imageSrc={`${import.meta.env.BASE_URL}images/email-feature.png`}
+          graphic={<EmailMockup />}
           pretitle="Personalized Pitch"
           title="Emails so good, they think you hand-wrote them."
           description="Our engine analyzes the prospect's website, recent news, and business type to write a highly contextual opening that proves you aren't just spamming them."
