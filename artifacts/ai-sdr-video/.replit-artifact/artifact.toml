@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/ai-sdr-video/"
+title = "AI SDR – Product Video"
+version = "1.0.0"
+id = "artifacts/ai-sdr-video"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/ai-sdr-video/" ]
+localPort = 18963
+
+[services.development]
+run = "pnpm --filter @workspace/ai-sdr-video run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-sdr-video", "run", "build" ]
+publicDir = "artifacts/ai-sdr-video/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18963"
+BASE_PATH = "/ai-sdr-video/"
