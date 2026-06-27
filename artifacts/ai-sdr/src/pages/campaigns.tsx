@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { generateEmailForStep } from "@/lib/email-ai";
 import {
   useListCampaigns,
   useCreateCampaign,
@@ -52,6 +53,7 @@ import {
   Archive,
   Pencil,
   Trash2,
+  Wand2,
 } from "lucide-react";
 
 const INDUSTRIES = [
@@ -418,6 +420,18 @@ export default function Campaigns() {
           <div className="flex items-center gap-2">
             <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">1</div>
             <Label className="text-sm font-semibold">Step 1 — Intro Email (sent immediately)</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="ml-auto h-7 text-xs gap-1"
+              onClick={() => {
+                const { subject, body } = generateEmailForStep(1, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
+                setForm({ ...form, emailTemplate: body });
+              }}
+            >
+              <Wand2 className="h-3 w-3" /> AI Generate
+            </Button>
           </div>
           <Textarea
             rows={4}
@@ -428,9 +442,21 @@ export default function Campaigns() {
           />
 
           <Separator />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="h-5 w-5 rounded-full bg-yellow-500 text-white text-xs flex items-center justify-center font-bold shrink-0">2</div>
             <Label className="text-sm font-semibold">Step 2 — Follow-up (if no reply)</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              onClick={() => {
+                const { subject, body } = generateEmailForStep(2, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
+                setForm({ ...form, followUp1: { ...form.followUp1, subject, body } });
+              }}
+            >
+              <Wand2 className="h-3 w-3" /> AI Generate
+            </Button>
             <div className="flex items-center gap-1 ml-auto">
               <Label className="text-xs text-muted-foreground">Send after</Label>
               <Input
@@ -460,9 +486,21 @@ export default function Campaigns() {
           </div>
 
           <Separator />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold shrink-0">3</div>
             <Label className="text-sm font-semibold">Step 3 — Breakup Email (if still no reply)</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              onClick={() => {
+                const { subject, body } = generateEmailForStep(3, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
+                setForm({ ...form, followUp2: { ...form.followUp2, subject, body } });
+              }}
+            >
+              <Wand2 className="h-3 w-3" /> AI Generate
+            </Button>
             <div className="flex items-center gap-1 ml-auto">
               <Label className="text-xs text-muted-foreground">Send after</Label>
               <Input

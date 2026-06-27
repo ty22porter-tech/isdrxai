@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useListProspects, useCreateProspect, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -9,13 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye } from "lucide-react";
+import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
+// ─── Merge template ───────────────────────────────────────────────────────────
 function mergeTpl(tpl: string, prospect: any): string {
   return tpl
     .replace(/\{\{contactName\}\}/g, prospect.contactName ?? "")
@@ -24,11 +26,258 @@ function mergeTpl(tpl: string, prospect: any): string {
     .replace(/\{\{state\}\}/g, prospect.state ?? "")
     .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
 }
-
 function defaultSubject(campaignName: string) {
   return `Janitorial Services for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
+// ─── CSV parsing ──────────────────────────────────────────────────────────────
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
+  return lines.slice(1).map(line => {
+    const values = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      row[h] = (values[i] ?? "").replace(/^"|"$/g, "").trim();
+    });
+    return row;
+  }).filter(row => Object.values(row).some(v => v));
+}
+
+// Column aliases (ZoomInfo, Apollo, generic)
+const COLUMN_MAP: Record<string, string[]> = {
+  companyName:  ["Company Name", "Company", "organization_name", "Account Name"],
+  contactName:  ["Contact Name", "Full Name", "Name"],
+  firstName:    ["First Name", "first_name"],
+  lastName:     ["Last Name", "last_name"],
+  email:        ["Email Address", "Email", "email", "Work Email"],
+  phone:        ["Direct Phone Number", "Phone", "phone", "Mobile Phone", "Corporate Phone"],
+  industry:     ["Industry", "industry", "Sector"],
+  city:         ["City", "city"],
+  state:        ["State", "State/Province", "state"],
+};
+
+function resolveColumn(headers: string[], key: string): string | undefined {
+  const aliases = COLUMN_MAP[key] ?? [];
+  return aliases.find(a => headers.includes(a));
+}
+
+function mapRow(row: Record<string, string>, headers: string[]): {
+  companyName: string; contactName: string; email: string;
+  phone: string; industry: string; city: string; state: string;
+} | null {
+  const get = (key: string) => {
+    const col = resolveColumn(headers, key);
+    return col ? row[col] ?? "" : "";
+  };
+  const firstName = get("firstName");
+  const lastName = get("lastName");
+  const fullName = get("contactName") || `${firstName} ${lastName}`.trim();
+  const company = get("companyName");
+  const email = get("email");
+  if (!company && !email) return null;
+  return {
+    companyName: company,
+    contactName: fullName || "Unknown",
+    email: email,
+    phone: get("phone"),
+    industry: get("industry"),
+    city: get("city"),
+    state: get("state"),
+  };
+}
+
+// ─── Status color ─────────────────────────────────────────────────────────────
+function getStatusColor(status: string) {
+  switch (status) {
+    case "new": return "bg-blue-100 text-blue-800";
+    case "contacted": return "bg-yellow-100 text-yellow-800";
+    case "interested": return "bg-orange-100 text-orange-800";
+    case "qualified": return "bg-purple-100 text-purple-800";
+    case "appointment_set": return "bg-green-100 text-green-800";
+    case "closed_won": return "bg-emerald-100 text-emerald-800";
+    case "closed_lost": return "bg-red-100 text-red-800";
+    default: return "bg-gray-100 text-gray-800";
+  }
+}
+
+// ─── CSV Import Dialog ────────────────────────────────────────────────────────
+function CSVImportDialog({ onImported }: { onImported: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<ReturnType<typeof mapRow>[]>([]);
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [importing, setImporting] = useState(false);
+  const [done, setDone] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const createProspect = useCreateProspect();
+  const { toast } = useToast();
+
+  const handleFile = (file: File) => {
+    setError(""); setRows([]); setDone(false); setProgress(0);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target?.result as string;
+      const parsed = parseCSV(text);
+      if (!parsed.length) { setError("No data rows found. Make sure your CSV has a header row."); return; }
+      const headers = Object.keys(parsed[0]);
+      const mapped = parsed.map(r => mapRow(r, headers)).filter(Boolean) as ReturnType<typeof mapRow>[];
+      if (!mapped.length) { setError("Couldn't map any rows. Make sure your CSV has Company Name and Email columns."); return; }
+      setRows(mapped);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const handleImport = async () => {
+    if (!rows.length) return;
+    setImporting(true);
+    let imported = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!;
+      await new Promise<void>(resolve => {
+        createProspect.mutate(
+          { data: { companyName: row.companyName, contactName: row.contactName, email: row.email, phone: row.phone || "(000) 000-0000", industry: row.industry || "General", city: row.city || "", state: row.state || "" } },
+          { onSuccess: () => { imported++; resolve(); }, onError: () => resolve() }
+        );
+      });
+      setProgress(Math.round(((i + 1) / rows.length) * 100));
+    }
+    setImporting(false);
+    setDone(true);
+    onImported();
+    toast({ title: `${imported} prospect${imported !== 1 ? "s" : ""} imported` });
+  };
+
+  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <Upload className="mr-2 h-4 w-4" /> Import CSV
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[620px]">
+        <DialogHeader>
+          <DialogTitle>Import Prospects from CSV</DialogTitle>
+          <DialogDescription>
+            Supports exports from <strong>ZoomInfo</strong>, <strong>Apollo</strong>, or any CSV with Company, Email, and Name columns.
+          </DialogDescription>
+        </DialogHeader>
+
+        {done ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <p className="font-semibold">Import complete!</p>
+            <p className="text-sm text-muted-foreground">{rows.length} prospects added to your database.</p>
+            <Button onClick={() => { setOpen(false); reset(); }}>Done</Button>
+          </div>
+        ) : importing ? (
+          <div className="py-8 space-y-4 text-center">
+            <p className="text-sm font-medium">Importing {rows.length} prospects…</p>
+            <Progress value={progress} className="w-full" />
+            <p className="text-xs text-muted-foreground">{progress}% complete</p>
+          </div>
+        ) : rows.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{rows.length} prospects ready to import</span>
+              <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs" onClick={reset}>Clear</Button>
+            </div>
+            <div className="rounded-lg border overflow-hidden max-h-56 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Company</TableHead>
+                    <TableHead className="text-xs">Contact</TableHead>
+                    <TableHead className="text-xs">Email</TableHead>
+                    <TableHead className="text-xs">Industry</TableHead>
+                    <TableHead className="text-xs">Location</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.slice(0, 10).map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-xs font-medium py-2">{row!.companyName}</TableCell>
+                      <TableCell className="text-xs py-2">{row!.contactName}</TableCell>
+                      <TableCell className="text-xs py-2 text-muted-foreground">{row!.email}</TableCell>
+                      <TableCell className="text-xs py-2">{row!.industry}</TableCell>
+                      <TableCell className="text-xs py-2">{row!.city}{row!.city && row!.state ? ", " : ""}{row!.state}</TableCell>
+                    </TableRow>
+                  ))}
+                  {rows.length > 10 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-xs text-center text-muted-foreground py-2">
+                        + {rows.length - 10} more rows
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={reset}>Back</Button>
+              <Button onClick={handleImport}>
+                <Upload className="mr-2 h-4 w-4" /> Import {rows.length} Prospects
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Drop zone */}
+            <div
+              className="border-2 border-dashed rounded-lg p-10 text-center cursor-pointer hover:border-primary hover:bg-muted/30 transition-colors"
+              onDrop={handleDrop}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
+              <p className="text-sm font-medium">Drop your CSV here, or click to browse</p>
+              <p className="text-xs text-muted-foreground mt-1">CSV files from ZoomInfo, Apollo, or any spreadsheet export</p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            {/* Format hints */}
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Supported column names</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span><strong>Company:</strong> "Company Name", "Company"</span>
+                <span><strong>Contact:</strong> "First Name" + "Last Name"</span>
+                <span><strong>Email:</strong> "Email Address", "Work Email"</span>
+                <span><strong>Phone:</strong> "Direct Phone Number", "Phone"</span>
+                <span><strong>Industry:</strong> "Industry", "Sector"</span>
+                <span><strong>Location:</strong> "City", "State"</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Prospects() {
   const [search, setSearch] = useState("");
   const { data: prospects, isLoading, refetch } = useListProspects({ search });
@@ -58,9 +307,7 @@ export default function Prospects() {
       return next;
     });
   };
-  const toggleAll = () => {
-    setSelected(allSelected ? new Set() : new Set(allIds));
-  };
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
 
   // quick send
   const [sendOpen, setSendOpen] = useState(false);
@@ -76,9 +323,7 @@ export default function Prospects() {
   const previewBody = selectedCampaign?.emailTemplate
     ? mergeTpl(selectedCampaign.emailTemplate, preview ?? {})
     : "";
-  const previewSubject = selectedCampaign
-    ? defaultSubject(selectedCampaign.name)
-    : "";
+  const previewSubject = selectedCampaign ? defaultSubject(selectedCampaign.name) : "";
 
   const handleSend = async () => {
     if (!selectedCampaign || selectedProspects.length === 0) return;
@@ -99,10 +344,7 @@ export default function Prospects() {
     setSending(false);
     setSendOpen(false);
     setSelected(new Set());
-    toast({
-      title: `${sent} email${sent !== 1 ? "s" : ""} sent`,
-      description: `Via "${selectedCampaign.name}" campaign`,
-    });
+    toast({ title: `${sent} email${sent !== 1 ? "s" : ""} sent`, description: `Via "${selectedCampaign.name}" campaign` });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -117,19 +359,6 @@ export default function Prospects() {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "new": return "bg-blue-100 text-blue-800";
-      case "contacted": return "bg-yellow-100 text-yellow-800";
-      case "interested": return "bg-orange-100 text-orange-800";
-      case "qualified": return "bg-purple-100 text-purple-800";
-      case "appointment_set": return "bg-green-100 text-green-800";
-      case "closed_won": return "bg-emerald-100 text-emerald-800";
-      case "closed_lost": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
   return (
     <Layout>
       <div className="space-y-6">
@@ -138,51 +367,54 @@ export default function Prospects() {
             <h2 className="text-3xl font-bold tracking-tight">Prospects</h2>
             <p className="text-muted-foreground mt-1">Manage your janitorial commercial targets.</p>
           </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" /> Add Prospect</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add New Prospect</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Company Name</label>
-                    <Input required value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Contact Name</label>
-                    <Input required value={formData.contactName} onChange={e => setFormData({...formData, contactName: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Email</label>
-                    <Input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Phone</label>
-                    <Input required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Industry</label>
-                    <Input required value={formData.industry} onChange={e => setFormData({...formData, industry: e.target.value})} placeholder="e.g. Office, Medical" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2">
+            <CSVImportDialog onImported={refetch} />
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" /> Add Prospect</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Add New Prospect</DialogTitle></DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">City</label>
-                      <Input required value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                      <label className="text-sm font-medium">Company Name</label>
+                      <Input required value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">State</label>
-                      <Input required value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
+                      <label className="text-sm font-medium">Contact Name</label>
+                      <Input required value={formData.contactName} onChange={e => setFormData({...formData, contactName: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Email</label>
+                      <Input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Phone</label>
+                      <Input required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Industry</label>
+                      <Input required value={formData.industry} onChange={e => setFormData({...formData, industry: e.target.value})} placeholder="e.g. Office, Medical" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">City</label>
+                        <Input required value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">State</label>
+                        <Input required value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={createProspect.isPending}>Save Prospect</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <div className="flex justify-end pt-4">
+                    <Button type="submit" disabled={createProspect.isPending}>Save Prospect</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Bulk action bar */}
@@ -206,24 +438,18 @@ export default function Prospects() {
                     Choose an active campaign. Each prospect will receive a personalized version of the email template.
                   </DialogDescription>
                 </DialogHeader>
-
                 <div className="space-y-5 pt-2">
                   <div className="space-y-2">
                     <Label>Campaign</Label>
                     <Select value={selectedCampaignId} onValueChange={v => { setSelectedCampaignId(v); setPreviewProspect(null); }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an active campaign…" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Select an active campaign…" /></SelectTrigger>
                       <SelectContent>
                         {activeCampaigns.map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.name} · {c.targetIndustry}
-                          </SelectItem>
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name} · {c.targetIndustry}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
                     <Label>Recipients ({selected.size})</Label>
                     <div className="flex flex-wrap gap-1.5">
@@ -232,49 +458,34 @@ export default function Prospects() {
                           key={p.id}
                           onClick={() => setPreviewProspect(p)}
                           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                            preview?.id === p.id
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                            preview?.id === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"
                           }`}
                         >
-                          <Eye className="h-3 w-3" />
-                          {p.companyName}
+                          <Eye className="h-3 w-3" />{p.companyName}
                         </button>
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground">Click a company to preview their personalized email.</p>
                   </div>
-
                   {selectedCampaign && preview && (
                     <div className="space-y-3">
                       <Separator />
                       <div className="space-y-1">
                         <Label className="text-xs uppercase tracking-wide text-muted-foreground">Preview — {preview.companyName}</Label>
                         <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                          <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Subject</p>
-                            <p className="text-sm font-medium">{previewSubject}</p>
-                          </div>
+                          <div><p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Subject</p><p className="text-sm font-medium">{previewSubject}</p></div>
                           <Separator />
-                          <div className="space-y-1">
+                          <div>
                             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Body</p>
-                            <Textarea
-                              readOnly
-                              value={previewBody || `Hi ${preview.contactName},\n\nWe provide janitorial services for ${preview.industry} companies in ${preview.city}. I'd love to schedule a walkthrough at ${preview.companyName}.\n\nBest,\nYour SDR Team`}
-                              className="min-h-[160px] font-mono text-xs bg-background resize-none"
-                            />
+                            <Textarea readOnly value={previewBody || `Hi ${preview.contactName},\n\nWe provide janitorial services for ${preview.industry} companies in ${preview.city}. I'd love to schedule a walkthrough at ${preview.companyName}.\n\nBest,\nYour SDR Team`} className="min-h-[160px] font-mono text-xs bg-background resize-none mt-1" />
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
-
                   <div className="flex justify-end gap-2 pt-2">
                     <Button variant="outline" onClick={() => setSendOpen(false)}>Cancel</Button>
-                    <Button
-                      onClick={handleSend}
-                      disabled={!selectedCampaign || sending}
-                    >
+                    <Button onClick={handleSend} disabled={!selectedCampaign || sending}>
                       <Send className="mr-2 h-4 w-4" />
                       {sending ? "Sending…" : `Send to ${selected.size} Prospect${selected.size !== 1 ? "s" : ""}`}
                     </Button>
@@ -282,25 +493,15 @@ export default function Prospects() {
                 </div>
               </DialogContent>
             </Dialog>
-
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-              <X className="h-4 w-4" />
-            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}><X className="h-4 w-4" /></Button>
           </div>
         )}
 
         <Card>
           <CardHeader className="py-4">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search prospects..."
-                  className="pl-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search prospects..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -308,11 +509,7 @@ export default function Prospects() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10 pl-4">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleAll}
-                      aria-label="Select all"
-                    />
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Contact</TableHead>
@@ -331,18 +528,14 @@ export default function Prospects() {
                     <TableRow
                       key={prospect.id}
                       className={`cursor-pointer hover:bg-muted/50 ${selected.has(prospect.id) ? "bg-primary/5" : ""}`}
-                      onClick={(e) => {
+                      onClick={e => {
                         const target = e.target as HTMLElement;
                         if (target.closest('[role="checkbox"]') || target.tagName === "INPUT") return;
                         navigate(`/prospects/${prospect.id}`);
                       }}
                     >
                       <TableCell className="pl-4" onClick={e => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selected.has(prospect.id)}
-                          onCheckedChange={() => toggleOne(prospect.id)}
-                          aria-label={`Select ${prospect.companyName}`}
-                        />
+                        <Checkbox checked={selected.has(prospect.id)} onCheckedChange={() => toggleOne(prospect.id)} aria-label={`Select ${prospect.companyName}`} />
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-primary">{prospect.companyName}</div>
@@ -359,8 +552,7 @@ export default function Prospects() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          {prospect.city}, {prospect.state}
+                          <MapPin className="h-3 w-3 text-muted-foreground" />{prospect.city}, {prospect.state}
                         </div>
                       </TableCell>
                       <TableCell>
