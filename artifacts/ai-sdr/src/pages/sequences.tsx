@@ -31,8 +31,10 @@ function parseSequenceSteps(callScript?: string | null): SequenceStep[] {
   try {
     const data = JSON.parse(callScript);
     const steps: SequenceStep[] = [];
-    if (data.followUp1?.body) steps.push({ ...data.followUp1, stepNumber: 2 });
-    if (data.followUp2?.body) steps.push({ ...data.followUp2, stepNumber: 3 });
+    const keys = ["followUp1","followUp2","followUp3","followUp4","followUp5","followUp6"] as const;
+    keys.forEach((key, idx) => {
+      if (data[key]?.body) steps.push({ ...data[key], stepNumber: idx + 2 });
+    });
     return steps;
   } catch {
     return [];
@@ -232,11 +234,24 @@ export default function Sequences() {
     });
   };
 
-  const stepLabel = (n: number) =>
-    n === 2 ? "Follow-up #1" : n === 3 ? "Breakup Email" : `Step ${n}`;
-
-  const stepColor = (n: number) =>
-    n === 2 ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-red-100 text-red-800 border-red-200";
+  const STEP_LABELS: Record<number, string> = {
+    2: "Follow-up #1",
+    3: "Value Add",
+    4: "Case Study",
+    5: "New Angle",
+    6: "Last Attempt",
+    7: "Breakup Email",
+  };
+  const STEP_COLORS: Record<number, string> = {
+    2: "bg-blue-100 text-blue-800 border-blue-200",
+    3: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    4: "bg-violet-100 text-violet-800 border-violet-200",
+    5: "bg-amber-100 text-amber-800 border-amber-200",
+    6: "bg-orange-100 text-orange-800 border-orange-200",
+    7: "bg-red-100 text-red-800 border-red-200",
+  };
+  const stepLabel = (n: number) => STEP_LABELS[n] ?? `Step ${n}`;
+  const stepColor = (n: number) => STEP_COLORS[n] ?? "bg-gray-100 text-gray-700 border-gray-200";
 
   return (
     <Layout>
@@ -256,14 +271,16 @@ export default function Sequences() {
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-blue-900">How sequences work</p>
                 <p className="text-sm text-blue-800">
-                  Each active campaign can have up to 3 email steps. When a prospect gets email 1 and doesn't reply within the configured days, they appear here for the next step. Use the Campaigns page to configure your step 2 (follow-up) and step 3 (breakup) templates.
+                  Each active campaign has a 7-step email sequence. When a prospect doesn't reply within the configured days, they appear here for the next step. Use the Campaigns page to edit each step's script and timing.
                 </p>
-                <div className="flex items-center gap-4 pt-1 text-xs text-blue-700 font-medium">
-                  <span>📧 Step 1: Intro (sent immediately)</span>
-                  <span>→</span>
-                  <span>📧 Step 2: Follow-up (after 3 days)</span>
-                  <span>→</span>
-                  <span>📧 Step 3: Breakup (after 7 days)</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-blue-700 font-medium">
+                  <span>Step 1: Intro</span><span>→</span>
+                  <span>Step 2: Follow-up</span><span>→</span>
+                  <span>Step 3: Value Add</span><span>→</span>
+                  <span>Step 4: Case Study</span><span>→</span>
+                  <span>Step 5: New Angle</span><span>→</span>
+                  <span>Step 6: Last Attempt</span><span>→</span>
+                  <span>Step 7: Breakup</span>
                 </div>
               </div>
             </div>

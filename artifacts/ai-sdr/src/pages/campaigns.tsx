@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { generateEmailForStep } from "@/lib/email-ai";
 
-async function aiGenerateEmail(step: 1 | 2 | 3, industry: string): Promise<{ subject: string; body: string } | null> {
+async function aiGenerateEmail(step: number, industry: string): Promise<{ subject: string; body: string } | null> {
   try {
     const res = await fetch("/api/openai/generate-email", {
       method: "POST",
@@ -102,22 +102,62 @@ interface CampaignForm {
   emailTemplate: string;
   followUp1: SequenceStep;
   followUp2: SequenceStep;
+  followUp3: SequenceStep;
+  followUp4: SequenceStep;
+  followUp5: SequenceStep;
+  followUp6: SequenceStep;
 }
 
 const BLANK_FORM: CampaignForm = {
   name: "", type: "email", targetIndustry: "", description: "", emailTemplate: "",
-  followUp1: { dayDelay: 3, subject: "Following up — {{companyName}}", body: "Hi {{contactName}},\n\nJust following up on my previous email about janitorial services for {{companyName}}. Would you be open to a quick 15-minute call this week?\n\nBest,\nYour SDR Team" },
-  followUp2: { dayDelay: 7, subject: "Last note — {{companyName}}", body: "Hi {{contactName}},\n\nI know your time is valuable, so I'll keep this brief. If janitorial services for {{companyName}} aren't a priority right now, no worries at all — I'll stop reaching out.\n\nIf timing changes, we'd love to help. Wishing you a great week!\n\nBest,\nYour SDR Team" },
+  followUp1: {
+    dayDelay: 3,
+    subject: "Following up — {{companyName}}",
+    body: "Hi {{contactName}},\n\nJust following up on my previous email. We work with {{industry}} businesses in {{city}} and I'd love to see if we're a fit.\n\nDo you have 15 minutes this week?\n\nBest,\nYour SDR Team",
+  },
+  followUp2: {
+    dayDelay: 4,
+    subject: "Quick question for {{companyName}}",
+    body: "Hi {{contactName}},\n\nI wanted to share that we recently helped a similar {{industry}} company in {{city}} cut their cleaning costs by 25% while improving reliability.\n\nWorth a quick chat?\n\nBest,\nYour SDR Team",
+  },
+  followUp3: {
+    dayDelay: 5,
+    subject: "{{companyName}} — a thought",
+    body: "Hi {{contactName}},\n\nMost {{industry}} facilities we talk to face one of two problems: inconsistent service or hidden costs that creep up over time.\n\nWe solve both. Can I show you how in 10 minutes?\n\nBest,\nYour SDR Team",
+  },
+  followUp4: {
+    dayDelay: 7,
+    subject: "Still thinking about {{companyName}}",
+    body: "Hi {{contactName}},\n\nI know you're busy — I'll keep this short. We specialize in {{industry}} facilities in {{city}} and have availability to take on a new client this month.\n\nIf you'd like a free walkthrough and quote, I can come to you.\n\nBest,\nYour SDR Team",
+  },
+  followUp5: {
+    dayDelay: 10,
+    subject: "One more thought for {{companyName}}",
+    body: "Hi {{contactName}},\n\nI've reached out a few times — I promise this isn't spam. I genuinely think we could save {{companyName}} money and headaches on facility cleaning.\n\nIf now isn't the right time, would you mind letting me know? Happy to follow up in 3 months instead.\n\nBest,\nYour SDR Team",
+  },
+  followUp6: {
+    dayDelay: 14,
+    subject: "Closing the loop — {{companyName}}",
+    body: "Hi {{contactName}},\n\nI'll stop reaching out after this — I don't want to be a nuisance. If janitorial services for {{companyName}} ever become a priority, we'd love to help.\n\nWishing you a great week.\n\nBest,\nYour SDR Team",
+  },
 };
 
 function parseFormFromCampaign(c: any): CampaignForm {
   let followUp1 = BLANK_FORM.followUp1;
   let followUp2 = BLANK_FORM.followUp2;
+  let followUp3 = BLANK_FORM.followUp3;
+  let followUp4 = BLANK_FORM.followUp4;
+  let followUp5 = BLANK_FORM.followUp5;
+  let followUp6 = BLANK_FORM.followUp6;
   if (c.callScript) {
     try {
       const parsed = JSON.parse(c.callScript);
       if (parsed.followUp1) followUp1 = parsed.followUp1;
       if (parsed.followUp2) followUp2 = parsed.followUp2;
+      if (parsed.followUp3) followUp3 = parsed.followUp3;
+      if (parsed.followUp4) followUp4 = parsed.followUp4;
+      if (parsed.followUp5) followUp5 = parsed.followUp5;
+      if (parsed.followUp6) followUp6 = parsed.followUp6;
     } catch {}
   }
   return {
@@ -126,14 +166,32 @@ function parseFormFromCampaign(c: any): CampaignForm {
     targetIndustry: c.targetIndustry,
     description: c.description ?? "",
     emailTemplate: c.emailTemplate ?? "",
-    followUp1,
-    followUp2,
+    followUp1, followUp2, followUp3, followUp4, followUp5, followUp6,
   };
 }
 
 function buildCallScript(form: CampaignForm): string {
-  return JSON.stringify({ followUp1: form.followUp1, followUp2: form.followUp2 });
+  return JSON.stringify({
+    followUp1: form.followUp1,
+    followUp2: form.followUp2,
+    followUp3: form.followUp3,
+    followUp4: form.followUp4,
+    followUp5: form.followUp5,
+    followUp6: form.followUp6,
+  });
 }
+
+const STEP_META = [
+  { num: 1, label: "Step 1 — Intro Email", sublabel: "sent immediately", color: "bg-primary text-primary-foreground" },
+  { num: 2, label: "Step 2 — First Follow-up",  sublabel: "if no reply", color: "bg-blue-500 text-white" },
+  { num: 3, label: "Step 3 — Value Add",         sublabel: "if no reply", color: "bg-indigo-500 text-white" },
+  { num: 4, label: "Step 4 — Case Study",        sublabel: "if no reply", color: "bg-violet-500 text-white" },
+  { num: 5, label: "Step 5 — New Angle",         sublabel: "if no reply", color: "bg-amber-500 text-white" },
+  { num: 6, label: "Step 6 — Last Attempt",      sublabel: "if no reply", color: "bg-orange-500 text-white" },
+  { num: 7, label: "Step 7 — Breakup Email",     sublabel: "final touch", color: "bg-red-500 text-white" },
+];
+
+const FOLLOW_UP_KEYS = ["followUp1", "followUp2", "followUp3", "followUp4", "followUp5", "followUp6"] as const;
 
 export default function Campaigns() {
   const { toast } = useToast();
@@ -383,28 +441,121 @@ export default function Campaigns() {
 
   const [aiGenerating, setAiGenerating] = useState<Record<number, boolean>>({});
 
-  const handleAiGenerate = async (step: 1 | 2 | 3) => {
-    setAiGenerating(prev => ({ ...prev, [step]: true }));
-    const result = await aiGenerateEmail(step, form.targetIndustry);
-    setAiGenerating(prev => ({ ...prev, [step]: false }));
+  const handleAiGenerate = async (stepNum: number) => {
+    setAiGenerating(prev => ({ ...prev, [stepNum]: true }));
+    const clampedStep = Math.min(stepNum, 3) as 1 | 2 | 3;
+    const result = await aiGenerateEmail(clampedStep, form.targetIndustry);
+    setAiGenerating(prev => ({ ...prev, [stepNum]: false }));
+
+    const applyResult = (subject: string, body: string) => {
+      if (stepNum === 1) {
+        setForm(f => ({ ...f, emailTemplate: body }));
+      } else {
+        const key = FOLLOW_UP_KEYS[stepNum - 2];
+        if (key) setForm(f => ({ ...f, [key]: { ...f[key], subject, body } }));
+      }
+    };
+
     if (result?.body) {
-      if (step === 1) setForm(f => ({ ...f, emailTemplate: result.body }));
-      else if (step === 2) setForm(f => ({ ...f, followUp1: { ...f.followUp1, subject: result.subject, body: result.body } }));
-      else setForm(f => ({ ...f, followUp2: { ...f.followUp2, subject: result.subject, body: result.body } }));
+      applyResult(result.subject, result.body);
     } else {
-      // Fallback to local template engine
-      const fallback = generateEmailForStep(step, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
-      if (step === 1) setForm(f => ({ ...f, emailTemplate: fallback.body }));
-      else if (step === 2) setForm(f => ({ ...f, followUp1: { ...f.followUp1, subject: fallback.subject, body: fallback.body } }));
-      else setForm(f => ({ ...f, followUp2: { ...f.followUp2, subject: fallback.subject, body: fallback.body } }));
+      const fallback = generateEmailForStep(clampedStep, {
+        industry: form.targetIndustry,
+        companyName: "{{companyName}}",
+        contactName: "{{contactName}}",
+        city: "{{city}}",
+      });
+      applyResult(fallback.subject, fallback.body);
     }
   };
 
   const showEmailSteps = form.type === "email" || form.type === "mixed";
 
-  const CampaignForm = ({ onSubmit, isPending }: { onSubmit: (e: React.FormEvent) => void; isPending: boolean }) => (
+  const StepEditor = ({
+    stepMeta,
+    isIntro,
+  }: {
+    stepMeta: typeof STEP_META[number];
+    isIntro: boolean;
+  }) => {
+    const followUpKey = isIntro ? null : (FOLLOW_UP_KEYS[stepMeta.num - 2] as keyof CampaignForm);
+    const stepData = isIntro ? null : (form[followUpKey!] as SequenceStep);
+
+    return (
+      <div className="space-y-3">
+        <Separator />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className={`h-5 w-5 rounded-full text-xs flex items-center justify-center font-bold shrink-0 ${stepMeta.color}`}>
+            {stepMeta.num}
+          </div>
+          <Label className="text-sm font-semibold">{stepMeta.label}</Label>
+          <span className="text-xs text-muted-foreground">({stepMeta.sublabel})</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs gap-1 ml-auto"
+            disabled={aiGenerating[stepMeta.num]}
+            onClick={() => handleAiGenerate(stepMeta.num)}
+          >
+            <Wand2 className="h-3 w-3" />
+            {aiGenerating[stepMeta.num] ? "Generating…" : "AI Generate"}
+          </Button>
+          {!isIntro && (
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-muted-foreground">Send after</Label>
+              <Input
+                type="number"
+                min={1}
+                max={90}
+                className="w-16 h-7 text-xs"
+                value={stepData!.dayDelay}
+                onChange={e => {
+                  const key = followUpKey!;
+                  setForm(f => ({ ...f, [key]: { ...(f[key] as SequenceStep), dayDelay: parseInt(e.target.value) || 3 } }));
+                }}
+              />
+              <Label className="text-xs text-muted-foreground">days</Label>
+            </div>
+          )}
+        </div>
+
+        {isIntro ? (
+          <Textarea
+            rows={4}
+            placeholder={"Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
+            value={form.emailTemplate}
+            onChange={e => setForm({ ...form, emailTemplate: e.target.value })}
+            className="font-mono text-xs"
+          />
+        ) : (
+          <div className="space-y-2">
+            <Input
+              placeholder="Subject line…"
+              value={stepData!.subject}
+              onChange={e => {
+                const key = followUpKey!;
+                setForm(f => ({ ...f, [key]: { ...(f[key] as SequenceStep), subject: e.target.value } }));
+              }}
+              className="text-sm"
+            />
+            <Textarea
+              rows={3}
+              value={stepData!.body}
+              onChange={e => {
+                const key = followUpKey!;
+                setForm(f => ({ ...f, [key]: { ...(f[key] as SequenceStep), body: e.target.value } }));
+              }}
+              className="font-mono text-xs"
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const CampaignFormComp = ({ onSubmit, isPending }: { onSubmit: (e: React.FormEvent) => void; isPending: boolean }) => (
     <form onSubmit={onSubmit} className="space-y-5 pt-2">
-      {/* Basics */}
       <div className="space-y-2">
         <Label>Campaign Name</Label>
         <Input
@@ -446,118 +597,26 @@ export default function Campaigns() {
         />
       </div>
 
-      {/* Email sequence steps */}
       {showEmailSteps && (
         <div className="space-y-4">
-          <Separator />
-          <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold shrink-0">1</div>
-            <Label className="text-sm font-semibold">Step 1 — Intro Email (sent immediately)</Label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="ml-auto h-7 text-xs gap-1"
-              disabled={aiGenerating[1]}
-              onClick={() => handleAiGenerate(1)}
-            >
-              <Wand2 className="h-3 w-3" /> {aiGenerating[1] ? "Generating…" : "AI Generate"}
-            </Button>
-          </div>
-          <Textarea
-            rows={4}
-            placeholder={"Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
-            value={form.emailTemplate}
-            onChange={e => setForm({ ...form, emailTemplate: e.target.value })}
-            className="font-mono text-xs"
-          />
-
-          <Separator />
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="h-5 w-5 rounded-full bg-yellow-500 text-white text-xs flex items-center justify-center font-bold shrink-0">2</div>
-            <Label className="text-sm font-semibold">Step 2 — Follow-up (if no reply)</Label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1"
-              disabled={aiGenerating[2]}
-              onClick={() => handleAiGenerate(2)}
-            >
-              <Wand2 className="h-3 w-3" /> {aiGenerating[2] ? "Generating…" : "AI Generate"}
-            </Button>
-            <div className="flex items-center gap-1 ml-auto">
-              <Label className="text-xs text-muted-foreground">Send after</Label>
-              <Input
-                type="number"
-                min={1}
-                max={30}
-                className="w-16 h-7 text-xs"
-                value={form.followUp1.dayDelay}
-                onChange={e => setForm({ ...form, followUp1: { ...form.followUp1, dayDelay: parseInt(e.target.value) || 3 } })}
-              />
-              <Label className="text-xs text-muted-foreground">days</Label>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">7-Step Sequence</p>
+            <div className="flex flex-wrap gap-1">
+              {STEP_META.map(s => (
+                <span key={s.num} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${s.color}`}>
+                  {s.num}
+                </span>
+              ))}
             </div>
-          </div>
-          <div className="space-y-2">
-            <Input
-              placeholder="Subject line…"
-              value={form.followUp1.subject}
-              onChange={e => setForm({ ...form, followUp1: { ...form.followUp1, subject: e.target.value } })}
-              className="text-sm"
-            />
-            <Textarea
-              rows={3}
-              value={form.followUp1.body}
-              onChange={e => setForm({ ...form, followUp1: { ...form.followUp1, body: e.target.value } })}
-              className="font-mono text-xs"
-            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Merge fields: <code className="bg-muted rounded px-1">&#123;&#123;contactName&#125;&#125;</code> <code className="bg-muted rounded px-1">&#123;&#123;companyName&#125;&#125;</code> <code className="bg-muted rounded px-1">&#123;&#123;city&#125;&#125;</code> <code className="bg-muted rounded px-1">&#123;&#123;industry&#125;&#125;</code>
+            </p>
           </div>
 
-          <Separator />
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold shrink-0">3</div>
-            <Label className="text-sm font-semibold">Step 3 — Breakup Email (if still no reply)</Label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1"
-              disabled={aiGenerating[3]}
-              onClick={() => handleAiGenerate(3)}
-            >
-              <Wand2 className="h-3 w-3" /> {aiGenerating[3] ? "Generating…" : "AI Generate"}
-            </Button>
-            <div className="flex items-center gap-1 ml-auto">
-              <Label className="text-xs text-muted-foreground">Send after</Label>
-              <Input
-                type="number"
-                min={1}
-                max={60}
-                className="w-16 h-7 text-xs"
-                value={form.followUp2.dayDelay}
-                onChange={e => setForm({ ...form, followUp2: { ...form.followUp2, dayDelay: parseInt(e.target.value) || 7 } })}
-              />
-              <Label className="text-xs text-muted-foreground">days</Label>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Input
-              placeholder="Subject line…"
-              value={form.followUp2.subject}
-              onChange={e => setForm({ ...form, followUp2: { ...form.followUp2, subject: e.target.value } })}
-              className="text-sm"
-            />
-            <Textarea
-              rows={3}
-              value={form.followUp2.body}
-              onChange={e => setForm({ ...form, followUp2: { ...form.followUp2, body: e.target.value } })}
-              className="font-mono text-xs"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Merge fields: &#123;&#123;contactName&#125;&#125;, &#123;&#123;companyName&#125;&#125;, &#123;&#123;city&#125;&#125;, &#123;&#123;industry&#125;&#125;
-          </p>
+          <StepEditor stepMeta={STEP_META[0]} isIntro={true} />
+          {STEP_META.slice(1).map(meta => (
+            <StepEditor key={meta.num} stepMeta={meta} isIntro={false} />
+          ))}
         </div>
       )}
 
@@ -583,11 +642,11 @@ export default function Campaigns() {
   return (
     <Layout>
       <div className="space-y-8">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Campaigns</h2>
             <p className="text-muted-foreground mt-1">
-              Create and manage outreach campaigns. Track emails, calls, and appointments per campaign.
+              Build 7-step outreach sequences for each industry segment.
             </p>
           </div>
           <Button onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }}>
@@ -596,65 +655,67 @@ export default function Campaigns() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map(i => (
-              <Card key={i}><CardContent className="h-44 animate-pulse bg-muted rounded-xl mt-4" /></Card>
+              <Card key={i}><CardContent className="h-52 animate-pulse bg-muted rounded-xl mt-4" /></Card>
             ))}
-          </div>
-        ) : (campaigns ?? []).length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
-            <Megaphone className="h-12 w-12 text-muted-foreground/40" />
-            <p className="font-semibold text-muted-foreground">No campaigns yet</p>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Create your first campaign to start tracking outreach across a group of prospects.
-            </p>
-            <Button className="mt-2" onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" /> New Campaign
-            </Button>
           </div>
         ) : (
           <div className="space-y-8">
-            {sectionOrder.map(status => {
-              const items = grouped[status];
-              if (!items.length) return null;
-              const SectionIcon = sectionIcons[status];
+            {sectionOrder.map(section => {
+              const items = grouped[section];
+              if (items.length === 0) return null;
+              const Icon = sectionIcons[section];
               return (
-                <section key={status} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <SectionIcon className={`h-4 w-4 ${status === "active" ? "text-green-600" : status === "paused" ? "text-yellow-600" : "text-muted-foreground"}`} />
-                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                      {sectionLabels[status]} ({items.length})
+                <div key={section}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      {sectionLabels[section]}
                     </h3>
+                    <span className="text-xs text-muted-foreground">({items.length})</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {items.map(renderCard)}
                   </div>
-                </section>
+                </div>
               );
             })}
+            {Object.values(grouped).every(g => g.length === 0) && (
+              <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
+                <Megaphone className="h-12 w-12 text-muted-foreground/40" />
+                <p className="font-semibold text-muted-foreground">No campaigns yet</p>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Create your first campaign to start building 7-step outreach sequences.
+                </p>
+                <Button onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" /> New Campaign
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[540px]">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Campaign</DialogTitle>
-            <DialogDescription>Set up an outreach campaign and start tracking results.</DialogDescription>
+            <DialogDescription>Build a 7-step email sequence for your outreach campaign.</DialogDescription>
           </DialogHeader>
-          <CampaignForm onSubmit={handleCreate} isPending={createCampaign.isPending} />
+          <CampaignFormComp onSubmit={handleCreate} isPending={createCampaign.isPending} />
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editCampaign} onOpenChange={o => !o && setEditCampaign(null)}>
-        <DialogContent className="sm:max-w-[540px]">
+      <Dialog open={!!editCampaign} onOpenChange={open => { if (!open) setEditCampaign(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Campaign</DialogTitle>
-            <DialogDescription>Update campaign details and templates.</DialogDescription>
+            <DialogDescription>Update your sequence steps and templates.</DialogDescription>
           </DialogHeader>
-          <CampaignForm onSubmit={handleEdit} isPending={updateCampaign.isPending} />
+          <CampaignFormComp onSubmit={handleEdit} isPending={updateCampaign.isPending} />
         </DialogContent>
       </Dialog>
     </Layout>
