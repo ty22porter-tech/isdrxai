@@ -169,8 +169,28 @@ export default function Sequences() {
   const sendFollowUp = async (entry: QueueEntry) => {
     const key = `${entry.prospect.id}:${entry.campaign.id}`;
     setSending(prev => new Set(prev).add(key));
-    const body = mergeTpl(entry.step.body, entry.prospect);
-    const subject = mergeTpl(entry.step.subject, entry.prospect);
+
+    let subject = mergeTpl(entry.step.subject, entry.prospect);
+    let body = mergeTpl(entry.step.body, entry.prospect);
+
+    // Try to get a personalized email from OpenAI
+    try {
+      const res = await fetch("/api/openai/generate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prospectId: entry.prospect.id, step: entry.step.stepNumber }),
+      });
+      if (res.ok) {
+        const generated = await res.json();
+        if (generated.body) {
+          subject = generated.subject;
+          body = generated.body;
+        }
+      }
+    } catch {
+      // fall through to template-merged version
+    }
+
     await new Promise<void>(resolve => {
       createEmail.mutate(
         { data: { prospectId: entry.prospect.id, campaignId: entry.campaign.id, subject, body, status: "sent" } },

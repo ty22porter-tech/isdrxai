@@ -21,6 +21,8 @@ tags:
     description: Appointments and walkthroughs
   - name: ai
     description: AI generation
+  - name: openai
+    description: OpenAI-powered generation
   - name: stats
     description: Dashboard stats
 paths:
@@ -426,6 +428,25 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /openai/generate-email:
+    post:
+      operationId: openaiGenerateEmail
+      tags: [openai]
+      summary: Generate a personalized email using OpenAI GPT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiGenerateEmailRequest"
+      responses:
+        "200":
+          description: Generated email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedEmail"
 
   /ai/generate-email:
     post:
@@ -964,6 +985,18 @@ components:
                 type: string
               count:
                 type: integer
+
+    OpenaiGenerateEmailRequest:
+      type: object
+      required: [prospectId, step]
+      properties:
+        prospectId:
+          type: integer
+        step:
+          type: integer
+          enum: [1, 2, 3]
+        campaignContext:
+          type: string
 
     ActivityItem:
       type: object

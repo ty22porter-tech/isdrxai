@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { generateEmailForStep } from "@/lib/email-ai";
+
+async function aiGenerateEmail(step: 1 | 2 | 3, industry: string): Promise<{ subject: string; body: string } | null> {
+  try {
+    const res = await fetch("/api/openai/generate-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prospectId: 1, step, campaignContext: industry ? `This campaign targets the ${industry} industry.` : undefined }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 import {
   useListCampaigns,
   useCreateCampaign,
@@ -367,6 +381,25 @@ export default function Campaigns() {
     );
   };
 
+  const [aiGenerating, setAiGenerating] = useState<Record<number, boolean>>({});
+
+  const handleAiGenerate = async (step: 1 | 2 | 3) => {
+    setAiGenerating(prev => ({ ...prev, [step]: true }));
+    const result = await aiGenerateEmail(step, form.targetIndustry);
+    setAiGenerating(prev => ({ ...prev, [step]: false }));
+    if (result?.body) {
+      if (step === 1) setForm(f => ({ ...f, emailTemplate: result.body }));
+      else if (step === 2) setForm(f => ({ ...f, followUp1: { ...f.followUp1, subject: result.subject, body: result.body } }));
+      else setForm(f => ({ ...f, followUp2: { ...f.followUp2, subject: result.subject, body: result.body } }));
+    } else {
+      // Fallback to local template engine
+      const fallback = generateEmailForStep(step, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
+      if (step === 1) setForm(f => ({ ...f, emailTemplate: fallback.body }));
+      else if (step === 2) setForm(f => ({ ...f, followUp1: { ...f.followUp1, subject: fallback.subject, body: fallback.body } }));
+      else setForm(f => ({ ...f, followUp2: { ...f.followUp2, subject: fallback.subject, body: fallback.body } }));
+    }
+  };
+
   const showEmailSteps = form.type === "email" || form.type === "mixed";
 
   const CampaignForm = ({ onSubmit, isPending }: { onSubmit: (e: React.FormEvent) => void; isPending: boolean }) => (
@@ -425,12 +458,10 @@ export default function Campaigns() {
               size="sm"
               variant="outline"
               className="ml-auto h-7 text-xs gap-1"
-              onClick={() => {
-                const { subject, body } = generateEmailForStep(1, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
-                setForm({ ...form, emailTemplate: body });
-              }}
+              disabled={aiGenerating[1]}
+              onClick={() => handleAiGenerate(1)}
             >
-              <Wand2 className="h-3 w-3" /> AI Generate
+              <Wand2 className="h-3 w-3" /> {aiGenerating[1] ? "Generating…" : "AI Generate"}
             </Button>
           </div>
           <Textarea
@@ -450,12 +481,10 @@ export default function Campaigns() {
               size="sm"
               variant="outline"
               className="h-7 text-xs gap-1"
-              onClick={() => {
-                const { subject, body } = generateEmailForStep(2, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
-                setForm({ ...form, followUp1: { ...form.followUp1, subject, body } });
-              }}
+              disabled={aiGenerating[2]}
+              onClick={() => handleAiGenerate(2)}
             >
-              <Wand2 className="h-3 w-3" /> AI Generate
+              <Wand2 className="h-3 w-3" /> {aiGenerating[2] ? "Generating…" : "AI Generate"}
             </Button>
             <div className="flex items-center gap-1 ml-auto">
               <Label className="text-xs text-muted-foreground">Send after</Label>
@@ -494,12 +523,10 @@ export default function Campaigns() {
               size="sm"
               variant="outline"
               className="h-7 text-xs gap-1"
-              onClick={() => {
-                const { subject, body } = generateEmailForStep(3, { industry: form.targetIndustry, companyName: "{{companyName}}", contactName: "{{contactName}}", city: "{{city}}" });
-                setForm({ ...form, followUp2: { ...form.followUp2, subject, body } });
-              }}
+              disabled={aiGenerating[3]}
+              onClick={() => handleAiGenerate(3)}
             >
-              <Wand2 className="h-3 w-3" /> AI Generate
+              <Wand2 className="h-3 w-3" /> {aiGenerating[3] ? "Generating…" : "AI Generate"}
             </Button>
             <div className="flex items-center gap-1 ml-auto">
               <Label className="text-xs text-muted-foreground">Send after</Label>

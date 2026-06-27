@@ -7,6 +7,7 @@ import callsRouter from "./calls";
 import appointmentsRouter from "./appointments";
 import statsRouter from "./stats";
 import aiRouter from "./ai";
+import openaiRouter from "./openai";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/calls", callsRouter);
 router.use("/appointments", appointmentsRouter);
 router.use("/stats", statsRouter);
 router.use("/ai", aiRouter);
+router.use("/openai", openaiRouter);
 
 export default router;
