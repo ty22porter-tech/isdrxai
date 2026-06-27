@@ -1,5 +1,28 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "PVSaOpOLWnHM_na5NJVMY"
+uri = "file://artifacts/ai-sdr-landing/public/images/hero-mockup.png"
+type = "image"
+title = "hero dashboard mockup"
+
+[[generated]]
+id = "muxoVxJ2a6SZXWBApMJH9"
+uri = "file://artifacts/ai-sdr-landing/public/images/ai-bg.png"
+type = "image"
+title = "AI network background"
+
+[[generated]]
+id = "l0DPrVgF-9Gq8kG8J3y1B"
+uri = "file://artifacts/ai-sdr-landing/public/images/email-feature.png"
+type = "image"
+title = "AI email feature card"
+
+[[generated]]
+id = "w7l7vpeNCMLMJdgouZQ3m"
+uri = "file://artifacts/ai-sdr-landing/public/images/campaigns-feature.png"
+type = "image"
+title = "campaigns feature card"
 
 [[outputs]]
 id = "t1w43sgTbBIxz4B6ZDEKh"
