@@ -1,7 +1,6 @@
-import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable, appointmentsTable } from "@workspace/db";
-import { eq, and, lte, isNull, or } from "drizzle-orm";
+import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable } from "@workspace/db";
+import { eq, and, lte, isNull } from "drizzle-orm";
 import { sendEmail } from "./emailSender";
-import type { EmailProvider } from "./emailSender";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -91,7 +90,7 @@ export async function processAutopilotQueue(): Promise<void> {
       const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
       const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
-      if (!prospect || !client || !client.outreachEmail || !client.outreachAppPassword) continue;
+      if (!prospect || !client || !client.outreachEmail) continue;
 
       const nextStep = enrollment.currentStep + 1;
 
@@ -106,9 +105,8 @@ export async function processAutopilotQueue(): Promise<void> {
       const body = await generateStepEmail(nextStep, prospect, client.outreachEmail);
 
       await sendEmail({
-        provider: (client.emailProvider ?? "gmail") as EmailProvider,
-        fromEmail: client.outreachEmail,
-        appPassword: client.outreachAppPassword,
+        fromName: client.businessName ?? client.outreachEmail,
+        replyTo: client.outreachEmail,
         to: prospect.email,
         subject,
         body,
@@ -181,15 +179,14 @@ export async function processAutopilotQueue(): Promise<void> {
       const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
       const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
-      if (!prospect || !client || !client.outreachEmail || !client.outreachAppPassword || !client.calendlyUrl) continue;
+      if (!prospect || !client || !client.outreachEmail || !client.calendlyUrl) continue;
 
       const subject = `Let's schedule a walkthrough — ${prospect.companyName}`;
       const body = await generateCalendlyEmail(prospect, client.calendlyUrl);
 
       await sendEmail({
-        provider: (client.emailProvider ?? "gmail") as EmailProvider,
-        fromEmail: client.outreachEmail,
-        appPassword: client.outreachAppPassword,
+        fromName: client.businessName ?? client.outreachEmail,
+        replyTo: client.outreachEmail,
         to: prospect.email,
         subject,
         body,

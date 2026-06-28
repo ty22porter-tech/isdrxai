@@ -146,7 +146,7 @@ export default function AutopilotPage() {
   const replied = enrollments.filter((e: any) => ["replied", "calendly_sent"].includes(e.status)).length;
   const emailsSent = enrollments.reduce((sum: number, e: any) => sum + (e.currentStep ?? 0), 0);
 
-  const notConfigured = !me?.hasEmailCredentials;
+  const notConfigured = !me?.autopilotReady;
 
   return (
     <Layout>
@@ -168,8 +168,8 @@ export default function AutopilotPage() {
           <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-5 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-yellow-300 text-sm">Email not connected</p>
-              <p className="text-yellow-400/80 text-sm mt-0.5">You need to connect your Gmail or Outlook before autopilot can send emails.</p>
+              <p className="font-medium text-yellow-300 text-sm">Quick setup needed</p>
+              <p className="text-yellow-400/80 text-sm mt-0.5">Add your business name and reply-to email in Settings — takes 30 seconds, no passwords needed.</p>
               <Link href="/settings">
                 <Button size="sm" variant="outline" className="mt-3 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10">
                   Go to Settings

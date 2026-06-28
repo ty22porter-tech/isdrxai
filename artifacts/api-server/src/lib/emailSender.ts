@@ -1,47 +1,47 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-export type EmailProvider = "gmail" | "outlook";
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) throw new Error("RESEND_API_KEY is not set. Add it in your project Secrets.");
+    _resend = new Resend(key);
+  }
+  return _resend;
+}
+
+export function getPlatformFromEmail(): string {
+  return process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+}
 
 export interface SendEmailOptions {
-  provider: EmailProvider;
-  fromEmail: string;
-  appPassword: string;
+  fromName: string;
+  replyTo: string;
   to: string;
   subject: string;
   body: string;
 }
 
-function createTransporter(provider: EmailProvider, fromEmail: string, appPassword: string) {
-  if (provider === "outlook") {
-    return nodemailer.createTransport({
-      host: "smtp-mail.outlook.com",
-      port: 587,
-      secure: false,
-      auth: { user: fromEmail, pass: appPassword },
-      tls: { ciphers: "SSLv3" },
-    });
-  }
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: { user: fromEmail, pass: appPassword },
-  });
-}
-
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
-  const { provider, fromEmail, appPassword, to, subject, body } = options;
-  const transporter = createTransporter(provider, fromEmail, appPassword);
-  await transporter.sendMail({
-    from: fromEmail,
+  const { fromName, replyTo, to, subject, body } = options;
+  const fromEmail = getPlatformFromEmail();
+  const resend = getResend();
+
+  const { error } = await resend.emails.send({
+    from: `${fromName} <${fromEmail}>`,
+    replyTo,
     to,
     subject,
     text: body,
-    html: body.replace(/\n/g, "<br>"),
+    html: body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>"),
   });
+
+  if (error) throw new Error(error.message);
 }
 
-export async function verifyCredentials(provider: EmailProvider, fromEmail: string, appPassword: string): Promise<void> {
-  const transporter = createTransporter(provider, fromEmail, appPassword);
-  await transporter.verify();
+export async function isResendConfigured(): Promise<boolean> {
+  return !!(process.env.RESEND_API_KEY);
 }
+
+export type { };

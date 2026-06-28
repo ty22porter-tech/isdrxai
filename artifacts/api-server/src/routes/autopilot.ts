@@ -63,8 +63,8 @@ router.post("/enroll", async (req, res) => {
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
 
   const client = req.dbUser;
-  if (!client.outreachEmail || !client.outreachAppPassword) {
-    return res.status(400).json({ error: "Email credentials not configured. Go to Settings to add your Gmail/Outlook." });
+  if (!client.outreachEmail) {
+    return res.status(400).json({ error: "Reply-to email not set. Go to Settings to add your email address." });
   }
 
   const nextSendAt = startNow ? new Date() : new Date(Date.now() + 10 * 60 * 1000);
