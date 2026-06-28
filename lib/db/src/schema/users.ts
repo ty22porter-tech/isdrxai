@@ -10,6 +10,12 @@ export const usersTable = pgTable("users", {
   status: text("status").notNull().default("trialing"),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  emailProvider: text("email_provider").default("gmail"),
+  outreachEmail: text("outreach_email"),
+  outreachAppPassword: text("outreach_app_password"),
+  calendlyUrl: text("calendly_url"),
+  timezone: text("timezone").default("America/New_York"),
+  autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ createdAt: true });

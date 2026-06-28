@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
+import { startAutopilotEngine } from "./lib/autopilotEngine";
 
 const rawPort = process.env["PORT"];
 
@@ -40,6 +41,7 @@ async function initStripe() {
 }
 
 await initStripe();
+startAutopilotEngine(logger);
 
 app.listen(port, (err) => {
   if (err) {

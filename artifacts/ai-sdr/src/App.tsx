@@ -21,6 +21,8 @@ import Sequences from "@/pages/sequences";
 import Billing from "@/pages/billing";
 import Admin from "@/pages/admin";
 import Home from "@/pages/home";
+import Settings from "@/pages/settings";
+import Autopilot from "@/pages/autopilot";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -186,6 +188,8 @@ function AppRoutes() {
             <Route path="/sequences" component={() => <ProtectedRoute component={Sequences} />} />
             <Route path="/billing" component={() => <ProtectedRoute component={Billing} />} />
             <Route path="/admin" component={() => <ProtectedRoute component={Admin} />} />
+            <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
+            <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} />} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />

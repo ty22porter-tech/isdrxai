@@ -1,0 +1,247 @@
+import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable, appointmentsTable } from "@workspace/db";
+import { eq, and, lte, isNull, or } from "drizzle-orm";
+import { sendEmail } from "./emailSender";
+import type { EmailProvider } from "./emailSender";
+
+const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
+const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
+
+async function aiGenerate(prompt: string): Promise<string> {
+  const res = await fetch(`${AI_BASE}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${AI_KEY}` },
+    body: JSON.stringify({
+      model: "gpt-5.4",
+      max_completion_tokens: 400,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`AI error ${res.status}`);
+  const data = await res.json() as any;
+  return data.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+function stepSubject(step: number, companyName: string, prevSubject?: string): string {
+  if (step === 1) return `Quick question about ${companyName}'s cleaning needs`;
+  if (step === 2) return `Re: Quick question about ${companyName}'s cleaning needs`;
+  return `Last follow-up — ${companyName}`;
+}
+
+async function generateStepEmail(
+  step: number,
+  prospect: { companyName: string; contactName: string; industry: string; city: string; state: string; squareFootage?: number | null; employeeCount?: number | null },
+  senderEmail: string,
+): Promise<string> {
+  const firstName = prospect.contactName.split(" ")[0];
+  const size = prospect.squareFootage ? `${prospect.squareFootage.toLocaleString()} sq ft` : "";
+  const employees = prospect.employeeCount ? `${prospect.employeeCount} employees` : "";
+  const details = [size, employees].filter(Boolean).join(", ");
+
+  const prompts: Record<number, string> = {
+    1: `Write a short, professional cold email from a commercial janitorial company to ${firstName} at ${prospect.companyName} (${prospect.industry} in ${prospect.city}, ${prospect.state}${details ? `, ${details}` : ""}). The email should mention their industry's specific cleaning needs, offer a free walkthrough, and end with a clear call to action. Keep it under 150 words. No subject line. Plain text only.`,
+    2: `Write a brief, friendly follow-up cold email to ${firstName} at ${prospect.companyName}. Reference a previous unanswered email about commercial cleaning services. Keep it under 100 words, acknowledge they're busy, reiterate the value of a free walkthrough. Plain text only.`,
+    3: `Write a short final follow-up email to ${firstName} at ${prospect.companyName}. This is the last outreach. Keep it under 80 words. Be direct but respectful, offer one last chance for a free walkthrough, say you won't reach out again after this. Plain text only.`,
+  };
+
+  return aiGenerate(prompts[step] ?? prompts[1]);
+}
+
+async function generateCalendlyEmail(
+  prospect: { companyName: string; contactName: string },
+  calendlyUrl: string,
+): Promise<string> {
+  const firstName = prospect.contactName.split(" ")[0];
+  return aiGenerate(
+    `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Invite them to book a quick 15-minute walkthrough using this Calendly link: ${calendlyUrl}. Keep it under 80 words. Include the link naturally in the text. Plain text only.`
+  );
+}
+
+async function analyzeReplyTone(replyContent: string): Promise<"positive" | "negative" | "neutral"> {
+  const result = await aiGenerate(
+    `Classify this email reply tone as exactly one word: positive, negative, or neutral.\n\nReply: "${replyContent.slice(0, 500)}"\n\nAnswer with only one word:`
+  );
+  const tone = result.toLowerCase().trim();
+  if (tone.includes("positive")) return "positive";
+  if (tone.includes("negative")) return "negative";
+  return "neutral";
+}
+
+const STEP_DELAYS_MS: Record<number, number> = {
+  1: 0,
+  2: 3 * 24 * 60 * 60 * 1000,
+  3: 4 * 24 * 60 * 60 * 1000,
+};
+
+export async function processAutopilotQueue(): Promise<void> {
+  const now = new Date();
+
+  const pending = await db
+    .select()
+    .from(autopilotEnrollmentsTable)
+    .where(
+      and(
+        eq(autopilotEnrollmentsTable.status, "active"),
+        lte(autopilotEnrollmentsTable.nextSendAt, now)
+      )
+    )
+    .limit(20);
+
+  for (const enrollment of pending) {
+    try {
+      const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
+      const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
+
+      if (!prospect || !client || !client.outreachEmail || !client.outreachAppPassword) continue;
+
+      const nextStep = enrollment.currentStep + 1;
+
+      if (nextStep > 3) {
+        await db.update(autopilotEnrollmentsTable)
+          .set({ status: "completed" })
+          .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+        continue;
+      }
+
+      const subject = stepSubject(nextStep, prospect.companyName);
+      const body = await generateStepEmail(nextStep, prospect, client.outreachEmail);
+
+      await sendEmail({
+        provider: (client.emailProvider ?? "gmail") as EmailProvider,
+        fromEmail: client.outreachEmail,
+        appPassword: client.outreachAppPassword,
+        to: prospect.email,
+        subject,
+        body,
+      });
+
+      const sentAt = new Date();
+      await db.insert(emailsTable).values({
+        clientId: enrollment.clientId,
+        prospectId: prospect.id,
+        campaignId: enrollment.campaignId,
+        subject,
+        body,
+        status: "sent",
+        sentAt,
+      });
+
+      await db.insert(activityTable).values({
+        clientId: enrollment.clientId,
+        type: "email_sent",
+        description: `[Autopilot] Email ${nextStep}/3 sent to ${prospect.companyName}: ${subject}`,
+        prospectId: prospect.id,
+        prospectName: prospect.contactName,
+      });
+
+      const nextDelay = STEP_DELAYS_MS[nextStep + 1];
+      const nextSendAt = nextDelay !== undefined ? new Date(Date.now() + nextDelay) : null;
+      const newStatus = nextStep >= 3 ? "completed" : "active";
+
+      await db.update(autopilotEnrollmentsTable)
+        .set({
+          currentStep: nextStep,
+          lastEmailSentAt: sentAt,
+          nextSendAt,
+          status: nextStep >= 3 ? "completed" : "active",
+          errorMessage: null,
+        })
+        .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+
+      await db.update(prospectsTable)
+        .set({ lastContactedAt: sentAt, status: "contacted" })
+        .where(eq(prospectsTable.id, prospect.id));
+
+      await db.update(campaignsTable)
+        .set({ emailsSent: db.$count(emailsTable, and(eq(emailsTable.campaignId, enrollment.campaignId))) as any })
+        .where(eq(campaignsTable.id, enrollment.campaignId));
+
+    } catch (err: any) {
+      await db.update(autopilotEnrollmentsTable)
+        .set({ errorMessage: err.message ?? "Unknown error", status: "paused" })
+        .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+    }
+  }
+
+  const repliedEnrollments = await db
+    .select()
+    .from(autopilotEnrollmentsTable)
+    .where(
+      and(
+        eq(autopilotEnrollmentsTable.status, "replied"),
+        isNull(autopilotEnrollmentsTable.calendlyLinkSentAt)
+      )
+    )
+    .limit(10);
+
+  for (const enrollment of repliedEnrollments) {
+    try {
+      const tone = enrollment.replyTone ?? "neutral";
+      if (tone !== "positive") continue;
+
+      const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
+      const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
+
+      if (!prospect || !client || !client.outreachEmail || !client.outreachAppPassword || !client.calendlyUrl) continue;
+
+      const subject = `Let's schedule a walkthrough — ${prospect.companyName}`;
+      const body = await generateCalendlyEmail(prospect, client.calendlyUrl);
+
+      await sendEmail({
+        provider: (client.emailProvider ?? "gmail") as EmailProvider,
+        fromEmail: client.outreachEmail,
+        appPassword: client.outreachAppPassword,
+        to: prospect.email,
+        subject,
+        body,
+      });
+
+      const sentAt = new Date();
+      await db.insert(emailsTable).values({
+        clientId: enrollment.clientId,
+        prospectId: prospect.id,
+        campaignId: enrollment.campaignId,
+        subject,
+        body,
+        status: "sent",
+        sentAt,
+      });
+
+      await db.insert(activityTable).values({
+        clientId: enrollment.clientId,
+        type: "appointment_set",
+        description: `[Autopilot] Calendly booking link sent to ${prospect.companyName}`,
+        prospectId: prospect.id,
+        prospectName: prospect.contactName,
+      });
+
+      await db.update(autopilotEnrollmentsTable)
+        .set({ calendlyLinkSentAt: sentAt, status: "calendly_sent" })
+        .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+
+      await db.update(prospectsTable)
+        .set({ status: "appointment_requested" })
+        .where(eq(prospectsTable.id, prospect.id));
+
+    } catch (err: any) {
+      await db.update(autopilotEnrollmentsTable)
+        .set({ errorMessage: err.message ?? "Unknown error" })
+        .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+    }
+  }
+}
+
+export function startAutopilotEngine(logger: { info: (msg: string) => void; error: (msg: string, data?: any) => void }): void {
+  const INTERVAL_MS = 5 * 60 * 1000;
+
+  const run = async () => {
+    try {
+      await processAutopilotQueue();
+    } catch (err: any) {
+      logger.error("Autopilot engine error", { err: err.message });
+    }
+  };
+
+  run();
+  setInterval(run, INTERVAL_MS);
+  logger.info("Autopilot engine started (5-min interval)");
+}

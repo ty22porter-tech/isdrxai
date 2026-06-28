@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -17,6 +17,7 @@ export const campaignsTable = pgTable("campaigns", {
   callsMade: integer("calls_made").notNull().default(0),
   appointmentsSet: integer("appointments_set").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
 });
 
 export const insertCampaignSchema = createInsertSchema(campaignsTable).omit({ id: true, createdAt: true, clientId: true });

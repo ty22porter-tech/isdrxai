@@ -14,6 +14,8 @@ import {
   CreditCard,
   Shield,
   LogOut,
+  Bot,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+  { name: "Autopilot", href: "/autopilot", icon: Bot },
   { name: "Prospect Search", href: "/prospecting", icon: Telescope },
   { name: "Prospects", href: "/prospects", icon: Users },
   { name: "Campaigns", href: "/campaigns", icon: Send },
@@ -35,6 +38,7 @@ const navigation = [
   { name: "Calls", href: "/calls", icon: PhoneCall },
   { name: "Appointments", href: "/appointments", icon: Calendar },
   { name: "Billing", href: "/billing", icon: CreditCard },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 async function apiFetch(path: string) {

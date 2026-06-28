@@ -12,6 +12,7 @@ import stripeRouter from "./stripe";
 import usersRouter from "./users";
 import adminRouter from "./admin";
 import videoViewsRouter from "./videoViews";
+import autopilotRouter from "./autopilot";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use("/stripe", stripeRouter);
 router.use("/users", usersRouter);
 router.use("/admin", adminRouter);
 router.use("/video-views", videoViewsRouter);
+router.use("/autopilot", autopilotRouter);
 
 export default router;
