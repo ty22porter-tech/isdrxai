@@ -6,6 +6,7 @@ import { campaignsTable } from "./campaigns";
 
 export const emailsTable = pgTable("emails", {
   id: serial("id").primaryKey(),
+  clientId: text("client_id").notNull().default(""),
   prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
   campaignId: integer("campaign_id").references(() => campaignsTable.id, { onDelete: "set null" }),
   subject: text("subject").notNull(),
@@ -16,6 +17,6 @@ export const emailsTable = pgTable("emails", {
   repliedAt: timestamp("replied_at"),
 });
 
-export const insertEmailSchema = createInsertSchema(emailsTable).omit({ id: true, sentAt: true });
+export const insertEmailSchema = createInsertSchema(emailsTable).omit({ id: true, sentAt: true, clientId: true });
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
 export type Email = typeof emailsTable.$inferSelect;

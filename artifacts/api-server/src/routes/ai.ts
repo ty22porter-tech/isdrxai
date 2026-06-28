@@ -3,8 +3,10 @@ import { db } from "@workspace/db";
 import { prospectsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody } from "@workspace/api-zod";
+import { requireAuth } from "../lib/requireAuth";
 
 const router = Router();
+router.use(requireAuth);
 
 function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect, tone: string = "professional") {
   const { companyName, contactName, industry, city, state, squareFootage, employeeCount } = prospect;
@@ -138,7 +140,7 @@ const CONTACT_FIRST = ["Michael","Sarah","David","Jennifer","Robert","Emily","Ja
 const CONTACT_LAST = ["Johnson","Williams","Brown","Davis","Miller","Wilson","Moore","Taylor","Anderson","Thomas","Jackson","White","Harris","Martin","Thompson","Garcia","Martinez","Robinson","Clark","Rodriguez"];
 const TITLES = ["Facilities Manager","Office Manager","Operations Director","COO","General Manager","Property Manager","Building Manager","VP Operations","Executive Director","CEO"];
 
-const INDUSTRY_EMAILS: Record<string, string[]> = {
+const INDUSTRY_EMAILS: Record<string, string> = {
   Healthcare: "medcenter.com,healthgroup.org,clinicpartners.com,carehealth.net,wellnessassoc.com",
   Technology: "techcorp.io,devhub.co,cloudworks.io,nexustech.com,softwarelab.io",
   Legal: "lawgroup.com,legalpartners.net,attorneyassoc.com,lawfirm.net,legalcounsel.com",

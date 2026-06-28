@@ -5,6 +5,7 @@ import { prospectsTable } from "./prospects";
 
 export const appointmentsTable = pgTable("appointments", {
   id: serial("id").primaryKey(),
+  clientId: text("client_id").notNull().default(""),
   prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
   type: text("type").notNull().default("walkthrough"),
   scheduledAt: timestamp("scheduled_at").notNull(),
@@ -14,6 +15,6 @@ export const appointmentsTable = pgTable("appointments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertAppointmentSchema = createInsertSchema(appointmentsTable).omit({ id: true, createdAt: true });
+export const insertAppointmentSchema = createInsertSchema(appointmentsTable).omit({ id: true, createdAt: true, clientId: true });
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointmentsTable.$inferSelect;

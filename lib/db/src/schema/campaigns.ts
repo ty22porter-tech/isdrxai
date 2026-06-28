@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const campaignsTable = pgTable("campaigns", {
   id: serial("id").primaryKey(),
+  clientId: text("client_id").notNull().default(""),
   name: text("name").notNull(),
   status: text("status").notNull().default("draft"),
   type: text("type").notNull().default("email"),
@@ -18,6 +19,6 @@ export const campaignsTable = pgTable("campaigns", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertCampaignSchema = createInsertSchema(campaignsTable).omit({ id: true, createdAt: true });
+export const insertCampaignSchema = createInsertSchema(campaignsTable).omit({ id: true, createdAt: true, clientId: true });
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Campaign = typeof campaignsTable.$inferSelect;

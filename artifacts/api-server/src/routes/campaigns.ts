@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { campaignsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import {
   CreateCampaignBody,
   UpdateCampaignParams,
@@ -9,23 +9,25 @@ import {
   DeleteCampaignParams,
   GetCampaignParams,
 } from "@workspace/api-zod";
+import { requireAuth } from "../lib/requireAuth";
 
 const router = Router();
+router.use(requireAuth);
 
 router.get("/", async (req, res) => {
-  const campaigns = await db.select().from(campaignsTable).orderBy(sql`${campaignsTable.createdAt} desc`);
+  const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.clientId, req.clientId)).orderBy(sql`${campaignsTable.createdAt} desc`);
   res.json(campaigns.map(c => ({ ...c, createdAt: c.createdAt.toISOString() })));
 });
 
 router.post("/", async (req, res) => {
   const body = CreateCampaignBody.parse(req.body);
-  const [campaign] = await db.insert(campaignsTable).values(body).returning();
+  const [campaign] = await db.insert(campaignsTable).values({ ...body, clientId: req.clientId }).returning();
   res.status(201).json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
 
 router.get("/:id", async (req, res) => {
   const { id } = GetCampaignParams.parse({ id: parseInt(req.params.id) });
-  const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, id));
+  const [campaign] = await db.select().from(campaignsTable).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId)));
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
   res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
@@ -33,14 +35,14 @@ router.get("/:id", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   const { id } = UpdateCampaignParams.parse({ id: parseInt(req.params.id) });
   const body = UpdateCampaignBody.parse(req.body);
-  const [campaign] = await db.update(campaignsTable).set(body).where(eq(campaignsTable.id, id)).returning();
+  const [campaign] = await db.update(campaignsTable).set(body).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId))).returning();
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
   res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
 
 router.delete("/:id", async (req, res) => {
   const { id } = DeleteCampaignParams.parse({ id: parseInt(req.params.id) });
-  await db.delete(campaignsTable).where(eq(campaignsTable.id, id));
+  await db.delete(campaignsTable).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId)));
   res.status(204).send();
 });
 

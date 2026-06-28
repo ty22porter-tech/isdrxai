@@ -5,6 +5,7 @@ import { prospectsTable } from "./prospects";
 
 export const callsTable = pgTable("calls", {
   id: serial("id").primaryKey(),
+  clientId: text("client_id").notNull().default(""),
   prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("completed"),
   duration: integer("duration"),
@@ -14,6 +15,6 @@ export const callsTable = pgTable("calls", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertCallSchema = createInsertSchema(callsTable).omit({ id: true, createdAt: true });
+export const insertCallSchema = createInsertSchema(callsTable).omit({ id: true, createdAt: true, clientId: true });
 export type InsertCall = z.infer<typeof insertCallSchema>;
 export type Call = typeof callsTable.$inferSelect;
