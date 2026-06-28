@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable } from "@workspace/db";
-import { eq, count } from "drizzle-orm";
+import { db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable, videoViewsTable } from "@workspace/db";
+import { eq, count, desc } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../lib/requireAuth";
 
 const router = Router();
@@ -37,6 +37,15 @@ router.patch("/clients/:id", async (req, res) => {
   const [user] = await db.update(usersTable).set(update).where(eq(usersTable.id, id)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   res.json({ ...user, createdAt: user.createdAt.toISOString() });
+});
+
+router.get("/video-views", async (_req, res) => {
+  const views = await db
+    .select()
+    .from(videoViewsTable)
+    .orderBy(desc(videoViewsTable.createdAt))
+    .limit(500);
+  res.json({ views });
 });
 
 export default router;

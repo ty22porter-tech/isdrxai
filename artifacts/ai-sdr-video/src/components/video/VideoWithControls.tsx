@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Repeat, Volume2, VolumeX } from 'lucide-react';
 import VideoTemplate, { SCENE_DURATIONS } from './VideoTemplate';
 import { useSceneControls } from './useSceneControls';
+import { useVideoTracking } from '@/hooks/useVideoTracking';
 
 const PROGRESS_TICK_MS = 60;
 
@@ -133,6 +134,8 @@ function ControlBar({
 
 export default function VideoWithControls() {
   const isIframed = typeof window !== 'undefined' && window.self !== window.top;
+
+  useVideoTracking();
 
   const {
     sceneKeys, activeIndex, locked, mountKey, tick,

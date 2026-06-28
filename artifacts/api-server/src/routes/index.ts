@@ -11,6 +11,7 @@ import openaiRouter from "./openai";
 import stripeRouter from "./stripe";
 import usersRouter from "./users";
 import adminRouter from "./admin";
+import videoViewsRouter from "./videoViews";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use("/openai", openaiRouter);
 router.use("/stripe", stripeRouter);
 router.use("/users", usersRouter);
 router.use("/admin", adminRouter);
+router.use("/video-views", videoViewsRouter);
 
 export default router;
