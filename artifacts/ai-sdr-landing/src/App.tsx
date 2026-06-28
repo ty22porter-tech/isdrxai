@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const APP_ORIGIN = window.location.origin;
+const SIGN_IN_URL = `${APP_ORIGIN}/sign-in`;
+const SIGN_UP_URL = `${APP_ORIGIN}/sign-up`;
+const VIDEO_URL = `${APP_ORIGIN}/ai-sdr-video/`;
+
 const navItems = [
   { label: "Features", href: "#features" },
   { label: "How it Works", href: "#how-it-works" },
@@ -51,10 +56,12 @@ function Navbar() {
             ))}
           </div>
           <div className="flex items-center gap-4">
-            <a href="#" className="text-sm font-medium text-white hover:text-accent transition-colors">Log in</a>
-            <Button className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-              Book a Demo
-            </Button>
+            <a href={SIGN_IN_URL} className="text-sm font-medium text-white hover:text-accent transition-colors">Log in</a>
+            <a href={SIGN_UP_URL}>
+              <Button className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                Book a Demo
+              </Button>
+            </a>
           </div>
         </div>
 
@@ -85,10 +92,12 @@ function Navbar() {
               </a>
             ))}
             <div className="h-px w-full bg-border my-2" />
-            <a href="#" className="text-lg font-medium text-white">Log in</a>
-            <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2">
-              Book a Demo
-            </Button>
+            <a href={SIGN_IN_URL} className="text-lg font-medium text-white">Log in</a>
+            <a href={SIGN_UP_URL} className="w-full">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2">
+                Book a Demo
+              </Button>
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
@@ -142,12 +151,16 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] w-full sm:w-auto">
-            Start Prospecting Now <ArrowRight className="ml-2 w-5 h-5" />
-          </Button>
-          <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 hover:bg-white/5 hover:text-white w-full sm:w-auto">
-            <Play className="mr-2 w-5 h-5" /> Watch Demo
-          </Button>
+          <a href={SIGN_UP_URL} className="w-full sm:w-auto">
+            <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] w-full sm:w-auto">
+              Start Prospecting Now <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </a>
+          <a href={VIDEO_URL} className="w-full sm:w-auto">
+            <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 hover:bg-white/5 hover:text-white w-full sm:w-auto">
+              <Play className="mr-2 w-5 h-5" /> Watch Demo
+            </Button>
+          </a>
         </motion.div>
 
         <motion.div 
@@ -410,9 +423,11 @@ function CTA() {
           Stop letting your competitors out-prospect you. Get an unfair advantage with the AI outreach engine built for commercial cleaners.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]">
-            Book a Demo
-          </Button>
+          <a href={SIGN_UP_URL}>
+            <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]">
+              Book a Demo
+            </Button>
+          </a>
         </div>
         <p className="mt-6 text-sm text-muted-foreground">No credit card required. See it work live on your territory.</p>
       </div>
@@ -431,9 +446,9 @@ function Footer() {
           <span className="font-display font-bold text-lg tracking-tight text-white">AI SDR</span>
         </div>
         <div className="flex gap-6 text-sm text-muted-foreground">
-          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-white transition-colors">Contact</a>
+          <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Terms of Service</a>
+          <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Contact</a>
         </div>
         <p className="text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} AI SDR Inc. All rights reserved.
