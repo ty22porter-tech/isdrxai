@@ -17,6 +17,7 @@ export const prospectsTable = pgTable("prospects", {
   employeeCount: integer("employee_count"),
   squareFootage: integer("square_footage"),
   status: text("status").notNull().default("new"),
+  scheduleToken: text("schedule_token").notNull().unique().$defaultFn(() => crypto.randomUUID()),
   lastContactedAt: timestamp("last_contacted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

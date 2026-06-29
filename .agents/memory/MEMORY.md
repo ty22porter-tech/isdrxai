@@ -1,3 +1,4 @@
 - [Multi-tenant SaaS architecture](multi-tenant-saas.md) — clientId=Clerk userId on all DB tables; usersTable for provisioning/status/admin
 - [Stripe dev env limitation](stripe-dev-env.md) — Stripe init fails gracefully in dev (REPLIT_CONNECTORS_HOSTNAME not set); server continues without it
 - [DB package rebuild pattern](db-rebuild.md) — lib/db uses project references (composite tsc); must run `cd lib/db && pnpm exec tsc` after schema changes or TS errors appear on consuming packages
+- [Resend dev email limitation](resend-dev-email.md) — all outbound email fails in dev because RESEND_FROM_EMAIL is an unverified gmail.com domain; not a code bug

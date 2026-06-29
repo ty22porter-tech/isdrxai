@@ -1,6 +1,8 @@
 import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable } from "@workspace/db";
 import { eq, and, lte, isNull } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
+import { getPublicAppUrl } from "./publicUrl";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -47,11 +49,11 @@ async function generateStepEmail(
 
 async function generateCalendlyEmail(
   prospect: { companyName: string; contactName: string },
-  calendlyUrl: string,
+  scheduleUrl: string,
 ): Promise<string> {
   const firstName = prospect.contactName.split(" ")[0];
   return aiGenerate(
-    `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Invite them to book a quick 15-minute walkthrough using this Calendly link: ${calendlyUrl}. Keep it under 80 words. Include the link naturally in the text. Plain text only.`
+    `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is to answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough — all on one page using this link: ${scheduleUrl}. Keep it under 90 words. Include the link naturally in the text. Plain text only.`
   );
 }
 
@@ -176,13 +178,23 @@ export async function processAutopilotQueue(): Promise<void> {
       const tone = enrollment.replyTone ?? "neutral";
       if (tone !== "positive") continue;
 
-      const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
+      let [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
       const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
       if (!prospect || !client || !client.outreachEmail || !client.calendlyUrl) continue;
 
+      // Ensure the prospect has a scheduling token so the public link works.
+      if (!prospect.scheduleToken) {
+        const newToken = randomUUID();
+        await db.update(prospectsTable)
+          .set({ scheduleToken: newToken })
+          .where(eq(prospectsTable.id, prospect.id));
+        prospect = { ...prospect, scheduleToken: newToken };
+      }
+
+      const scheduleUrl = `${getPublicAppUrl()}/schedule/${prospect.scheduleToken}`;
       const subject = `Let's schedule a walkthrough — ${prospect.companyName}`;
-      const body = await generateCalendlyEmail(prospect, client.calendlyUrl);
+      const body = await generateCalendlyEmail(prospect, scheduleUrl);
 
       await sendEmail({
         fromName: client.businessName ?? client.outreachEmail,

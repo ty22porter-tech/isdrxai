@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
 import { prospectsTable, activityTable } from "@workspace/db";
 import { eq, ilike, and, sql } from "drizzle-orm";
@@ -30,7 +31,8 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const body = CreateProspectBody.parse(req.body);
-  const [prospect] = await db.insert(prospectsTable).values({ ...body, clientId: req.clientId, status: "new" }).returning();
+  const scheduleToken = randomUUID();
+  const [prospect] = await db.insert(prospectsTable).values({ ...body, clientId: req.clientId, status: "new", scheduleToken }).returning();
   await db.insert(activityTable).values({
     clientId: req.clientId,
     type: "prospect_added",

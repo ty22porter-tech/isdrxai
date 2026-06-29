@@ -15,16 +15,23 @@ export function getPlatformFromEmail(): string {
   return process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+}
+
 export interface SendEmailOptions {
   fromName: string;
   replyTo: string;
   to: string;
   subject: string;
   body: string;
+  html?: string;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
-  const { fromName, replyTo, to, subject, body } = options;
+  const { fromName, replyTo, to, subject, body, html, attachments } = options;
   const fromEmail = getPlatformFromEmail();
   const resend = getResend();
 
@@ -34,7 +41,8 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
     to,
     subject,
     text: body,
-    html: body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>"),
+    html: html ?? `<p>${body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`,
+    attachments: attachments?.map(a => ({ filename: a.filename, content: a.content })),
   });
 
   if (error) throw new Error(error.message);

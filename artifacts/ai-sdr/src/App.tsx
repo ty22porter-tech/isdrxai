@@ -23,6 +23,7 @@ import Admin from "@/pages/admin";
 import Home from "@/pages/home";
 import Settings from "@/pages/settings";
 import Autopilot from "@/pages/autopilot";
+import Schedule from "@/pages/schedule";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -177,6 +178,7 @@ function AppRoutes() {
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/schedule/:token" component={Schedule} />
             <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
             <Route path="/prospects" component={() => <ProtectedRoute component={Prospects} />} />
             <Route path="/prospects/:id" component={() => <ProtectedRoute component={ProspectDetail} />} />
