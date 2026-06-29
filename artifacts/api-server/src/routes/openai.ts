@@ -103,20 +103,27 @@ router.post("/generate-email", async (req, res) => {
     let state: string;
     let templateMode = false;
 
+    let prospect = null;
     if (prospectId) {
-      const [prospect] = await db
+      [prospect] = await db
         .select()
         .from(prospectsTable)
         .where(and(eq(prospectsTable.id, prospectId), eq(prospectsTable.clientId, req.clientId)));
-      if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+    }
+
+    if (prospect) {
+      // Prospect mode — use the real prospect's name/company/city for a realistic preview,
+      // but when a campaign industry is selected, that selection overrides the prospect's
+      // own industry so the email content follows the chosen industry.
       companyName = prospect.companyName;
       contactName = prospect.contactName ?? "there";
       firstName = contactName.split(" ")[0];
-      industry = prospect.industry ?? industryInput ?? "";
+      industry = industryInput || prospect.industry || "";
       city = prospect.city ?? "";
       state = prospect.state ?? "";
     } else {
-      // Template mode — the campaign builder asks for an industry-specific template.
+      // Template mode — no prospect available, so produce a reusable industry template
+      // using merge placeholders instead of real data.
       templateMode = true;
       industry = industryInput ?? "";
       companyName = "{{companyName}}";

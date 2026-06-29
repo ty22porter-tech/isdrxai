@@ -7,7 +7,7 @@ async function aiGenerateEmail(step: number, industry: string): Promise<{ subjec
     const res = await fetch("/api/openai/generate-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ step, industry: industry || undefined }),
+      body: JSON.stringify({ prospectId: 1, step, industry: industry || undefined }),
     });
     if (!res.ok) return null;
     return await res.json();
