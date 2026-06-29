@@ -89,22 +89,73 @@ function getStepTone(step: number) {
 
 router.post("/generate-email", async (req, res) => {
   try {
-    const { prospectId, step = 1, campaignContext } = req.body;
+    const { prospectId, step = 1, industry: industryInput, campaignContext } = req.body;
 
-    const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, prospectId));
-    if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+    // Two modes:
+    // 1. Prospect mode — generate a personalized email for a real prospect (prospectId given).
+    // 2. Template mode — generate a reusable campaign template for a chosen industry,
+    //    using merge placeholders ({{contactName}}, {{companyName}}, {{city}}) instead of real data.
+    let companyName: string;
+    let contactName: string;
+    let firstName: string;
+    let industry: string;
+    let city: string;
+    let state: string;
+    let templateMode = false;
 
-    const { companyName, contactName, industry, city, state } = prospect;
-    const firstName = (contactName ?? "there").split(" ")[0];
-    const challenges = INDUSTRY_CHALLENGES[industry ?? ""] ?? [
+    if (prospectId) {
+      const [prospect] = await db
+        .select()
+        .from(prospectsTable)
+        .where(and(eq(prospectsTable.id, prospectId), eq(prospectsTable.clientId, req.clientId)));
+      if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+      companyName = prospect.companyName;
+      contactName = prospect.contactName ?? "there";
+      firstName = contactName.split(" ")[0];
+      industry = prospect.industry ?? industryInput ?? "";
+      city = prospect.city ?? "";
+      state = prospect.state ?? "";
+    } else {
+      // Template mode — the campaign builder asks for an industry-specific template.
+      templateMode = true;
+      industry = industryInput ?? "";
+      companyName = "{{companyName}}";
+      contactName = "{{contactName}}";
+      firstName = "{{contactName}}";
+      city = "{{city}}";
+      state = "{{state}}";
+    }
+
+    const challenges = INDUSTRY_CHALLENGES[industry] ?? [
       "maintaining a clean, professional environment",
       "finding a reliable and consistent janitorial partner",
     ];
     const challengeList = challenges.slice(0, 3).map(c => `• ${c}`).join("\n");
+    const industryLabel = industry || "commercial";
 
-    const systemPrompt = `You are an expert B2B sales copywriter for a janitorial company called CleanPro Janitorial Services. Your emails are conversational, specific, concise, and never generic. You write for commercial cleaning sales to facility managers and operations leaders. Always use the prospect's real name and company. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. Never use bullet points unless the prompt asks. End with one clear, specific call to action.`;
+    const systemPrompt = templateMode
+      ? `You are an expert B2B sales copywriter for a janitorial company called CleanPro Janitorial Services. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders. The template must be specific to the ${industryLabel} industry and reference its real cleaning challenges. Emails are conversational, specific, concise, and never generic. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. End with one clear, specific call to action.`
+      : `You are an expert B2B sales copywriter for a janitorial company called CleanPro Janitorial Services. Your emails are conversational, specific, concise, and never generic. You write for commercial cleaning sales to facility managers and operations leaders. Always use the prospect's real name and company. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. Never use bullet points unless the prompt asks. End with one clear, specific call to action.`;
 
-    const userPrompt = `Write a ${getStepLabel(step)} cold email for:
+    const userPrompt = templateMode
+      ? `Write a ${getStepLabel(step)} cold email TEMPLATE specifically for the ${industryLabel} industry.
+
+Use these merge placeholders verbatim (do not replace them with real values):
+- Greeting name: {{contactName}}
+- Company: {{companyName}}
+- City: {{city}}
+
+This template targets ${industryLabel} businesses. Known ${industryLabel} facility challenges to draw from:
+${challengeList}
+
+Tone and approach: ${getStepTone(step)}
+${campaignContext ? `\nAdditional campaign context: ${campaignContext}` : ""}
+
+Output format — return ONLY valid JSON with no markdown, no code block, no extra text:
+{"subject": "...", "body": "..."}
+
+The subject and body MUST reference the ${industryLabel} industry's real challenges. The body should use real line breaks (\\n) between paragraphs, not HTML.`
+      : `Write a ${getStepLabel(step)} cold email for:
 - Name: ${firstName} (full: ${contactName})
 - Company: ${companyName}
 - Industry: ${industry}
