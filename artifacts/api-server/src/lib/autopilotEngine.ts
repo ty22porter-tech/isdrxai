@@ -31,7 +31,7 @@ function stepSubject(step: number, companyName: string, prevSubject?: string): s
 async function generateStepEmail(
   step: number,
   prospect: { companyName: string; contactName: string; industry: string; city: string; state: string; squareFootage?: number | null; employeeCount?: number | null },
-  senderEmail: string,
+  senderBusinessName: string,
 ): Promise<string> {
   const firstName = prospect.contactName.split(" ")[0];
   const size = prospect.squareFootage ? `${prospect.squareFootage.toLocaleString()} sq ft` : "";
@@ -39,7 +39,7 @@ async function generateStepEmail(
   const details = [size, employees].filter(Boolean).join(", ");
 
   const senderInfo = `The sender's company is "${senderBusinessName}".`;
-  const noSignature = `Do NOT include a greeting line is fine, but do NOT include any sign-off, signature, sender name, company name line, phone, email, or placeholders like [Your Name] or [Your Company] at the end — end the email right after the call to action. A signature will be appended automatically.`;
+  const noSignature = `End the email immediately after the call to action. Do NOT add any sign-off, signature, sender name, company name line, phone number, email address, or placeholder tokens like [Your Name] or [Your Company] — a signature is appended automatically afterward.`;
 
   const prompts: Record<number, string> = {
     1: `Write a short, professional cold email from a commercial janitorial company to ${firstName} at ${prospect.companyName} (${prospect.industry} in ${prospect.city}, ${prospect.state}${details ? `, ${details}` : ""}). ${senderInfo} The email should mention their industry's specific cleaning needs, offer a free walkthrough, and end with a clear call to action. Keep it under 150 words. No subject line. Plain text only. ${noSignature}`,
@@ -56,8 +56,69 @@ async function generateCalendlyEmail(
 ): Promise<string> {
   const firstName = prospect.contactName.split(" ")[0];
   return aiGenerate(
-    `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is to answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough — all on one page using this link: ${scheduleUrl}. Keep it under 90 words. Include the link naturally in the text. Plain text only.`
+    `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is to answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough — all on one page using this link: ${scheduleUrl}. Keep it under 90 words. Include the link naturally in the text. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
   );
+}
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * Wraps an AI-generated email body with a real signature and a CAN-SPAM compliant
+ * footer (physical postal address + one-click unsubscribe link). Returns both a
+ * plain-text version and an HTML version, plus the values needed for the
+ * List-Unsubscribe headers that improve deliverability.
+ */
+function composeEmail(
+  coreBody: string,
+  client: { businessName?: string | null; senderName?: string | null; phone?: string | null; businessAddress?: string | null; outreachEmail?: string | null },
+  prospect: { companyName: string; scheduleToken: string },
+): { text: string; html: string; unsubscribePageUrl: string; unsubscribeApiUrl: string } {
+  const baseUrl = getPublicAppUrl();
+  const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.scheduleToken}`;
+  const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.scheduleToken}`;
+
+  const business = client.businessName?.trim() || "Our Company";
+  const signatureLines = [
+    "Best,",
+    client.senderName?.trim() || business,
+    client.senderName?.trim() ? business : "",
+    client.phone?.trim() || "",
+    client.outreachEmail?.trim() || "",
+  ].filter(Boolean);
+
+  const addressLine = client.businessAddress?.trim()
+    ? `${business} · ${client.businessAddress.trim().replace(/\s*\n\s*/g, ", ")}`
+    : business;
+
+  const footerIntro = `You're receiving this email because we believe ${prospect.companyName} may benefit from professional commercial cleaning services.`;
+
+  const text =
+    `${coreBody.trim()}\n\n` +
+    `${signatureLines.join("\n")}\n\n` +
+    `—\n${addressLine}\n${footerIntro}\nPrefer not to hear from us? Unsubscribe: ${unsubscribePageUrl}`;
+
+  const bodyHtml = escapeHtml(coreBody.trim())
+    .split(/\n{2,}/)
+    .map(p => `<p style="margin:0 0 16px">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  const signatureHtml = `<p style="margin:0 0 16px">${escapeHtml(signatureLines.join("\n")).replace(/\n/g, "<br>")}</p>`;
+  const footerHtml =
+    `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px">` +
+    `<p style="font-size:12px;color:#6b7280;line-height:1.5;margin:0">` +
+    `${escapeHtml(addressLine)}<br>${escapeHtml(footerIntro)}<br>` +
+    `Prefer not to hear from us? <a href="${unsubscribePageUrl}" style="color:#6b7280">Unsubscribe</a>.` +
+    `</p>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${signatureHtml}${footerHtml}</div>`;
+
+  return { text, html, unsubscribePageUrl, unsubscribeApiUrl };
+}
+
+function unsubscribeHeaders(unsubscribeApiUrl: string, replyTo: string): Record<string, string> {
+  return {
+    "List-Unsubscribe": `<${unsubscribeApiUrl}>, <mailto:${replyTo}?subject=unsubscribe>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
 }
 
 async function analyzeReplyTone(replyContent: string): Promise<"positive" | "negative" | "neutral"> {
@@ -97,6 +158,22 @@ export async function processAutopilotQueue(): Promise<void> {
 
       if (!prospect || !client || !client.outreachEmail) continue;
 
+      if (prospect.optedOut) {
+        await db.update(autopilotEnrollmentsTable)
+          .set({ status: "unsubscribed" })
+          .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+        continue;
+      }
+
+      // CAN-SPAM requires a valid physical postal address in every marketing email.
+      // Refuse to send until the user supplies one (pauses, resumes once Settings is filled in).
+      if (!client.businessAddress?.trim()) {
+        await db.update(autopilotEnrollmentsTable)
+          .set({ status: "paused", errorMessage: "Add your business mailing address in Settings — it's legally required (CAN-SPAM) before any emails can be sent." })
+          .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+        continue;
+      }
+
       const nextStep = enrollment.currentStep + 1;
 
       if (nextStep > 3) {
@@ -107,14 +184,17 @@ export async function processAutopilotQueue(): Promise<void> {
       }
 
       const subject = stepSubject(nextStep, prospect.companyName);
-      const body = await generateStepEmail(nextStep, prospect, client.outreachEmail);
+      const coreBody = await generateStepEmail(nextStep, prospect, client.businessName ?? "our company");
+      const composed = composeEmail(coreBody, client, prospect);
 
       await sendEmail({
         fromName: client.businessName ?? client.outreachEmail,
         replyTo: client.outreachEmail,
         to: prospect.email,
         subject,
-        body,
+        body: composed.text,
+        html: composed.html,
+        headers: unsubscribeHeaders(composed.unsubscribeApiUrl, client.outreachEmail),
       });
 
       const sentAt = new Date();
@@ -123,7 +203,7 @@ export async function processAutopilotQueue(): Promise<void> {
         prospectId: prospect.id,
         campaignId: enrollment.campaignId,
         subject,
-        body,
+        body: composed.text,
         status: "sent",
         sentAt,
       });
@@ -185,6 +265,20 @@ export async function processAutopilotQueue(): Promise<void> {
       const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
       if (!prospect || !client || !client.outreachEmail || !client.calendlyUrl) continue;
+      if (prospect.optedOut) {
+        await db.update(autopilotEnrollmentsTable)
+          .set({ status: "unsubscribed" })
+          .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+        continue;
+      }
+
+      // CAN-SPAM requires a valid physical postal address in every marketing email.
+      if (!client.businessAddress?.trim()) {
+        await db.update(autopilotEnrollmentsTable)
+          .set({ errorMessage: "Add your business mailing address in Settings — it's legally required (CAN-SPAM) before any emails can be sent." })
+          .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+        continue;
+      }
 
       // Ensure the prospect has a scheduling token so the public link works.
       if (!prospect.scheduleToken) {
@@ -197,14 +291,17 @@ export async function processAutopilotQueue(): Promise<void> {
 
       const scheduleUrl = `${getPublicAppUrl()}/schedule/${prospect.scheduleToken}`;
       const subject = `Let's schedule a walkthrough — ${prospect.companyName}`;
-      const body = await generateCalendlyEmail(prospect, scheduleUrl);
+      const coreBody = await generateCalendlyEmail(prospect, scheduleUrl);
+      const composed = composeEmail(coreBody, client, prospect);
 
       await sendEmail({
         fromName: client.businessName ?? client.outreachEmail,
         replyTo: client.outreachEmail,
         to: prospect.email,
         subject,
-        body,
+        body: composed.text,
+        html: composed.html,
+        headers: unsubscribeHeaders(composed.unsubscribeApiUrl, client.outreachEmail),
       });
 
       const sentAt = new Date();
@@ -213,7 +310,7 @@ export async function processAutopilotQueue(): Promise<void> {
         prospectId: prospect.id,
         campaignId: enrollment.campaignId,
         subject,
-        body,
+        body: composed.text,
         status: "sent",
         sentAt,
       });

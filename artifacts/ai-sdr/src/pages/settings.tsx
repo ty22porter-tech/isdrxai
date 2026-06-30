@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap } from "lucide-react";
+import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -25,6 +25,9 @@ export default function SettingsPage() {
   });
 
   const [businessName, setBusinessName] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
   const [replyEmail, setReplyEmail] = useState("");
   const [calendlyUrl, setCalendlyUrl] = useState("");
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -32,6 +35,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (me) {
       setBusinessName(me.businessName ?? "");
+      setSenderName(me.senderName ?? "");
+      setPhone(me.phone ?? "");
+      setBusinessAddress(me.businessAddress ?? "");
       setReplyEmail(me.outreachEmail ?? "");
       setCalendlyUrl(me.calendlyUrl ?? "");
     }
@@ -44,6 +50,9 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessName,
+          senderName,
+          phone,
+          businessAddress,
           outreachEmail: replyEmail,
           calendlyUrl,
         }),
@@ -125,6 +134,34 @@ export default function SettingsPage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" /> Your Name
+            </label>
+            <input
+              type="text"
+              value={senderName}
+              onChange={e => setSenderName(e.target.value)}
+              placeholder="e.g. Jordan Lee"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <p className="text-xs text-muted-foreground">Signed at the bottom of every email so it feels personal — no more [Your Name] placeholders.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" /> Phone Number
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="e.g. (555) 123-4567"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <p className="text-xs text-muted-foreground">Added to your email signature so prospects can call you directly.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" /> Your Email Address
             </label>
             <input
@@ -135,6 +172,22 @@ export default function SettingsPage() {
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             <p className="text-xs text-muted-foreground">When prospects hit Reply, it goes straight to this inbox.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" /> Business Mailing Address
+            </label>
+            <textarea
+              value={businessAddress}
+              onChange={e => setBusinessAddress(e.target.value)}
+              placeholder="123 Main St, Suite 100, Springfield, IL 62701"
+              rows={2}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Required by anti-spam law (CAN-SPAM) — a real postal address must appear in every marketing email. Including it also keeps you out of the spam folder.
+            </p>
           </div>
 
           <div className="space-y-1.5">
