@@ -142,7 +142,14 @@ export default function ProspectDetail() {
         onSuccess: () => {
           toast({ title: "Email sent successfully" });
           setEmailModalOpen(false);
-        }
+        },
+        onError: (err: any) => {
+          toast({
+            title: "Email not sent",
+            description: err?.data?.error || err?.message || "Send failed",
+            variant: "destructive",
+          });
+        },
       }
     );
   };

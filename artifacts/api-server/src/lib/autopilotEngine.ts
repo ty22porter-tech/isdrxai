@@ -2,6 +2,7 @@ import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTab
 import { eq, and, lte, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
+import { composeEmail, unsubscribeHeaders } from "./emailCompose";
 import { getPublicAppUrl } from "./publicUrl";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
@@ -58,67 +59,6 @@ async function generateCalendlyEmail(
   return aiGenerate(
     `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is to answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough — all on one page using this link: ${scheduleUrl}. Keep it under 90 words. Include the link naturally in the text. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
   );
-}
-
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-/**
- * Wraps an AI-generated email body with a real signature and a CAN-SPAM compliant
- * footer (physical postal address + one-click unsubscribe link). Returns both a
- * plain-text version and an HTML version, plus the values needed for the
- * List-Unsubscribe headers that improve deliverability.
- */
-function composeEmail(
-  coreBody: string,
-  client: { businessName?: string | null; senderName?: string | null; phone?: string | null; businessAddress?: string | null; outreachEmail?: string | null },
-  prospect: { companyName: string; scheduleToken: string },
-): { text: string; html: string; unsubscribePageUrl: string; unsubscribeApiUrl: string } {
-  const baseUrl = getPublicAppUrl();
-  const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.scheduleToken}`;
-  const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.scheduleToken}`;
-
-  const business = client.businessName?.trim() || "Our Company";
-  const signatureLines = [
-    "Best,",
-    client.senderName?.trim() || business,
-    client.senderName?.trim() ? business : "",
-    client.phone?.trim() || "",
-    client.outreachEmail?.trim() || "",
-  ].filter(Boolean);
-
-  const addressLine = client.businessAddress?.trim()
-    ? `${business} · ${client.businessAddress.trim().replace(/\s*\n\s*/g, ", ")}`
-    : business;
-
-  const footerIntro = `You're receiving this email because we believe ${prospect.companyName} may benefit from professional commercial cleaning services.`;
-
-  const text =
-    `${coreBody.trim()}\n\n` +
-    `${signatureLines.join("\n")}\n\n` +
-    `—\n${addressLine}\n${footerIntro}\nPrefer not to hear from us? Unsubscribe: ${unsubscribePageUrl}`;
-
-  const bodyHtml = escapeHtml(coreBody.trim())
-    .split(/\n{2,}/)
-    .map(p => `<p style="margin:0 0 16px">${p.replace(/\n/g, "<br>")}</p>`)
-    .join("");
-  const signatureHtml = `<p style="margin:0 0 16px">${escapeHtml(signatureLines.join("\n")).replace(/\n/g, "<br>")}</p>`;
-  const footerHtml =
-    `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px">` +
-    `<p style="font-size:12px;color:#6b7280;line-height:1.5;margin:0">` +
-    `${escapeHtml(addressLine)}<br>${escapeHtml(footerIntro)}<br>` +
-    `Prefer not to hear from us? <a href="${unsubscribePageUrl}" style="color:#6b7280">Unsubscribe</a>.` +
-    `</p>`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${signatureHtml}${footerHtml}</div>`;
-
-  return { text, html, unsubscribePageUrl, unsubscribeApiUrl };
-}
-
-function unsubscribeHeaders(unsubscribeApiUrl: string, replyTo: string): Record<string, string> {
-  return {
-    "List-Unsubscribe": `<${unsubscribeApiUrl}>, <mailto:${replyTo}?subject=unsubscribe>`,
-    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-  };
 }
 
 async function analyzeReplyTone(replyContent: string): Promise<"positive" | "negative" | "neutral"> {

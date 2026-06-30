@@ -329,22 +329,34 @@ export default function Prospects() {
     if (!selectedCampaign || selectedProspects.length === 0) return;
     setSending(true);
     let sent = 0;
+    let firstError = "";
     for (const p of selectedProspects) {
       await new Promise<void>(resolve => {
         const body = selectedCampaign.emailTemplate
           ? mergeTpl(selectedCampaign.emailTemplate, p)
-          : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.\n\nBest,\nYour SDR Team`;
+          : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
         const subject = defaultSubject(selectedCampaign.name);
         createEmail.mutate(
           { data: { prospectId: p.id, campaignId: selectedCampaign.id, subject, body, status: "sent" } },
-          { onSuccess: () => { sent++; resolve(); }, onError: () => resolve() }
+          {
+            onSuccess: () => { sent++; resolve(); },
+            onError: (err: any) => {
+              if (!firstError) firstError = err?.data?.error || err?.message || "Send failed";
+              resolve();
+            },
+          }
         );
       });
     }
     setSending(false);
     setSendOpen(false);
     setSelected(new Set());
-    toast({ title: `${sent} email${sent !== 1 ? "s" : ""} sent`, description: `Via "${selectedCampaign.name}" campaign` });
+    if (sent > 0) {
+      toast({ title: `${sent} email${sent !== 1 ? "s" : ""} sent`, description: `Via "${selectedCampaign.name}" campaign` });
+    }
+    if (firstError) {
+      toast({ title: "Some emails were not sent", description: firstError, variant: "destructive" });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

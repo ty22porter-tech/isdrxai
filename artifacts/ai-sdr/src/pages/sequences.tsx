@@ -168,7 +168,7 @@ export default function Sequences() {
     queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
   };
 
-  const sendFollowUp = async (entry: QueueEntry) => {
+  const sendFollowUp = async (entry: QueueEntry): Promise<{ ok: boolean; error?: string }> => {
     const key = `${entry.prospect.id}:${entry.campaign.id}`;
     setSending(prev => new Set(prev).add(key));
 
@@ -193,25 +193,44 @@ export default function Sequences() {
       // fall through to template-merged version
     }
 
-    await new Promise<void>(resolve => {
+    const result = await new Promise<{ ok: boolean; error?: string }>(resolve => {
       createEmail.mutate(
         { data: { prospectId: entry.prospect.id, campaignId: entry.campaign.id, subject, body, status: "sent" } },
         {
-          onSuccess: () => { resolve(); },
-          onError: () => { resolve(); },
+          onSuccess: () => resolve({ ok: true }),
+          onError: (err: any) => resolve({ ok: false, error: err?.data?.error || err?.message || "Send failed" }),
         }
       );
     });
     setSending(prev => { const n = new Set(prev); n.delete(key); return n; });
     invalidate();
+    return result;
+  };
+
+  const sendSingle = async (entry: QueueEntry) => {
+    const { ok, error } = await sendFollowUp(entry);
+    if (ok) {
+      toast({ title: "Follow-up sent", description: entry.prospect.companyName });
+    } else {
+      toast({ title: "Follow-up not sent", description: error, variant: "destructive" });
+    }
   };
 
   const sendAllForCampaign = async (campaignId: number) => {
     const entries = byCampaign[campaignId] ?? [];
+    let sent = 0;
+    let firstError = "";
     for (const entry of entries) {
-      await sendFollowUp(entry);
+      const { ok, error } = await sendFollowUp(entry);
+      if (ok) sent++;
+      else if (!firstError && error) firstError = error;
     }
-    toast({ title: `${entries.length} follow-up${entries.length !== 1 ? "s" : ""} sent`, description: campaignMap[campaignId]?.name });
+    if (sent > 0) {
+      toast({ title: `${sent} follow-up${sent !== 1 ? "s" : ""} sent`, description: campaignMap[campaignId]?.name });
+    }
+    if (firstError) {
+      toast({ title: "Some follow-ups were not sent", description: firstError, variant: "destructive" });
+    }
   };
 
   const markReplied = (emailId: number, prospectName: string) => {
@@ -374,7 +393,7 @@ export default function Sequences() {
                                 <Button
                                   size="sm"
                                   className="h-7 text-xs"
-                                  onClick={() => sendFollowUp(entry)}
+                                  onClick={() => sendSingle(entry)}
                                   disabled={isSending}
                                 >
                                   {isSending ? (
