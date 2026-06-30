@@ -28,10 +28,11 @@ export interface SendEmailOptions {
   body: string;
   html?: string;
   attachments?: EmailAttachment[];
+  headers?: Record<string, string>;
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
-  const { fromName, replyTo, to, subject, body, html, attachments } = options;
+  const { fromName, replyTo, to, subject, body, html, attachments, headers } = options;
   const fromEmail = getPlatformFromEmail();
   const resend = getResend();
 
@@ -43,6 +44,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
     text: body,
     html: html ?? `<p>${body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`,
     attachments: attachments?.map(a => ({ filename: a.filename, content: a.content })),
+    headers,
   });
 
   if (error) throw new Error(error.message);

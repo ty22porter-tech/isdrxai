@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -18,6 +18,8 @@ export const prospectsTable = pgTable("prospects", {
   squareFootage: integer("square_footage"),
   status: text("status").notNull().default("new"),
   scheduleToken: text("schedule_token").notNull().unique().$defaultFn(() => crypto.randomUUID()),
+  optedOut: boolean("opted_out").notNull().default(false),
+  optedOutAt: timestamp("opted_out_at"),
   lastContactedAt: timestamp("last_contacted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

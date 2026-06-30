@@ -38,10 +38,13 @@ async function generateStepEmail(
   const employees = prospect.employeeCount ? `${prospect.employeeCount} employees` : "";
   const details = [size, employees].filter(Boolean).join(", ");
 
+  const senderInfo = `The sender's company is "${senderBusinessName}".`;
+  const noSignature = `Do NOT include a greeting line is fine, but do NOT include any sign-off, signature, sender name, company name line, phone, email, or placeholders like [Your Name] or [Your Company] at the end — end the email right after the call to action. A signature will be appended automatically.`;
+
   const prompts: Record<number, string> = {
-    1: `Write a short, professional cold email from a commercial janitorial company to ${firstName} at ${prospect.companyName} (${prospect.industry} in ${prospect.city}, ${prospect.state}${details ? `, ${details}` : ""}). The email should mention their industry's specific cleaning needs, offer a free walkthrough, and end with a clear call to action. Keep it under 150 words. No subject line. Plain text only.`,
-    2: `Write a brief, friendly follow-up cold email to ${firstName} at ${prospect.companyName}. Reference a previous unanswered email about commercial cleaning services. Keep it under 100 words, acknowledge they're busy, reiterate the value of a free walkthrough. Plain text only.`,
-    3: `Write a short final follow-up email to ${firstName} at ${prospect.companyName}. This is the last outreach. Keep it under 80 words. Be direct but respectful, offer one last chance for a free walkthrough, say you won't reach out again after this. Plain text only.`,
+    1: `Write a short, professional cold email from a commercial janitorial company to ${firstName} at ${prospect.companyName} (${prospect.industry} in ${prospect.city}, ${prospect.state}${details ? `, ${details}` : ""}). ${senderInfo} The email should mention their industry's specific cleaning needs, offer a free walkthrough, and end with a clear call to action. Keep it under 150 words. No subject line. Plain text only. ${noSignature}`,
+    2: `Write a brief, friendly follow-up cold email to ${firstName} at ${prospect.companyName}. ${senderInfo} Reference a previous unanswered email about commercial cleaning services. Keep it under 100 words, acknowledge they're busy, reiterate the value of a free walkthrough. Plain text only. ${noSignature}`,
+    3: `Write a short final follow-up email to ${firstName} at ${prospect.companyName}. ${senderInfo} This is the last outreach. Keep it under 80 words. Be direct but respectful, offer one last chance for a free walkthrough, say you won't reach out again after this. Plain text only. ${noSignature}`,
   };
 
   return aiGenerate(prompts[step] ?? prompts[1]);
