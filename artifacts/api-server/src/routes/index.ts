@@ -13,6 +13,7 @@ import usersRouter from "./users";
 import adminRouter from "./admin";
 import videoViewsRouter from "./videoViews";
 import autopilotRouter from "./autopilot";
+import deliverabilityRouter from "./deliverability";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use("/users", usersRouter);
 router.use("/admin", adminRouter);
 router.use("/video-views", videoViewsRouter);
 router.use("/autopilot", autopilotRouter);
+router.use("/deliverability", deliverabilityRouter);
 
 export default router;
