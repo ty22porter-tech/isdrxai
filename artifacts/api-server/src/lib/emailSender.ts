@@ -12,7 +12,9 @@ function getResend(): Resend {
 }
 
 export function getPlatformFromEmail(): string {
-  return process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+  // Trim: a stray space in the env var produces a malformed From header
+  // ("name <addr >") that breaks DMARC alignment and hurts deliverability.
+  return (process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev").trim();
 }
 
 export interface EmailAttachment {
@@ -37,9 +39,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
   const resend = getResend();
 
   const { error } = await resend.emails.send({
-    from: `${fromName} <${fromEmail}>`,
-    replyTo,
-    to,
+    from: `${fromName.trim()} <${fromEmail}>`,
+    replyTo: replyTo.trim(),
+    to: to.trim(),
     subject,
     text: body,
     html: html ?? `<p>${body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`,
