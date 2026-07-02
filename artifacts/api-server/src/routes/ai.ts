@@ -1,16 +1,18 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { prospectsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { prospectsTable, usersTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/requireAuth";
 
 const router = Router();
 router.use(requireAuth);
 
-function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect, tone: string = "professional") {
+function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect, client: typeof usersTable.$inferSelect | undefined, tone: string = "professional") {
   const { companyName, contactName, industry, city, state, squareFootage, employeeCount } = prospect;
   const firstName = contactName.split(" ")[0];
+  const senderName = client?.senderName?.trim() || client?.businessName?.trim() || "our team";
+  const businessName = client?.businessName?.trim() || "our company";
   const sq = squareFootage ? `${squareFootage.toLocaleString()} sq ft` : null;
   const emp = employeeCount ? `${employeeCount}-person` : null;
 
@@ -32,7 +34,7 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
 
   const body = `${opening}
 
-I hope this message finds you well. My name is Alex Carter, and I represent CleanPro Janitorial Services — a commercial cleaning company specializing in ${industry} facilities across ${state}.
+I hope this message finds you well. My name is ${senderName}, and I represent ${businessName} — a commercial cleaning company specializing in ${industry} facilities across ${state}.
 
 I noticed ${companyName} operates ${facilityDetail}, and I wanted to reach out about how we can help keep your workspace in top condition so ${companyDetail} can stay focused on what you do best.
 
@@ -46,23 +48,20 @@ We currently service several ${industry} businesses in ${city} and consistently 
 
 I'd love to schedule a free walkthrough of ${facilityDetail} so we can put together a no-obligation quote tailored to your specific needs.
 
-Would you have 15 minutes this week for a quick call or site visit?
-
-Best regards,
-Alex Carter
-Business Development | CleanPro Janitorial Services
-(555) 248-1100 | alex@cleanpro.com`;
+Would you have 15 minutes this week for a quick call or site visit?`;
 
   return { subject, body };
 }
 
-function generateCallScript(prospect: typeof prospectsTable.$inferSelect, objective: string = "set appointment") {
+function generateCallScript(prospect: typeof prospectsTable.$inferSelect, client: typeof usersTable.$inferSelect | undefined, objective: string = "set appointment") {
   const { companyName, contactName, industry, city, squareFootage } = prospect;
   const firstName = contactName.split(" ")[0];
+  const senderName = client?.senderName?.trim() || client?.businessName?.trim() || "our team";
+  const businessName = client?.businessName?.trim() || "our company";
   const sq = squareFootage ? `your ${squareFootage.toLocaleString()} sq ft space` : `your facility`;
 
   const script = `OPENING (0:00 – 0:30)
-"Good [morning/afternoon], may I speak with ${firstName}? … Hi ${firstName}, this is Alex Carter calling from CleanPro Janitorial Services. I'm reaching out to ${industry} businesses in ${city} — I'll keep this brief, I promise. Do you have about 60 seconds?"
+"Good [morning/afternoon], may I speak with ${firstName}? … Hi ${firstName}, this is ${senderName} calling from ${businessName}. I'm reaching out to ${industry} businesses in ${city} — I'll keep this brief, I promise. Do you have about 60 seconds?"
 
 PITCH (0:30 – 1:30)
 "We specialize in commercial cleaning for ${industry} companies, and I noticed ${companyName} is in ${city}. A lot of our clients had the same situation — their current cleaning wasn't consistent, or they were overpaying for a generic service.
@@ -110,17 +109,19 @@ CLOSE (1:30 – 2:00)
 
 router.post("/generate-email", async (req, res) => {
   const body = GenerateEmailBody.parse(req.body);
-  const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, body.prospectId));
+  const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  const result = generatePersonalizedEmail(prospect, body.tone);
+  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  const result = generatePersonalizedEmail(prospect, client, body.tone);
   res.json(result);
 });
 
 router.post("/generate-call-script", async (req, res) => {
   const body = GenerateCallScriptBody.parse(req.body);
-  const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, body.prospectId));
+  const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  const result = generateCallScript(prospect, body.objective);
+  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  const result = generateCallScript(prospect, client, body.objective);
   res.json(result);
 });
 
