@@ -17,9 +17,15 @@ webhook that decodes the token → prospect → latest live enrollment.
 - Set (e.g. `reply.sdrai.xyz`) = replies route to the tokenized address.
 
 ## Non-obvious Resend constraints (not derivable from code)
-- **There is NO API/SDK method to *enable receiving* on a domain.** It is a Resend
-  dashboard toggle (Emails → Receiving) that also reveals the MX record to add.
-  The SDK `Domains` class has no receiving-enable; `Receiving` is read/forward only.
+- **Receiving CAN be enabled via API**: `resend.domains.update({ id, capabilities:
+  { receiving: "enabled" } })`. After that, `domains.get(id).records` includes the
+  receiving MX to add: type MX, name "" (ROOT), value
+  `inbound-smtp.<region>.amazonaws.com`, priority 10 (status pending until DNS).
+- Receiving attaches to the ROOT Resend domain (here `sdrai.xyz`), so the MX goes on
+  root and addresses are `@sdrai.xyz` → set `INBOUND_REPLY_DOMAIN=sdrai.xyz` (NOT a
+  `reply.` subdomain). Root MX is safe here: sdrai.xyz has no real mailboxes (client
+  mail is Google Workspace on whitlockservices.com) and the sending SPF/feedback MX
+  lives on the `send.` subdomain, so it doesn't conflict.
 - Webhook creation IS available: `resend.webhooks.create({endpoint, events})`
   returns `signing_secret` (store as `RESEND_WEBHOOK_SECRET`). Verify with the
   **sync** `resend.webhooks.verify({payload, headers, webhookSecret})`.
