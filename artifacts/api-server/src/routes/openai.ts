@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { prospectsTable } from "@workspace/db";
+import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 // Call the Replit model farm directly via fetch — the SDK appends /v1 which breaks routing
@@ -111,6 +111,19 @@ router.post("/generate-email", async (req, res) => {
         .where(and(eq(prospectsTable.id, prospectId), eq(prospectsTable.clientId, req.clientId)));
     }
 
+    // The sender is the authenticated client — use their real business name so the
+    // AI never invents a company (e.g. "CleanPro"). A signature is appended later by
+    // composeEmail(), so the model must NOT write its own sign-off.
+    const [client] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, req.clientId));
+    const businessName = client?.businessName?.trim();
+    const senderClause = businessName
+      ? `a commercial janitorial company called ${businessName}`
+      : `a commercial janitorial company`;
+    const noSignatureRule = `Do NOT include any sign-off, closing, signature block, sender name, company name signature, phone number, or email address at the end of the email — a signature is appended automatically. End the email with the call to action only.`;
+
     if (prospect) {
       // Prospect mode — use the real prospect's name/company/city for a realistic preview,
       // but when a campaign industry is selected, that selection overrides the prospect's
@@ -141,8 +154,8 @@ router.post("/generate-email", async (req, res) => {
     const industryLabel = industry || "commercial";
 
     const systemPrompt = templateMode
-      ? `You are an expert B2B sales copywriter for a janitorial company called CleanPro Janitorial Services. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders. The template must be specific to the ${industryLabel} industry and reference its real cleaning challenges. Emails are conversational, specific, concise, and never generic. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. End with one clear, specific call to action.`
-      : `You are an expert B2B sales copywriter for a janitorial company called CleanPro Janitorial Services. Your emails are conversational, specific, concise, and never generic. You write for commercial cleaning sales to facility managers and operations leaders. Always use the prospect's real name and company. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. Never use bullet points unless the prompt asks. End with one clear, specific call to action.`;
+      ? `You are an expert B2B sales copywriter for ${senderClause}. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders. The template must be specific to the ${industryLabel} industry and reference its real cleaning challenges. Emails are conversational, specific, concise, and never generic. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. End with one clear, specific call to action. ${noSignatureRule}`
+      : `You are an expert B2B sales copywriter for ${senderClause}. Your emails are conversational, specific, concise, and never generic. You write for commercial cleaning sales to facility managers and operations leaders. Always use the prospect's real name and company. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. Never use bullet points unless the prompt asks. End with one clear, specific call to action. ${noSignatureRule}`;
 
     const userPrompt = templateMode
       ? `Write a ${getStepLabel(step)} cold email TEMPLATE specifically for the ${industryLabel} industry.
