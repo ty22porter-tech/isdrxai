@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { startAutopilotEngine } from "./lib/autopilotEngine";
+import { ensureResendWebhook } from "./lib/resendWebhook";
 
 const rawPort = process.env["PORT"];
 
@@ -41,6 +42,7 @@ async function initStripe() {
 }
 
 await initStripe();
+await ensureResendWebhook();
 startAutopilotEngine(logger);
 
 app.listen(port, (err) => {

@@ -34,6 +34,24 @@ webhook that decodes the token → prospect → latest live enrollment.
 - Webhook route must be registered with `express.raw` BEFORE `express.json`
   (same pattern as the Stripe webhook), and ack 200 fast then process async.
 
+## Webhook is self-provisioned on boot (mirror the Stripe pattern)
+- `ensureResendWebhook()` runs once at startup (index.ts, after Stripe init, before
+  `app.listen`), exactly like `stripeSync.findOrCreateManagedWebhook`. It gates on
+  `INBOUND_REPLY_DOMAIN`, derives `endpoint = getPublicAppUrl() + /api/resend/webhook`
+  (`getPublicAppUrl` = `PUBLIC_APP_URL` or first `REPLIT_DOMAINS` entry → the
+  deployment domain in prod), find-or-creates the `email.received` webhook, and loads
+  the signing secret into `process.env.RESEND_WEBHOOK_SECRET` in memory.
+- **`resend.webhooks.get(id)` DOES return `signing_secret`** (create returns it too),
+  so there is NO need to persist the secret in a DB/secret store — refetch it on each
+  boot from the existing webhook. This is why the handler reads the secret from a
+  runtime-set `process.env` rather than a stored value.
+- Feature is switched on by setting `INBOUND_REPLY_DOMAIN` as a **production-only**
+  env var (never in dev) → dev boots stay a no-op / legacy Reply-To, and only the
+  deployed always-on server registers the webhook against the prod URL. No manual
+  webhook creation or URL guessing.
+- `webhooks.list({limit:100})` (default page is only 20) to avoid missing an existing
+  webhook and creating a duplicate.
+
 ## Two hard-won correctness rules for this handler
 - **Validate the sender.** The tokenized reply address is exposed in outbound
   headers, so anyone could email it. Only advance enrollment state / trigger the
