@@ -31,6 +31,24 @@ NOT fix the others — verify the actual caller before assuming a path is dead.
   an explicit `noSignatureRule`; ai.ts must simply end at the CTA.
 - **Scope every prospect lookup by `req.clientId`** (`and(eq(id), eq(clientId))`).
   ai.ts originally fetched prospects by id alone = cross-tenant IDOR.
+- **`composeEmail` owns links/CTAs — generators must NOT emit raw URLs.** `composeEmail`
+  takes an optional `cta?: {label,url}` that renders a clean `<a>label</a>` (HTML) plus a
+  `label: url` text fallback. The walkthrough/scheduling prompt (`generateCalendlyEmail`)
+  must be told to reference the "Schedule walkthrough" link without writing any URL.
+  **Why:** a raw `/schedule/<uuid>` URL in the body gets ugly Gmail auto-linkification and
+  looks spammy; letting composeEmail render the anchor keeps one clean link.
+
+## Deliverability / Gmail Promotions (composeEmail footer)
+- CAN-SPAM legally requires a functional opt-out + physical postal address in the body —
+  keep those. The `List-Unsubscribe` / `List-Unsubscribe-Post: One-Click` headers are a
+  deliverability/mailbox-provider best practice, **not** a statutory requirement (don't
+  call them "legally required").
+- To fight Promotions-tab placement, the footer is kept visually quiet: no `<hr>` divider,
+  small muted (`#9ca3af`) text, so it reads like a personal 1:1 email, not a newsletter.
+  **Reality:** code tweaks only improve odds — Gmail categorization is driven mostly by
+  domain reputation + engagement + volume, and cannot be guaranteed. Removing the bulk
+  List-Unsubscribe headers *might* nudge Primary but risks the spam folder (worse), so it
+  was deliberately NOT done.
 
 ## Note on historical records
 Already-`sent` rows in `emails` keep their old (wrong-branding) body — that's sent

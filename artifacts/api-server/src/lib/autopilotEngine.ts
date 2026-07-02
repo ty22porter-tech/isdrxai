@@ -54,11 +54,10 @@ async function generateStepEmail(
 
 async function generateCalendlyEmail(
   prospect: { companyName: string; contactName: string },
-  scheduleUrl: string,
 ): Promise<string> {
   const firstName = prospect.contactName.split(" ")[0];
   return aiGenerate(
-    `Write a short, warm email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is to answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough — all on one page using this link: ${scheduleUrl}. Keep it under 90 words. Include the link naturally in the text. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
+    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is simple: answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough, all on one page. Refer to the "Schedule walkthrough" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 80 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
   );
 }
 
@@ -232,8 +231,11 @@ export async function processAutopilotQueue(): Promise<void> {
 
       const scheduleUrl = `${getPublicAppUrl()}/schedule/${prospect.scheduleToken}`;
       const subject = `Let's schedule a walkthrough — ${prospect.companyName}`;
-      const coreBody = await generateCalendlyEmail(prospect, scheduleUrl);
-      const composed = composeEmail(coreBody, client, prospect);
+      const coreBody = await generateCalendlyEmail(prospect);
+      const composed = composeEmail(coreBody, client, prospect, {
+        label: "Schedule walkthrough",
+        url: scheduleUrl,
+      });
 
       // Atomically claim this enrollment BEFORE sending so a concurrent queue run
       // (the 5-min timer racing the inbound-reply trigger) can't double-send the

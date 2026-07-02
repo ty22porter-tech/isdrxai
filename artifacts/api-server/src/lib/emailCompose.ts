@@ -31,6 +31,7 @@ export function composeEmail(
   coreBody: string,
   client: ComposeClient,
   prospect: { companyName: string; scheduleToken: string },
+  cta?: { label: string; url: string },
 ): ComposeResult {
   const baseUrl = getPublicAppUrl();
   const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.scheduleToken}`;
@@ -51,23 +52,29 @@ export function composeEmail(
 
   const footerIntro = `You're receiving this email because we believe ${prospect.companyName} may benefit from professional commercial cleaning services.`;
 
+  const ctaText = cta ? `\n\n${cta.label}: ${cta.url}` : "";
   const text =
-    `${coreBody.trim()}\n\n` +
+    `${coreBody.trim()}${ctaText}\n\n` +
     `${signatureLines.join("\n")}\n\n` +
-    `—\n${addressLine}\n${footerIntro}\nPrefer not to hear from us? Unsubscribe: ${unsubscribePageUrl}`;
+    `${addressLine}\n${footerIntro}\nPrefer not to hear from us? Unsubscribe: ${unsubscribePageUrl}`;
 
   const bodyHtml = escapeHtml(coreBody.trim())
     .split(/\n{2,}/)
     .map(p => `<p style="margin:0 0 16px">${p.replace(/\n/g, "<br>")}</p>`)
     .join("");
+  const ctaHtml = cta
+    ? `<p style="margin:0 0 16px"><a href="${cta.url}" style="color:#2563eb">${escapeHtml(cta.label)}</a></p>`
+    : "";
   const signatureHtml = `<p style="margin:0 0 16px">${escapeHtml(signatureLines.join("\n")).replace(/\n/g, "<br>")}</p>`;
+  // Keep the footer visually quiet (no divider rule, small muted text) so the
+  // message reads like a personal 1:1 email rather than a bulk newsletter —
+  // heavy dividers/footer blocks are a strong Gmail "Promotions" signal.
   const footerHtml =
-    `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px">` +
-    `<p style="font-size:12px;color:#6b7280;line-height:1.5;margin:0">` +
+    `<p style="font-size:12px;color:#9ca3af;line-height:1.5;margin:16px 0 0">` +
     `${escapeHtml(addressLine)}<br>${escapeHtml(footerIntro)}<br>` +
-    `Prefer not to hear from us? <a href="${unsubscribePageUrl}" style="color:#6b7280">Unsubscribe</a>.` +
+    `Prefer not to hear from us? <a href="${unsubscribePageUrl}" style="color:#9ca3af">Unsubscribe</a>.` +
     `</p>`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${signatureHtml}${footerHtml}</div>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${ctaHtml}${signatureHtml}${footerHtml}</div>`;
 
   return { text, html, unsubscribePageUrl, unsubscribeApiUrl };
 }
