@@ -129,6 +129,7 @@ export async function processAutopilotQueue(): Promise<void> {
 
       await sendEmail({
         fromName: client.businessName ?? client.outreachEmail,
+        fromEmail: client.sendingEmail ?? undefined,
         replyTo: resolveReplyTo(client.outreachEmail, prospect.scheduleToken),
         to: prospect.email,
         subject,
@@ -253,6 +254,7 @@ export async function processAutopilotQueue(): Promise<void> {
       try {
         await sendEmail({
           fromName: client.businessName ?? client.outreachEmail,
+          fromEmail: client.sendingEmail ?? undefined,
           replyTo: resolveReplyTo(client.outreachEmail, prospect.scheduleToken),
           to: prospect.email,
           subject,

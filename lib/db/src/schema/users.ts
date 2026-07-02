@@ -15,6 +15,7 @@ export const usersTable = pgTable("users", {
   phone: text("phone"),
   businessAddress: text("business_address"),
   outreachEmail: text("outreach_email"),
+  sendingEmail: text("sending_email"),
   calendlyUrl: text("calendly_url"),
   timezone: text("timezone").default("America/New_York"),
   autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),

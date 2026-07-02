@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock } from "lucide-react";
@@ -61,6 +62,43 @@ function groupViewsByRef(views: any[]) {
     if (v.createdAt > map[key].lastSeen) map[key].lastSeen = v.createdAt;
   }
   return Object.values(map).sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+}
+
+function SendingEmailEditor({
+  client,
+  saving,
+  onSave,
+}: {
+  client: any;
+  saving: boolean;
+  onSave: (value: string) => void;
+}) {
+  const current = client.sendingEmail ?? "";
+  const [val, setVal] = useState(current);
+  const dirty = val.trim() !== current;
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">Sends as</span>
+      <input
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        placeholder="shared domain (default)"
+        spellCheck={false}
+        className="text-xs bg-muted/40 border rounded px-2 py-1 w-64 font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+      {dirty && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs text-primary"
+          disabled={saving}
+          onClick={() => onSave(val.trim())}
+        >
+          Save
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export default function Admin() {
@@ -163,6 +201,11 @@ export default function Admin() {
                     {client.email ?? client.id.slice(0, 20) + "…"}
                   </div>
                   <div className="text-muted-foreground text-xs mt-0.5 font-mono">{client.id.slice(0, 14)}…</div>
+                  <SendingEmailEditor
+                    client={client}
+                    saving={patchMutation.isPending}
+                    onSave={(sendingEmail) => patchMutation.mutate({ id: client.id, body: { sendingEmail } })}
+                  />
                 </div>
                 <StatusBadge status={client.status} />
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">

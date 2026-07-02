@@ -30,10 +30,20 @@ router.get("/clients", async (_req, res) => {
 
 router.patch("/clients/:id", async (req, res) => {
   const { id } = req.params;
-  const { status, isAdmin } = req.body;
+  const { status, isAdmin, sendingEmail } = req.body;
   const update: Record<string, any> = {};
   if (status) update.status = status;
   if (typeof isAdmin === "boolean") update.isAdmin = isAdmin;
+  // Admin-managed per-client sending address (the authenticated From: domain
+  // provisioned for that client during onboarding). Empty string clears it,
+  // reverting the client to the shared platform sending domain.
+  if (typeof sendingEmail === "string") {
+    const trimmed = sendingEmail.trim();
+    if (trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      return res.status(400).json({ error: "Invalid sending email address" });
+    }
+    update.sendingEmail = trimmed || null;
+  }
   const [user] = await db.update(usersTable).set(update).where(eq(usersTable.id, id)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   res.json({ ...user, createdAt: user.createdAt.toISOString() });

@@ -84,6 +84,7 @@ router.post("/", async (req, res) => {
   try {
     await sendEmail({
       fromName: client.businessName?.trim() || client.outreachEmail,
+      fromEmail: client.sendingEmail ?? undefined,
       replyTo: resolveReplyTo(client.outreachEmail, scheduleToken),
       to: prospect.email,
       subject: body.subject,

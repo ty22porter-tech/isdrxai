@@ -24,6 +24,8 @@ export interface EmailAttachment {
 
 export interface SendEmailOptions {
   fromName: string;
+  /** Per-client authenticated sending address. Falls back to the platform default when unset. */
+  fromEmail?: string;
   replyTo: string;
   to: string;
   subject: string;
@@ -34,8 +36,8 @@ export interface SendEmailOptions {
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
-  const { fromName, replyTo, to, subject, body, html, attachments, headers } = options;
-  const fromEmail = getPlatformFromEmail();
+  const { fromName, fromEmail: fromEmailOverride, replyTo, to, subject, body, html, attachments, headers } = options;
+  const fromEmail = fromEmailOverride?.trim() || getPlatformFromEmail();
   const resend = getResend();
 
   const { error } = await resend.emails.send({
