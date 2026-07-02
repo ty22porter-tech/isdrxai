@@ -5,21 +5,22 @@ description: How prospect replies are auto-detected via Resend inbound webhook, 
 
 # Inbound reply detection ("Option B")
 
-## DECISION: Option B disabled for this client (route replies to client inbox)
-Unset `INBOUND_REPLY_DOMAIN` in BOTH dev and prod and deleted both Resend webhooks;
-`resolveReplyTo()` now returns the client's own `outreachEmail`, so prospect replies
-land directly in their real inbox.
-**Why:** real prospect data lives in the DEV DB, but Resend fans out `email.received`
-to every registered endpoint. The dev webhook points at the ephemeral preview URL
-(sleeps / changes between sessions) and prod is a SEPARATE empty DB, so a real reply
-(MDM/Dedrick) hit prod's handler, found no prospect, and was swallowed — client got no
-forward, no log. The tokenized address (`reply-<token>@sdrai.xyz`) also meant the reply
-never reached the client's own inbox either. Option B cannot reliably own inbound while
-real data lives in an ephemeral dev environment.
-**How to apply:** if re-enabling, real data must live in the always-on prod deployment
-(the only stable webhook endpoint). To recover a swallowed reply: GET
-`api.resend.com/emails/receiving?limit=N` to list inbound, then
-`/emails/receiving/<id>` for the body; forward via POST `/emails`.
+## DECISION: Option B is the client's PREFERRED flow — keep it ON in dev
+`INBOUND_REPLY_DOMAIN=sdrai.xyz` is set in **development** (only). The client wants the
+autopilot flow: enrolled prospect replies positively → engine auto-sends the
+"Let's schedule a walkthrough" email → prospect fills the `/schedule/<token>`
+questionnaire → rep is emailed the answers (+floor plans) and prospect books via Calendly.
+This was briefly disabled (routed to client inbox) then re-enabled at the client's request.
+**Reliability caveat (state clearly, do NOT silently "fix"):** auto reply-detection only
+fires while the app is running when the reply arrives. Real data lives in the DEV DB and
+the dev webhook points at the ephemeral preview URL — so replies that land while the
+workspace is asleep are missed. Resend also fans out `email.received` to any prod webhook
+too, but prod is a SEPARATE empty DB so its copy just no-ops (harmless). True 24/7 requires
+running the real operation from the always-on prod deployment (data must live in prod).
+**Only fires for ENROLLED prospects.** A manually-emailed prospect with no live enrollment:
+the reply is logged + forwarded to `outreachEmail`, but no auto-scheduling email is sent.
+**Recover a swallowed reply:** GET `api.resend.com/emails/receiving?limit=N` to list
+inbound, `/emails/receiving/<id>` for the body; forward via POST `/emails`.
 
 
 Prospect replies are routed through the platform sending domain instead of a manual
