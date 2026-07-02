@@ -37,18 +37,20 @@ export default function Dashboard() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
-                <Mail className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.emailsSent}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This month
-                </p>
-              </CardContent>
-            </Card>
+            <Link href="/emails" className="block">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.emailsSent}</div>
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    This month <ArrowUpRight className="h-3 w-3" />
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Calls Made</CardTitle>
