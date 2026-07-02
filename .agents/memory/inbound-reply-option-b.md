@@ -45,12 +45,30 @@ webhook that decodes the token → prospect → latest live enrollment.
   so there is NO need to persist the secret in a DB/secret store — refetch it on each
   boot from the existing webhook. This is why the handler reads the secret from a
   runtime-set `process.env` rather than a stored value.
-- Feature is switched on by setting `INBOUND_REPLY_DOMAIN` as a **production-only**
-  env var (never in dev) → dev boots stay a no-op / legacy Reply-To, and only the
-  deployed always-on server registers the webhook against the prod URL. No manual
-  webhook creation or URL guessing.
+- Feature is switched on by setting `INBOUND_REPLY_DOMAIN`. It can be scoped per
+  environment: production scope = live app only; add a **development**-scope value to
+  also enable it in the preview (the default is unset in dev = no-op / legacy Reply-To).
 - `webhooks.list({limit:100})` (default page is only 20) to avoid missing an existing
   webhook and creating a duplicate.
+
+## Dev vs prod is the usual real-world gotcha here
+- **Dev and prod are SEPARATE Postgres databases.** In practice the real client +
+  prospects + enrollments live only in the **development** DB (that's where the app is
+  actually operated); the published prod DB can be empty. Check both with
+  `executeSql({environment:"production"})` vs default before concluding "the reply
+  wasn't processed" — the token→prospect lookup runs against whichever env's DB, so a
+  prod webhook against an empty prod DB just logs "no prospect for token".
+- To make auto reply→Calendly work in the preview: set `INBOUND_REPLY_DOMAIN` in the
+  **development** scope and restart api-server — boot self-registers a webhook for the
+  CURRENT dev URL and loads the secret. Caveat: preview only catches replies while the
+  workflow is running, and the dev URL changes over time.
+- **Webhooks accumulate; `ensureResendWebhook` find-or-creates but never prunes.** Each
+  boot at a new URL (dev preview URLs rotate) leaves a stale enabled webhook, and Resend
+  delivers every `email.received` to ALL of them. Manually remove dead endpoints
+  (`webhooks.remove(id)`) — match on `endpoint.includes("spock")` old-preview hosts;
+  keep the current dev URL + the prod `.replit.app` URL.
+- Only **new** sends after enabling carry the tokenized Reply-To; emails sent earlier
+  had legacy Reply-To (client inbox), so replies to those never route to the platform.
 
 ## Two hard-won correctness rules for this handler
 - **Validate the sender.** The tokenized reply address is exposed in outbound

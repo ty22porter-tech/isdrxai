@@ -27,3 +27,6 @@ channel = "stable-25_05"
 
 [userenv.production]
 INBOUND_REPLY_DOMAIN = "sdrai.xyz"
+
+[userenv.development]
+INBOUND_REPLY_DOMAIN = "sdrai.xyz"
