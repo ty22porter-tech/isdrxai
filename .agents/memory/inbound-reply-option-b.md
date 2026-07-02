@@ -5,6 +5,20 @@ description: How prospect replies are auto-detected via Resend inbound webhook, 
 
 # Inbound reply detection ("Option B")
 
+## GOTCHA: resend.webhooks.verify() header shape (silent "Missing required headers")
+`resend.webhooks.verify({ payload, headers, webhookSecret })` reads `headers.id`,
+`headers.timestamp`, `headers.signature` (plain-object props) and maps them to the
+standardwebhooks `webhook-*` names internally. Passing a `Headers` object (or an object
+keyed `svix-id`/`svix-timestamp`/`svix-signature`) makes all three resolve to `undefined`
+→ every inbound webhook fails verification with "Missing required headers" and NO reply is
+ever processed. The incoming Resend request carries the values as `svix-*` headers (Svix),
+so read `req.headers["svix-id"|"svix-timestamp"|"svix-signature"]` (with `webhook-*`
+fallback) and pass them as `{ id, timestamp, signature }`.
+**How to verify without a real reply:** GET `api.resend.com/webhooks/{id}` → `signing_secret`
+(top-level, not `.data`), sign with `new Webhook(secret).sign(msgId, Date, payload)` from
+`standardwebhooks`, POST to the live `/api/resend/webhook` with `svix-*` headers → expect
+200 for a valid sig, 400 for a bad one.
+
 ## DECISION: Option B is the client's PREFERRED flow — keep it ON in dev
 `INBOUND_REPLY_DOMAIN=sdrai.xyz` is set in **development** (only). The client wants the
 autopilot flow: enrolled prospect replies positively → engine auto-sends the

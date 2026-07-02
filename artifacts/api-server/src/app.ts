@@ -50,13 +50,22 @@ app.post(
     try {
       const payload = (req.body as Buffer).toString("utf8");
       const resend = new Resend(process.env.RESEND_API_KEY);
+      // resend.webhooks.verify() reads headers.id / .timestamp / .signature
+      // (it maps them to the standardwebhooks `webhook-*` names internally).
+      // The inbound request carries them as `svix-*` (Resend uses Svix), with
+      // `webhook-*` as a forward-compatible fallback. Passing a `Headers`
+      // object here silently breaks verification ("Missing required headers")
+      // because Headers has no .id/.timestamp/.signature properties.
+      const h = req.headers;
+      const pick = (svix: string, webhook: string): string =>
+        (h[svix] as string) || (h[webhook] as string) || "";
       event = resend.webhooks.verify({
         payload,
-        headers: new Headers({
-          "svix-id": (req.headers["svix-id"] as string) ?? "",
-          "svix-timestamp": (req.headers["svix-timestamp"] as string) ?? "",
-          "svix-signature": (req.headers["svix-signature"] as string) ?? "",
-        }),
+        headers: {
+          id: pick("svix-id", "webhook-id"),
+          timestamp: pick("svix-timestamp", "webhook-timestamp"),
+          signature: pick("svix-signature", "webhook-signature"),
+        },
         webhookSecret: secret,
       });
     } catch (error: any) {
