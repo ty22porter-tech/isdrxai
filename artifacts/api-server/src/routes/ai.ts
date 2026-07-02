@@ -30,13 +30,14 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
   const opening = openings[Math.floor(Math.random() * openings.length)];
 
   const facilityDetail = sq ? `your ${sq} facility` : `your ${city} location`;
-  const companyDetail = emp ? `${emp} team` : `your team`;
+  const facilityMention = sq ? `a ${sq} facility in ${city}` : `a facility in ${city}`;
+  const companyDetail = emp ? `your ${emp} team` : `your team`;
 
   const body = `${opening}
 
 I hope this message finds you well. My name is ${senderName}, and I represent ${businessName} — a commercial cleaning company specializing in ${industry} facilities across ${state}.
 
-I noticed ${companyName} operates ${facilityDetail}, and I wanted to reach out about how we can help keep your workspace in top condition so ${companyDetail} can stay focused on what you do best.
+I noticed ${companyName} operates ${facilityMention}, and I wanted to reach out about how we can help keep your workspace in top condition so ${companyDetail} can stay focused on what you do best.
 
 Here's what we bring to ${industry} companies like yours:
 • Customized cleaning schedules (nightly, weekly, or as-needed)
