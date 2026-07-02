@@ -79,7 +79,7 @@ export function Layout({ children }: LayoutProps) {
       <div className="w-full md:w-64 border-r bg-card flex flex-col h-screen sticky top-0">
         <div className="h-16 flex items-center px-6 border-b">
           <Building2 className="h-6 w-6 text-primary mr-3" />
-          <span className="font-semibold text-lg tracking-tight">AI SDR</span>
+          <span className="font-semibold text-lg tracking-tight">iSDRX AI</span>
         </div>
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="px-3 space-y-1">
@@ -144,7 +144,7 @@ export function Layout({ children }: LayoutProps) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 border-b bg-card flex items-center justify-between px-8 sticky top-0 z-10">
           <h1 className="text-lg font-semibold">
-            {currentPage?.name ?? "AI SDR"}
+            {currentPage?.name ?? "iSDRX AI"}
           </h1>
         </header>
 

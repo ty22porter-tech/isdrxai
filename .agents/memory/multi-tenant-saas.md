@@ -1,6 +1,6 @@
 ---
 name: Multi-tenant SaaS architecture
-description: How clientId isolation, auth, Stripe subscriptions, and admin work in the AI SDR app
+description: How clientId isolation, auth, Stripe subscriptions, and admin work in the iSDRX AI app
 ---
 
 ## Rule
@@ -24,7 +24,7 @@ Webhook handlers in `webhookHandlers.ts` update `usersTable.status` on `invoice.
 
 ## Seed Stripe products
 Run: `cd artifacts/api-server && npx tsx src/seed-products.ts` (requires Stripe connected via Integrations tab)
-Prices: $197/month, $1970/year for "AI SDR Pro".
+Prices: $197/month, $1970/year for "iSDRX AI Pro".
 
 **Why:** Multi-tenancy on a single DB schema with row-level clientId isolation is simpler than separate schemas and works well at SaaS scale for this use case.
 

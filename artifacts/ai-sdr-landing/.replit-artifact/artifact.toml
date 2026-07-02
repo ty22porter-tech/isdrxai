@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/ai-sdr-landing/"
-title = "AI SDR – Landing Page"
+title = "iSDRX AI – Landing Page"
 version = "1.0.0"
 id = "artifacts/ai-sdr-landing"
 router = "path"

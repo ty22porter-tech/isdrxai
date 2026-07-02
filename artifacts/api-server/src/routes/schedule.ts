@@ -179,7 +179,7 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
 `;
 
     await sendEmail({
-      fromName: client.businessName ?? "AI SDR",
+      fromName: client.businessName ?? "iSDRX AI",
       replyTo: email || salesEmail,
       to: salesEmail,
       subject: `Walkthrough request — ${prospect.companyName}`,

@@ -1,6 +1,6 @@
 kind = "video"
 previewPath = "/ai-sdr-video/"
-title = "AI SDR – Product Video"
+title = "iSDRX AI – Product Video"
 version = "1.0.0"
 id = "artifacts/ai-sdr-video"
 router = "path"

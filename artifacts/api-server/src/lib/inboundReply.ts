@@ -173,7 +173,7 @@ export async function handleResendWebhookEvent(event: {
         ? `— Reply directly to this email to respond to ${prospect.contactName}.`
         : `⚠️ This came to ${prospect.contactName}'s reply address but from an unrecognized sender (${from}); it was NOT auto-processed. Reply directly to respond.`;
       await sendEmail({
-        fromName: `${prospect.companyName} (via AI SDR)`,
+        fromName: `${prospect.companyName} (via iSDRX AI)`,
         replyTo: replyToAddr,
         to: client.outreachEmail,
         subject: `Reply from ${prospect.contactName} — ${prospect.companyName}`,

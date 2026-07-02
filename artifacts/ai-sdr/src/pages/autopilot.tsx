@@ -156,7 +156,7 @@ export default function AutopilotPage() {
             <Bot className="w-6 h-6 text-primary" />
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Autopilot</h2>
-              <p className="text-muted-foreground mt-0.5">AI SDR running on autopilot — emails, follow-ups, and booking</p>
+              <p className="text-muted-foreground mt-0.5">iSDRX AI running on autopilot — emails, follow-ups, and booking</p>
             </div>
           </div>
           <Button onClick={() => setEnrollModal(true)} disabled={notConfigured} className="gap-2">
@@ -214,7 +214,7 @@ export default function AutopilotPage() {
               <div className="px-6 py-12 text-center text-muted-foreground">
                 <Bot className="w-10 h-10 mx-auto mb-3 opacity-30" />
                 <p className="font-medium">No prospects enrolled yet</p>
-                <p className="text-sm mt-1">Click "Add Prospects" to put your AI SDR on autopilot</p>
+                <p className="text-sm mt-1">Click "Add Prospects" to put your iSDRX AI on autopilot</p>
               </div>
             )}
             {enrollments.map((e: any) => (

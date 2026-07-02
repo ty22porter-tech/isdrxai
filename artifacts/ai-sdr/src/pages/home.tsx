@@ -13,7 +13,7 @@ export default function Home() {
 
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold text-white">
-            AI SDR for <span className="text-sky-400">Janitorial Companies</span>
+            iSDRX AI for <span className="text-sky-400">Janitorial Companies</span>
           </h1>
           <p className="text-slate-400 text-lg max-w-xl mx-auto">
             Automate your outreach, manage prospects, and book more appointments — powered by AI.

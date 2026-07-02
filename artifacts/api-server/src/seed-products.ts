@@ -3,18 +3,18 @@ import { getUncachableStripeClient } from "./stripeClient";
 async function createProducts() {
   try {
     const stripe = await getUncachableStripeClient();
-    console.log("Checking for existing AI SDR Pro plan...");
+    console.log("Checking for existing iSDRX AI Pro plan...");
 
-    const existing = await stripe.products.search({ query: "name:'AI SDR Pro' AND active:'true'" });
+    const existing = await stripe.products.search({ query: "name:'iSDRX AI Pro' AND active:'true'" });
     if (existing.data.length > 0) {
-      console.log("AI SDR Pro already exists:", existing.data[0].id);
+      console.log("iSDRX AI Pro already exists:", existing.data[0].id);
       const prices = await stripe.prices.list({ product: existing.data[0].id, active: true });
       prices.data.forEach(p => console.log(`  Price: $${(p.unit_amount ?? 0) / 100}/${(p.recurring as any)?.interval} — ${p.id}`));
       return;
     }
 
     const product = await stripe.products.create({
-      name: "AI SDR Pro",
+      name: "iSDRX AI Pro",
       description: "Full access to AI-powered sales development for janitorial companies — unlimited prospects, AI email sequences, call scripts, and real-time analytics.",
     });
     console.log("Created product:", product.id);

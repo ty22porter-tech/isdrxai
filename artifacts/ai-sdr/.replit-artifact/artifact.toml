@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "AI SDR – Janitorial Outreach"
+title = "iSDRX AI – Janitorial Outreach"
 version = "1.0.0"
 id = "artifacts/ai-sdr"
 router = "path"

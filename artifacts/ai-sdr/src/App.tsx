@@ -166,8 +166,8 @@ function AppRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
-        signIn: { start: { title: "Welcome back", subtitle: "Sign in to your AI SDR account" } },
-        signUp: { start: { title: "Get started", subtitle: "Create your AI SDR account" } },
+        signIn: { start: { title: "Welcome back", subtitle: "Sign in to your iSDRX AI account" } },
+        signUp: { start: { title: "Get started", subtitle: "Create your iSDRX AI account" } },
       }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}

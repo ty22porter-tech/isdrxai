@@ -1,5 +1,5 @@
 ---
-name: Email send paths (AI SDR)
+name: Email send paths (iSDRX AI)
 description: Where outbound email is actually dispatched vs. only logged; compliance must be uniform across paths.
 ---
 

@@ -40,7 +40,7 @@ function Navbar() {
           <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <span className="font-display font-bold text-xl tracking-tight">AI SDR</span>
+          <span className="font-display font-bold text-xl tracking-tight">iSDRX AI</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
@@ -170,11 +170,7 @@ function Hero() {
           className="mt-20 relative mx-auto max-w-5xl"
         >
           <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-xl blur opacity-20"></div>
-          <img 
-            src={`${import.meta.env.BASE_URL}images/hero-mockup.png`} 
-            alt="AI SDR Dashboard" 
-            className="relative rounded-xl border border-white/10 shadow-2xl bg-card"
-          />
+          <HeroMockup />
         </motion.div>
       </div>
     </section>
@@ -254,6 +250,138 @@ function FeaturesGrid() {
         </div>
       </div>
     </section>
+  );
+}
+
+function HeroMockup() {
+  const bars = [42, 68, 50, 82, 60, 92, 74];
+  const prospects = [
+    { name: "Metro Financial Partners", status: "Replied", tone: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
+    { name: "Pinnacle Law Group", status: "Meeting set", tone: "text-accent bg-accent/10 border-accent/20" },
+    { name: "Apex Medical Center", status: "Contacted", tone: "text-muted-foreground bg-white/5 border-white/10" },
+  ];
+  return (
+    <div className="relative rounded-xl border border-white/10 shadow-2xl bg-[#0b1220] overflow-hidden text-left">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10 bg-white/[0.03]">
+        <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
+          <Sparkles className="w-3.5 h-3.5 text-white" />
+        </div>
+        <span className="font-display font-bold text-sm text-white">iSDRX AI</span>
+        <span className="ml-3 text-xs text-muted-foreground">Dashboard</span>
+        <div className="ml-auto flex items-center gap-1 text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
+          <Bot className="w-3 h-3" /> Autopilot on
+        </div>
+      </div>
+
+      <div className="p-5 grid grid-cols-3 gap-3">
+        {[
+          { label: "Open Rate", value: "68%", delta: "+12% this week" },
+          { label: "Reply Rate", value: "24%", delta: "+6% this week" },
+          { label: "Meetings Booked", value: "41", delta: "+9 this month" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-lg bg-white/[0.03] border border-white/10 p-3">
+            <div className="text-[11px] text-muted-foreground">{s.label}</div>
+            <div className="text-xl md:text-2xl font-bold text-white mt-1">{s.value}</div>
+            <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> {s.delta}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="px-5 pb-5 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-3">
+        <div className="rounded-lg bg-white/[0.03] border border-white/10 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-white">Outreach Performance</span>
+            <span className="text-[10px] text-muted-foreground">Last 7 days</span>
+          </div>
+          <div className="flex items-end gap-2 h-24">
+            {bars.map((h, i) => (
+              <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-primary to-accent" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+        <div className="rounded-lg bg-white/[0.03] border border-white/10 p-4">
+          <span className="text-xs font-medium text-white">Recent Prospects</span>
+          <div className="mt-3 space-y-2.5">
+            {prospects.map((p) => (
+              <div key={p.name} className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-gray-300 truncate">{p.name}</span>
+                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full border shrink-0 ${p.tone}`}>{p.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CampaignMockup() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="rounded-xl bg-card border border-white/10 p-5 shadow-xl">
+        <div className="text-sm text-muted-foreground mb-1">Prospects Reached</div>
+        <div className="text-3xl font-bold text-white mb-4">545</div>
+        <div className="flex items-end gap-1.5 h-12">
+          {[35, 50, 40, 65, 55, 85, 70].map((h, i) => (
+            <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-primary to-accent" style={{ height: `${h}%` }} />
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-card border border-white/10 p-5 shadow-xl">
+        <div className="text-sm text-muted-foreground mb-1">Outreach Campaign</div>
+        <div className="text-3xl font-bold text-white mb-1">$15K</div>
+        <div className="text-xs text-muted-foreground mb-3">Pipeline value</div>
+        <div className="flex items-end gap-1.5 h-10">
+          {[50, 70, 45, 80, 60, 90].map((h, i) => (
+            <div key={i} className="flex-1 rounded-t bg-accent/70" style={{ height: `${h}%` }} />
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-card border border-white/10 p-5 shadow-xl">
+        <div className="text-sm text-muted-foreground mb-1">Emails Sent</div>
+        <div className="text-3xl font-bold text-white mb-4">3,295</div>
+        <div className="space-y-3">
+          {[
+            { label: "Delivered", pct: 98, color: "bg-primary" },
+            { label: "Opened", pct: 62, color: "bg-accent" },
+          ].map((r) => (
+            <div key={r.label}>
+              <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
+                <span>{r.label}</span><span>{r.pct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className={`h-full rounded-full ${r.color}`} style={{ width: `${r.pct}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-card border border-white/10 p-5 shadow-xl">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm text-muted-foreground">Meetings Booked</span>
+          <span className="text-[10px] font-medium text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">On track</span>
+        </div>
+        <div className="text-3xl font-bold text-white mb-3">44%</div>
+        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-4">
+          <div className="h-full rounded-full bg-emerald-400" style={{ width: "44%" }} />
+        </div>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Replied</span>
+            <span className="text-white font-medium">128</span>
+          </div>
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5" /> Walkthroughs</span>
+            <span className="text-white font-medium">41</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -397,7 +525,7 @@ function Testimonial() {
       <div className="max-w-4xl mx-auto px-6 text-center">
         <Bot className="w-12 h-12 text-primary mx-auto mb-8" />
         <h2 className="text-3xl md:text-5xl font-display font-medium text-white mb-10 leading-snug">
-          "We used to rely entirely on word-of-mouth. Last month, AI SDR booked us 15 walkthroughs with medical facilities without us making a single cold call."
+          "We used to rely entirely on word-of-mouth. Last month, iSDRX AI booked us 15 walkthroughs with medical facilities without us making a single cold call."
         </h2>
         <div className="flex items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-xl">
@@ -443,7 +571,7 @@ function Footer() {
           <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
             <Sparkles className="w-3 h-3 text-white" />
           </div>
-          <span className="font-display font-bold text-lg tracking-tight text-white">AI SDR</span>
+          <span className="font-display font-bold text-lg tracking-tight text-white">iSDRX AI</span>
         </div>
         <div className="flex gap-6 text-sm text-muted-foreground">
           <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Privacy Policy</a>
@@ -451,7 +579,7 @@ function Footer() {
           <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Contact</a>
         </div>
         <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} AI SDR Inc. All rights reserved.
+          &copy; {new Date().getFullYear()} iSDRX AI Inc. All rights reserved.
         </p>
       </div>
     </footer>
@@ -483,7 +611,7 @@ function LandingPage() {
 
         <DeepDiveSection 
           reversed={true}
-          imageSrc={`${import.meta.env.BASE_URL}images/campaigns-feature.png`}
+          graphic={<CampaignMockup />}
           pretitle="Multi-Step Campaigns"
           title="Relentless follow-up, zero effort."
           description="It takes 7-12 touches to book a commercial contract. The AI handles the entire cadence—spacing out touches and replying appropriately when they answer."
