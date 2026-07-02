@@ -3,8 +3,10 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
+import { Resend } from "resend";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
+import { handleResendWebhookEvent } from "./lib/inboundReply";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -31,6 +33,41 @@ app.post(
       logger.error({ err: error }, "Webhook error");
       res.status(400).json({ error: "Webhook processing error" });
     }
+  },
+);
+
+// 1b. Resend inbound webhook BEFORE express.json() — needs raw Buffer for Svix signature.
+app.post(
+  "/api/resend/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!secret) {
+      logger.error("RESEND_WEBHOOK_SECRET not set — cannot verify inbound webhook");
+      return res.status(500).json({ error: "Inbound email not configured" });
+    }
+    let event;
+    try {
+      const payload = (req.body as Buffer).toString("utf8");
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      event = resend.webhooks.verify({
+        payload,
+        headers: new Headers({
+          "svix-id": (req.headers["svix-id"] as string) ?? "",
+          "svix-timestamp": (req.headers["svix-timestamp"] as string) ?? "",
+          "svix-signature": (req.headers["svix-signature"] as string) ?? "",
+        }),
+        webhookSecret: secret,
+      });
+    } catch (error: any) {
+      logger.error({ err: error }, "Resend webhook verification failed");
+      return res.status(400).json({ error: "Invalid signature" });
+    }
+    // Ack fast so Resend doesn't retry; process the reply asynchronously.
+    res.status(200).json({ received: true });
+    handleResendWebhookEvent(event as any).catch((err) =>
+      logger.error({ err }, "Inbound reply processing failed"),
+    );
   },
 );
 

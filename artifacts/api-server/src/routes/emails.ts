@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/requireAuth";
 import { sendEmail } from "../lib/emailSender";
+import { resolveReplyTo } from "../lib/inboundAddressing";
 import {
   composeEmail,
   unsubscribeHeaders,
@@ -83,7 +84,7 @@ router.post("/", async (req, res) => {
   try {
     await sendEmail({
       fromName: client.businessName?.trim() || client.outreachEmail,
-      replyTo: client.outreachEmail,
+      replyTo: resolveReplyTo(client.outreachEmail, scheduleToken),
       to: prospect.email,
       subject: body.subject,
       body: composed.text,

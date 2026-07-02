@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
 import { composeEmail, unsubscribeHeaders } from "./emailCompose";
 import { getPublicAppUrl } from "./publicUrl";
+import { resolveReplyTo } from "./inboundAddressing";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -61,7 +62,7 @@ async function generateCalendlyEmail(
   );
 }
 
-async function analyzeReplyTone(replyContent: string): Promise<"positive" | "negative" | "neutral"> {
+export async function analyzeReplyTone(replyContent: string): Promise<"positive" | "negative" | "neutral"> {
   const result = await aiGenerate(
     `Classify this email reply tone as exactly one word: positive, negative, or neutral.\n\nReply: "${replyContent.slice(0, 500)}"\n\nAnswer with only one word:`
   );
@@ -129,7 +130,7 @@ export async function processAutopilotQueue(): Promise<void> {
 
       await sendEmail({
         fromName: client.businessName ?? client.outreachEmail,
-        replyTo: client.outreachEmail,
+        replyTo: resolveReplyTo(client.outreachEmail, prospect.scheduleToken),
         to: prospect.email,
         subject,
         body: composed.text,
@@ -234,17 +235,37 @@ export async function processAutopilotQueue(): Promise<void> {
       const coreBody = await generateCalendlyEmail(prospect, scheduleUrl);
       const composed = composeEmail(coreBody, client, prospect);
 
-      await sendEmail({
-        fromName: client.businessName ?? client.outreachEmail,
-        replyTo: client.outreachEmail,
-        to: prospect.email,
-        subject,
-        body: composed.text,
-        html: composed.html,
-        headers: unsubscribeHeaders(composed.unsubscribeApiUrl, client.outreachEmail),
-      });
-
+      // Atomically claim this enrollment BEFORE sending so a concurrent queue run
+      // (the 5-min timer racing the inbound-reply trigger) can't double-send the
+      // scheduling email. Only the run that flips calendlyLinkSentAt from NULL wins.
       const sentAt = new Date();
+      const claimed = await db.update(autopilotEnrollmentsTable)
+        .set({ calendlyLinkSentAt: sentAt, status: "calendly_sent" })
+        .where(and(
+          eq(autopilotEnrollmentsTable.id, enrollment.id),
+          isNull(autopilotEnrollmentsTable.calendlyLinkSentAt),
+        ))
+        .returning();
+      if (claimed.length === 0) continue;
+
+      try {
+        await sendEmail({
+          fromName: client.businessName ?? client.outreachEmail,
+          replyTo: resolveReplyTo(client.outreachEmail, prospect.scheduleToken),
+          to: prospect.email,
+          subject,
+          body: composed.text,
+          html: composed.html,
+          headers: unsubscribeHeaders(composed.unsubscribeApiUrl, client.outreachEmail),
+        });
+      } catch (sendErr: any) {
+        // Send failed — release the claim so a later run can retry.
+        await db.update(autopilotEnrollmentsTable)
+          .set({ calendlyLinkSentAt: null, status: "replied", errorMessage: sendErr?.message ?? "Send failed" })
+          .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+        continue;
+      }
+
       await db.insert(emailsTable).values({
         clientId: enrollment.clientId,
         prospectId: prospect.id,
@@ -262,10 +283,6 @@ export async function processAutopilotQueue(): Promise<void> {
         prospectId: prospect.id,
         prospectName: prospect.contactName,
       });
-
-      await db.update(autopilotEnrollmentsTable)
-        .set({ calendlyLinkSentAt: sentAt, status: "calendly_sent" })
-        .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
 
       await db.update(prospectsTable)
         .set({ status: "appointment_requested" })
