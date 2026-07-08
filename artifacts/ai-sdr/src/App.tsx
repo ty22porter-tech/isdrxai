@@ -97,7 +97,12 @@ const clerkAppearance = {
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-slate-950 px-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <SignIn
+        routing="path"
+        path={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+        fallbackRedirectUrl={`${basePath}/dashboard`}
+      />
     </div>
   );
 }
@@ -105,7 +110,12 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-slate-950 px-4">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        signInUrl={`${basePath}/sign-in`}
+        fallbackRedirectUrl={`${basePath}/dashboard`}
+      />
     </div>
   );
 }
@@ -134,6 +144,30 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
       </Show>
     </>
   );
+}
+
+function FallbackRoute() {
+  const [location] = useLocation();
+
+  const normalized = location.replace(/\/+$/, "") || "/";
+  if (normalized !== location) {
+    return <Redirect to={normalized} replace />;
+  }
+
+  if (/^\/(sso-callback|sign-in|sign-up|v\/)/.test(location)) {
+    return (
+      <>
+        <Show when="signed-in">
+          <Redirect to="/dashboard" replace />
+        </Show>
+        <Show when="signed-out">
+          <Redirect to="/" replace />
+        </Show>
+      </>
+    );
+  }
+
+  return <NotFound />;
 }
 
 function ClerkQueryClientCacheInvalidator() {
@@ -165,6 +199,8 @@ function AppRoutes() {
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
+      signInFallbackRedirectUrl={`${basePath}/dashboard`}
+      signUpFallbackRedirectUrl={`${basePath}/dashboard`}
       localization={{
         signIn: { start: { title: "Welcome back", subtitle: "Sign in to your iSDRX AI account" } },
         signUp: { start: { title: "Get started", subtitle: "Create your iSDRX AI account" } },
@@ -194,7 +230,7 @@ function AppRoutes() {
             <Route path="/admin" component={() => <ProtectedRoute component={Admin} />} />
             <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
             <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} />} />
-            <Route component={NotFound} />
+            <Route component={FallbackRoute} />
           </Switch>
           <Toaster />
         </TooltipProvider>
