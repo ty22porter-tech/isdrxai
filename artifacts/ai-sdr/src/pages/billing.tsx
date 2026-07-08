@@ -5,6 +5,7 @@ import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lu
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/layout";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -34,6 +35,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Billing() {
   const { user } = useUser();
+  const { toast } = useToast();
   const [loadingCheckout, setLoadingCheckout] = useState(false);
 
   const { data: subData } = useQuery({
@@ -49,6 +51,7 @@ export default function Billing() {
   const portalMutation = useMutation({
     mutationFn: () => apiFetch("/stripe/billing-portal", { method: "POST" }),
     onSuccess: (data) => { if (data.url) window.location.href = data.url; },
+    onError: (err: Error) => toast({ title: "Couldn't open billing portal", description: err.message, variant: "destructive" }),
   });
 
   const handleCheckout = async (priceId: string) => {
@@ -60,6 +63,8 @@ export default function Billing() {
         body: JSON.stringify({ priceId }),
       });
       if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast({ title: "Couldn't start checkout", description: err?.message ?? "Please try again.", variant: "destructive" });
     } finally {
       setLoadingCheckout(false);
     }

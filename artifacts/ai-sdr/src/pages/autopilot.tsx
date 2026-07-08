@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Bot, Play, Pause, Mail, Calendar, CheckCircle2, AlertCircle, Clock, MessageSquare, Loader2, PlusCircle, X, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -59,6 +60,7 @@ function timeUntil(iso: string | null): string {
 export default function AutopilotPage() {
   const { user, isLoaded } = useUser();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [replyModal, setReplyModal] = useState<{ id: number; name: string } | null>(null);
   const [replyText, setReplyText] = useState("");
   const [enrollModal, setEnrollModal] = useState(false);
@@ -102,12 +104,14 @@ export default function AutopilotPage() {
       setReplyModal(null);
       setReplyText("");
     },
+    onError: (err: Error) => toast({ title: "Failed to send reply", description: err.message, variant: "destructive" }),
   });
 
   const bookMutation = useMutation({
     mutationFn: (id: number) =>
       apiFetch(`/autopilot/enrollments/${id}/book`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] }),
+    onError: (err: Error) => toast({ title: "Failed to mark as booked", description: err.message, variant: "destructive" }),
   });
 
   const pauseMutation = useMutation({
@@ -118,12 +122,14 @@ export default function AutopilotPage() {
         body: JSON.stringify({ status }),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] }),
+    onError: (err: Error) => toast({ title: "Failed to update status", description: err.message, variant: "destructive" }),
   });
 
   const unenrollMutation = useMutation({
     mutationFn: (id: number) =>
       apiFetch(`/autopilot/enrollments/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] }),
+    onError: (err: Error) => toast({ title: "Failed to remove enrollment", description: err.message, variant: "destructive" }),
   });
 
   const enrollMutation = useMutation({
@@ -139,6 +145,7 @@ export default function AutopilotPage() {
       setSelectedProspects([]);
       setEnrollCampaign(null);
     },
+    onError: (err: Error) => toast({ title: "Failed to enroll prospects", description: err.message, variant: "destructive" }),
   });
 
   const active = enrollments.filter((e: any) => e.status === "active").length;

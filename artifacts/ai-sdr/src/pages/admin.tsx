@@ -5,6 +5,7 @@ import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock } from 
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout";
 import { Redirect } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -104,6 +105,7 @@ function SendingEmailEditor({
 export default function Admin() {
   const { user, isLoaded } = useUser();
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   const { data: meData, isLoading: meLoading } = useQuery({
     queryKey: ["me"],
@@ -132,6 +134,7 @@ export default function Admin() {
         body: JSON.stringify(body),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-clients"] }),
+    onError: (err: Error) => toast({ title: "Failed to update client", description: err.message, variant: "destructive" }),
   });
 
   if (!isLoaded || meLoading) return null;
