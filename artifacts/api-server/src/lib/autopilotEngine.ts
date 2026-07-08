@@ -77,6 +77,48 @@ const STEP_DELAYS_MS: Record<number, number> = {
   3: 4 * 24 * 60 * 60 * 1000,
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface CampaignSequenceStep {
+  stepNumber: number; // 2..7 (step 1 is the intro)
+  dayDelay: number;
+  subject: string;
+  body: string;
+}
+
+// Same format the Campaigns/Sequences pages use: callScript JSON with followUp1..followUp6.
+function parseCampaignSequence(callScript?: string | null): CampaignSequenceStep[] {
+  if (!callScript) return [];
+  try {
+    const data = JSON.parse(callScript);
+    const keys = ["followUp1", "followUp2", "followUp3", "followUp4", "followUp5", "followUp6"] as const;
+    const steps: CampaignSequenceStep[] = [];
+    keys.forEach((key, idx) => {
+      const s = data[key];
+      if (s?.body && typeof s.body === "string" && s.body.trim()) {
+        steps.push({
+          stepNumber: idx + 2,
+          dayDelay: typeof s.dayDelay === "number" && s.dayDelay > 0 ? s.dayDelay : 3,
+          subject: typeof s.subject === "string" ? s.subject : "",
+          body: s.body,
+        });
+      }
+    });
+    return steps;
+  } catch {
+    return [];
+  }
+}
+
+function mergeTpl(tpl: string, prospect: { contactName?: string | null; companyName?: string | null; city?: string | null; state?: string | null; industry?: string | null }): string {
+  return tpl
+    .replace(/\{\{contactName\}\}/g, prospect.contactName ?? "")
+    .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
+    .replace(/\{\{city\}\}/g, prospect.city ?? "")
+    .replace(/\{\{state\}\}/g, prospect.state ?? "")
+    .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
+}
+
 export async function processAutopilotQueue(): Promise<void> {
   const now = new Date();
 
@@ -114,17 +156,35 @@ export async function processAutopilotQueue(): Promise<void> {
         continue;
       }
 
+      const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, enrollment.campaignId));
+      const sequence = parseCampaignSequence(campaign?.callScript);
+      const totalSteps = sequence.length > 0 ? 1 + sequence.length : 3;
+
       const nextStep = enrollment.currentStep + 1;
 
-      if (nextStep > 3) {
+      if (nextStep > totalSteps) {
         await db.update(autopilotEnrollmentsTable)
           .set({ status: "completed" })
           .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
         continue;
       }
 
-      const subject = stepSubject(nextStep, prospect.companyName);
-      const coreBody = await generateStepEmail(nextStep, prospect, client.businessName ?? "our company");
+      let subject: string;
+      let coreBody: string;
+
+      // Index-based: enrollment step 2 = first configured follow-up, step 3 = second, etc.
+      // This keeps the cadence moving even if a middle follow-up was left blank.
+      const seqStep = nextStep >= 2 ? sequence[nextStep - 2] : undefined;
+      if (seqStep) {
+        // Use the campaign's configured follow-up script for this step.
+        subject = mergeTpl(seqStep.subject, prospect) || stepSubject(nextStep, prospect.companyName);
+        coreBody = mergeTpl(seqStep.body, prospect);
+      } else {
+        // Intro email (step 1) or campaigns without a configured sequence: AI-generated.
+        subject = stepSubject(Math.min(nextStep, 3), prospect.companyName);
+        coreBody = await generateStepEmail(Math.min(nextStep, 3), prospect, client.businessName ?? "our company");
+      }
+
       const composed = composeEmail(coreBody, client, prospect);
 
       await sendEmail({
@@ -152,21 +212,26 @@ export async function processAutopilotQueue(): Promise<void> {
       await db.insert(activityTable).values({
         clientId: enrollment.clientId,
         type: "email_sent",
-        description: `[Autopilot] Email ${nextStep}/3 sent to ${prospect.companyName}: ${subject}`,
+        description: `[Autopilot] Email ${nextStep}/${totalSteps} sent to ${prospect.companyName}: ${subject}`,
         prospectId: prospect.id,
         prospectName: prospect.contactName,
       });
 
-      const nextDelay = STEP_DELAYS_MS[nextStep + 1];
+      const upcoming = sequence.length > 0
+        ? sequence[nextStep - 1]
+        : undefined;
+      const nextDelay = sequence.length > 0
+        ? (upcoming ? upcoming.dayDelay * DAY_MS : undefined)
+        : STEP_DELAYS_MS[nextStep + 1];
       const nextSendAt = nextDelay !== undefined ? new Date(Date.now() + nextDelay) : null;
-      const newStatus = nextStep >= 3 ? "completed" : "active";
+      const isDone = nextStep >= totalSteps;
 
       await db.update(autopilotEnrollmentsTable)
         .set({
           currentStep: nextStep,
           lastEmailSentAt: sentAt,
-          nextSendAt,
-          status: nextStep >= 3 ? "completed" : "active",
+          nextSendAt: isDone ? null : nextSendAt,
+          status: isDone ? "completed" : "active",
           errorMessage: null,
         })
         .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
