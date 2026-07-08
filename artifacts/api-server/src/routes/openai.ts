@@ -25,21 +25,28 @@ async function chatComplete(messages: {role: string; content: string}[], maxToke
 const router = Router();
 router.use(requireAuth);
 
+const FINAL_STEP = 7;
+
 function getStepLabel(step: number) {
   if (step === 1) return "intro outreach";
-  if (step === 2) return "follow-up (no response to email 1)";
-  return "final breakup email (last attempt before moving on)";
+  if (step >= FINAL_STEP) return "final breakup email (last attempt before moving on)";
+  return `follow-up #${step - 1} (no response to the previous ${step - 1 === 1 ? "email" : `${step - 1} emails`})`;
 }
 
 function getStepTone(step: number, offerName: string = "site walkthrough") {
   if (step === 1) return `warm and professional — introduce the value proposition clearly, mention a specific industry challenge, and end with a soft ask for a 15-minute call or ${offerName}`;
+  if (step >= FINAL_STEP) return "respectful and concise breakup email — acknowledge you've reached out before, wish them well, leave the door open, do NOT be pushy";
   if (step === 2) return "friendly follow-up — briefly reference the previous email, add a new angle or specific pain point, keep it short, and make the ask easy to say yes to";
-  return "respectful and concise breakup email — acknowledge you've reached out before, wish them well, leave the door open, do NOT be pushy";
+  if (step === 3) return "value-driven follow-up — share a concrete result, proof point, or mini case study relevant to their industry, then restate the ask simply";
+  if (step === 4) return "curiosity-driven follow-up — ask a short, pointed question about a specific operational pain point; keep it under 100 words and easy to reply to";
+  if (step === 5) return "helpful-resource follow-up — offer something of standalone value (a quick tip, checklist idea, or benchmark insight) with a low-pressure ask";
+  return `persistence-with-respect follow-up — acknowledge they're busy, briefly recap the core value in one sentence, and offer the ${offerName} as a no-obligation next step`;
 }
 
 router.post("/generate-email", async (req, res) => {
   try {
-    const { prospectId, step = 1, industry: industryInput, campaignContext } = req.body;
+    const { prospectId, step: rawStep = 1, industry: industryInput, campaignContext } = req.body;
+    const step = Math.min(Math.max(Math.floor(Number(rawStep)) || 1, 1), FINAL_STEP);
 
     // Two modes:
     // 1. Prospect mode — generate a personalized email for a real prospect (prospectId given).

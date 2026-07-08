@@ -485,11 +485,11 @@ Your SDR Team`;
 }
 
 export function generateEmailForStep(
-  step: 1 | 2 | 3,
+  step: number,
   prospect: { contactName?: string; companyName?: string; industry?: string; city?: string },
   vertical: ClientVertical = "janitorial"
 ): { subject: string; body: string } {
   if (step === 1) return generateIntroEmail(prospect, vertical);
-  if (step === 2) return generateFollowUpEmail(prospect, vertical);
-  return generateBreakupEmail(prospect, vertical);
+  if (step >= 7) return generateBreakupEmail(prospect, vertical);
+  return generateFollowUpEmail(prospect, vertical);
 }

@@ -488,8 +488,7 @@ export default function Campaigns() {
 
   const handleAiGenerate = async (stepNum: number) => {
     setAiGenerating(prev => ({ ...prev, [stepNum]: true }));
-    const clampedStep = Math.min(stepNum, 3) as 1 | 2 | 3;
-    const result = await aiGenerateEmail(clampedStep, form.targetIndustry);
+    const result = await aiGenerateEmail(stepNum, form.targetIndustry);
     setAiGenerating(prev => ({ ...prev, [stepNum]: false }));
 
     const applyResult = (subject: string, body: string) => {
@@ -504,7 +503,7 @@ export default function Campaigns() {
     if (result?.body) {
       applyResult(result.subject, result.body);
     } else {
-      const fallback = generateEmailForStep(clampedStep, {
+      const fallback = generateEmailForStep(stepNum, {
         industry: form.targetIndustry,
         companyName: "{{companyName}}",
         contactName: "{{contactName}}",
