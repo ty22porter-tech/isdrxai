@@ -33,7 +33,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
     [user] = await db
       .insert(usersTable)
-      .values({ id: userId, email, status: "trialing" })
+      .values({ id: userId, email, status: "trialing", verticalSelected: false })
       .onConflictDoNothing()
       .returning();
 

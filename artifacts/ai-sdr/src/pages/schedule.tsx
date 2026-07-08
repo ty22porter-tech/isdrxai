@@ -11,7 +11,43 @@ interface ScheduleInfo {
   phone: string;
   businessName: string;
   calendlyUrl: string | null;
+  vertical?: string;
 }
+
+const SCHEDULE_COPY = {
+  janitorial: {
+    headline: "Schedule your free walkthrough",
+    intro: (b: string, c: string) => `${b} would love to learn about ${c}'s cleaning needs. Answer a few quick questions, then pick a time below.`,
+    offerNoun: "walkthrough",
+    providerQuestion: "Who is your current cleaning provider?",
+    frequencyQuestion: "Days per week currently cleaned",
+    frequencyPlaceholder: "e.g. 5",
+    frequencyMax: 7,
+    timesQuestion: "When is it cleaned?",
+    locationQuestion: "How many locations need cleaning?",
+    sizeLabel: "Cleanable square footage per location",
+    sizePlaceholder: "Cleanable sq ft",
+    uploadLabel: "Floor plans (optional)",
+    uploadHint: "Click to upload (PDF or images, 25MB total)",
+    uploadLimitError: "Floor plans exceed the 25MB total limit.",
+  },
+  it_services: {
+    headline: "Schedule your free IT assessment",
+    intro: (b: string, c: string) => `${b} would love to learn about ${c}'s IT environment. Answer a few quick questions, then pick a time below.`,
+    offerNoun: "IT assessment",
+    providerQuestion: "Who currently manages your IT?",
+    frequencyQuestion: "How many employees use computers?",
+    frequencyPlaceholder: "e.g. 25",
+    frequencyMax: 100000,
+    timesQuestion: "Best times to reach you?",
+    locationQuestion: "How many locations have IT equipment?",
+    sizeLabel: "Workstations and servers per location",
+    sizePlaceholder: "Total workstations + servers",
+    uploadLabel: "Network diagrams or inventory lists (optional)",
+    uploadHint: "Click to upload (PDF or images, 25MB total)",
+    uploadLimitError: "Uploads exceed the 25MB total limit.",
+  },
+} as const;
 
 interface LocationRow {
   label: string;
@@ -125,7 +161,7 @@ export default function Schedule() {
       if (files.length + accepted.length >= MAX_FILES) break;
       total += file.size;
       if (total > MAX_TOTAL_BYTES) {
-        setSubmitError("Floor plans exceed the 25MB total limit.");
+        setSubmitError("Uploads exceed the 25MB total limit.");
         break;
       }
       const dataUrl = await readFileAsBase64(file);
@@ -189,6 +225,8 @@ export default function Schedule() {
     );
   }
 
+  const copy = info.vertical === "it_services" ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
+
   const inputClass =
     "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
   const labelClass = "block text-sm font-medium text-slate-300 mb-1.5";
@@ -200,10 +238,9 @@ export default function Schedule() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/10 ring-1 ring-sky-500/30">
             <Building2 className="h-6 w-6 text-sky-400" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Schedule your free walkthrough</h1>
+          <h1 className="text-3xl font-bold text-white">{copy.headline}</h1>
           <p className="mt-2 text-slate-400">
-            {info.businessName} would love to learn about {info.companyName}'s cleaning needs. Answer a
-            few quick questions, then pick a time below.
+            {copy.intro(info.businessName, info.companyName)}
           </p>
         </div>
 
@@ -215,8 +252,8 @@ export default function Schedule() {
                 <p className="font-semibold text-emerald-300">Thanks! Your details were sent.</p>
                 <p className="text-sm text-emerald-200/80">
                   {calendlyUrl
-                    ? "Pick a time below to lock in your walkthrough."
-                    : `${info.businessName} will reach out shortly to confirm your walkthrough.`}
+                    ? `Pick a time below to lock in your ${copy.offerNoun}.`
+                    : `${info.businessName} will reach out shortly to confirm your ${copy.offerNoun}.`}
                 </p>
               </div>
             </div>
@@ -258,7 +295,7 @@ export default function Schedule() {
             </div>
 
             <div>
-              <label className={labelClass}>Who is your current cleaning provider?</label>
+              <label className={labelClass}>{copy.providerQuestion}</label>
               <input
                 className={inputClass}
                 value={currentProvider}
@@ -269,19 +306,19 @@ export default function Schedule() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelClass}>Days per week currently cleaned</label>
+                <label className={labelClass}>{copy.frequencyQuestion}</label>
                 <input
                   type="number"
                   min={0}
-                  max={7}
+                  max={copy.frequencyMax}
                   className={inputClass}
                   value={daysPerWeek}
                   onChange={(e) => setDaysPerWeek(e.target.value)}
-                  placeholder="e.g. 5"
+                  placeholder={copy.frequencyPlaceholder}
                 />
               </div>
               <div>
-                <label className={labelClass}>When is it cleaned?</label>
+                <label className={labelClass}>{copy.timesQuestion}</label>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {SERVICE_TIME_OPTIONS.map((opt) => {
                     const active = serviceTimes.includes(opt);
@@ -305,7 +342,7 @@ export default function Schedule() {
             </div>
 
             <div>
-              <label className={labelClass}>How many locations need cleaning?</label>
+              <label className={labelClass}>{copy.locationQuestion}</label>
               <input
                 type="number"
                 min={1}
@@ -316,7 +353,7 @@ export default function Schedule() {
             </div>
 
             <div className="space-y-3">
-              <label className={labelClass}>Cleanable square footage per location</label>
+              <label className={labelClass}>{copy.sizeLabel}</label>
               {locations.map((loc, idx) => (
                 <div key={idx} className="grid gap-3 sm:grid-cols-2">
                   <input
@@ -331,7 +368,7 @@ export default function Schedule() {
                     className={inputClass}
                     value={loc.squareFootage}
                     onChange={(e) => updateLocation(idx, "squareFootage", e.target.value)}
-                    placeholder="Cleanable sq ft"
+                    placeholder={copy.sizePlaceholder}
                   />
                 </div>
               ))}
@@ -344,7 +381,7 @@ export default function Schedule() {
             </div>
 
             <div>
-              <label className={labelClass}>Floor plans (optional)</label>
+              <label className={labelClass}>{copy.uploadLabel}</label>
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-600 bg-slate-800/50 px-4 py-6 text-slate-400 hover:border-sky-500/60 hover:text-slate-300">
                 <Upload className="h-5 w-5" />
                 <span>Click to upload (PDF or images, 25MB total)</span>

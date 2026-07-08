@@ -1,6 +1,8 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   BarChart3,
   Users,
@@ -47,6 +49,58 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
+function VerticalOnboardingDialog({ open }: { open: boolean }) {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const choose = async (vertical: "janitorial" | "it_services") => {
+    setSaving(vertical);
+    try {
+      const res = await fetch(`${BASE_URL}/api/users/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ vertical }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>What kind of business do you run?</DialogTitle>
+          <DialogDescription>
+            This tailors your outreach emails, industry pitches, and scheduling questionnaire. You can change it later in Settings.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 pt-2">
+          <button
+            onClick={() => choose("janitorial")}
+            disabled={saving !== null}
+            className="rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-60"
+          >
+            <div className="font-semibold">Commercial Cleaning / Janitorial</div>
+            <div className="text-sm text-muted-foreground mt-1">Book walkthroughs and win cleaning contracts.</div>
+          </button>
+          <button
+            onClick={() => choose("it_services")}
+            disabled={saving !== null}
+            className="rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-60"
+          >
+            <div className="font-semibold">IT Services / MSP</div>
+            <div className="text-sm text-muted-foreground mt-1">Book free IT assessments — cybersecurity, MS365, managed IT, managed security, MDM.</div>
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user } = useUser();
@@ -57,6 +111,8 @@ export function Layout({ children }: LayoutProps) {
     queryFn: () => apiFetch("/users/me"),
     enabled: !!user,
   });
+
+  const needsVerticalChoice = meData ? meData.verticalSelected === false : false;
 
   const isAdmin = meData?.isAdmin === true;
 
@@ -76,6 +132,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      <VerticalOnboardingDialog open={needsVerticalChoice} />
       <div className="w-full md:w-64 border-r bg-card flex flex-col h-screen sticky top-0">
         <div className="h-16 flex items-center px-6 border-b">
           <Building2 className="h-6 w-6 text-primary mr-3" />

@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useListProspects, useCreateProspect, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,8 +29,15 @@ function mergeTpl(tpl: string, prospect: any): string {
     .replace(/\{\{state\}\}/g, prospect.state ?? "")
     .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
 }
-function defaultSubject(campaignName: string) {
-  return `Janitorial Services for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
+function defaultSubject(campaignName: string, vertical: string = "janitorial") {
+  const prefix = vertical === "it_services" ? "Managed IT Services" : "Janitorial Services";
+  return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
+}
+
+function fallbackBody(p: any, vertical: string = "janitorial") {
+  return vertical === "it_services"
+    ? `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule a free IT assessment for ${p.companyName}.`
+    : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
 }
 
 // ─── CSV parsing ──────────────────────────────────────────────────────────────
@@ -287,6 +297,16 @@ export default function Prospects() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/users/me`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load profile");
+      return res.json();
+    },
+  });
+  const vertical: string = me?.vertical === "it_services" ? "it_services" : "janitorial";
+
   // create dialog
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -323,7 +343,7 @@ export default function Prospects() {
   const previewBody = selectedCampaign?.emailTemplate
     ? mergeTpl(selectedCampaign.emailTemplate, preview ?? {})
     : "";
-  const previewSubject = selectedCampaign ? defaultSubject(selectedCampaign.name) : "";
+  const previewSubject = selectedCampaign ? defaultSubject(selectedCampaign.name, vertical) : "";
 
   const handleSend = async () => {
     if (!selectedCampaign || selectedProspects.length === 0) return;
@@ -334,8 +354,8 @@ export default function Prospects() {
       await new Promise<void>(resolve => {
         const body = selectedCampaign.emailTemplate
           ? mergeTpl(selectedCampaign.emailTemplate, p)
-          : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
-        const subject = defaultSubject(selectedCampaign.name);
+          : fallbackBody(p, vertical);
+        const subject = defaultSubject(selectedCampaign.name, vertical);
         createEmail.mutate(
           { data: { prospectId: p.id, campaignId: selectedCampaign.id, subject, body, status: "sent" } },
           {
@@ -377,7 +397,9 @@ export default function Prospects() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Prospects</h2>
-            <p className="text-muted-foreground mt-1">Manage your janitorial commercial targets.</p>
+            <p className="text-muted-foreground mt-1">
+              {vertical === "it_services" ? "Manage your IT services prospects." : "Manage your janitorial commercial targets."}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <CSVImportDialog onImported={refetch} />
@@ -489,7 +511,7 @@ export default function Prospects() {
                           <Separator />
                           <div>
                             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Body</p>
-                            <Textarea readOnly value={previewBody || `Hi ${preview.contactName},\n\nWe provide janitorial services for ${preview.industry} companies in ${preview.city}. I'd love to schedule a walkthrough at ${preview.companyName}.\n\nBest,\nYour SDR Team`} className="min-h-[160px] font-mono text-xs bg-background resize-none mt-1" />
+                            <Textarea readOnly value={previewBody || `${fallbackBody(preview, vertical)}\n\nBest,\nYour SDR Team`} className="min-h-[160px] font-mono text-xs bg-background resize-none mt-1" />
                           </div>
                         </div>
                       </div>

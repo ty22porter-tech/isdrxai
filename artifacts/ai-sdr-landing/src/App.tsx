@@ -18,6 +18,9 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Route, Router, Switch, Link } from "wouter";
+import VerticalPage, { JANITORIAL_CONFIG, IT_SERVICES_CONFIG } from "@/pages/vertical";
+import NotFound from "@/pages/not-found";
 
 const APP_ORIGIN = window.location.origin;
 const SIGN_IN_URL = `${APP_ORIGIN}/sign-in`;
@@ -595,6 +598,7 @@ function LandingPage() {
       <Navbar />
       <main>
         <Hero />
+        <VerticalChooser />
         <Logos />
         <FeaturesGrid />
         
@@ -630,6 +634,62 @@ function LandingPage() {
   );
 }
 
+function VerticalChooser() {
+  const verticals = [
+    {
+      href: "/Janitorial",
+      title: "Commercial Cleaning",
+      description: "Book walkthroughs and win janitorial contracts with AI-powered local outreach.",
+      cta: "Explore Janitorial",
+    },
+    {
+      href: "/ITServices",
+      title: "IT Services & MSPs",
+      description: "Book free IT assessments pitching cybersecurity, MS365, managed IT, managed security, and MDM.",
+      cta: "Explore IT Services",
+    },
+  ];
+  return (
+    <section className="py-20 border-y border-white/5 bg-white/[0.02]">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Built for your industry.</h2>
+          <p className="text-lg text-muted-foreground">Pick your business type to see how iSDRX AI fills your pipeline.</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {verticals.map((v) => (
+            <Link key={v.href} href={v.href} className="block p-8 rounded-2xl bg-card border border-white/5 hover:border-primary/50 transition-colors group text-left">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Building2 className="w-6 h-6 text-accent" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">{v.title}</h3>
+              <p className="text-muted-foreground leading-relaxed mb-5">{v.description}</p>
+              <span className="inline-flex items-center gap-1 text-accent font-medium">
+                {v.cta} <ArrowRight className="w-4 h-4" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const ROUTER_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export default function App() {
-  return <LandingPage />;
+  return (
+    <Router base={ROUTER_BASE}>
+      <Switch>
+        <Route path="/" component={LandingPage} />
+        <Route path="/Janitorial">
+          <VerticalPage config={JANITORIAL_CONFIG} />
+        </Route>
+        <Route path="/ITServices">
+          <VerticalPage config={IT_SERVICES_CONFIG} />
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+    </Router>
+  );
 }

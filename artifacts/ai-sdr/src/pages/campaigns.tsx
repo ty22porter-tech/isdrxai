@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { generateEmailForStep } from "@/lib/email-ai";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { generateEmailForStep, type ClientVertical } from "@/lib/email-ai";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 async function aiGenerateEmail(step: number, industry: string): Promise<{ subject: string; body: string } | null> {
   try {
@@ -108,6 +110,39 @@ interface CampaignForm {
   followUp6: SequenceStep;
 }
 
+const IT_FORM_OVERRIDES: Partial<Record<typeof FOLLOW_UP_KEYS[number], SequenceStep>> = {
+  followUp2: {
+    dayDelay: 4,
+    subject: "Quick question for {{companyName}}",
+    body: "Hi {{contactName}},\n\nI wanted to share that we recently helped a similar {{industry}} company in {{city}} cut their Microsoft 365 licensing costs by 25% while tightening their security.\n\nWorth a quick chat?\n\nBest,\nYour SDR Team",
+  },
+  followUp3: {
+    dayDelay: 5,
+    subject: "{{companyName}} — a thought",
+    body: "Hi {{contactName}},\n\nMost {{industry}} businesses we talk to face one of two problems: slow IT support when things break, or growing security risks nobody is watching.\n\nWe solve both — Cybersecurity, Managed IT, Managed Security, MS365, and Mobile Device Management under one roof. Can I show you how in 10 minutes?\n\nBest,\nYour SDR Team",
+  },
+  followUp4: {
+    dayDelay: 7,
+    subject: "Still thinking about {{companyName}}",
+    body: "Hi {{contactName}},\n\nI know you're busy — I'll keep this short. We specialize in IT for {{industry}} businesses in {{city}} and have availability to take on a new client this month.\n\nIf you'd like a free IT assessment, we can do most of it remotely.\n\nBest,\nYour SDR Team",
+  },
+  followUp5: {
+    dayDelay: 10,
+    subject: "One more thought for {{companyName}}",
+    body: "Hi {{contactName}},\n\nI've reached out a few times — I promise this isn't spam. I genuinely think we could save {{companyName}} money and headaches on IT, licensing, and security.\n\nIf now isn't the right time, would you mind letting me know? Happy to follow up in 3 months instead.\n\nBest,\nYour SDR Team",
+  },
+  followUp6: {
+    dayDelay: 14,
+    subject: "Closing the loop — {{companyName}}",
+    body: "Hi {{contactName}},\n\nI'll stop reaching out after this — I don't want to be a nuisance. If managed IT services for {{companyName}} ever become a priority, we'd love to help.\n\nWishing you a great week.\n\nBest,\nYour SDR Team",
+  },
+};
+
+function blankForm(vertical: ClientVertical): CampaignForm {
+  if (vertical !== "it_services") return BLANK_FORM;
+  return { ...BLANK_FORM, ...IT_FORM_OVERRIDES } as CampaignForm;
+}
+
 const BLANK_FORM: CampaignForm = {
   name: "", type: "email", targetIndustry: "", description: "", emailTemplate: "",
   followUp1: {
@@ -197,6 +232,16 @@ export default function Campaigns() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/users/me`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load profile");
+      return res.json();
+    },
+  });
+  const vertical: ClientVertical = me?.vertical === "it_services" ? "it_services" : "janitorial";
+
   const { data: campaigns, isLoading } = useListCampaigns();
   const createCampaign = useCreateCampaign();
   const updateCampaign = useUpdateCampaign();
@@ -225,7 +270,7 @@ export default function Campaigns() {
         onSuccess: () => {
           toast({ title: "Campaign created" });
           setCreateOpen(false);
-          setForm(BLANK_FORM);
+          setForm(blankForm(vertical));
           invalidate();
         },
         onError: () => toast({ title: "Failed to create campaign", variant: "destructive" }),
@@ -464,7 +509,7 @@ export default function Campaigns() {
         companyName: "{{companyName}}",
         contactName: "{{contactName}}",
         city: "{{city}}",
-      });
+      }, vertical);
       applyResult(fallback.subject, fallback.body);
     }
   };
@@ -649,7 +694,7 @@ export default function Campaigns() {
               Build 7-step outreach sequences for each industry segment.
             </p>
           </div>
-          <Button onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }}>
+          <Button onClick={() => { setForm(blankForm(vertical)); setCreateOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" /> New Campaign
           </Button>
         </div>
@@ -688,7 +733,7 @@ export default function Campaigns() {
                 <p className="text-sm text-muted-foreground max-w-xs">
                   Create your first campaign to start building 7-step outreach sequences.
                 </p>
-                <Button onClick={() => { setForm(BLANK_FORM); setCreateOpen(true); }}>
+                <Button onClick={() => { setForm(blankForm(vertical)); setCreateOpen(true); }}>
                   <Plus className="mr-2 h-4 w-4" /> New Campaign
                 </Button>
               </div>

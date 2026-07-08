@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { prospectsTable, usersTable, activityTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail, type EmailAttachment } from "../lib/emailSender";
+import { getVerticalConfig } from "../lib/verticals";
 
 const router = Router();
 
@@ -75,6 +76,7 @@ router.get("/:token", async (req, res) => {
       phone: prospect.phone,
       businessName: client?.businessName ?? "our team",
       calendlyUrl: client?.calendlyUrl ?? null,
+      vertical: getVerticalConfig(client?.vertical).key,
     });
   } catch (err: any) {
     console.error("schedule GET error:", err?.message);
@@ -139,13 +141,16 @@ router.post("/:token", async (req, res) => {
       }
     }
 
+    const vc = getVerticalConfig(client.vertical);
+    const isIT = vc.key === "it_services";
+
     const numLocations = parseInt(String(locationCount), 10) || locations.length || 1;
 
     const locationLines = locations
       .map((loc, i) => {
         const label = (loc.label ?? `Location ${i + 1}`).toString().trim() || `Location ${i + 1}`;
         const sqft = (loc.squareFootage ?? "").toString().trim() || "Not provided";
-        return `   ${i + 1}. ${label} — ${sqft} cleanable sq ft`;
+        return `   ${i + 1}. ${label} — ${sqft} ${vc.schedule.sizeUnit}`;
       })
       .join("\n");
 
@@ -156,9 +161,9 @@ router.post("/:token", async (req, res) => {
 
     const serviceTimesText = serviceTimes.length ? serviceTimes.join(", ") : "Not specified";
 
-    const summary = `New walkthrough request from ${prospect.companyName}
+    const summary = `${vc.schedule.summaryTitle(prospect.companyName)}
 
-A prospect completed the qualifying questionnaire and is ready to schedule a walkthrough.
+${vc.schedule.summaryIntro}
 
 CONTACT
    Name:    ${contactName || "—"}
@@ -166,23 +171,23 @@ CONTACT
    Email:   ${email || "—"}
    Phone:   ${phone || "—"}
 
-FACILITY DETAILS
-   Current cleaning provider:        ${currentProvider || "None / not provided"}
-   Days per week currently cleaned:  ${daysPerWeek || "Not provided"}
-   Service times:                    ${serviceTimesText}
+${isIT ? "IT ENVIRONMENT DETAILS" : "FACILITY DETAILS"}
+   ${isIT ? "Current IT provider:             " : "Current cleaning provider:        "}${currentProvider || "None / not provided"}
+   ${isIT ? "Employees using computers:       " : "Days per week currently cleaned:  "}${daysPerWeek || "Not provided"}
+   ${isIT ? "Preferred contact times:         " : "Service times:                    "}${serviceTimesText}
    Number of locations:              ${numLocations}
 
-CLEANABLE SQUARE FOOTAGE BY LOCATION
+${vc.schedule.summarySizeHeading}
 ${locationLines || "   Not provided"}${overflowNote}
 
-${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachments.length ? `\nFloor plan(s) attached: ${attachments.length} file(s).` : "\nNo floor plans uploaded."}
+${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachments.length ? `\n${isIT ? "Document(s)" : "Floor plan(s)"} attached: ${attachments.length} file(s).` : `\nNo ${isIT ? "documents" : "floor plans"} uploaded.`}
 `;
 
     await sendEmail({
       fromName: client.businessName ?? "iSDRX AI",
       replyTo: email || salesEmail,
       to: salesEmail,
-      subject: `Walkthrough request — ${prospect.companyName}`,
+      subject: vc.schedule.notificationSubject(prospect.companyName),
       body: summary,
       attachments,
     });
@@ -193,7 +198,7 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
       return sum + (isNaN(n) ? 0 : n);
     }, 0);
 
-    const notesAddition = `[Walkthrough request ${new Date().toLocaleDateString()}]\n${summary}`;
+    const notesAddition = `[${isIT ? "IT assessment" : "Walkthrough"} request ${new Date().toLocaleDateString()}]\n${summary}`;
     await db
       .update(prospectsTable)
       .set({
@@ -206,7 +211,7 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
     await db.insert(activityTable).values({
       clientId: prospect.clientId,
       type: "appointment_set",
-      description: `Walkthrough questionnaire submitted by ${prospect.companyName}`,
+      description: `${isIT ? "IT assessment" : "Walkthrough"} questionnaire submitted by ${prospect.companyName}`,
       prospectId: prospect.id,
       prospectName: prospect.contactName,
     });

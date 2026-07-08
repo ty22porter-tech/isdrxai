@@ -25,6 +25,8 @@ router.get("/me", async (req, res) => {
     outreachEmail: user.outreachEmail,
     calendlyUrl: user.calendlyUrl,
     timezone: user.timezone,
+    vertical: user.vertical,
+    verticalSelected: user.verticalSelected,
     autopilotEnabled: user.autopilotEnabled,
     platformEmailReady: resendReady,
     platformFromEmail: getPlatformFromEmail(),
@@ -33,8 +35,13 @@ router.get("/me", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone } = req.body;
+  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone, vertical } = req.body;
   const update: Record<string, any> = {};
+
+  if (vertical === "janitorial" || vertical === "it_services") {
+    update.vertical = vertical;
+    update.verticalSelected = true;
+  }
 
   if (typeof businessName === "string") update.businessName = businessName;
   if (typeof senderName === "string") update.senderName = senderName;
@@ -54,6 +61,8 @@ router.put("/settings", async (req, res) => {
     outreachEmail: user.outreachEmail,
     calendlyUrl: user.calendlyUrl,
     timezone: user.timezone,
+    vertical: user.vertical,
+    verticalSelected: user.verticalSelected,
     platformEmailReady: resendReady,
     autopilotReady: resendReady && !!(user.outreachEmail) && !!(user.businessAddress),
   });

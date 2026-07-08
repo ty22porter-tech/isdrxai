@@ -5,6 +5,7 @@ import { sendEmail } from "./emailSender";
 import { composeEmail, unsubscribeHeaders } from "./emailCompose";
 import { getPublicAppUrl } from "./publicUrl";
 import { resolveReplyTo } from "./inboundAddressing";
+import { getVerticalConfig, offeringForStep, type VerticalConfig } from "./verticals";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -24,16 +25,11 @@ async function aiGenerate(prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-function stepSubject(step: number, companyName: string, prevSubject?: string): string {
-  if (step === 1) return `Quick question about ${companyName}'s cleaning needs`;
-  if (step === 2) return `Re: Quick question about ${companyName}'s cleaning needs`;
-  return `Last follow-up — ${companyName}`;
-}
-
 async function generateStepEmail(
   step: number,
   prospect: { companyName: string; contactName: string; industry: string; city: string; state: string; squareFootage?: number | null; employeeCount?: number | null },
   senderBusinessName: string,
+  vc: VerticalConfig,
 ): Promise<string> {
   const firstName = prospect.contactName.split(" ")[0];
   const size = prospect.squareFootage ? `${prospect.squareFootage.toLocaleString()} sq ft` : "";
@@ -42,11 +38,15 @@ async function generateStepEmail(
 
   const senderInfo = `The sender's company is "${senderBusinessName}".`;
   const noSignature = `End the email immediately after the call to action. Do NOT add any sign-off, signature, sender name, company name line, phone number, email address, or placeholder tokens like [Your Name] or [Your Company] — a signature is appended automatically afterward.`;
+  const offering = offeringForStep(vc, step);
+  const focusClause = vc.key === "it_services"
+    ? ` For this email, emphasize ${offering} as the primary service focus.`
+    : "";
 
   const prompts: Record<number, string> = {
-    1: `Write a short, professional cold email from a commercial janitorial company to ${firstName} at ${prospect.companyName} (${prospect.industry} in ${prospect.city}, ${prospect.state}${details ? `, ${details}` : ""}). ${senderInfo} The email should mention their industry's specific cleaning needs, offer a free walkthrough, and end with a clear call to action. Keep it under 150 words. No subject line. Plain text only. ${noSignature}`,
-    2: `Write a brief, friendly follow-up cold email to ${firstName} at ${prospect.companyName}. ${senderInfo} Reference a previous unanswered email about commercial cleaning services. Keep it under 100 words, acknowledge they're busy, reiterate the value of a free walkthrough. Plain text only. ${noSignature}`,
-    3: `Write a short final follow-up email to ${firstName} at ${prospect.companyName}. ${senderInfo} This is the last outreach. Keep it under 80 words. Be direct but respectful, offer one last chance for a free walkthrough, say you won't reach out again after this. Plain text only. ${noSignature}`,
+    1: `Write a short, professional cold email from ${vc.senderDescriptor} to ${firstName} at ${prospect.companyName} (${prospect.industry} in ${prospect.city}, ${prospect.state}${details ? `, ${details}` : ""}). ${senderInfo}${focusClause} The email should mention their industry's specific challenges with ${vc.serviceNoun}, offer a ${vc.offerName}, and end with a clear call to action. Keep it under 150 words. No subject line. Plain text only. ${noSignature}`,
+    2: `Write a brief, friendly follow-up cold email to ${firstName} at ${prospect.companyName}. ${senderInfo}${focusClause} Reference a previous unanswered email about ${vc.serviceNoun}. Keep it under 100 words, acknowledge they're busy, reiterate the value of a ${vc.offerName}. Plain text only. ${noSignature}`,
+    3: `Write a short final follow-up email to ${firstName} at ${prospect.companyName}. ${senderInfo}${focusClause} This is the last outreach. Keep it under 80 words. Be direct but respectful, offer one last chance for a ${vc.offerName}, say you won't reach out again after this. Plain text only. ${noSignature}`,
   };
 
   return aiGenerate(prompts[step] ?? prompts[1]);
@@ -54,10 +54,12 @@ async function generateStepEmail(
 
 async function generateCalendlyEmail(
   prospect: { companyName: string; contactName: string },
+  vc: VerticalConfig,
 ): Promise<string> {
   const firstName = prospect.contactName.split(" ")[0];
+  const nextStepNoun = vc.key === "it_services" ? "their IT environment" : "their facility";
   return aiGenerate(
-    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in commercial cleaning services. Tell them the next step is simple: answer a few quick questions about their facility and pick a time for a free 15-minute walkthrough, all on one page. Refer to the "Schedule walkthrough" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 80 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
+    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Tell them the next step is simple: answer a few quick questions about ${nextStepNoun} and pick a time for a ${vc.offerName}, all on one page. Refer to the "${vc.offerCtaLabel}" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 80 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
   );
 }
 
@@ -174,15 +176,16 @@ export async function processAutopilotQueue(): Promise<void> {
 
       // Index-based: enrollment step 2 = first configured follow-up, step 3 = second, etc.
       // This keeps the cadence moving even if a middle follow-up was left blank.
+      const vc = getVerticalConfig(client.vertical);
       const seqStep = nextStep >= 2 ? sequence[nextStep - 2] : undefined;
       if (seqStep) {
         // Use the campaign's configured follow-up script for this step.
-        subject = mergeTpl(seqStep.subject, prospect) || stepSubject(nextStep, prospect.companyName);
+        subject = mergeTpl(seqStep.subject, prospect) || vc.stepSubject(nextStep, prospect.companyName);
         coreBody = mergeTpl(seqStep.body, prospect);
       } else {
         // Intro email (step 1) or campaigns without a configured sequence: AI-generated.
-        subject = stepSubject(Math.min(nextStep, 3), prospect.companyName);
-        coreBody = await generateStepEmail(Math.min(nextStep, 3), prospect, client.businessName ?? "our company");
+        subject = vc.stepSubject(Math.min(nextStep, 3), prospect.companyName);
+        coreBody = await generateStepEmail(Math.min(nextStep, 3), prospect, client.businessName ?? "our company", vc);
       }
 
       const composed = composeEmail(coreBody, client, prospect);
@@ -295,11 +298,12 @@ export async function processAutopilotQueue(): Promise<void> {
         prospect = { ...prospect, scheduleToken: newToken };
       }
 
+      const vc = getVerticalConfig(client.vertical);
       const scheduleUrl = `${getPublicAppUrl()}/schedule/${prospect.scheduleToken}`;
-      const subject = `Let's schedule a walkthrough — ${prospect.companyName}`;
-      const coreBody = await generateCalendlyEmail(prospect);
+      const subject = vc.offerSubject(prospect.companyName);
+      const coreBody = await generateCalendlyEmail(prospect, vc);
       const composed = composeEmail(coreBody, client, prospect, {
-        label: "Schedule walkthrough",
+        label: vc.offerCtaLabel,
         url: scheduleUrl,
       });
 

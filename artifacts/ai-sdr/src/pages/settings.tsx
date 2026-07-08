@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const [businessAddress, setBusinessAddress] = useState("");
   const [replyEmail, setReplyEmail] = useState("");
   const [calendlyUrl, setCalendlyUrl] = useState("");
+  const [vertical, setVertical] = useState("janitorial");
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function SettingsPage() {
       setBusinessAddress(me.businessAddress ?? "");
       setReplyEmail(me.outreachEmail ?? "");
       setCalendlyUrl(me.calendlyUrl ?? "");
+      setVertical(me.vertical ?? "janitorial");
     }
   }, [me]);
 
@@ -55,6 +57,7 @@ export default function SettingsPage() {
           businessAddress,
           outreachEmail: replyEmail,
           calendlyUrl,
+          vertical,
         }),
       }),
     onSuccess: () => {
@@ -197,6 +200,29 @@ export default function SettingsPage() {
 
         {/* Form */}
         <div className="rounded-xl border bg-card p-6 space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" /> Your Industry
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: "janitorial", label: "Janitorial", desc: "Commercial cleaning outreach" },
+                { value: "it_services", label: "IT Services", desc: "Cybersecurity, MS365, Managed IT, MDM" },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setVertical(opt.value)}
+                  className={`rounded-lg border p-3 text-left transition-colors ${vertical === opt.value ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}
+                >
+                  <div className={`text-sm font-medium ${vertical === opt.value ? "text-primary" : ""}`}>{opt.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">All AI-generated emails, call scripts, and the prospect scheduling page use messaging tailored to this industry.</p>
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" /> Business Name

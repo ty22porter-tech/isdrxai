@@ -1,4 +1,5 @@
 import { getPublicAppUrl } from "./publicUrl";
+import { getVerticalConfig } from "./verticals";
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -9,6 +10,7 @@ export interface ComposeClient {
   phone?: string | null;
   businessAddress?: string | null;
   outreachEmail?: string | null;
+  vertical?: string | null;
 }
 
 export interface ComposeResult {
@@ -50,7 +52,7 @@ export function composeEmail(
     ? `${business} · ${client.businessAddress.trim().replace(/\s*\n\s*/g, ", ")}`
     : business;
 
-  const footerIntro = `You're receiving this email because we believe ${prospect.companyName} may benefit from professional commercial cleaning services.`;
+  const footerIntro = `You're receiving this email because we believe ${prospect.companyName} may benefit from ${getVerticalConfig(client.vertical).footerServicePhrase}.`;
 
   const ctaText = cta ? `\n\n${cta.label}: ${cta.url}` : "";
   const text =

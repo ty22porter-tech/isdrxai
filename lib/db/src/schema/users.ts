@@ -19,6 +19,8 @@ export const usersTable = pgTable("users", {
   calendlyUrl: text("calendly_url"),
   timezone: text("timezone").default("America/New_York"),
   autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
+  vertical: text("vertical").notNull().default("janitorial"),
+  verticalSelected: boolean("vertical_selected").notNull().default(true),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ createdAt: true });

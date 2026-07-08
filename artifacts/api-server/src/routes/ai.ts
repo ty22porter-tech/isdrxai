@@ -4,6 +4,7 @@ import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody } from "@workspace/api-zod";
 import { requireAuth } from "../lib/requireAuth";
+import { getVerticalConfig } from "../lib/verticals";
 
 const router = Router();
 router.use(requireAuth);
@@ -15,13 +16,21 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
   const businessName = client?.businessName?.trim() || "our company";
   const sq = squareFootage ? `${squareFootage.toLocaleString()} sq ft` : null;
   const emp = employeeCount ? `${employeeCount}-person` : null;
+  const vertical = getVerticalConfig(client?.vertical).key;
 
-  const subjects = [
-    `Commercial cleaning proposal for ${companyName}`,
-    `Keeping ${companyName} spotless — can we chat?`,
-    `Janitorial services tailored for ${industry} facilities in ${city}`,
-    `Quick question about ${companyName}'s facility maintenance`,
-  ];
+  const subjects = vertical === "it_services"
+    ? [
+        `Managed IT proposal for ${companyName}`,
+        `Keeping ${companyName} secure and supported — can we chat?`,
+        `IT services tailored for ${industry} businesses in ${city}`,
+        `Quick question about ${companyName}'s IT and security`,
+      ]
+    : [
+        `Commercial cleaning proposal for ${companyName}`,
+        `Keeping ${companyName} spotless — can we chat?`,
+        `Janitorial services tailored for ${industry} facilities in ${city}`,
+        `Quick question about ${companyName}'s facility maintenance`,
+      ];
   const subject = subjects[Math.floor(Math.random() * subjects.length)];
 
   const openings = tone === "casual"
@@ -32,6 +41,29 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
   const facilityDetail = sq ? `your ${sq} facility` : `your ${city} location`;
   const facilityMention = sq ? `a ${sq} facility in ${city}` : `a facility in ${city}`;
   const companyDetail = emp ? `your ${emp} team` : `your team`;
+
+  if (vertical === "it_services") {
+    const teamMention = emp ? `a ${emp} team in ${city}` : `a team in ${city}`;
+    const body = `${opening}
+
+I hope this message finds you well. My name is ${senderName}, and I represent ${businessName} — a managed IT services provider working with ${industry} businesses across ${state}.
+
+I noticed ${companyName} operates ${teamMention}, and I wanted to reach out about how we can keep your technology secure, compliant, and running smoothly so ${companyDetail} can stay focused on what you do best.
+
+Here's what we bring to ${industry} companies like yours:
+• Cybersecurity — protection against ransomware, phishing, and data breaches
+• MS365 Licenses — right-sized licensing and full Microsoft 365 management
+• Managed IT Services — proactive support, monitoring, and fast helpdesk response
+• Managed Security Services — 24/7 threat monitoring and incident response
+• Mobile Device Management — secure every laptop, phone, and tablet your team uses
+
+We currently support several ${industry} businesses in ${city} and consistently receive 5-star reviews for responsiveness and reliability.
+
+I'd love to schedule a free IT assessment for ${companyName} so we can put together a no-obligation recommendation tailored to your environment.
+
+Would you have 15 minutes this week for a quick call?`;
+    return { subject, body };
+  }
 
   const body = `${opening}
 
@@ -60,6 +92,55 @@ function generateCallScript(prospect: typeof prospectsTable.$inferSelect, client
   const senderName = client?.senderName?.trim() || client?.businessName?.trim() || "our team";
   const businessName = client?.businessName?.trim() || "our company";
   const sq = squareFootage ? `your ${squareFootage.toLocaleString()} sq ft space` : `your facility`;
+  const vertical = getVerticalConfig(client?.vertical).key;
+
+  if (vertical === "it_services") {
+    const script = `OPENING (0:00 – 0:30)
+"Good [morning/afternoon], may I speak with ${firstName}? … Hi ${firstName}, this is ${senderName} calling from ${businessName}. I'm reaching out to ${industry} businesses in ${city} — I'll keep this brief, I promise. Do you have about 60 seconds?"
+
+PITCH (0:30 – 1:30)
+"We're a managed IT services provider working with ${industry} companies, and I noticed ${companyName} is in ${city}. A lot of our clients had the same situation — slow support from their current IT provider, growing security worries, or Microsoft 365 licensing costs creeping up.
+
+We cover everything under one roof: Cybersecurity, MS365 Licenses, Managed IT Services, Managed Security Services, and Mobile Device Management — so every laptop, phone, and server your team touches is secure and supported.
+
+The reason I'm calling is to see if it'd make sense to do a free IT assessment for ${companyName}. It's free, takes about 30 minutes, and you'll walk away with a clear picture of your security gaps and where you might be overspending."
+
+CLOSE (1:30 – 2:00)
+"${objective.includes("appointment") ? `Would you be available for a quick assessment call this week — say Tuesday or Thursday afternoon?` : `Can I send you some information about what we do for ${industry} businesses in ${city}?`}"`;
+
+    const keyPoints = [
+      `Mention ${industry}-specific experience and local ${city} presence upfront`,
+      `Lead with security risk and IT cost savings — most common pain points`,
+      `Name the five offerings: Cybersecurity, MS365 Licenses, Managed IT, Managed Security, MDM`,
+      `Keep the ask small: a free 30-minute IT assessment, not a commitment`,
+      `Always confirm a specific day/time, not an open-ended "sometime this week"`,
+    ];
+
+    const objectionHandlers = [
+      {
+        objection: "We already have an IT provider",
+        response: `"That's great to hear — most of our best clients did too before they switched. Can I ask, are you fully satisfied with response times and how proactive they are on security? We often do a complimentary side-by-side assessment — no pressure, just good info to have."`,
+      },
+      {
+        objection: "We're not interested / not looking right now",
+        response: `"I completely understand, ${firstName}. Timing is everything. Would it be okay if I followed up in a couple months? And if anything changes — or if a security incident ever comes up — I'll make sure you have my direct number."`,
+      },
+      {
+        objection: "Send me information by email",
+        response: `"Absolutely, I'll send that right over. What's the best email for you? And just so the info is relevant — roughly how many workstations and servers does ${companyName} run? That helps me tailor what I send."`,
+      },
+      {
+        objection: "We're under contract",
+        response: `"Totally fair — contracts are there for a reason. When does that come up for renewal? I'd love to be on your radar so we can put together a proposal when the time is right. Would you be open to a free assessment just to have options?"`,
+      },
+      {
+        objection: "Too busy right now",
+        response: `"Understood — I'll be quick. The assessment only takes 30 minutes and we do most of it remotely. Would early morning or end of day work better so it doesn't cut into your schedule?"`,
+      },
+    ];
+
+    return { script, keyPoints, objectionHandlers };
+  }
 
   const script = `OPENING (0:00 – 0:30)
 "Good [morning/afternoon], may I speak with ${firstName}? … Hi ${firstName}, this is ${senderName} calling from ${businessName}. I'm reaching out to ${industry} businesses in ${city} — I'll keep this brief, I promise. Do you have about 60 seconds?"
