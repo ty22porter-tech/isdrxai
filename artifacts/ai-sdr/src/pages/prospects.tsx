@@ -120,6 +120,8 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [progress, setProgress] = useState(0);
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const createProspect = useCreateProspect();
   const { toast } = useToast();
@@ -149,23 +151,34 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     if (!rows.length) return;
     setImporting(true);
     let imported = 0;
+    let failed = 0;
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]!;
       await new Promise<void>(resolve => {
         createProspect.mutate(
           { data: { companyName: row.companyName, contactName: row.contactName, email: row.email, phone: row.phone || "(000) 000-0000", industry: row.industry || "General", city: row.city || "", state: row.state || "" } },
-          { onSuccess: () => { imported++; resolve(); }, onError: () => resolve() }
+          { onSuccess: () => { imported++; resolve(); }, onError: () => { failed++; resolve(); } }
         );
       });
       setProgress(Math.round(((i + 1) / rows.length) * 100));
     }
     setImporting(false);
     setDone(true);
+    setImportedCount(imported);
+    setFailedCount(failed);
     onImported();
-    toast({ title: `${imported} prospect${imported !== 1 ? "s" : ""} imported` });
+    if (failed === 0) {
+      toast({ title: `${imported} prospect${imported !== 1 ? "s" : ""} imported` });
+    } else {
+      toast({
+        title: "Some prospects failed to import",
+        description: `${imported} imported, ${failed} failed.`,
+        variant: "destructive",
+      });
+    }
   };
 
-  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); };
+  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setFailedCount(0); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -186,7 +199,10 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
             <p className="font-semibold">Import complete!</p>
-            <p className="text-sm text-muted-foreground">{rows.length} prospects added to your database.</p>
+            <p className="text-sm text-muted-foreground">
+              {importedCount} prospect{importedCount !== 1 ? "s" : ""} added to your database.
+              {failedCount > 0 && ` ${failedCount} failed to import.`}
+            </p>
             <Button onClick={() => { setOpen(false); reset(); }}>Done</Button>
           </div>
         ) : importing ? (

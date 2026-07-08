@@ -102,6 +102,8 @@ export default function Prospecting() {
 
   const handleAddAll = async () => {
     const unAdded = leads.filter((_, idx) => !added.has(idx));
+    let addedCount = 0;
+    let failedCount = 0;
     for (let i = 0; i < unAdded.length; i++) {
       const lead = unAdded[i];
       const idx = leads.indexOf(lead);
@@ -123,14 +125,22 @@ export default function Prospecting() {
             },
           },
           {
-            onSuccess: () => { setAdded((prev) => new Set([...prev, idx])); resolve(); },
-            onError: () => resolve(),
+            onSuccess: () => { setAdded((prev) => new Set([...prev, idx])); addedCount++; resolve(); },
+            onError: () => { failedCount++; resolve(); },
           }
         );
       });
     }
     queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
-    toast({ title: "All prospects added", description: `${unAdded.length} prospects added to your pipeline.` });
+    if (failedCount === 0) {
+      toast({ title: "All prospects added", description: `${addedCount} prospect${addedCount !== 1 ? "s" : ""} added to your pipeline.` });
+    } else {
+      toast({
+        title: "Some prospects failed to add",
+        description: `${addedCount} added, ${failedCount} failed. Failed prospects can be retried.`,
+        variant: "destructive",
+      });
+    }
   };
 
   const allAdded = leads.length > 0 && leads.every((_, idx) => added.has(idx));
