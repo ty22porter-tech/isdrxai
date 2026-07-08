@@ -22,6 +22,7 @@ const SIGN_UP_URL = `${APP_ORIGIN}/sign-up`;
 const VIDEO_URL = `${APP_ORIGIN}/ai-sdr-video/`;
 
 export interface VerticalPageConfig {
+  videoUrl: string;
   badge: string;
   headlineStart: string;
   headlineAccent: string;
@@ -39,6 +40,7 @@ export interface VerticalPageConfig {
 }
 
 export const JANITORIAL_CONFIG: VerticalPageConfig = {
+  videoUrl: VIDEO_URL,
   badge: "AI outbound for commercial cleaning",
   headlineStart: "Book commercial cleaning contracts",
   headlineAccent: "while you sleep.",
@@ -69,6 +71,7 @@ export const JANITORIAL_CONFIG: VerticalPageConfig = {
 };
 
 export const IT_SERVICES_CONFIG: VerticalPageConfig = {
+  videoUrl: `${APP_ORIGIN}/ai-sdr-video-it/`,
   badge: "AI outbound for IT service providers",
   headlineStart: "Book managed IT clients",
   headlineAccent: "on autopilot.",
@@ -206,7 +209,7 @@ export default function VerticalPage({ config }: { config: VerticalPageConfig })
                   {config.primaryCta} <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </a>
-              <a href={VIDEO_URL} className="w-full sm:w-auto">
+              <a href={config.videoUrl} className="w-full sm:w-auto">
                 <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 hover:bg-white/5 hover:text-white w-full sm:w-auto">
                   <Play className="mr-2 w-5 h-5" /> Watch Demo
                 </Button>

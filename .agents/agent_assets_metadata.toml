@@ -29,3 +29,9 @@ id = "t1w43sgTbBIxz4B6ZDEKh"
 uri = "file://artifacts/ai-sdr-video/public/audio/bg_music.mp3"
 type = "audio"
 title = "background music"
+
+[[outputs]]
+id = "qeNekgZzbwdwmU5OLkPjD"
+uri = "file://artifacts/ai-sdr-video-it/public/audio/bg_music.mp3"
+type = "audio"
+title = "IT video background music"

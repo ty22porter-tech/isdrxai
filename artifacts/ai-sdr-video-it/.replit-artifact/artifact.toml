@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/ai-sdr-video-it/"
+title = "iSDRX AI – IT Services Video"
+version = "1.0.0"
+id = "artifacts/ai-sdr-video-it"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/ai-sdr-video-it/" ]
+localPort = 21053
+
+[services.development]
+run = "pnpm --filter @workspace/ai-sdr-video-it run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-sdr-video-it", "run", "build" ]
+publicDir = "artifacts/ai-sdr-video-it/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21053"
+BASE_PATH = "/ai-sdr-video-it/"
