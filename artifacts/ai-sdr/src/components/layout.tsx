@@ -52,9 +52,11 @@ async function apiFetch(path: string) {
 function VerticalOnboardingDialog({ open }: { open: boolean }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const choose = async (vertical: "janitorial" | "it_services") => {
     setSaving(vertical);
+    setError(null);
     try {
       const res = await fetch(`${BASE_URL}/api/users/settings`, {
         method: "PUT",
@@ -64,6 +66,8 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
       });
       if (!res.ok) throw new Error("Failed to save");
       await queryClient.invalidateQueries({ queryKey: ["me"] });
+    } catch {
+      setError("We couldn't save your choice. Please check your connection and try again.");
     } finally {
       setSaving(null);
     }
@@ -95,6 +99,11 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
             <div className="font-semibold">IT Services / MSP</div>
             <div className="text-sm text-muted-foreground mt-1">Book free IT assessments — cybersecurity, MS365, managed IT, managed security, MDM.</div>
           </button>
+          {error && (
+            <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error} Select an option to retry.
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
