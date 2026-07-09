@@ -135,7 +135,7 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl md:text-7xl font-bold font-display tracking-tight text-white mb-6 max-w-4xl mx-auto leading-[1.1]"
         >
-          Book commercial cleaning contracts{" "}
+          Book commercial service contracts{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">while you sleep.</span>
         </motion.h1>
 
@@ -444,9 +444,9 @@ function EmailMockup() {
   );
 }
 
-function DeepDiveSection({ reversed, imageSrc, graphic, pretitle, title, description, items }: any) {
+function DeepDiveSection({ id, reversed, imageSrc, graphic, pretitle, title, description, items }: any) {
   return (
-    <section className="py-24 overflow-hidden">
+    <section id={id} className="py-24 overflow-hidden scroll-mt-20">
       <div className="max-w-7xl mx-auto px-6">
         <div className={`flex flex-col ${reversed ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-16`}>
           
@@ -603,6 +603,7 @@ function LandingPage() {
         <FeaturesGrid />
         
         <DeepDiveSection 
+          id="how-it-works"
           graphic={<EmailMockup />}
           pretitle="Personalized Pitch"
           title="Emails so good, they think you hand-wrote them."

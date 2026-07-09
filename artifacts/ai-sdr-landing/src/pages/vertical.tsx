@@ -42,7 +42,7 @@ export interface VerticalPageConfig {
 export const JANITORIAL_CONFIG: VerticalPageConfig = {
   videoUrl: VIDEO_URL,
   badge: "AI outbound for commercial cleaning",
-  headlineStart: "Book commercial cleaning contracts",
+  headlineStart: "Book commercial service contracts",
   headlineAccent: "while you sleep.",
   subheadline:
     "Stop cold calling. Let AI prospect local businesses, write personalized outreach, and book walkthroughs for your janitorial business automatically.",
