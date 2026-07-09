@@ -639,12 +639,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProspectInput"
+        duplicateStrategy:
+          type: string
+          enum: [skip, update]
+          default: skip
+          description: How to handle rows whose email matches an existing prospect. "skip" fails the row; "update" merges new data into the existing prospect.
 
     BulkProspectsResult:
       type: object
       required: [added, failed, results]
       properties:
         added:
+          type: integer
+        updated:
           type: integer
         failed:
           type: integer
@@ -660,6 +667,8 @@ components:
         index:
           type: integer
         success:
+          type: boolean
+        updated:
           type: boolean
         error:
           type: string

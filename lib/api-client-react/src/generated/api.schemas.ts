@@ -59,19 +59,34 @@ export interface ProspectInput {
   squareFootage?: number;
 }
 
+/**
+ * How to handle rows whose email matches an existing prospect. "skip" fails the row; "update" merges new data into the existing prospect.
+ */
+export type BulkProspectsInputDuplicateStrategy = typeof BulkProspectsInputDuplicateStrategy[keyof typeof BulkProspectsInputDuplicateStrategy];
+
+
+export const BulkProspectsInputDuplicateStrategy = {
+  skip: 'skip',
+  update: 'update',
+} as const;
+
 export interface BulkProspectsInput {
   prospects: ProspectInput[];
+  /** How to handle rows whose email matches an existing prospect. "skip" fails the row; "update" merges new data into the existing prospect. */
+  duplicateStrategy?: BulkProspectsInputDuplicateStrategy;
 }
 
 export interface BulkProspectRowResult {
   index: number;
   success: boolean;
+  updated?: boolean;
   error?: string;
   prospect?: Prospect;
 }
 
 export interface BulkProspectsResult {
   added: number;
+  updated?: number;
   failed: number;
   results: BulkProspectRowResult[];
 }

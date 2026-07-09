@@ -84,6 +84,8 @@ export const CreateProspectResponse = zod.object({
 /**
  * @summary Create many prospects at once
  */
+export const bulkCreateProspectsBodyDuplicateStrategyDefault = `skip`;
+
 export const BulkCreateProspectsBody = zod.object({
   "prospects": zod.array(zod.object({
   "companyName": zod.string(),
@@ -97,15 +99,18 @@ export const BulkCreateProspectsBody = zod.object({
   "notes": zod.string().optional(),
   "employeeCount": zod.number().optional(),
   "squareFootage": zod.number().optional()
-}))
+})),
+  "duplicateStrategy": zod.enum(['skip', 'update']).default(bulkCreateProspectsBodyDuplicateStrategyDefault).describe('How to handle rows whose email matches an existing prospect. \"skip\" fails the row; \"update\" merges new data into the existing prospect.')
 })
 
 export const BulkCreateProspectsResponse = zod.object({
   "added": zod.number(),
+  "updated": zod.number().optional(),
   "failed": zod.number(),
   "results": zod.array(zod.object({
   "index": zod.number(),
   "success": zod.boolean(),
+  "updated": zod.boolean().optional(),
   "error": zod.string().optional(),
   "prospect": zod.object({
   "id": zod.number(),

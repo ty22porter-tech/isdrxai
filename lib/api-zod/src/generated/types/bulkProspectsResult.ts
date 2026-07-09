@@ -9,6 +9,7 @@ import type { BulkProspectRowResult } from './bulkProspectRowResult';
 
 export interface BulkProspectsResult {
   added: number;
+  updated?: number;
   failed: number;
   results: BulkProspectRowResult[];
 }

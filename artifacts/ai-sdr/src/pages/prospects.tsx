@@ -121,7 +121,9 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [updatedCount, setUpdatedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [failedRows, setFailedRows] = useState<{ row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[]>([]);
   const [retrying, setRetrying] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -151,6 +153,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
 
   const importRows = async (toImport: NonNullable<ReturnType<typeof mapRow>>[]) => {
     let imported = 0;
+    let updatedTotal = 0;
     const failures: { row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[] = [];
     const CHUNK_SIZE = 100;
     for (let start = 0; start < toImport.length; start += CHUNK_SIZE) {
@@ -162,14 +165,16 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
               companyName: row.companyName,
               contactName: row.contactName,
               email: row.email,
-              phone: row.phone || "(000) 000-0000",
-              industry: row.industry || "General",
+              phone: row.phone || "",
+              industry: row.industry || "",
               city: row.city || "",
               state: row.state || "",
             })),
+            duplicateStrategy,
           },
         });
         imported += result.added;
+        updatedTotal += result.updated ?? 0;
         result.results.forEach(r => {
           if (!r.success) failures.push({ row: chunk[r.index], reason: r.error || "Server error" });
         });
@@ -179,26 +184,29 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
       }
       setProgress(Math.round(Math.min(start + CHUNK_SIZE, toImport.length) / toImport.length * 100));
     }
-    return { imported, failures };
+    return { imported, updatedTotal, failures };
   };
 
   const handleImport = async () => {
     if (!rows.length) return;
     setImporting(true);
     setProgress(0);
-    const { imported, failures } = await importRows(rows as NonNullable<ReturnType<typeof mapRow>>[]);
+    const { imported, updatedTotal, failures } = await importRows(rows as NonNullable<ReturnType<typeof mapRow>>[]);
     setImporting(false);
     setDone(true);
     setImportedCount(imported);
+    setUpdatedCount(updatedTotal);
     setFailedCount(failures.length);
     setFailedRows(failures);
     onImported();
     if (failures.length === 0) {
-      toast({ title: `${imported} prospect${imported !== 1 ? "s" : ""} imported` });
+      const parts = [`${imported} added`];
+      if (updatedTotal > 0) parts.push(`${updatedTotal} updated`);
+      toast({ title: `Import complete: ${parts.join(", ")}` });
     } else {
       toast({
         title: "Some prospects failed to import",
-        description: `${imported} imported, ${failures.length} failed. Review the reasons below.`,
+        description: `${imported} added, ${updatedTotal} updated, ${failures.length} failed. Review the reasons below.`,
         variant: "destructive",
       });
     }
@@ -207,9 +215,10 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const handleRetryFailed = async () => {
     if (!failedRows.length) return;
     setRetrying(true);
-    const { imported, failures } = await importRows(failedRows.map(f => f.row));
+    const { imported, updatedTotal, failures } = await importRows(failedRows.map(f => f.row));
     setRetrying(false);
     setImportedCount(c => c + imported);
+    setUpdatedCount(c => c + updatedTotal);
     setFailedCount(failures.length);
     setFailedRows(failures);
     onImported();
@@ -250,7 +259,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); };
+  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); setDuplicateStrategy("skip"); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -278,6 +287,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
               <p className="font-semibold">{failedCount > 0 ? "Import finished with issues" : "Import complete!"}</p>
               <p className="text-sm text-muted-foreground">
                 {importedCount} prospect{importedCount !== 1 ? "s" : ""} added to your database.
+                {updatedCount > 0 && ` ${updatedCount} existing prospect${updatedCount !== 1 ? "s" : ""} updated.`}
                 {failedCount > 0 && ` ${failedCount} failed to import.`}
               </p>
             </div>
@@ -372,6 +382,37 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
                   )}
                 </TableBody>
               </Table>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">If a prospect's email already exists</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="duplicate-strategy"
+                    className="mt-0.5"
+                    checked={duplicateStrategy === "skip"}
+                    onChange={() => setDuplicateStrategy("skip")}
+                  />
+                  <span className="text-sm">
+                    Skip duplicates
+                    <span className="block text-xs text-muted-foreground">Leave existing prospects unchanged</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="duplicate-strategy"
+                    className="mt-0.5"
+                    checked={duplicateStrategy === "update"}
+                    onChange={() => setDuplicateStrategy("update")}
+                  />
+                  <span className="text-sm">
+                    Update existing
+                    <span className="block text-xs text-muted-foreground">Merge new data (phone, title, notes) into the existing prospect</span>
+                  </span>
+                </label>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={reset}>Back</Button>

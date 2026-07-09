@@ -15,6 +15,7 @@ export * from './appointmentType';
 export * from './appointmentUpdate';
 export * from './bulkProspectRowResult';
 export * from './bulkProspectsInput';
+export * from './bulkProspectsInputDuplicateStrategy';
 export * from './bulkProspectsResult';
 export * from './call';
 export * from './callInput';

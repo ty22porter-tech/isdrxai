@@ -5,8 +5,11 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { BulkProspectsInputDuplicateStrategy } from './bulkProspectsInputDuplicateStrategy';
 import type { ProspectInput } from './prospectInput';
 
 export interface BulkProspectsInput {
   prospects: ProspectInput[];
+  /** How to handle rows whose email matches an existing prospect. "skip" fails the row; "update" merges new data into the existing prospect. */
+  duplicateStrategy?: BulkProspectsInputDuplicateStrategy;
 }

@@ -10,6 +10,7 @@ import type { Prospect } from './prospect';
 export interface BulkProspectRowResult {
   index: number;
   success: boolean;
+  updated?: boolean;
   error?: string;
   prospect?: Prospect;
 }
