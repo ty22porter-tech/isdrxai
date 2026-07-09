@@ -56,6 +56,7 @@ router.post("/bulk", async (req, res) => {
     .from(prospectsTable)
     .where(eq(prospectsTable.clientId, req.clientId));
   const seenEmails = new Set(existing.map((p) => p.email.trim().toLowerCase()));
+  const validRows: { index: number; values: any }[] = [];
   for (let i = 0; i < prospects.length; i++) {
     const input = prospects[i];
     const email = (input.email ?? "").trim().toLowerCase();
@@ -74,28 +75,51 @@ router.post("/bulk", async (req, res) => {
       results.push({ index: i, success: false, error: `Duplicate: a prospect with email ${input.email} already exists` });
       continue;
     }
+    seenEmails.add(email);
+    validRows.push({ index: i, values: { ...input, clientId: req.clientId, status: "new", scheduleToken: randomUUID() } });
+  }
+
+  const BATCH_SIZE = 500;
+  for (let start = 0; start < validRows.length; start += BATCH_SIZE) {
+    const batch = validRows.slice(start, start + BATCH_SIZE);
     try {
-      const scheduleToken = randomUUID();
-      const [prospect] = await db.insert(prospectsTable).values({ ...input, clientId: req.clientId, status: "new", scheduleToken }).returning();
-      await db.insert(activityTable).values({
-        clientId: req.clientId,
-        type: "prospect_added",
-        description: `New prospect added: ${prospect.companyName}`,
-        prospectId: prospect.id,
-        prospectName: prospect.contactName,
+      const inserted = await db.transaction(async (tx) => {
+        const rows = await tx.insert(prospectsTable).values(batch.map((r) => r.values)).returning();
+        if (rows.length > 0) {
+          await tx.insert(activityTable).values(rows.map((p) => ({
+            clientId: req.clientId,
+            type: "prospect_added",
+            description: `New prospect added: ${p.companyName}`,
+            prospectId: p.id,
+            prospectName: p.contactName,
+          })));
+        }
+        return rows;
       });
-      added++;
-      seenEmails.add(email);
-      results.push({
-        index: i,
-        success: true,
-        prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
-      });
+      const byToken = new Map(inserted.map((p) => [p.scheduleToken, p]));
+      for (const row of batch) {
+        const prospect = byToken.get(row.values.scheduleToken);
+        if (!prospect) {
+          failed++;
+          results.push({ index: row.index, success: false, error: "Failed to create prospect" });
+          continue;
+        }
+        added++;
+        results.push({
+          index: row.index,
+          success: true,
+          prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
+        });
+      }
     } catch (err: any) {
-      failed++;
-      results.push({ index: i, success: false, error: err?.message ?? "Failed to create prospect" });
+      for (const row of batch) {
+        failed++;
+        results.push({ index: row.index, success: false, error: err?.message ?? "Failed to create prospect" });
+      }
     }
   }
+
+  results.sort((a, b) => a.index - b.index);
   res.json({ added, failed, results });
 });
 
