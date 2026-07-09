@@ -122,6 +122,8 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [done, setDone] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [failedRows, setFailedRows] = useState<{ row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[]>([]);
+  const [retrying, setRetrying] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const bulkCreateProspects = useBulkCreateProspects();
   const { toast } = useToast();
@@ -147,52 +149,86 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     if (file) handleFile(file);
   };
 
-  const handleImport = async () => {
-    if (!rows.length) return;
-    setImporting(true);
+  const importRows = async (toImport: NonNullable<ReturnType<typeof mapRow>>[]) => {
     let imported = 0;
-    let failed = 0;
+    const failures: { row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[] = [];
     const CHUNK_SIZE = 100;
-    for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
-      const chunk = rows.slice(start, start + CHUNK_SIZE);
+    for (let start = 0; start < toImport.length; start += CHUNK_SIZE) {
+      const chunk = toImport.slice(start, start + CHUNK_SIZE);
       try {
         const result = await bulkCreateProspects.mutateAsync({
           data: {
             prospects: chunk.map(row => ({
-              companyName: row!.companyName,
-              contactName: row!.contactName,
-              email: row!.email,
-              phone: row!.phone || "(000) 000-0000",
-              industry: row!.industry || "General",
-              city: row!.city || "",
-              state: row!.state || "",
+              companyName: row.companyName,
+              contactName: row.contactName,
+              email: row.email,
+              phone: row.phone || "(000) 000-0000",
+              industry: row.industry || "General",
+              city: row.city || "",
+              state: row.state || "",
             })),
           },
         });
         imported += result.added;
-        failed += result.failed;
-      } catch {
-        failed += chunk.length;
+        result.results.forEach(r => {
+          if (!r.success) failures.push({ row: chunk[r.index], reason: r.error || "Server error" });
+        });
+      } catch (err: any) {
+        const reason = err?.data?.error || err?.message || "Server error";
+        chunk.forEach(row => failures.push({ row, reason }));
       }
-      setProgress(Math.round(Math.min(start + CHUNK_SIZE, rows.length) / rows.length * 100));
+      setProgress(Math.round(Math.min(start + CHUNK_SIZE, toImport.length) / toImport.length * 100));
     }
+    return { imported, failures };
+  };
+
+  const handleImport = async () => {
+    if (!rows.length) return;
+    setImporting(true);
+    setProgress(0);
+    const { imported, failures } = await importRows(rows as NonNullable<ReturnType<typeof mapRow>>[]);
     setImporting(false);
     setDone(true);
     setImportedCount(imported);
-    setFailedCount(failed);
+    setFailedCount(failures.length);
+    setFailedRows(failures);
     onImported();
-    if (failed === 0) {
+    if (failures.length === 0) {
       toast({ title: `${imported} prospect${imported !== 1 ? "s" : ""} imported` });
     } else {
       toast({
         title: "Some prospects failed to import",
-        description: `${imported} imported, ${failed} failed.`,
+        description: `${imported} imported, ${failures.length} failed. Review the reasons below.`,
         variant: "destructive",
       });
     }
   };
 
-  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setFailedCount(0); };
+  const handleRetryFailed = async () => {
+    if (!failedRows.length) return;
+    setRetrying(true);
+    const { imported, failures } = await importRows(failedRows.map(f => f.row));
+    setRetrying(false);
+    setImportedCount(c => c + imported);
+    setFailedCount(failures.length);
+    setFailedRows(failures);
+    onImported();
+    if (failures.length === 0) {
+      toast({ title: `${imported} prospect${imported !== 1 ? "s" : ""} imported on retry` });
+    } else {
+      toast({
+        title: `${failures.length} still failing`,
+        description: imported > 0 ? `${imported} imported on retry.` : "Fix the highlighted rows and retry.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateFailedEmail = (i: number, email: string) => {
+    setFailedRows(prev => prev.map((f, idx) => idx === i ? { ...f, row: { ...f.row, email } } : f));
+  };
+
+  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -210,14 +246,61 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
         </DialogHeader>
 
         {done ? (
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <p className="font-semibold">Import complete!</p>
-            <p className="text-sm text-muted-foreground">
-              {importedCount} prospect{importedCount !== 1 ? "s" : ""} added to your database.
-              {failedCount > 0 && ` ${failedCount} failed to import.`}
-            </p>
-            <Button onClick={() => { setOpen(false); reset(); }}>Done</Button>
+          <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center gap-2 text-center">
+              {failedCount > 0 ? (
+                <AlertCircle className="h-10 w-10 text-amber-500" />
+              ) : (
+                <CheckCircle2 className="h-12 w-12 text-green-500" />
+              )}
+              <p className="font-semibold">{failedCount > 0 ? "Import finished with issues" : "Import complete!"}</p>
+              <p className="text-sm text-muted-foreground">
+                {importedCount} prospect{importedCount !== 1 ? "s" : ""} added to your database.
+                {failedCount > 0 && ` ${failedCount} failed to import.`}
+              </p>
+            </div>
+
+            {failedRows.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Failed rows — fix the email if needed, then retry:</p>
+                <div className="rounded-lg border overflow-hidden max-h-56 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Company</TableHead>
+                        <TableHead className="text-xs">Email</TableHead>
+                        <TableHead className="text-xs">Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {failedRows.map((f, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs font-medium py-2">{f.row.companyName || "(missing)"}</TableCell>
+                          <TableCell className="py-2">
+                            <Input
+                              value={f.row.email}
+                              onChange={e => updateFailedEmail(i, e.target.value)}
+                              className="h-7 text-xs"
+                              disabled={retrying}
+                            />
+                          </TableCell>
+                          <TableCell className="text-xs py-2 text-red-600">{f.reason}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-2">
+              {failedRows.length > 0 && (
+                <Button onClick={handleRetryFailed} disabled={retrying}>
+                  {retrying ? "Retrying…" : `Retry ${failedRows.length} Failed Row${failedRows.length !== 1 ? "s" : ""}`}
+                </Button>
+              )}
+              <Button variant={failedRows.length > 0 ? "outline" : "default"} onClick={() => { setOpen(false); reset(); }}>Done</Button>
+            </div>
           </div>
         ) : importing ? (
           <div className="py-8 space-y-4 text-center">

@@ -44,13 +44,36 @@ router.post("/", async (req, res) => {
   res.status(201).json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 router.post("/bulk", async (req, res) => {
   const { prospects } = BulkCreateProspectsBody.parse(req.body);
   const results: { index: number; success: boolean; error?: string; prospect?: any }[] = [];
   let added = 0;
   let failed = 0;
+  const existing = await db
+    .select({ email: prospectsTable.email })
+    .from(prospectsTable)
+    .where(eq(prospectsTable.clientId, req.clientId));
+  const seenEmails = new Set(existing.map((p) => p.email.trim().toLowerCase()));
   for (let i = 0; i < prospects.length; i++) {
     const input = prospects[i];
+    const email = (input.email ?? "").trim().toLowerCase();
+    if (!input.companyName?.trim()) {
+      failed++;
+      results.push({ index: i, success: false, error: "Missing company name" });
+      continue;
+    }
+    if (!EMAIL_RE.test(email)) {
+      failed++;
+      results.push({ index: i, success: false, error: `Invalid email address: "${input.email || "(empty)"}"` });
+      continue;
+    }
+    if (seenEmails.has(email)) {
+      failed++;
+      results.push({ index: i, success: false, error: `Duplicate: a prospect with email ${input.email} already exists` });
+      continue;
+    }
     try {
       const scheduleToken = randomUUID();
       const [prospect] = await db.insert(prospectsTable).values({ ...input, clientId: req.clientId, status: "new", scheduleToken }).returning();
@@ -62,6 +85,7 @@ router.post("/bulk", async (req, res) => {
         prospectName: prospect.contactName,
       });
       added++;
+      seenEmails.add(email);
       results.push({
         index: i,
         success: true,

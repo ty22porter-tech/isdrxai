@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw } from "lucide-react";
 
 const INDUSTRIES = [
   "Healthcare",
@@ -44,6 +44,7 @@ export default function Prospecting() {
   const [count, setCount] = useState("10");
   const [leads, setLeads] = useState<ProspectLead[]>([]);
   const [added, setAdded] = useState<Set<number>>(new Set());
+  const [failures, setFailures] = useState<Map<number, string>>(new Map());
   const [addingId, setAddingId] = useState<number | null>(null);
 
   const { toast } = useToast();
@@ -59,6 +60,7 @@ export default function Prospecting() {
     }
     setLeads([]);
     setAdded(new Set());
+    setFailures(new Map());
     searchMutation.mutate(
       { data: { city: city.trim(), state, industry, count: parseInt(count) } },
       {
@@ -89,13 +91,20 @@ export default function Prospecting() {
       {
         onSuccess: () => {
           setAdded((prev) => new Set([...prev, idx]));
+          setFailures((prev) => {
+            const next = new Map(prev);
+            next.delete(idx);
+            return next;
+          });
           setAddingId(null);
           queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
           toast({ title: "Prospect added", description: `${lead.companyName} added to your pipeline.` });
         },
-        onError: () => {
+        onError: (err: any) => {
           setAddingId(null);
-          toast({ title: "Failed to add", variant: "destructive" });
+          const reason = err?.data?.error || err?.message || "Could not add prospect";
+          setFailures((prev) => new Map(prev).set(idx, reason));
+          toast({ title: "Failed to add", description: reason, variant: "destructive" });
         },
       }
     );
@@ -131,13 +140,25 @@ export default function Prospecting() {
         });
         return next;
       });
+      setFailures((prev) => {
+        const next = new Map(prev);
+        result.results.forEach((r) => {
+          const idx = pending[r.index].idx;
+          if (r.success) {
+            next.delete(idx);
+          } else {
+            next.set(idx, r.error || "Could not add prospect");
+          }
+        });
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
       if (result.failed === 0) {
         toast({ title: "All prospects added", description: `${result.added} prospect${result.added !== 1 ? "s" : ""} added to your pipeline.` });
       } else {
         toast({
           title: "Some prospects failed to add",
-          description: `${result.added} added, ${result.failed} failed. Failed prospects can be retried.`,
+          description: `${result.added} added, ${result.failed} failed. See the reason under each highlighted prospect below.`,
           variant: "destructive",
         });
       }
@@ -252,7 +273,7 @@ export default function Prospecting() {
             </div>
             <div className="grid gap-4">
               {leads.map((lead, idx) => (
-                <Card key={idx} className={added.has(idx) ? "opacity-60" : ""}>
+                <Card key={idx} className={added.has(idx) ? "opacity-60" : failures.has(idx) ? "border-red-300" : ""}>
                   <CardContent className="pt-5 pb-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -300,6 +321,15 @@ export default function Prospecting() {
                           <span className="font-medium text-foreground">Why target: </span>
                           {lead.whyTarget}
                         </p>
+                        {failures.has(idx) && !added.has(idx) && (
+                          <div className="mt-2.5 flex items-start gap-1.5 rounded-md bg-red-50 border border-red-200 px-2.5 py-1.5">
+                            <AlertCircle className="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5" />
+                            <p className="text-xs text-red-700">
+                              <span className="font-medium">Couldn't add: </span>
+                              {failures.get(idx)}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="shrink-0">
@@ -315,6 +345,8 @@ export default function Prospecting() {
                           >
                             {addingId === idx ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : failures.has(idx) ? (
+                              <><RefreshCw className="mr-1.5 h-4 w-4" /> Retry</>
                             ) : (
                               <><UserPlus className="mr-1.5 h-4 w-4" /> Add</>
                             )}
