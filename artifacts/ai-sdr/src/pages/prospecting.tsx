@@ -46,6 +46,7 @@ export default function Prospecting() {
   const [added, setAdded] = useState<Set<number>>(new Set());
   const [failures, setFailures] = useState<Map<number, string>>(new Map());
   const [addingId, setAddingId] = useState<number | null>(null);
+  const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number } | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -115,55 +116,79 @@ export default function Prospecting() {
       .map((lead, idx) => ({ lead, idx }))
       .filter(({ idx }) => !added.has(idx));
     if (!pending.length) return;
+    const CHUNK_SIZE = 100;
+    let totalAdded = 0;
+    let totalFailed = 0;
+    let anyRequestSucceeded = false;
+    setAddAllProgress({ done: 0, total: pending.length });
     try {
-      const result = await bulkCreateProspects.mutateAsync({
-        data: {
-          prospects: pending.map(({ lead }) => ({
-            companyName: lead.companyName,
-            contactName: lead.contactName,
-            email: lead.email,
-            phone: lead.phone,
-            industry: lead.industry,
-            city: lead.city,
-            state: lead.state,
-            website: lead.website,
-            notes: `${lead.contactTitle} — ${lead.whyTarget}`,
-            employeeCount: lead.estimatedEmployees,
-            squareFootage: lead.estimatedSquareFootage,
-          })),
-        },
-      });
-      setAdded((prev) => {
-        const next = new Set(prev);
-        result.results.forEach((r) => {
-          if (r.success) next.add(pending[r.index].idx);
-        });
-        return next;
-      });
-      setFailures((prev) => {
-        const next = new Map(prev);
-        result.results.forEach((r) => {
-          const idx = pending[r.index].idx;
-          if (r.success) {
-            next.delete(idx);
-          } else {
-            next.set(idx, r.error || "Could not add prospect");
-          }
-        });
-        return next;
-      });
+      for (let start = 0; start < pending.length; start += CHUNK_SIZE) {
+        const chunk = pending.slice(start, start + CHUNK_SIZE);
+        try {
+          const result = await bulkCreateProspects.mutateAsync({
+            data: {
+              prospects: chunk.map(({ lead }) => ({
+                companyName: lead.companyName,
+                contactName: lead.contactName,
+                email: lead.email,
+                phone: lead.phone,
+                industry: lead.industry,
+                city: lead.city,
+                state: lead.state,
+                website: lead.website,
+                notes: `${lead.contactTitle} — ${lead.whyTarget}`,
+                employeeCount: lead.estimatedEmployees,
+                squareFootage: lead.estimatedSquareFootage,
+              })),
+            },
+          });
+          anyRequestSucceeded = true;
+          totalAdded += result.added;
+          totalFailed += result.failed;
+          setAdded((prev) => {
+            const next = new Set(prev);
+            result.results.forEach((r) => {
+              if (r.success) next.add(chunk[r.index].idx);
+            });
+            return next;
+          });
+          setFailures((prev) => {
+            const next = new Map(prev);
+            result.results.forEach((r) => {
+              const idx = chunk[r.index].idx;
+              if (r.success) {
+                next.delete(idx);
+              } else {
+                next.set(idx, r.error || "Could not add prospect");
+              }
+            });
+            return next;
+          });
+        } catch (err: any) {
+          totalFailed += chunk.length;
+          const reason = err?.data?.error || err?.message || "Could not add prospect";
+          setFailures((prev) => {
+            const next = new Map(prev);
+            chunk.forEach(({ idx }) => next.set(idx, reason));
+            return next;
+          });
+        }
+        setAddAllProgress({ done: Math.min(start + CHUNK_SIZE, pending.length), total: pending.length });
+      }
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
-      if (result.failed === 0) {
-        toast({ title: "All prospects added", description: `${result.added} prospect${result.added !== 1 ? "s" : ""} added to your pipeline.` });
+      if (!anyRequestSucceeded) {
+        toast({ title: "Failed to add prospects", variant: "destructive" });
+      } else if (totalFailed === 0) {
+        toast({ title: "All prospects added", description: `${totalAdded} prospect${totalAdded !== 1 ? "s" : ""} added to your pipeline.` });
       } else {
         toast({
           title: "Some prospects failed to add",
-          description: `${result.added} added, ${result.failed} failed. See the reason under each highlighted prospect below.`,
+          description: `${totalAdded} added, ${totalFailed} failed. See the reason under each highlighted prospect below.`,
           variant: "destructive",
         });
       }
-    } catch {
-      toast({ title: "Failed to add prospects", variant: "destructive" });
+    } finally {
+      setAddAllProgress(null);
     }
   };
 
@@ -243,10 +268,18 @@ export default function Prospecting() {
                 )}
               </Button>
               {leads.length > 0 && !allAdded && (
-                <Button variant="outline" onClick={handleAddAll} disabled={createProspect.isPending || bulkCreateProspects.isPending}>
-                  {bulkCreateProspects.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                  Add All to Pipeline
+                <Button variant="outline" onClick={handleAddAll} disabled={createProspect.isPending || addAllProgress !== null}>
+                  {addAllProgress !== null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {addAllProgress !== null ? `Adding ${addAllProgress.done} of ${addAllProgress.total}...` : "Add All to Pipeline"}
                 </Button>
+              )}
+              {addAllProgress !== null && (
+                <div className="h-2 w-40 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={addAllProgress.total} aria-valuenow={addAllProgress.done}>
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${addAllProgress.total ? Math.round((addAllProgress.done / addAllProgress.total) * 100) : 0}%` }}
+                  />
+                </div>
               )}
               {leads.length > 0 && (
                 <span className="text-sm text-muted-foreground">
