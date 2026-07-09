@@ -515,18 +515,15 @@ export default function Campaigns() {
 
   const showEmailSteps = form.type === "email" || form.type === "mixed";
 
-  const StepEditor = ({
-    stepMeta,
-    isIntro,
-  }: {
-    stepMeta: typeof STEP_META[number];
-    isIntro: boolean;
-  }) => {
+  const renderStepEditor = (
+    stepMeta: typeof STEP_META[number],
+    isIntro: boolean,
+  ) => {
     const followUpKey = isIntro ? null : (FOLLOW_UP_KEYS[stepMeta.num - 2] as keyof CampaignForm);
     const stepData = isIntro ? null : (form[followUpKey!] as SequenceStep);
 
     return (
-      <div className="space-y-3">
+      <div key={stepMeta.num} className="space-y-3">
         <Separator />
         <div className="flex items-center gap-2 flex-wrap">
           <div className={`h-5 w-5 rounded-full text-xs flex items-center justify-center font-bold shrink-0 ${stepMeta.color}`}>
@@ -598,7 +595,7 @@ export default function Campaigns() {
     );
   };
 
-  const CampaignFormComp = ({ onSubmit, isPending }: { onSubmit: (e: React.FormEvent) => void; isPending: boolean }) => (
+  const renderCampaignForm = (onSubmit: (e: React.FormEvent) => void, isPending: boolean) => (
     <form onSubmit={onSubmit} className="space-y-5 pt-2">
       <div className="space-y-2">
         <Label>Campaign Name</Label>
@@ -657,10 +654,8 @@ export default function Campaigns() {
             </p>
           </div>
 
-          <StepEditor stepMeta={STEP_META[0]} isIntro={true} />
-          {STEP_META.slice(1).map(meta => (
-            <StepEditor key={meta.num} stepMeta={meta} isIntro={false} />
-          ))}
+          {renderStepEditor(STEP_META[0], true)}
+          {STEP_META.slice(1).map(meta => renderStepEditor(meta, false))}
         </div>
       )}
 
@@ -748,7 +743,7 @@ export default function Campaigns() {
             <DialogTitle>New Campaign</DialogTitle>
             <DialogDescription>Build a 7-step email sequence for your outreach campaign.</DialogDescription>
           </DialogHeader>
-          <CampaignFormComp onSubmit={handleCreate} isPending={createCampaign.isPending} />
+          {renderCampaignForm(handleCreate, createCampaign.isPending)}
         </DialogContent>
       </Dialog>
 
@@ -759,7 +754,7 @@ export default function Campaigns() {
             <DialogTitle>Edit Campaign</DialogTitle>
             <DialogDescription>Update your sequence steps and templates.</DialogDescription>
           </DialogHeader>
-          <CampaignFormComp onSubmit={handleEdit} isPending={updateCampaign.isPending} />
+          {renderCampaignForm(handleEdit, updateCampaign.isPending)}
         </DialogContent>
       </Dialog>
     </Layout>
