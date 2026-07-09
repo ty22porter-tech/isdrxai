@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,10 +46,10 @@ function parseCSV(text: string): Record<string, string>[] {
   if (lines.length < 2) return [];
   const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
   return lines.slice(1).map(line => {
-    const values = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
+    const values = line.match(/("(?:[^"]|"")*"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
     const row: Record<string, string> = {};
     headers.forEach((h, i) => {
-      row[h] = (values[i] ?? "").replace(/^"|"$/g, "").trim();
+      row[h] = (values[i] ?? "").replace(/^"|"$/g, "").replace(/""/g, '"').trim();
     });
     return row;
   }).filter(row => Object.values(row).some(v => v));
@@ -228,6 +228,28 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     setFailedRows(prev => prev.map((f, idx) => idx === i ? { ...f, row: { ...f.row, email } } : f));
   };
 
+  const downloadFailedRows = () => {
+    if (!failedRows.length) return;
+    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Company Name", "Contact Name", "Email", "Phone", "Industry", "City", "State", "Reason"];
+    const lines = [
+      header.join(","),
+      ...failedRows.map(f => [
+        f.row.companyName, f.row.contactName, f.row.email, f.row.phone,
+        f.row.industry, f.row.city, f.row.state, f.reason,
+      ].map(esc).join(",")),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "failed-import-rows.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); };
 
   return (
@@ -295,9 +317,14 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
 
             <div className="flex justify-center gap-2">
               {failedRows.length > 0 && (
-                <Button onClick={handleRetryFailed} disabled={retrying}>
-                  {retrying ? "Retrying…" : `Retry ${failedRows.length} Failed Row${failedRows.length !== 1 ? "s" : ""}`}
-                </Button>
+                <>
+                  <Button onClick={handleRetryFailed} disabled={retrying}>
+                    {retrying ? "Retrying…" : `Retry ${failedRows.length} Failed Row${failedRows.length !== 1 ? "s" : ""}`}
+                  </Button>
+                  <Button variant="outline" onClick={downloadFailedRows} disabled={retrying}>
+                    <Download className="mr-2 h-4 w-4" /> Download Failed Rows
+                  </Button>
+                </>
               )}
               <Button variant={failedRows.length > 0 ? "outline" : "default"} onClick={() => { setOpen(false); reset(); }}>Done</Button>
             </div>
