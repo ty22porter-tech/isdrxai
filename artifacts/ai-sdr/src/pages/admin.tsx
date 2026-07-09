@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
-import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock } from "lucide-react";
+import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout";
 import { Redirect } from "wouter";
@@ -102,10 +102,41 @@ function SendingEmailEditor({
   );
 }
 
+function ClientDetails({ client }: { client: any }) {
+  const rows: [string, string | null][] = [
+    ["Account name", client.accountName],
+    ["Email", client.email],
+    ["Business name", client.businessName],
+    ["Sender name", client.senderName],
+    ["Phone", client.phone],
+    ["Business address", client.businessAddress],
+    ["Industry vertical", client.vertical],
+    ["Reply-to email", client.outreachEmail],
+    ["Sending email", client.sendingEmail ?? "shared domain (default)"],
+    ["Calendly link", client.calendlyUrl],
+    ["Timezone", client.timezone],
+    ["Autopilot", client.autopilotEnabled ? "On" : "Off"],
+    ["Account ID", client.id],
+  ];
+  return (
+    <div className="mt-3 rounded-lg border bg-muted/30 p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+      {rows.map(([label, value]) => (
+        <div key={label} className="flex items-baseline justify-between gap-4 text-xs">
+          <span className="text-muted-foreground shrink-0">{label}</span>
+          <span className={`text-right break-all ${value ? "font-medium" : "text-muted-foreground/60 italic"}`}>
+            {value || "not set"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user, isLoaded } = useUser();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data: meData, isLoading: meLoading } = useQuery({
     queryKey: ["me"],
@@ -198,17 +229,32 @@ export default function Admin() {
               </div>
             )}
             {clients.map((client: any) => (
-              <div key={client.id} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-6 py-4 items-center hover:bg-muted/20 transition-colors">
+              <div key={client.id} className="px-6 py-4 hover:bg-muted/20 transition-colors">
+                <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
                 <div>
-                  <div className="font-medium text-sm truncate max-w-[200px]">
-                    {client.email ?? client.id.slice(0, 20) + "…"}
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-left group"
+                    onClick={() => setExpandedId(expandedId === client.id ? null : client.id)}
+                  >
+                    {expandedId === client.id
+                      ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                    <span className="font-medium text-sm truncate max-w-[220px] group-hover:text-primary transition-colors">
+                      {client.businessName || client.accountName || client.email || "Unnamed client"}
+                    </span>
+                  </button>
+                  <div className="text-muted-foreground text-xs mt-0.5 truncate max-w-[240px] pl-5">
+                    {client.email ?? "no email on file"}
+                    {client.accountName && client.businessName ? ` · ${client.accountName}` : ""}
                   </div>
-                  <div className="text-muted-foreground text-xs mt-0.5 font-mono">{client.id.slice(0, 14)}…</div>
-                  <SendingEmailEditor
-                    client={client}
-                    saving={patchMutation.isPending}
-                    onSave={(sendingEmail) => patchMutation.mutate({ id: client.id, body: { sendingEmail } })}
-                  />
+                  <div className="pl-5">
+                    <SendingEmailEditor
+                      client={client}
+                      saving={patchMutation.isPending}
+                      onSave={(sendingEmail) => patchMutation.mutate({ id: client.id, body: { sendingEmail } })}
+                    />
+                  </div>
                 </div>
                 <StatusBadge status={client.status} />
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -245,6 +291,8 @@ export default function Admin() {
                     </Button>
                   )}
                 </div>
+                </div>
+                {expandedId === client.id && <ClientDetails client={client} />}
               </div>
             ))}
           </div>

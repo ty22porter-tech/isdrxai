@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { clerkClient } from "@clerk/express";
 import { db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable, videoViewsTable } from "@workspace/db";
 import { eq, count, desc } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../lib/requireAuth";
@@ -7,6 +8,20 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireAdmin);
 
+async function fetchClerkIdentity(userId: string): Promise<{ name: string | null; email: string | null }> {
+  try {
+    const cu = await clerkClient.users.getUser(userId);
+    const name = [cu.firstName, cu.lastName].filter(Boolean).join(" ") || null;
+    const email =
+      cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId)?.emailAddress ??
+      cu.emailAddresses[0]?.emailAddress ??
+      null;
+    return { name, email };
+  } catch {
+    return { name: null, email: null };
+  }
+}
+
 router.get("/clients", async (_req, res) => {
   const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
   const clients = await Promise.all(users.map(async (user) => {
@@ -14,8 +29,18 @@ router.get("/clients", async (_req, res) => {
     const [emails] = await db.select({ count: count() }).from(emailsTable).where(eq(emailsTable.clientId, user.id));
     const [calls] = await db.select({ count: count() }).from(callsTable).where(eq(callsTable.clientId, user.id));
     const [appointments] = await db.select({ count: count() }).from(appointmentsTable).where(eq(appointmentsTable.clientId, user.id));
+
+    const identity = await fetchClerkIdentity(user.id);
+    let email = user.email;
+    if (!email && identity.email) {
+      email = identity.email;
+      db.update(usersTable).set({ email }).where(eq(usersTable.id, user.id)).catch(() => {});
+    }
+
     return {
       ...user,
+      email,
+      accountName: identity.name,
       createdAt: user.createdAt.toISOString(),
       stats: {
         prospects: prospects.count,
