@@ -24,6 +24,8 @@ import type {
   Appointment,
   AppointmentInput,
   AppointmentUpdate,
+  BulkProspectsInput,
+  BulkProspectsResult,
   Call,
   CallInput,
   CallUpdate,
@@ -308,6 +310,76 @@ export const useCreateProspect = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateProspectMutationOptions(options));
+    }
+
+export const getBulkCreateProspectsUrl = () => {
+
+
+
+
+  return `/api/prospects/bulk`
+}
+
+/**
+ * @summary Create many prospects at once
+ */
+export const bulkCreateProspects = async (bulkProspectsInput: BulkProspectsInput, options?: RequestInit): Promise<BulkProspectsResult> => {
+
+  return customFetch<BulkProspectsResult>(getBulkCreateProspectsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkProspectsInput)
+  }
+);}
+
+
+
+
+export const getBulkCreateProspectsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkCreateProspects>>, TError,{data: BodyType<BulkProspectsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkCreateProspects>>, TError,{data: BodyType<BulkProspectsInput>}, TContext> => {
+
+const mutationKey = ['bulkCreateProspects'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkCreateProspects>>, {data: BodyType<BulkProspectsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkCreateProspects(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkCreateProspectsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkCreateProspects>>>
+    export type BulkCreateProspectsMutationBody = BodyType<BulkProspectsInput>
+    export type BulkCreateProspectsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create many prospects at once
+ */
+export const useBulkCreateProspects = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkCreateProspects>>, TError,{data: BodyType<BulkProspectsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkCreateProspects>>,
+        TError,
+        {data: BodyType<BulkProspectsInput>},
+        TContext
+      > => {
+      return useMutation(getBulkCreateProspectsMutationOptions(options));
     }
 
 export const getGetProspectUrl = (id: number,) => {

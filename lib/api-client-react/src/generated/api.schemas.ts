@@ -59,6 +59,23 @@ export interface ProspectInput {
   squareFootage?: number;
 }
 
+export interface BulkProspectsInput {
+  prospects: ProspectInput[];
+}
+
+export interface BulkProspectRowResult {
+  index: number;
+  success: boolean;
+  error?: string;
+  prospect?: Prospect;
+}
+
+export interface BulkProspectsResult {
+  added: number;
+  failed: number;
+  results: BulkProspectRowResult[];
+}
+
 export interface ProspectUpdate {
   companyName?: string;
   contactName?: string;

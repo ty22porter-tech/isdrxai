@@ -82,6 +82,53 @@ export const CreateProspectResponse = zod.object({
 
 
 /**
+ * @summary Create many prospects at once
+ */
+export const BulkCreateProspectsBody = zod.object({
+  "prospects": zod.array(zod.object({
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "industry": zod.string(),
+  "city": zod.string(),
+  "state": zod.string(),
+  "website": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "employeeCount": zod.number().optional(),
+  "squareFootage": zod.number().optional()
+}))
+})
+
+export const BulkCreateProspectsResponse = zod.object({
+  "added": zod.number(),
+  "failed": zod.number(),
+  "results": zod.array(zod.object({
+  "index": zod.number(),
+  "success": zod.boolean(),
+  "error": zod.string().optional(),
+  "prospect": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "industry": zod.string(),
+  "city": zod.string(),
+  "state": zod.string(),
+  "website": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "employeeCount": zod.number().nullish(),
+  "squareFootage": zod.number().nullish(),
+  "status": zod.enum(['new', 'contacted', 'interested', 'qualified', 'appointment_set', 'closed_won', 'closed_lost']),
+  "lastContactedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}).optional()
+}))
+})
+
+
+/**
  * @summary Get a prospect by ID
  */
 export const GetProspectParams = zod.object({

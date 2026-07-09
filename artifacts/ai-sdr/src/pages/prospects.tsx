@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useListProspects, useCreateProspect, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
+import { useListProspects, useCreateProspect, useBulkCreateProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { Layout } from "@/components/layout";
@@ -123,7 +123,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [importedCount, setImportedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
-  const createProspect = useCreateProspect();
+  const bulkCreateProspects = useBulkCreateProspects();
   const { toast } = useToast();
 
   const handleFile = (file: File) => {
@@ -152,15 +152,29 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     setImporting(true);
     let imported = 0;
     let failed = 0;
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]!;
-      await new Promise<void>(resolve => {
-        createProspect.mutate(
-          { data: { companyName: row.companyName, contactName: row.contactName, email: row.email, phone: row.phone || "(000) 000-0000", industry: row.industry || "General", city: row.city || "", state: row.state || "" } },
-          { onSuccess: () => { imported++; resolve(); }, onError: () => { failed++; resolve(); } }
-        );
-      });
-      setProgress(Math.round(((i + 1) / rows.length) * 100));
+    const CHUNK_SIZE = 100;
+    for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
+      const chunk = rows.slice(start, start + CHUNK_SIZE);
+      try {
+        const result = await bulkCreateProspects.mutateAsync({
+          data: {
+            prospects: chunk.map(row => ({
+              companyName: row!.companyName,
+              contactName: row!.contactName,
+              email: row!.email,
+              phone: row!.phone || "(000) 000-0000",
+              industry: row!.industry || "General",
+              city: row!.city || "",
+              state: row!.state || "",
+            })),
+          },
+        });
+        imported += result.added;
+        failed += result.failed;
+      } catch {
+        failed += chunk.length;
+      }
+      setProgress(Math.round(Math.min(start + CHUNK_SIZE, rows.length) / rows.length * 100));
     }
     setImporting(false);
     setDone(true);

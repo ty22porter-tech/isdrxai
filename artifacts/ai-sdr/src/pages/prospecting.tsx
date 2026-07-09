@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useProspectSearch, useCreateProspect, getListProspectsQueryKey } from "@workspace/api-client-react";
+import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ export default function Prospecting() {
   const queryClient = useQueryClient();
   const searchMutation = useProspectSearch();
   const createProspect = useCreateProspect();
+  const bulkCreateProspects = useBulkCreateProspects();
 
   const handleSearch = () => {
     if (!city.trim() || !state || !industry) {
@@ -101,45 +102,47 @@ export default function Prospecting() {
   };
 
   const handleAddAll = async () => {
-    const unAdded = leads.filter((_, idx) => !added.has(idx));
-    let addedCount = 0;
-    let failedCount = 0;
-    for (let i = 0; i < unAdded.length; i++) {
-      const lead = unAdded[i];
-      const idx = leads.indexOf(lead);
-      await new Promise<void>((resolve) => {
-        createProspect.mutate(
-          {
-            data: {
-              companyName: lead.companyName,
-              contactName: lead.contactName,
-              email: lead.email,
-              phone: lead.phone,
-              industry: lead.industry,
-              city: lead.city,
-              state: lead.state,
-              website: lead.website,
-              notes: `${lead.contactTitle} — ${lead.whyTarget}`,
-              employeeCount: lead.estimatedEmployees,
-              squareFootage: lead.estimatedSquareFootage,
-            },
-          },
-          {
-            onSuccess: () => { setAdded((prev) => new Set([...prev, idx])); addedCount++; resolve(); },
-            onError: () => { failedCount++; resolve(); },
-          }
-        );
+    const pending = leads
+      .map((lead, idx) => ({ lead, idx }))
+      .filter(({ idx }) => !added.has(idx));
+    if (!pending.length) return;
+    try {
+      const result = await bulkCreateProspects.mutateAsync({
+        data: {
+          prospects: pending.map(({ lead }) => ({
+            companyName: lead.companyName,
+            contactName: lead.contactName,
+            email: lead.email,
+            phone: lead.phone,
+            industry: lead.industry,
+            city: lead.city,
+            state: lead.state,
+            website: lead.website,
+            notes: `${lead.contactTitle} — ${lead.whyTarget}`,
+            employeeCount: lead.estimatedEmployees,
+            squareFootage: lead.estimatedSquareFootage,
+          })),
+        },
       });
-    }
-    queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
-    if (failedCount === 0) {
-      toast({ title: "All prospects added", description: `${addedCount} prospect${addedCount !== 1 ? "s" : ""} added to your pipeline.` });
-    } else {
-      toast({
-        title: "Some prospects failed to add",
-        description: `${addedCount} added, ${failedCount} failed. Failed prospects can be retried.`,
-        variant: "destructive",
+      setAdded((prev) => {
+        const next = new Set(prev);
+        result.results.forEach((r) => {
+          if (r.success) next.add(pending[r.index].idx);
+        });
+        return next;
       });
+      queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
+      if (result.failed === 0) {
+        toast({ title: "All prospects added", description: `${result.added} prospect${result.added !== 1 ? "s" : ""} added to your pipeline.` });
+      } else {
+        toast({
+          title: "Some prospects failed to add",
+          description: `${result.added} added, ${result.failed} failed. Failed prospects can be retried.`,
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Failed to add prospects", variant: "destructive" });
     }
   };
 
@@ -219,8 +222,8 @@ export default function Prospecting() {
                 )}
               </Button>
               {leads.length > 0 && !allAdded && (
-                <Button variant="outline" onClick={handleAddAll} disabled={createProspect.isPending}>
-                  <UserPlus className="mr-2 h-4 w-4" />
+                <Button variant="outline" onClick={handleAddAll} disabled={createProspect.isPending || bulkCreateProspects.isPending}>
+                  {bulkCreateProspects.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                   Add All to Pipeline
                 </Button>
               )}

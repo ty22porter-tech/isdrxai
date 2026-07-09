@@ -6,6 +6,7 @@ import { eq, ilike, and, sql } from "drizzle-orm";
 import {
   ListProspectsQueryParams,
   CreateProspectBody,
+  BulkCreateProspectsBody,
   UpdateProspectParams,
   UpdateProspectBody,
   DeleteProspectParams,
@@ -41,6 +42,37 @@ router.post("/", async (req, res) => {
     prospectName: prospect.contactName,
   });
   res.status(201).json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+});
+
+router.post("/bulk", async (req, res) => {
+  const { prospects } = BulkCreateProspectsBody.parse(req.body);
+  const results: { index: number; success: boolean; error?: string; prospect?: any }[] = [];
+  let added = 0;
+  let failed = 0;
+  for (let i = 0; i < prospects.length; i++) {
+    const input = prospects[i];
+    try {
+      const scheduleToken = randomUUID();
+      const [prospect] = await db.insert(prospectsTable).values({ ...input, clientId: req.clientId, status: "new", scheduleToken }).returning();
+      await db.insert(activityTable).values({
+        clientId: req.clientId,
+        type: "prospect_added",
+        description: `New prospect added: ${prospect.companyName}`,
+        prospectId: prospect.id,
+        prospectName: prospect.contactName,
+      });
+      added++;
+      results.push({
+        index: i,
+        success: true,
+        prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
+      });
+    } catch (err: any) {
+      failed++;
+      results.push({ index: i, success: false, error: err?.message ?? "Failed to create prospect" });
+    }
+  }
+  res.json({ added, failed, results });
 });
 
 router.get("/:id", async (req, res) => {
