@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
@@ -66,8 +67,10 @@ export default function Prospecting() {
   const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [confirmSearchOpen, setConfirmSearchOpen] = useState(false);
+  const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
   const cancelAddAllRef = useRef(false);
 
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const searchMutation = useProspectSearch();
@@ -276,6 +279,51 @@ export default function Prospecting() {
 
   const allAdded = leads.length > 0 && leads.every((_, idx) => added.has(idx));
   const hasRemaining = (cancelledRemaining?.size ?? 0) > 0;
+  const hasUnaddedLeads = leads.length > 0 && leads.some((_, idx) => !added.has(idx));
+  const hasUnsavedList = hasUnaddedLeads || hasRemaining;
+
+  // Warn before leaving the page while a partly-added prospect list (or a
+  // cancelled "Add all" highlight) would be lost. Covers browser refresh/close
+  // (beforeunload) and in-app wouter navigation (link click interception).
+  useEffect(() => {
+    if (!hasUnsavedList) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    const handleClickCapture = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = (e.target as HTMLElement | null)?.closest?.("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavHref(url.pathname + url.search + url.hash);
+    };
+    document.addEventListener("click", handleClickCapture, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleClickCapture, true);
+    };
+  }, [hasUnsavedList]);
+
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  const confirmLeave = () => {
+    const target = pendingNavHref;
+    setPendingNavHref(null);
+    if (!target) return;
+    const path = basePath && target.startsWith(basePath) ? target.slice(basePath.length) || "/" : target;
+    setLocation(path);
+  };
 
   return (
     <Layout>
@@ -567,6 +615,24 @@ export default function Prospecting() {
           <AlertDialogFooter>
             <AlertDialogCancel>Keep current list</AlertDialogCancel>
             <AlertDialogAction onClick={runSearch}>Discard and search</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={pendingNavHref !== null} onOpenChange={(open) => { if (!open) setPendingNavHref(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave without adding these prospects?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {hasRemaining && !hasUnaddedLeads
+                ? `${cancelledRemaining!.size} prospect${cancelledRemaining!.size === 1 ? "" : "s"} still ${cancelledRemaining!.size === 1 ? "needs" : "need"} adding.`
+                : `You still have ${leads.length - added.size} prospect${leads.length - added.size === 1 ? "" : "s"} that ${leads.length - added.size === 1 ? "hasn't" : "haven't"} been added to your pipeline.`}
+              {" "}Leaving this page will clear the list and you'll lose your place. Add the remaining prospects first if you want to keep them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay on this page</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLeave}>Leave anyway</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
