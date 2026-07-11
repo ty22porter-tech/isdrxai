@@ -102,6 +102,27 @@ webhook that decodes the token → prospect → latest live enrollment.
 - Only **new** sends after enabling carry the tokenized Reply-To; emails sent earlier
   had legacy Reply-To (client inbox), so replies to those never route to the platform.
 
+## Why the whole flow can LOOK "removed" when the code is intact
+The reply→scheduling-form→Calendly flow silently no-ops (looks deleted to the client)
+under any of these, none of which are code bugs — check them before touching code:
+- **Enrollment already advanced.** Replied prospects whose enrollment is `calendly_sent`
+  (calendlyLinkSentAt set) will NOT re-send — idempotent by design. Re-testing the same
+  prospect that already went through does nothing.
+- **Orphaned reply-to token.** The reply arrives at `reply-<token>@<domain>` but the token
+  matches no current prospect (row was deleted / CSV re-imported → new tokens), so the
+  handler logs "no prospect for token" and drops it. Old sent emails carry old tokens.
+- **Client not fully configured.** The replied→Calendly branch skips silently unless the
+  client has `outreachEmail` AND `calendlyUrl` AND `businessAddress` (CAN-SPAM). A blank
+  Calendly URL alone kills the whole thing with no visible error.
+- **Reply tone not positive.** Branch only fires for `replyTone === "positive"`.
+
+**Re-test recipe (safe live proof to your own address):** pick a test prospect whose email
+you own, `UPDATE autopilot_enrollments SET status='replied', reply_tone='positive',
+calendly_link_sent_at=NULL, error_message=NULL WHERE id=<n>`, then restart api-server —
+the engine's `run()` fires on boot (5-min interval otherwise) and sends the scheduling
+email (with the `/schedule/<scheduleToken>` form link) within seconds. Verify via the
+`emails` row + `appointment_set` activity.
+
 ## Two hard-won correctness rules for this handler
 - **Validate the sender.** The tokenized reply address is exposed in outbound
   headers, so anyone could email it. Only advance enrollment state / trigger the
