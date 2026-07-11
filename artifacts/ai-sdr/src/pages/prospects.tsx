@@ -115,7 +115,7 @@ function parseCSVRows(text: string): string[][] {
 
 type CSVAnalysis =
   | { ok: false; error: string }
-  | { ok: true; records: Record<string, string>[]; malformed: number };
+  | { ok: true; records: Record<string, string>[]; malformed: number; skippedRows: string[][]; headers: string[] };
 
 // Validate + parse a CSV. Rejects non-CSV / binary files (Excel, PDF, etc.) with
 // a clear message, and skips rows whose column count is wildly off from the header
@@ -152,15 +152,16 @@ function analyzeCSV(text: string): CSVAnalysis {
   }
 
   const records: Record<string, string>[] = [];
-  let malformed = 0;
+  const skippedRows: string[][] = [];
   for (const values of rows.slice(1)) {
     // A field count wildly different from the header means the row would be
     // mangled into the wrong columns — flag it instead of importing garbage.
-    if (Math.abs(values.length - headerCount) > 1) { malformed++; continue; }
+    if (Math.abs(values.length - headerCount) > 1) { skippedRows.push(values); continue; }
     const record: Record<string, string> = {};
     headers.forEach((h, i) => { record[h] = (values[i] ?? "").trim(); });
     records.push(record);
   }
+  const malformed = skippedRows.length;
 
   if (records.length === 0) {
     return { ok: false, error: "Every row has a different number of columns than the header, so this file can't be read as a valid CSV. Check that your export is properly comma-separated." };
@@ -169,7 +170,7 @@ function analyzeCSV(text: string): CSVAnalysis {
     return { ok: false, error: `Most rows don't match the header's ${headerCount} columns — this file may not be a valid CSV. Check the delimiter and re-export as CSV.` };
   }
 
-  return { ok: true, records, malformed };
+  return { ok: true, records, malformed, skippedRows, headers };
 }
 
 // Column aliases (ZoomInfo, Apollo, generic)
@@ -243,24 +244,28 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [failedCount, setFailedCount] = useState(0);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [failedRows, setFailedRows] = useState<{ row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[]>([]);
+  const [skippedRows, setSkippedRows] = useState<string[][]>([]);
+  const [skippedHeaders, setSkippedHeaders] = useState<string[]>([]);
   const [retrying, setRetrying] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const bulkCreateProspects = useBulkCreateProspects();
   const { toast } = useToast();
 
   const handleFile = (file: File) => {
-    setError(""); setWarning(""); setRows([]); setDone(false); setProgress(0);
+    setError(""); setWarning(""); setRows([]); setDone(false); setProgress(0); setSkippedRows([]); setSkippedHeaders([]);
     const reader = new FileReader();
     reader.onerror = () => setError("Couldn't read that file. Please try again with a CSV file.");
     reader.onload = e => {
       const text = e.target?.result as string;
       const analysis = analyzeCSV(text);
       if (!analysis.ok) { setError(analysis.error); return; }
-      const { records, malformed } = analysis;
+      const { records, malformed, skippedRows: skipped, headers: fileHeaders } = analysis;
       const headers = Object.keys(records[0]);
       const mapped = records.map(r => mapRow(r, headers)).filter(Boolean) as ReturnType<typeof mapRow>[];
       if (!mapped.length) { setError("Couldn't map any rows. Make sure your CSV has Company Name and Email columns."); return; }
       setRows(mapped);
+      setSkippedRows(skipped);
+      setSkippedHeaders(fileHeaders);
       if (malformed > 0) {
         setWarning(`${malformed} row${malformed !== 1 ? "s were" : " was"} skipped because ${malformed !== 1 ? "they had" : "it had"} a different number of columns than the header. The remaining ${mapped.length} look${mapped.length !== 1 ? "" : "s"} good.`);
       }
@@ -382,7 +387,25 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); setDuplicateStrategy("skip"); };
+  const downloadSkippedRows = () => {
+    if (!skippedRows.length) return;
+    const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [
+      skippedHeaders.map(esc).join(","),
+      ...skippedRows.map(r => r.map(esc).join(",")),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "skipped-import-rows.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setSkippedRows([]); setSkippedHeaders([]); setRetrying(false); setDuplicateStrategy("skip"); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -479,6 +502,30 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
               <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 {warning}
+              </div>
+            )}
+            {skippedRows.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">
+                    {skippedRows.length} skipped row{skippedRows.length !== 1 ? "s" : ""} (column mismatch)
+                  </p>
+                  <Button variant="outline" size="sm" className="ml-auto h-7 text-xs" onClick={downloadSkippedRows}>
+                    <Download className="mr-2 h-3.5 w-3.5" /> Download to fix
+                  </Button>
+                </div>
+                <div className="rounded-lg border overflow-hidden max-h-40 overflow-y-auto bg-muted/30">
+                  <div className="divide-y">
+                    {skippedRows.map((r, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs font-mono text-muted-foreground truncate">
+                        {r.join(" | ") || "(empty row)"}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Download these rows, correct the column count, and re-upload to import them.
+                </p>
               </div>
             )}
             <div className="rounded-lg border overflow-hidden max-h-56 overflow-y-auto">
