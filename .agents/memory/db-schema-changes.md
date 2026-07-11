@@ -23,3 +23,8 @@ description: How to make Drizzle schema column additions actually take effect (t
 
 **Why:** runtime uses tsx (source), typecheck uses the stale composite dist. They drift.
 **How to apply:** any schema column add/rename → raw-SQL the DB change + rebuild lib/db.
+
+# NOT NULL UNIQUE column added by a merged task → silent insert breakage
+
+When a merged task adds a `notNull().unique()` column (e.g. prospects.unsubscribe_token / reply_token), the automated post-merge drizzle push FAILS on the TTY truncate prompt and applies nothing. Result: the dev DB never gets the column, so every INSERT that writes it throws — surfaced to users as "can't save" (e.g. Add prospects does nothing). Prod is even worse: publish diffs the *dev DB* against prod, so if dev is missing the column, prod stays missing too even after republish.
+**How to apply:** after any merge that adds columns, verify with `\d <table>` and raw-SQL any missing ones (ADD COLUMN nullable → backfill → SET NOT NULL → ADD CONSTRAINT ... UNIQUE), then have the user re-publish so the now-correct dev schema propagates to prod. Backfill convention for the token split: unsubscribe_token = reply_token = schedule_token for existing rows.
