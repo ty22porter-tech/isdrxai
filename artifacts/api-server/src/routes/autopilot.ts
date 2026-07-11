@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { processAutopilotQueue } from "../lib/autopilotEngine";
 
 const router = Router();
@@ -52,7 +52,7 @@ router.get("/enrollments", async (req, res) => {
   })));
 });
 
-router.post("/enroll", async (req, res) => {
+router.post("/enroll", requireEntitlement, async (req, res) => {
   const { campaignId, prospectIds, startNow } = req.body;
   if (!campaignId || !Array.isArray(prospectIds) || prospectIds.length === 0) {
     return res.status(400).json({ error: "campaignId and prospectIds required" });
@@ -96,7 +96,7 @@ router.post("/enroll", async (req, res) => {
   res.status(201).json({ enrolled: results.length, enrollments: results });
 });
 
-router.post("/enrollments/:id/reply", async (req, res) => {
+router.post("/enrollments/:id/reply", requireEntitlement, async (req, res) => {
   const id = parseInt(req.params.id);
   const { replyContent } = req.body;
   if (!replyContent) return res.status(400).json({ error: "replyContent required" });

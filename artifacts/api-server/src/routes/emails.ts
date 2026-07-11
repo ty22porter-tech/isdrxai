@@ -9,7 +9,7 @@ import {
   UpdateEmailParams,
   UpdateEmailBody,
 } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { sendEmail } from "../lib/emailSender";
 import { resolveReplyTo } from "../lib/inboundAddressing";
 import {
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
   res.json(emails.map(serializeEmail));
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireEntitlement, async (req, res) => {
   const body = CreateEmailBody.parse(req.body);
 
   // Load the prospect and the sending client (user settings) up front so we can

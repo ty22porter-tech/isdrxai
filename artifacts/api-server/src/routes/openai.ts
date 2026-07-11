@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
 // Call the Replit model farm directly via fetch — the SDK appends /v1 which breaks routing
 async function chatComplete(messages: {role: string; content: string}[], maxTokens = 600): Promise<string> {
@@ -43,7 +43,7 @@ function getStepTone(step: number, offerName: string = "site walkthrough") {
   return `persistence-with-respect follow-up — acknowledge they're busy, briefly recap the core value in one sentence, and offer the ${offerName} as a no-obligation next step`;
 }
 
-router.post("/generate-email", async (req, res) => {
+router.post("/generate-email", requireEntitlement, async (req, res) => {
   try {
     const { prospectId, step: rawStep = 1, industry: industryInput, campaignContext } = req.body;
     const step = Math.min(Math.max(Math.floor(Number(rawStep)) || 1, 1), FINAL_STEP);
