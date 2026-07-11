@@ -284,6 +284,9 @@ function getStatusColor(status: string) {
   }
 }
 
+// ─── Duplicate detection ──────────────────────────────────────────────────────
+const isDuplicateError = (error?: string) => !!error && /^duplicate/i.test(error.trim());
+
 // ─── CSV Import Dialog ────────────────────────────────────────────────────────
 function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [open, setOpen] = useState(false);
@@ -295,7 +298,9 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [done, setDone] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [updatedCount, setUpdatedCount] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [liveProgress, setLiveProgress] = useState<{ done: number; total: number; added: number; updated: number; skipped: number } | null>(null);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [failedRows, setFailedRows] = useState<{ row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[]>([]);
   const [skippedRows, setSkippedRows] = useState<string[][]>([]);
@@ -335,9 +340,13 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     if (file) handleFile(file);
   };
 
-  const importRows = async (toImport: NonNullable<ReturnType<typeof mapRow>>[]) => {
+  const importRows = async (
+    toImport: NonNullable<ReturnType<typeof mapRow>>[],
+    onProgress?: (p: { done: number; total: number; added: number; updated: number; skipped: number }) => void,
+  ) => {
     let imported = 0;
     let updatedTotal = 0;
+    let skippedTotal = 0;
     const failures: { row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[] = [];
     const CHUNK_SIZE = 100;
     for (let start = 0; start < toImport.length; start += CHUNK_SIZE) {
@@ -360,32 +369,46 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
         imported += result.added;
         updatedTotal += result.updated ?? 0;
         result.results.forEach(r => {
-          if (!r.success) failures.push({ row: chunk[r.index], reason: r.error || "Server error" });
+          if (r.success) return;
+          if (duplicateStrategy === "skip" && isDuplicateError(r.error)) {
+            skippedTotal += 1;
+          } else {
+            failures.push({ row: chunk[r.index], reason: r.error || "Server error" });
+          }
         });
       } catch (err: any) {
         const reason = err?.data?.error || err?.message || "Server error";
         chunk.forEach(row => failures.push({ row, reason }));
       }
-      setProgress(Math.round(Math.min(start + CHUNK_SIZE, toImport.length) / toImport.length * 100));
+      const done = Math.min(start + CHUNK_SIZE, toImport.length);
+      setProgress(Math.round(done / toImport.length * 100));
+      onProgress?.({ done, total: toImport.length, added: imported, updated: updatedTotal, skipped: skippedTotal });
     }
-    return { imported, updatedTotal, failures };
+    return { imported, updatedTotal, skippedTotal, failures };
   };
 
   const handleImport = async () => {
     if (!rows.length) return;
     setImporting(true);
     setProgress(0);
-    const { imported, updatedTotal, failures } = await importRows(rows as NonNullable<ReturnType<typeof mapRow>>[]);
+    setLiveProgress({ done: 0, total: rows.length, added: 0, updated: 0, skipped: 0 });
+    const { imported, updatedTotal, skippedTotal, failures } = await importRows(
+      rows as NonNullable<ReturnType<typeof mapRow>>[],
+      setLiveProgress,
+    );
+    setLiveProgress(null);
     setImporting(false);
     setDone(true);
     setImportedCount(imported);
     setUpdatedCount(updatedTotal);
+    setSkippedCount(skippedTotal);
     setFailedCount(failures.length);
     setFailedRows(failures);
     onImported();
     if (failures.length === 0) {
       const parts = [`${imported} added`];
       if (updatedTotal > 0) parts.push(`${updatedTotal} updated`);
+      if (skippedTotal > 0) parts.push(`${skippedTotal} skipped`);
       toast({ title: `Import complete: ${parts.join(", ")}` });
     } else {
       toast({
@@ -399,10 +422,11 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const handleRetryFailed = async () => {
     if (!failedRows.length) return;
     setRetrying(true);
-    const { imported, updatedTotal, failures } = await importRows(failedRows.map(f => f.row));
+    const { imported, updatedTotal, skippedTotal, failures } = await importRows(failedRows.map(f => f.row));
     setRetrying(false);
     setImportedCount(c => c + imported);
     setUpdatedCount(c => c + updatedTotal);
+    setSkippedCount(c => c + skippedTotal);
     setFailedCount(failures.length);
     setFailedRows(failures);
     onImported();
@@ -511,7 +535,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setSkippedRows([]); setEditableSkipped([]); setSkippedHeaders([]); setRetrying(false); setDuplicateStrategy("skip"); };
+  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setLiveProgress(null); setDone(false); setImportedCount(0); setUpdatedCount(0); setSkippedCount(0); setFailedCount(0); setFailedRows([]); setSkippedRows([]); setEditableSkipped([]); setSkippedHeaders([]); setRetrying(false); setDuplicateStrategy("skip"); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -540,6 +564,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
               <p className="text-sm text-muted-foreground">
                 {importedCount} prospect{importedCount !== 1 ? "s" : ""} added to your database.
                 {updatedCount > 0 && ` ${updatedCount} existing prospect${updatedCount !== 1 ? "s" : ""} updated.`}
+                {skippedCount > 0 && ` ${skippedCount} duplicate${skippedCount !== 1 ? "s" : ""} skipped.`}
                 {failedCount > 0 && ` ${failedCount} failed to import.`}
               </p>
             </div>
@@ -596,6 +621,14 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
             <p className="text-sm font-medium">Importing {rows.length} prospects…</p>
             <Progress value={progress} className="w-full" />
             <p className="text-xs text-muted-foreground">{progress}% complete</p>
+            {liveProgress && (
+              <p className="text-xs text-muted-foreground">
+                {liveProgress.added} added
+                {duplicateStrategy === "update"
+                  ? `, ${liveProgress.updated} updated`
+                  : `, ${liveProgress.skipped} skipped`}
+              </p>
+            )}
           </div>
         ) : rows.length > 0 ? (
           <div className="space-y-4">
