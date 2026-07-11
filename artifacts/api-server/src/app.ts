@@ -99,11 +99,10 @@ app.use(
 );
 app.use(cors({ credentials: true, origin: true }));
 
-// Public scheduling endpoints (no auth) — larger body limit to allow floor-plan uploads.
-// Floor plans are sent as base64 (≈33% overhead), so the parser limit must exceed the
-// 25MB decoded attachment cap enforced in the route. Mounted before the default json
-// parser so its own limit applies.
-app.use("/api/schedule", express.json({ limit: "45mb" }), scheduleRouter);
+// Public scheduling endpoints (no auth). The large body parser (45MB, for floor-plan
+// uploads) is applied INSIDE the router AFTER token validation, so invalid tokens are
+// rejected cheaply without buffering oversized payloads.
+app.use("/api/schedule", scheduleRouter);
 
 // Public unsubscribe endpoints (no auth) — mounted before the Clerk auth middleware
 // so prospects (and mail providers doing one-click List-Unsubscribe) can reach them.

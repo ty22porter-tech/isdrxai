@@ -1,7 +1,11 @@
 // Inbound reply routing (Option B): outgoing prospect emails carry a Reply-To on
-// the platform's receiving subdomain that encodes the prospect's scheduleToken.
+// the platform's receiving subdomain that encodes the prospect's replyToken.
 // When a prospect replies, Resend delivers it to our webhook and we decode the
 // token to match the reply back to the right prospect/enrollment.
+//
+// replyToken is intentionally separate from scheduleToken and unsubscribeToken
+// so that disclosing the reply-to address does not grant access to the
+// scheduling or unsubscribe flows, and vice-versa.
 //
 // This module is intentionally dependency-free (no DB, no engine imports) so it
 // can be used both by the outgoing send paths and the inbound webhook handler
@@ -22,17 +26,20 @@ export function getInboundReplyDomain(): string | null {
 
 /**
  * Resolve the Reply-To address for an outgoing prospect email. When inbound
- * routing is configured and the prospect has a scheduleToken, replies are routed
- * through the platform (reply-<token>@<domain>); otherwise they go straight to
- * the client's own outreach inbox (legacy behavior).
+ * routing is configured and the prospect has a replyToken, replies are routed
+ * through the platform (reply-<replyToken>@<domain>); otherwise they go
+ * straight to the client's own outreach inbox (legacy behavior).
+ *
+ * Uses replyToken (not scheduleToken) so that learning the reply-to address
+ * does not also grant access to the scheduling questionnaire.
  */
 export function resolveReplyTo(
   outreachEmail: string,
-  scheduleToken: string | null | undefined,
+  replyToken: string | null | undefined,
 ): string {
   const domain = getInboundReplyDomain();
-  if (domain && scheduleToken) {
-    return `${REPLY_PREFIX}${scheduleToken}@${domain}`;
+  if (domain && replyToken) {
+    return `${REPLY_PREFIX}${replyToken}@${domain}`;
   }
   return outreachEmail;
 }
@@ -44,7 +51,7 @@ export function extractAddress(raw: string): string {
 }
 
 /**
- * Given the recipient addresses of an inbound email, return the scheduleToken
+ * Given the recipient addresses of an inbound email, return the replyToken
  * encoded in the first matching reply-<token>@<inbound-domain> address, or null.
  */
 export function parseTokenFromRecipients(recipients: string[]): string | null {

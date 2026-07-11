@@ -1,9 +1,11 @@
-import { Router } from "express";
+import { Router, RequestHandler } from "express";
+import express from "express";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable, activityTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail, type EmailAttachment } from "../lib/emailSender";
 import { getVerticalConfig } from "../lib/verticals";
+import type { Request, Response, NextFunction } from "express";
 
 const router = Router();
 
@@ -52,6 +54,40 @@ function isRateLimited(token: string): boolean {
   return false;
 }
 
+// Middleware that validates the schedule token and attaches the prospect to the
+// request BEFORE the large body parser runs. This prevents oversized payloads
+// from being buffered and decoded for requests with invalid tokens, closing a
+// denial-of-service vector on this unauthenticated endpoint.
+// The rate limiter also runs here (before body parsing) for the same reason.
+const validateTokenBeforeBody: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  const token = String(req.params.token ?? "");
+  if (!token) {
+    res.status(400).json({ error: "Missing token" });
+    return;
+  }
+
+  if (isRateLimited(token)) {
+    res.status(429).json({ error: "Too many submissions. Please try again later." });
+    return;
+  }
+
+  const [prospect] = await db
+    .select()
+    .from(prospectsTable)
+    .where(eq(prospectsTable.scheduleToken, token));
+
+  if (!prospect) {
+    res.status(404).json({ error: "Invalid or expired link" });
+    return;
+  }
+
+  (req as any).__scheduleProspect = prospect;
+  next();
+};
+
+// Body parser with the large limit, applied only AFTER token validation passes.
+const parseScheduleBody = express.json({ limit: "45mb" });
+
 // Public: fetch the info needed to render the scheduling page for a prospect token.
 router.get("/:token", async (req, res) => {
   try {
@@ -86,21 +122,11 @@ router.get("/:token", async (req, res) => {
 });
 
 // Public: submit the qualifying questionnaire. Emails the sales rep with responses + floor plans.
-router.post("/:token", async (req, res) => {
+// Token validation and rate-limiting run BEFORE the large body is parsed so that
+// invalid tokens are rejected cheaply without buffering up to 45MB of payload.
+router.post("/:token", validateTokenBeforeBody, parseScheduleBody, async (req, res) => {
   try {
-    const { token } = req.params;
-    if (!token) return res.status(400).json({ error: "Missing token" });
-
-    if (isRateLimited(token)) {
-      return res.status(429).json({ error: "Too many submissions. Please try again later." });
-    }
-
-    const [prospect] = await db
-      .select()
-      .from(prospectsTable)
-      .where(eq(prospectsTable.scheduleToken, token));
-
-    if (!prospect) return res.status(404).json({ error: "Invalid or expired link" });
+    const prospect = (req as any).__scheduleProspect;
 
     const [client] = await db
       .select()

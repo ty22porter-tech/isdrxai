@@ -28,16 +28,20 @@ export interface ComposeResult {
  *
  * The caller is responsible for ensuring a physical postal address exists —
  * see hasPostalAddress() — because it is legally required in marketing email.
+ *
+ * unsubscribeToken is intentionally separate from scheduleToken so that
+ * disclosing the unsubscribe link does not grant access to the scheduling
+ * or reply-routing flows.
  */
 export function composeEmail(
   coreBody: string,
   client: ComposeClient,
-  prospect: { companyName: string; scheduleToken: string },
+  prospect: { companyName: string; unsubscribeToken: string },
   cta?: { label: string; url: string },
 ): ComposeResult {
   const baseUrl = getPublicAppUrl();
-  const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.scheduleToken}`;
-  const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.scheduleToken}`;
+  const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.unsubscribeToken}`;
+  const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.unsubscribeToken}`;
 
   const business = client.businessName?.trim() || "Our Company";
   const signatureLines = [

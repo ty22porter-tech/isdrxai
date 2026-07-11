@@ -66,17 +66,22 @@ router.post("/", requireEntitlement, async (req, res) => {
     return res.status(400).json({ error: POSTAL_ADDRESS_REQUIRED_MESSAGE });
   }
 
-  // Ensure the prospect has a scheduling token so the unsubscribe link works.
-  let scheduleToken = prospect.scheduleToken;
-  if (!scheduleToken) {
-    scheduleToken = randomUUID();
-    await db.update(prospectsTable).set({ scheduleToken }).where(eq(prospectsTable.id, prospect.id));
+  // Ensure the prospect has all capability tokens (schedule, unsubscribe, reply)
+  // before sending. Each token is scoped to a single capability so that disclosing
+  // one (e.g. unsubscribe link in email footer) does not grant access to the others.
+  let { scheduleToken, unsubscribeToken, replyToken } = prospect;
+  const tokenUpdates: Record<string, string> = {};
+  if (!scheduleToken) { scheduleToken = randomUUID(); tokenUpdates.scheduleToken = scheduleToken; }
+  if (!unsubscribeToken) { unsubscribeToken = randomUUID(); tokenUpdates.unsubscribeToken = unsubscribeToken; }
+  if (!replyToken) { replyToken = randomUUID(); tokenUpdates.replyToken = replyToken; }
+  if (Object.keys(tokenUpdates).length > 0) {
+    await db.update(prospectsTable).set(tokenUpdates).where(eq(prospectsTable.id, prospect.id));
   }
 
   const composed = composeEmail(
     body.body,
     client,
-    { companyName: prospect.companyName, scheduleToken },
+    { companyName: prospect.companyName, unsubscribeToken },
   );
 
   // Actually dispatch the email through Resend. If this fails, surface the error
@@ -85,7 +90,7 @@ router.post("/", requireEntitlement, async (req, res) => {
     await sendEmail({
       fromName: client.businessName?.trim() || client.outreachEmail,
       fromEmail: client.sendingEmail ?? undefined,
-      replyTo: resolveReplyTo(client.outreachEmail, scheduleToken),
+      replyTo: resolveReplyTo(client.outreachEmail, replyToken),
       to: prospect.email,
       subject: body.subject,
       body: composed.text,

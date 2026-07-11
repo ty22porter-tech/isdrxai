@@ -193,7 +193,7 @@ export async function processAutopilotQueue(): Promise<void> {
       await sendEmail({
         fromName: client.businessName ?? client.outreachEmail,
         fromEmail: client.sendingEmail ?? undefined,
-        replyTo: resolveReplyTo(client.outreachEmail, prospect.scheduleToken),
+        replyTo: resolveReplyTo(client.outreachEmail, prospect.replyToken),
         to: prospect.email,
         subject,
         body: composed.text,
@@ -289,13 +289,15 @@ export async function processAutopilotQueue(): Promise<void> {
         continue;
       }
 
-      // Ensure the prospect has a scheduling token so the public link works.
-      if (!prospect.scheduleToken) {
-        const newToken = randomUUID();
-        await db.update(prospectsTable)
-          .set({ scheduleToken: newToken })
-          .where(eq(prospectsTable.id, prospect.id));
-        prospect = { ...prospect, scheduleToken: newToken };
+      // Ensure the prospect has all capability tokens before sending.
+      // Each token is scoped to a single capability so that disclosing one
+      // (e.g. unsubscribe link in email footer) does not grant access to others.
+      const tokenUpdates: Record<string, string> = {};
+      if (!prospect.scheduleToken) { const t = randomUUID(); tokenUpdates.scheduleToken = t; prospect = { ...prospect, scheduleToken: t }; }
+      if (!prospect.unsubscribeToken) { const t = randomUUID(); tokenUpdates.unsubscribeToken = t; prospect = { ...prospect, unsubscribeToken: t }; }
+      if (!prospect.replyToken) { const t = randomUUID(); tokenUpdates.replyToken = t; prospect = { ...prospect, replyToken: t }; }
+      if (Object.keys(tokenUpdates).length > 0) {
+        await db.update(prospectsTable).set(tokenUpdates).where(eq(prospectsTable.id, prospect.id));
       }
 
       const vc = getVerticalConfig(client.vertical);
@@ -324,7 +326,7 @@ export async function processAutopilotQueue(): Promise<void> {
         await sendEmail({
           fromName: client.businessName ?? client.outreachEmail,
           fromEmail: client.sendingEmail ?? undefined,
-          replyTo: resolveReplyTo(client.outreachEmail, prospect.scheduleToken),
+          replyTo: resolveReplyTo(client.outreachEmail, prospect.replyToken),
           to: prospect.email,
           subject,
           body: composed.text,

@@ -6,7 +6,7 @@ import {
   activityTable,
   processedInboundEmailsTable,
 } from "@workspace/db";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { Resend } from "resend";
 import { sendEmail } from "./emailSender";
 import { analyzeReplyTone, processAutopilotQueue } from "./autopilotEngine";
@@ -43,9 +43,71 @@ function stripHtml(html?: string | null): string {
 }
 
 /**
+ * Check whether the fetched email headers provide sufficient authentication
+ * evidence that the sender is who the From address claims.
+ *
+ * This function requires dmarc=pass in the Authentication-Results header.
+ * DMARC (RFC 7489) is the only check used here because it is the only
+ * mechanism that simultaneously verifies message authentication AND enforces
+ * alignment between the authentication domain and the visible From header
+ * domain. Alternatives considered and rejected:
+ *
+ *   - Bare dkim=pass: attacker can DKIM-sign with their own domain while
+ *     spoofing the From address — dkim=pass for the wrong domain.
+ *
+ *   - Aligned dkim=pass via header.i/header.d matching: requires PSL-aware
+ *     registrable-domain extraction to be correct. Naive "last-two-labels"
+ *     logic incorrectly treats attacker.co.uk as aligned with victim.co.uk.
+ *     Bundling a PSL dependency just for this check adds maintenance surface
+ *     with no clear benefit over the simpler dmarc=pass check.
+ *
+ *   - spf=pass: SPF authenticates the envelope sender (MAIL FROM), not the
+ *     visible From header, so it can be spoofed for From while SPF passes.
+ *
+ * Fail-closed: absent, ambiguous, or non-dmarc-pass results are all treated
+ * as unverified. Unverified replies are forwarded to the client for manual
+ * inspection but never mutate enrollment state or trigger automated sends.
+ *
+ * Authentication-Results headers are injected by the receiving MTA and are
+ * not modifiable by the sender after delivery.
+ */
+/**
+ * Normalize headers from whatever shape the provider returns into an iterable
+ * of [name, value] pairs, supporting both:
+ *   - Record<string, string>  — object keyed by header name (Resend's actual shape)
+ *   - Array<{name, value}>    — array of header objects (defensive fallback)
+ */
+function iterateHeaders(
+  raw: unknown,
+): Iterable<readonly [string, string]> {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((h): h is { name: string; value: string } =>
+        h !== null && typeof h === "object" && typeof h.name === "string" && typeof h.value === "string",
+      )
+      .map((h) => [h.name, h.value] as const);
+  }
+  if (typeof raw === "object") {
+    return Object.entries(raw as Record<string, unknown>)
+      .filter((e): e is [string, string] => typeof e[1] === "string");
+  }
+  return [];
+}
+
+function hasSufficientAuth(rawHeaders: unknown): boolean {
+  for (const [name, value] of iterateHeaders(rawHeaders)) {
+    if (name.toLowerCase() === "authentication-results") {
+      if (/\bdmarc=pass\b/i.test(value)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Handle a verified Resend webhook event. Only `email.received` (inbound reply)
  * events are acted on; everything else is ignored. This is a no-op unless the
- * inbound recipient encodes a known prospect scheduleToken.
+ * inbound recipient encodes a known prospect replyToken.
  */
 export async function handleResendWebhookEvent(event: {
   type: string;
@@ -74,16 +136,22 @@ export async function handleResendWebhookEvent(event: {
   // are permanent, non-retriable skips.
   try {
   const recipients = [...(to ?? []), ...(event.data.cc ?? [])];
+  // parseTokenFromRecipients decodes the replyToken from the reply-<token>@domain address.
   const token = parseTokenFromRecipients(recipients);
   if (!token) {
     logger.warn({ email_id, to }, "Inbound reply ignored: no reply token in recipients");
     return;
   }
 
+  // Look up prospect by replyToken (not scheduleToken) so that the reply-to
+  // address cannot be used to access scheduling or unsubscribe flows.
+  // Dual-token fallback: also accept scheduleToken for replies to emails that
+  // were sent before the token split, so existing reply-to aliases keep working
+  // during the rollout window. Can be removed once historic campaigns cycle out.
   const [prospect] = await db
     .select()
     .from(prospectsTable)
-    .where(eq(prospectsTable.scheduleToken, token));
+    .where(or(eq(prospectsTable.replyToken, token), eq(prospectsTable.scheduleToken, token))!);
   if (!prospect) {
     logger.warn({ email_id, token }, "Inbound reply ignored: no prospect for token");
     return;
@@ -94,11 +162,15 @@ export async function handleResendWebhookEvent(event: {
     .from(usersTable)
     .where(eq(usersTable.id, prospect.clientId));
 
-  // The webhook payload is metadata-only; fetch the actual body.
+  // The webhook payload is metadata-only; fetch the actual body and headers.
+  // data.headers from Resend may be Record<string,string> (object) or an
+  // array of {name,value} — hasSufficientAuth handles both via iterateHeaders().
   let replyText = "";
+  let rawEmailHeaders: unknown = null;
   try {
     const { data } = await getResend().emails.receiving.get(email_id);
     replyText = (data?.text?.trim() || stripHtml(data?.html)).trim();
+    rawEmailHeaders = (data as any)?.headers ?? null;
   } catch (err) {
     logger.error({ err, email_id }, "Inbound reply: failed to fetch email body");
   }
@@ -107,11 +179,29 @@ export async function handleResendWebhookEvent(event: {
   const tone = await analyzeReplyTone(replyText).catch(() => "neutral" as const);
 
   // Sender validation: the tokenized reply address is exposed in outbound headers,
-  // so anyone could email it. Only advance the funnel when the sender actually
-  // matches the prospect we emailed. Unverified mail is forwarded to the client
-  // for visibility but never mutates enrollment state or triggers a send.
+  // so anyone could email it. Only advance the funnel when BOTH conditions hold:
+  //   1. The From address matches the prospect's email (string check).
+  //   2. The message passes DKIM authentication (header injected by the receiving
+  //      MTA — not forgeable by the sender), confirming the message actually
+  //      originated from the domain it claims.
+  // Failing either check logs a warning and forwards to the client without
+  // mutating enrollment state or triggering automated sends.
   const senderAddr = (from ? extractAddress(from) : "").toLowerCase();
-  const senderVerified = !!senderAddr && senderAddr === prospect.email.trim().toLowerCase();
+  const fromMatches = !!senderAddr && senderAddr === prospect.email.trim().toLowerCase();
+  const authVerified = hasSufficientAuth(rawEmailHeaders);
+  const senderVerified = fromMatches && authVerified;
+
+  if (!fromMatches) {
+    logger.warn(
+      { email_id, prospectId: prospect.id, from },
+      "Inbound reply: From address does not match prospect — forwarding only, no auto-action",
+    );
+  } else if (!authVerified) {
+    logger.warn(
+      { email_id, prospectId: prospect.id, from },
+      "Inbound reply: From address matches but DMARC/aligned-DKIM did not pass — forwarding only, no auto-action",
+    );
+  }
 
   if (senderVerified) {
     // Attach the reply to the prospect's most recent live enrollment (if any).
@@ -157,11 +247,6 @@ export async function handleResendWebhookEvent(event: {
       { prospectId: prospect.id, enrollmentId: enrollment?.id, tone },
       "Inbound reply processed",
     );
-  } else {
-    logger.warn(
-      { email_id, prospectId: prospect.id, from },
-      "Inbound reply: sender does not match prospect — forwarding only, no auto-action",
-    );
   }
 
   // Forward a copy to the client's real inbox so they still see every reply.
@@ -171,7 +256,9 @@ export async function handleResendWebhookEvent(event: {
       const replyToAddr = senderAddr || prospect.email;
       const note = senderVerified
         ? `— Reply directly to this email to respond to ${prospect.contactName}.`
-        : `⚠️ This came to ${prospect.contactName}'s reply address but from an unrecognized sender (${from}); it was NOT auto-processed. Reply directly to respond.`;
+        : fromMatches
+          ? `⚠️ This came to ${prospect.contactName}'s reply address but DMARC/aligned-DKIM authentication did not pass (possible spoofing attempt from ${from}); it was NOT auto-processed. Reply directly to respond if legitimate.`
+          : `⚠️ This came to ${prospect.contactName}'s reply address but from an unrecognized sender (${from}); it was NOT auto-processed. Reply directly to respond.`;
       await sendEmail({
         fromName: `${prospect.companyName} (via iSDRX AI)`,
         replyTo: replyToAddr,
