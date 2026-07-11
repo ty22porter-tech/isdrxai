@@ -175,7 +175,17 @@ function analyzeCSV(text: string): CSVAnalysis {
     return { ok: false, error: "No data rows found. Make sure your file has a header row and at least one prospect row." };
   }
 
-  const headers = rows[0].map(h => h.trim());
+  // Some exports (ZoomInfo, Apollo, etc.) wrap the real table in noise: a leading
+  // disclaimer/notes line or a trailing "Total: 500 records" summary. These lines
+  // have at most one non-empty cell, so a genuine data row (which spans several
+  // columns, even when its count is off) never looks like one.
+  const isNoiseLine = (r: string[]) => r.filter(c => c.trim() !== "").length <= 1;
+
+  // Skip leading noise so a disclaimer line isn't mistaken for the header.
+  let headerIdx = 0;
+  while (headerIdx < rows.length - 1 && isNoiseLine(rows[headerIdx])) headerIdx++;
+
+  const headers = rows[headerIdx].map(h => h.trim());
   const headerCount = headers.length;
   if (headerCount < 2) {
     return { ok: false, error: "This doesn't look like a tabular file — the header row has only one column. Make sure columns are separated by commas, tabs, or semicolons." };
@@ -183,10 +193,16 @@ function analyzeCSV(text: string): CSVAnalysis {
 
   const records: Record<string, string>[] = [];
   const skippedRows: string[][] = [];
-  for (const values of rows.slice(1)) {
+  for (const values of rows.slice(headerIdx + 1)) {
     // A field count wildly different from the header means the row would be
     // mangled into the wrong columns — flag it instead of importing garbage.
-    if (Math.abs(values.length - headerCount) > 1) { skippedRows.push(values); continue; }
+    if (Math.abs(values.length - headerCount) > 1) {
+      // Single-cell notes / trailing summary lines are export noise, not
+      // recoverable data — ignore them quietly instead of flagging a skip.
+      if (isNoiseLine(values)) continue;
+      skippedRows.push(values);
+      continue;
+    }
     const record: Record<string, string> = {};
     headers.forEach((h, i) => { record[h] = (values[i] ?? "").trim(); });
     records.push(record);
