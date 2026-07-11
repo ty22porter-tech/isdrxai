@@ -232,6 +232,17 @@ const COLUMN_MAP: Record<string, string[]> = {
   state:        ["State", "State/Province", "state"],
 };
 
+// Editable fields shown in the failed-rows retry table, in display order.
+const FAILED_EDIT_FIELDS: { key: "companyName" | "contactName" | "email" | "phone" | "industry" | "city" | "state"; label: string }[] = [
+  { key: "companyName", label: "Company" },
+  { key: "contactName", label: "Contact" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone" },
+  { key: "industry", label: "Industry" },
+  { key: "city", label: "City" },
+  { key: "state", label: "State" },
+];
+
 // Force a raw row to exactly `count` cells: keep values positionally, drop
 // extras, pad short rows with empty strings so it can be re-mapped in a grid.
 function normalizeToHeaders(row: string[], count: number): string[] {
@@ -441,8 +452,12 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     }
   };
 
-  const updateFailedEmail = (i: number, email: string) => {
-    setFailedRows(prev => prev.map((f, idx) => idx === i ? { ...f, row: { ...f.row, email } } : f));
+  const updateFailedField = (
+    i: number,
+    field: keyof NonNullable<ReturnType<typeof mapRow>>,
+    value: string,
+  ) => {
+    setFailedRows(prev => prev.map((f, idx) => idx === i ? { ...f, row: { ...f.row, [field]: value } } : f));
   };
 
   const downloadFailedRows = () => {
@@ -571,29 +586,31 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
 
             {failedRows.length > 0 && (
               <div className="space-y-3">
-                <p className="text-sm font-medium">Failed rows — fix the email if needed, then retry:</p>
-                <div className="rounded-lg border overflow-hidden max-h-56 overflow-y-auto">
+                <p className="text-sm font-medium">Failed rows — fix any field below, then retry:</p>
+                <div className="rounded-lg border overflow-x-auto max-h-56 overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-xs">Company</TableHead>
-                        <TableHead className="text-xs">Email</TableHead>
-                        <TableHead className="text-xs">Reason</TableHead>
+                        {FAILED_EDIT_FIELDS.map(({ key, label }) => (
+                          <TableHead key={key} className="text-xs whitespace-nowrap">{label}</TableHead>
+                        ))}
+                        <TableHead className="text-xs whitespace-nowrap">Reason</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {failedRows.map((f, i) => (
                         <TableRow key={i}>
-                          <TableCell className="text-xs font-medium py-2">{f.row.companyName || "(missing)"}</TableCell>
-                          <TableCell className="py-2">
-                            <Input
-                              value={f.row.email}
-                              onChange={e => updateFailedEmail(i, e.target.value)}
-                              className="h-7 text-xs"
-                              disabled={retrying}
-                            />
-                          </TableCell>
-                          <TableCell className="text-xs py-2 text-red-600">{f.reason}</TableCell>
+                          {FAILED_EDIT_FIELDS.map(({ key }) => (
+                            <TableCell key={key} className="py-1.5">
+                              <Input
+                                value={f.row[key]}
+                                onChange={e => updateFailedField(i, key, e.target.value)}
+                                className="h-7 text-xs min-w-[120px]"
+                                disabled={retrying}
+                              />
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-xs py-2 text-red-600 min-w-[140px]">{f.reason}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
