@@ -44,7 +44,36 @@ function fallbackBody(p: any, vertical: string = "janitorial") {
 // Character-by-character parser (RFC 4180) that correctly handles quoted fields
 // containing commas, escaped quotes (""), and embedded newlines — common in
 // ZoomInfo/Apollo exports with multi-line notes or addresses.
-function parseCSVRows(text: string): string[][] {
+const CSV_DELIMITERS = [",", "\t", ";"] as const;
+type CSVDelimiter = (typeof CSV_DELIMITERS)[number];
+
+// Pick the most likely delimiter (comma, tab, or semicolon) by counting how many
+// times each appears in the header row outside of quotes. Common European Excel
+// exports use ";" or "\t" instead of ",". Falls back to comma when nothing wins.
+function detectDelimiter(text: string): CSVDelimiter {
+  const counts: Record<CSVDelimiter, number> = { ",": 0, "\t": 0, ";": 0 };
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { i++; continue; }
+        inQuotes = false;
+      }
+      continue;
+    }
+    if (char === '"') { inQuotes = true; continue; }
+    if (char === "\n" || char === "\r") break; // header row only
+    if (char === "," || char === "\t" || char === ";") counts[char]++;
+  }
+  let best: CSVDelimiter = ",";
+  for (const d of CSV_DELIMITERS) {
+    if (counts[d] > counts[best]) best = d;
+  }
+  return best;
+}
+
+function parseCSVRows(text: string, delimiter: CSVDelimiter = ","): string[][] {
   const rows: string[][] = [];
   let field = "";
   let row: string[] = [];
@@ -76,7 +105,7 @@ function parseCSVRows(text: string): string[][] {
       i++;
       continue;
     }
-    if (char === ",") {
+    if (char === delimiter) {
       row.push(field);
       field = "";
       i++;
@@ -140,7 +169,8 @@ function analyzeCSV(text: string): CSVAnalysis {
     return { ok: false, error: "This file doesn't look like a text CSV. Please save it as CSV (comma-separated values) and try again." };
   }
 
-  const rows = parseCSVRows(text).filter(r => r.some(c => c.trim() !== ""));
+  const delimiter = detectDelimiter(text);
+  const rows = parseCSVRows(text, delimiter).filter(r => r.some(c => c.trim() !== ""));
   if (rows.length < 2) {
     return { ok: false, error: "No data rows found. Make sure your file has a header row and at least one prospect row." };
   }
@@ -148,7 +178,7 @@ function analyzeCSV(text: string): CSVAnalysis {
   const headers = rows[0].map(h => h.trim());
   const headerCount = headers.length;
   if (headerCount < 2) {
-    return { ok: false, error: "This doesn't look like a comma-separated CSV — the header row has only one column. Make sure columns are separated by commas (not tabs or semicolons)." };
+    return { ok: false, error: "This doesn't look like a tabular file — the header row has only one column. Make sure columns are separated by commas, tabs, or semicolons." };
   }
 
   const records: Record<string, string>[] = [];
