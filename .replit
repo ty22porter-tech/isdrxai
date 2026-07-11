@@ -27,6 +27,7 @@ channel = "stable-25_05"
 
 [userenv.production]
 BOOTSTRAP_ADMIN_USER_ID = "user_3Fy2L7ExgEkwbAVv4bE2BCPZiF1"
+INBOUND_REPLY_DOMAIN = "sdrai.xyz"
 
 [userenv.development]
 INBOUND_REPLY_DOMAIN = "sdrai.xyz"
