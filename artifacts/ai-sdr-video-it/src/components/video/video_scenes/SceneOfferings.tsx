@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 const OFFERINGS = [
   'Cybersecurity',
   'Microsoft 365',
-  'Managed IT',
   'Managed Security',
-  'MDM'
+  'Software/Hardware Sourcing',
+  'IT Services',
+  'IT Support',
+  'Mobile Device Management'
 ];
 
 export function SceneOfferings() {
@@ -18,7 +20,7 @@ export function SceneOfferings() {
     const timers = OFFERINGS.map((_, i) =>
       setTimeout(() => {
         setItemIdx(i);
-      }, 900 + i * 700)
+      }, 700 + i * 600)
     );
     return () => [t1, ...timers].forEach(clearTimeout);
   }, []);
