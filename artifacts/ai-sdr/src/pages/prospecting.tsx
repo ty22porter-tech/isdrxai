@@ -10,6 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X } from "lucide-react";
 
@@ -54,6 +64,7 @@ export default function Prospecting() {
   const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number } | null>(null);
   const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
+  const [confirmSearchOpen, setConfirmSearchOpen] = useState(false);
   const cancelAddAllRef = useRef(false);
 
   const { toast } = useToast();
@@ -62,11 +73,7 @@ export default function Prospecting() {
   const createProspect = useCreateProspect();
   const bulkCreateProspects = useBulkCreateProspects();
 
-  const handleSearch = () => {
-    if (!city.trim() || !state || !industry) {
-      toast({ title: "Fill in all fields", description: "City, state, and industry are required.", variant: "destructive" });
-      return;
-    }
+  const runSearch = () => {
     setLeads([]);
     setAdded(new Set());
     setFailures(new Map());
@@ -78,6 +85,19 @@ export default function Prospecting() {
         onError: () => toast({ title: "Search failed", description: "Could not generate prospects.", variant: "destructive" }),
       }
     );
+  };
+
+  const handleSearch = () => {
+    if (!city.trim() || !state || !industry) {
+      toast({ title: "Fill in all fields", description: "City, state, and industry are required.", variant: "destructive" });
+      return;
+    }
+    const hasUnaddedLeads = leads.length > 0 && leads.some((_, idx) => !added.has(idx));
+    if ((hasUnaddedLeads || (cancelledRemaining?.size ?? 0) > 0) && addAllProgress === null) {
+      setConfirmSearchOpen(true);
+      return;
+    }
+    runSearch();
   };
 
   const handleAdd = async (lead: ProspectLead, idx: number) => {
@@ -514,6 +534,24 @@ export default function Prospecting() {
           <div className="text-center py-16 text-muted-foreground text-sm">No results returned. Try different parameters.</div>
         )}
       </div>
+
+      <AlertDialog open={confirmSearchOpen} onOpenChange={setConfirmSearchOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard the current list?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You still have {leads.length - added.size} prospect{leads.length - added.size === 1 ? "" : "s"} that
+              {leads.length - added.size === 1 ? " hasn't" : " haven't"} been added to your pipeline. Starting a new
+              search will clear this list and you'll lose your place. Add the remaining prospects first if you want to
+              keep them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current list</AlertDialogCancel>
+            <AlertDialogAction onClick={runSearch}>Discard and search</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
