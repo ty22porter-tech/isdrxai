@@ -59,6 +59,7 @@ export default function Prospecting() {
   const [count, setCount] = useState("10");
   const [leads, setLeads] = useState<ProspectLead[]>([]);
   const [added, setAdded] = useState<Set<number>>(new Set());
+  const [skipped, setSkipped] = useState<Set<number>>(new Set());
   const [failures, setFailures] = useState<Map<number, string>>(new Map());
   const [addingId, setAddingId] = useState<number | null>(null);
   const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number; added: number; updated: number; skipped: number } | null>(null);
@@ -76,6 +77,7 @@ export default function Prospecting() {
   const runSearch = () => {
     setLeads([]);
     setAdded(new Set());
+    setSkipped(new Set());
     setFailures(new Map());
     setCancelledRemaining(null);
     searchMutation.mutate(
@@ -208,6 +210,7 @@ export default function Prospecting() {
             });
             return next;
           });
+          const skippedIdxInChunk: number[] = [];
           setFailures((prev) => {
             const next = new Map(prev);
             result.results.forEach((r) => {
@@ -217,12 +220,16 @@ export default function Prospecting() {
               } else if (duplicateStrategy === "skip" && isDuplicateError(r.error)) {
                 // Skipped duplicate — not a failure the user needs to act on.
                 next.delete(idx);
+                skippedIdxInChunk.push(idx);
               } else {
                 next.set(idx, r.error || "Could not add prospect");
               }
             });
             return next;
           });
+          if (skippedIdxInChunk.length) {
+            setSkipped((prev) => new Set([...prev, ...skippedIdxInChunk]));
+          }
         } catch (err: any) {
           totalFailed += chunk.length;
           const reason = err?.data?.error || err?.message || "Could not add prospect";
@@ -443,7 +450,7 @@ export default function Prospecting() {
             </div>
             <div className="grid gap-4">
               {leads.map((lead, idx) => (
-                <Card key={idx} className={added.has(idx) ? "opacity-60" : failures.has(idx) ? "border-red-300" : cancelledRemaining?.has(idx) ? "border-amber-300 bg-amber-50/40" : ""}>
+                <Card key={idx} className={added.has(idx) ? "opacity-60" : failures.has(idx) ? "border-red-300" : skipped.has(idx) ? "border-blue-300 bg-blue-50/40" : cancelledRemaining?.has(idx) ? "border-amber-300 bg-amber-50/40" : ""}>
                   <CardContent className="pt-5 pb-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -455,7 +462,12 @@ export default function Prospecting() {
                           >
                             {lead.confidence} fit
                           </Badge>
-                          {cancelledRemaining?.has(idx) && !added.has(idx) && (
+                          {skipped.has(idx) && !added.has(idx) && (
+                            <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-200">
+                              Already in pipeline
+                            </Badge>
+                          )}
+                          {cancelledRemaining?.has(idx) && !added.has(idx) && !skipped.has(idx) && (
                             <Badge variant="outline" className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200">
                               Not yet added
                             </Badge>
