@@ -41,18 +41,89 @@ function fallbackBody(p: any, vertical: string = "janitorial") {
 }
 
 // ─── CSV parsing ──────────────────────────────────────────────────────────────
+// Character-by-character parser (RFC 4180) that correctly handles quoted fields
+// containing commas, escaped quotes (""), and embedded newlines — common in
+// ZoomInfo/Apollo exports with multi-line notes or addresses.
+function parseCSVRows(text: string): string[][] {
+  const rows: string[][] = [];
+  let field = "";
+  let row: string[] = [];
+  let inQuotes = false;
+  let i = 0;
+  const len = text.length;
+
+  while (i < len) {
+    const char = text[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = false;
+        i++;
+        continue;
+      }
+      field += char;
+      i++;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+      i++;
+      continue;
+    }
+    if (char === ",") {
+      row.push(field);
+      field = "";
+      i++;
+      continue;
+    }
+    if (char === "\r") {
+      // Swallow \r; handle \r\n and lone \r as row terminators.
+      if (text[i + 1] === "\n") i++;
+      row.push(field);
+      rows.push(row);
+      field = "";
+      row = [];
+      i++;
+      continue;
+    }
+    if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      field = "";
+      row = [];
+      i++;
+      continue;
+    }
+    field += char;
+    i++;
+  }
+
+  // Flush trailing field/row (file may not end with a newline).
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, "").trim());
-  return lines.slice(1).map(line => {
-    const values = line.match(/("(?:[^"]|"")*"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? line.split(",");
-    const row: Record<string, string> = {};
+  const rows = parseCSVRows(text);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(values => {
+    const record: Record<string, string> = {};
     headers.forEach((h, i) => {
-      row[h] = (values[i] ?? "").replace(/^"|"$/g, "").replace(/""/g, '"').trim();
+      record[h] = (values[i] ?? "").trim();
     });
-    return row;
-  }).filter(row => Object.values(row).some(v => v));
+    return record;
+  }).filter(record => Object.values(record).some(v => v));
 }
 
 // Column aliases (ZoomInfo, Apollo, generic)
