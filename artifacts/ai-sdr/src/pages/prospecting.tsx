@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
@@ -22,7 +23,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw } from "lucide-react";
 
 const INDUSTRIES = [
   "Healthcare",
@@ -53,6 +54,21 @@ const CONFIDENCE_COLORS: Record<string, string> = {
 // rather than failed.
 const isDuplicateError = (error?: string) => !!error && /^duplicate/i.test(error.trim());
 
+// Persisted snapshot of an in-progress prospect list so it survives leaving the
+// page, refresh, or tab close. Sets/Maps are stored as arrays for JSON.
+type ProspectingSnapshot = {
+  savedAt: number;
+  params: { city: string; state: string; industry: string; count: string };
+  leads: ProspectLead[];
+  added: number[];
+  skipped: number[];
+  failures: [number, string][];
+  cancelledRemaining: number[] | null;
+  duplicateStrategy: "skip" | "update";
+};
+
+const storageKeyForUser = (userId: string) => `prospecting:inprogress:${userId}`;
+
 export default function Prospecting() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -68,7 +84,12 @@ export default function Prospecting() {
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [confirmSearchOpen, setConfirmSearchOpen] = useState(false);
   const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
+  const [restorable, setRestorable] = useState<ProspectingSnapshot | null>(null);
   const cancelAddAllRef = useRef(false);
+  const hydratedRef = useRef(false);
+
+  const { user } = useUser();
+  const storageKey = user?.id ? storageKeyForUser(user.id) : null;
 
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -78,6 +99,7 @@ export default function Prospecting() {
   const bulkCreateProspects = useBulkCreateProspects();
 
   const runSearch = () => {
+    setRestorable(null);
     setLeads([]);
     setAdded(new Set());
     setSkipped(new Set());
@@ -282,6 +304,80 @@ export default function Prospecting() {
   const hasUnaddedLeads = leads.length > 0 && leads.some((_, idx) => !added.has(idx));
   const hasUnsavedList = hasUnaddedLeads || hasRemaining;
 
+  // Restore any in-progress list saved from a previous visit (per client). We
+  // don't auto-populate the page — instead we surface a restore / start-fresh
+  // affordance so the user stays in control of a possibly stale list.
+  useEffect(() => {
+    if (!storageKey || hydratedRef.current) return;
+    hydratedRef.current = true;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const snap = JSON.parse(raw) as ProspectingSnapshot;
+      const addedSet = new Set(snap?.added ?? []);
+      const stillUnadded =
+        (snap?.leads?.length ?? 0) > 0 &&
+        (snap.leads.some((_, i) => !addedSet.has(i)) || (snap.cancelledRemaining?.length ?? 0) > 0);
+      if (stillUnadded) {
+        setRestorable(snap);
+      } else {
+        localStorage.removeItem(storageKey);
+      }
+    } catch {
+      // Corrupt/unreadable snapshot — clear it so we start clean next time.
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+    }
+  }, [storageKey]);
+
+  // Persist the in-progress list whenever it changes, so leaving the page (in-app
+  // nav, refresh, or tab close) doesn't lose it. We hold off while a restore
+  // decision is pending so we don't overwrite the saved snapshot first.
+  useEffect(() => {
+    if (!hydratedRef.current || !storageKey || restorable) return;
+    if (!hasUnsavedList) {
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+      return;
+    }
+    const snap: ProspectingSnapshot = {
+      savedAt: Date.now(),
+      params: { city, state, industry, count },
+      leads,
+      added: [...added],
+      skipped: [...skipped],
+      failures: [...failures.entries()],
+      cancelledRemaining: cancelledRemaining ? [...cancelledRemaining] : null,
+      duplicateStrategy,
+    };
+    try { localStorage.setItem(storageKey, JSON.stringify(snap)); } catch { /* ignore quota */ }
+  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, city, state, industry, count]);
+
+  const restorableRemaining = restorable
+    ? restorable.leads.filter((_, i) => !restorable.added.includes(i)).length
+    : 0;
+
+  const handleRestore = () => {
+    const snap = restorable;
+    if (!snap) return;
+    setCity(snap.params.city);
+    setState(snap.params.state);
+    setIndustry(snap.params.industry);
+    setCount(snap.params.count);
+    setLeads(snap.leads);
+    setAdded(new Set(snap.added));
+    setSkipped(new Set(snap.skipped));
+    setFailures(new Map(snap.failures));
+    setCancelledRemaining(snap.cancelledRemaining && snap.cancelledRemaining.length ? new Set(snap.cancelledRemaining) : null);
+    setDuplicateStrategy(snap.duplicateStrategy);
+    setRestorable(null);
+  };
+
+  const handleStartFresh = () => {
+    if (storageKey) {
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+    }
+    setRestorable(null);
+  };
+
   // Warn before leaving the page while a partly-added prospect list (or a
   // cancelled "Add all" highlight) would be lost. Covers browser refresh/close
   // (beforeunload) and in-app wouter navigation (link click interception).
@@ -334,6 +430,35 @@ export default function Prospecting() {
             Generate a targeted list of commercial prospects in any market. Add them directly to your pipeline.
           </p>
         </div>
+
+        {restorable && (
+          <Card className="border-amber-300 bg-amber-50/60">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2.5">
+                <RotateCcw className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-900">Pick up where you left off</p>
+                  <p className="text-amber-800/90">
+                    You have an unfinished list of {restorable.leads.length} prospect{restorable.leads.length === 1 ? "" : "s"}
+                    {restorable.params.city && restorable.params.state
+                      ? ` in ${restorable.params.city}, ${restorable.params.state}`
+                      : ""}
+                    {restorable.params.industry ? ` — ${restorable.params.industry}` : ""}
+                    {restorableRemaining > 0 ? ` (${restorableRemaining} not yet added).` : "."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button variant="outline" size="sm" onClick={handleStartFresh}>
+                  Start fresh
+                </Button>
+                <Button size="sm" onClick={handleRestore}>
+                  <RotateCcw className="mr-1.5 h-4 w-4" /> Restore list
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
