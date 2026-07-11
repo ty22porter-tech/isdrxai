@@ -9,21 +9,19 @@ description: Why dev and prod have different user IDs for the same person, and w
   (`publishableKeyFromHost` in ai-sdr/src/App.tsx). Dev host → dev Clerk instance,
   prod host → prod Clerk instance. So they are **different Clerk instances**.
 - **Consequence:** the SAME human has DIFFERENT Clerk user IDs in dev vs prod.
-  Example: "Whitlock Building Services" = `user_3FmQ26…` in DEV, but
-  `user_3Fy2L7…` (ty22porter@gmail.com) in PROD.
+  Example: the primary tenant account has one `user_…` id in DEV and a different
+  `user_…` id in PROD.
 - Multi-tenant rows are scoped by `clientId` (= Clerk user id) on prospects,
   campaigns, autopilot_enrollments, emails, activity. **`clientId` is NOT portable
   across environments** — any dev→prod copy MUST remap clientId to the prod user id,
   or the rows are orphaned (invisible to the logged-in prod user).
 
 # What actually lives in each DB (as of 2026-07)
-- **DEV** = test/seed only, nothing production-worthy:
-  - Whitlock (`user_3FmQ26…`): 3 test prospects aimed at own emails (GTXI/Test
-    Logistics→Ty22porter@gmail.com, MDM→Dedrick.poole), campaigns named "test"/"Tese".
-  - 43 prospects with `clientId=''` (unowned) = demo companies (Apex Medical Center,
-    Greenfield Office Park, …). No owner → never display for any user. Legacy seed.
-- **PROD** = the real live accounts: Whitlock (`user_3Fy2L7…`, ty22porter@gmail.com)
-  + MDM (`user_3GD0Xs…`). Already set up and operational.
+- **DEV** = test/seed only, nothing production-worthy: a few test prospects aimed at
+  the owner's own inboxes with campaigns named "test", plus ~43 prospects with
+  `clientId=''` (unowned) = legacy demo companies. Unowned rows never display for any
+  user.
+- **PROD** = the real live tenant accounts, already set up and operational.
 - **Takeaway:** there is no real business data in dev to migrate. Don't pour dev
   test/seed data into prod — it just clutters the live account.
 

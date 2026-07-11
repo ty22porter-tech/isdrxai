@@ -14,6 +14,7 @@ import adminRouter from "./admin";
 import videoViewsRouter from "./videoViews";
 import autopilotRouter from "./autopilot";
 import deliverabilityRouter from "./deliverability";
+import trialCodesRouter from "./trialCodes";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use("/admin", adminRouter);
 router.use("/video-views", videoViewsRouter);
 router.use("/autopilot", autopilotRouter);
 router.use("/deliverability", deliverabilityRouter);
+router.use("/trial-codes", trialCodesRouter);
 
 export default router;

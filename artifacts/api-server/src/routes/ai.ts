@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
 
 const router = Router();
@@ -189,7 +189,7 @@ CLOSE (1:30 – 2:00)
   return { script, keyPoints, objectionHandlers };
 }
 
-router.post("/generate-email", async (req, res) => {
+router.post("/generate-email", requireEntitlement, async (req, res) => {
   const body = GenerateEmailBody.parse(req.body);
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
@@ -198,7 +198,7 @@ router.post("/generate-email", async (req, res) => {
   res.json(result);
 });
 
-router.post("/generate-call-script", async (req, res) => {
+router.post("/generate-call-script", requireEntitlement, async (req, res) => {
   const body = GenerateCallScriptBody.parse(req.body);
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
@@ -322,7 +322,7 @@ function generateProspects(city: string, state: string, industry: string, count:
   return results;
 }
 
-router.post("/prospect-search", async (req, res) => {
+router.post("/prospect-search", requireEntitlement, async (req, res) => {
   const body = ProspectSearchBody.parse(req.body);
   const count = Math.min(body.count, 20);
   const leads = generateProspects(body.city, body.state, body.industry, count);

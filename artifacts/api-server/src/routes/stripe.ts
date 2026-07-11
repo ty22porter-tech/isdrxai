@@ -9,15 +9,16 @@ router.use(requireAuth);
 
 router.get("/subscription", async (req, res) => {
   const user = req.dbUser;
+  const trialEndsAt = user.trialEndsAt ? user.trialEndsAt.toISOString() : null;
   if (!user.stripeSubscriptionId) {
-    return res.json({ subscription: null, status: user.status });
+    return res.json({ subscription: null, status: user.status, trialEndsAt });
   }
   try {
     const stripe = await getUncachableStripeClient();
     const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-    res.json({ subscription, status: user.status });
+    res.json({ subscription, status: user.status, trialEndsAt });
   } catch {
-    res.json({ subscription: null, status: user.status });
+    res.json({ subscription: null, status: user.status, trialEndsAt });
   }
 });
 

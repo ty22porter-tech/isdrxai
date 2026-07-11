@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useUser } from "@clerk/react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2, Ticket, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/layout";
@@ -36,7 +36,9 @@ function StatusBadge({ status }: { status: string }) {
 export default function Billing() {
   const { user } = useUser();
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [loadingCheckout, setLoadingCheckout] = useState(false);
+  const [code, setCode] = useState("");
 
   const { data: subData } = useQuery({
     queryKey: ["subscription"],
@@ -52,6 +54,22 @@ export default function Billing() {
     mutationFn: () => apiFetch("/stripe/billing-portal", { method: "POST" }),
     onSuccess: (data) => { if (data.url) window.location.href = data.url; },
     onError: (err: Error) => toast({ title: "Couldn't open billing portal", description: err.message, variant: "destructive" }),
+  });
+
+  const redeemMutation = useMutation({
+    mutationFn: (c: string) =>
+      apiFetch("/trial-codes/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: c }),
+      }),
+    onSuccess: (data) => {
+      toast({ title: "Free trial activated!", description: `You have full access for ${data.trialDays} days.` });
+      setCode("");
+      qc.invalidateQueries({ queryKey: ["subscription"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (err: Error) => toast({ title: "Couldn't redeem code", description: err.message, variant: "destructive" }),
   });
 
   const handleCheckout = async (priceId: string) => {
@@ -73,6 +91,9 @@ export default function Billing() {
   const status = subData?.status ?? "trialing";
   const subscription = subData?.subscription;
   const products: any[] = productsData?.products ?? [];
+  const trialEndsAt = subData?.trialEndsAt ? new Date(subData.trialEndsAt) : null;
+  const trialActive = trialEndsAt ? trialEndsAt.getTime() > Date.now() : false;
+  const trialDaysLeft = trialActive ? Math.ceil((trialEndsAt!.getTime() - Date.now()) / 86400000) : 0;
 
   return (
     <Layout>
@@ -93,6 +114,16 @@ export default function Billing() {
             </div>
             <StatusBadge status={status} />
           </div>
+
+          {trialActive && (
+            <div className="flex items-start gap-3 bg-sky-500/10 border border-sky-500/30 rounded-lg p-4">
+              <Sparkles className="w-5 h-5 text-sky-400 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-semibold text-sky-300">Free trial active — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</div>
+                <div className="text-muted-foreground text-sm mt-1">Full access through {trialEndsAt!.toLocaleDateString()}. Subscribe before then to keep your account running.</div>
+              </div>
+            </div>
+          )}
 
           {status === "suspended" && (
             <div className="flex items-start gap-3 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
@@ -135,6 +166,31 @@ export default function Billing() {
             </Button>
           )}
         </div>
+
+        {!subscription && status !== "active" && !trialActive && (
+          <div className="rounded-xl border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Ticket className="w-5 h-5 text-primary" />
+              <div>
+                <div className="font-semibold">Have a trial code?</div>
+                <div className="text-muted-foreground text-sm">Redeem it for full access — no card required.</div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="TRIAL-XXXXXXXX"
+                spellCheck={false}
+                onKeyDown={(e) => { if (e.key === "Enter" && code.trim()) redeemMutation.mutate(code.trim()); }}
+                className="flex-1 rounded-lg border bg-muted/40 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <Button onClick={() => redeemMutation.mutate(code.trim())} disabled={!code.trim() || redeemMutation.isPending}>
+                {redeemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {!subscription && products.length > 0 && (
           <div className="space-y-4">

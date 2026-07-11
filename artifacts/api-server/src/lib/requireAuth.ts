@@ -63,7 +63,8 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
  */
 export const requireEntitlement = (req: Request, res: Response, next: NextFunction) => {
   const user = req.dbUser;
-  if (user?.isAdmin || user?.status === "active") {
+  const trialActive = !!user?.trialEndsAt && new Date(user.trialEndsAt).getTime() > Date.now();
+  if (user?.isAdmin || user?.status === "active" || trialActive) {
     return next();
   }
   return res.status(402).json({

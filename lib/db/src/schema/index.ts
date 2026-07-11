@@ -8,3 +8,4 @@ export * from "./users";
 export * from "./video-views";
 export * from "./autopilot-enrollments";
 export * from "./processed-inbound-emails";
+export * from "./trial-codes";

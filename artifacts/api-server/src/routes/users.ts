@@ -14,6 +14,7 @@ router.get("/me", async (req, res) => {
     id: user.id,
     email: user.email,
     status: user.status,
+    trialEndsAt: user.trialEndsAt ? user.trialEndsAt.toISOString() : null,
     isAdmin: user.isAdmin,
     stripeCustomerId: user.stripeCustomerId,
     stripeSubscriptionId: user.stripeSubscriptionId,
