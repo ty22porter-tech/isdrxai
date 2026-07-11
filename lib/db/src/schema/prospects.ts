@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -17,9 +18,9 @@ export const prospectsTable = pgTable("prospects", {
   employeeCount: integer("employee_count"),
   squareFootage: integer("square_footage"),
   status: text("status").notNull().default("new"),
-  scheduleToken: text("schedule_token").notNull().unique().$defaultFn(() => crypto.randomUUID()),
-  unsubscribeToken: text("unsubscribe_token").notNull().unique().$defaultFn(() => crypto.randomUUID()),
-  replyToken: text("reply_token").notNull().unique().$defaultFn(() => crypto.randomUUID()),
+  scheduleToken: text("schedule_token").notNull().unique().default(sql`gen_random_uuid()::text`),
+  unsubscribeToken: text("unsubscribe_token").notNull().unique().default(sql`gen_random_uuid()::text`),
+  replyToken: text("reply_token").notNull().unique().default(sql`gen_random_uuid()::text`),
   optedOut: boolean("opted_out").notNull().default(false),
   optedOutAt: timestamp("opted_out_at"),
   lastContactedAt: timestamp("last_contacted_at"),
