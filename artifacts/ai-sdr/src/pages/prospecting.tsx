@@ -119,6 +119,7 @@ export default function Prospecting() {
     if (!pending.length) return;
     const CHUNK_SIZE = 100;
     let totalAdded = 0;
+    let totalUpdated = 0;
     let totalFailed = 0;
     let anyRequestSucceeded = false;
     let cancelled = false;
@@ -134,6 +135,7 @@ export default function Prospecting() {
         try {
           const result = await bulkCreateProspects.mutateAsync({
             data: {
+              duplicateStrategy: "update",
               prospects: chunk.map(({ lead }) => ({
                 companyName: lead.companyName,
                 contactName: lead.contactName,
@@ -151,6 +153,7 @@ export default function Prospecting() {
           });
           anyRequestSucceeded = true;
           totalAdded += result.added;
+          totalUpdated += result.updated ?? 0;
           totalFailed += result.failed;
           setAdded((prev) => {
             const next = new Set(prev);
@@ -183,19 +186,23 @@ export default function Prospecting() {
         setAddAllProgress({ done: Math.min(start + CHUNK_SIZE, pending.length), total: pending.length });
       }
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
+      const addedUpdated = `${totalAdded} added${totalUpdated ? `, ${totalUpdated} updated` : ""}`;
       if (cancelled) {
         toast({
           title: "Add all cancelled",
-          description: `${totalAdded} prospect${totalAdded !== 1 ? "s" : ""} added before cancelling.${totalFailed ? ` ${totalFailed} failed.` : ""}`,
+          description: `${addedUpdated} before cancelling.${totalFailed ? ` ${totalFailed} failed.` : ""}`,
         });
       } else if (!anyRequestSucceeded) {
         toast({ title: "Failed to add prospects", variant: "destructive" });
       } else if (totalFailed === 0) {
-        toast({ title: "All prospects added", description: `${totalAdded} prospect${totalAdded !== 1 ? "s" : ""} added to your pipeline.` });
+        toast({
+          title: totalUpdated ? "Prospects added and updated" : "All prospects added",
+          description: `${addedUpdated} in your pipeline.`,
+        });
       } else {
         toast({
           title: "Some prospects failed to add",
-          description: `${totalAdded} added, ${totalFailed} failed. See the reason under each highlighted prospect below.`,
+          description: `${addedUpdated}, ${totalFailed} failed. See the reason under each highlighted prospect below.`,
           variant: "destructive",
         });
       }
