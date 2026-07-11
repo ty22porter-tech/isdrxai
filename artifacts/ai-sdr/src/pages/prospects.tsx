@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useListProspects, useCreateProspect, useBulkCreateProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
 
@@ -216,6 +216,14 @@ const COLUMN_MAP: Record<string, string[]> = {
   state:        ["State", "State/Province", "state"],
 };
 
+// Force a raw row to exactly `count` cells: keep values positionally, drop
+// extras, pad short rows with empty strings so it can be re-mapped in a grid.
+function normalizeToHeaders(row: string[], count: number): string[] {
+  const out = row.slice(0, count);
+  while (out.length < count) out.push("");
+  return out;
+}
+
 function resolveColumn(headers: string[], key: string): string | undefined {
   const aliases = COLUMN_MAP[key] ?? [];
   return aliases.find(a => headers.includes(a));
@@ -275,6 +283,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [failedRows, setFailedRows] = useState<{ row: NonNullable<ReturnType<typeof mapRow>>; reason: string }[]>([]);
   const [skippedRows, setSkippedRows] = useState<string[][]>([]);
+  const [editableSkipped, setEditableSkipped] = useState<string[][]>([]);
   const [skippedHeaders, setSkippedHeaders] = useState<string[]>([]);
   const [retrying, setRetrying] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -282,7 +291,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const { toast } = useToast();
 
   const handleFile = (file: File) => {
-    setError(""); setWarning(""); setRows([]); setDone(false); setProgress(0); setSkippedRows([]); setSkippedHeaders([]);
+    setError(""); setWarning(""); setRows([]); setDone(false); setProgress(0); setSkippedRows([]); setEditableSkipped([]); setSkippedHeaders([]);
     const reader = new FileReader();
     reader.onerror = () => setError("Couldn't read that file. Please try again with a CSV file.");
     reader.onload = e => {
@@ -295,6 +304,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
       if (!mapped.length) { setError("Couldn't map any rows. Make sure your CSV has Company Name and Email columns."); return; }
       setRows(mapped);
       setSkippedRows(skipped);
+      setEditableSkipped(skipped.map(r => normalizeToHeaders(r, fileHeaders.length)));
       setSkippedHeaders(fileHeaders);
       if (malformed > 0) {
         setWarning(`${malformed} row${malformed !== 1 ? "s were" : " was"} skipped because ${malformed !== 1 ? "they had" : "it had"} a different number of columns than the header. The remaining ${mapped.length} look${mapped.length !== 1 ? "" : "s"} good.`);
@@ -417,6 +427,56 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     URL.revokeObjectURL(url);
   };
 
+  const updateSkippedCell = (rowIdx: number, colIdx: number, value: string) => {
+    setEditableSkipped(prev => prev.map((r, i) =>
+      i === rowIdx ? r.map((c, j) => (j === colIdx ? value : c)) : r
+    ));
+  };
+
+  const removeSkippedRow = (rowIdx: number) => {
+    setEditableSkipped(prev => prev.filter((_, i) => i !== rowIdx));
+    setSkippedRows(prev => prev.filter((_, i) => i !== rowIdx));
+  };
+
+  // Map each edited skipped row against the header, move the ones that now have
+  // a Company or Email into the main import list, and keep the rest for further
+  // editing — no re-upload required.
+  const addFixedSkippedRows = () => {
+    if (!editableSkipped.length) return;
+    const fixed: NonNullable<ReturnType<typeof mapRow>>[] = [];
+    const stillBroken: string[][] = [];
+    const stillBrokenRaw: string[][] = [];
+    editableSkipped.forEach((cells, i) => {
+      const record: Record<string, string> = {};
+      skippedHeaders.forEach((h, j) => { record[h] = (cells[j] ?? "").trim(); });
+      const mapped = mapRow(record, skippedHeaders);
+      if (mapped) {
+        fixed.push(mapped);
+      } else {
+        stillBroken.push(cells);
+        stillBrokenRaw.push(skippedRows[i] ?? cells);
+      }
+    });
+    if (!fixed.length) {
+      toast({
+        title: "Nothing to add yet",
+        description: "Each row needs at least a Company Name or Email before it can be imported.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setRows(prev => [...prev, ...fixed]);
+    setEditableSkipped(stillBroken);
+    setSkippedRows(stillBrokenRaw);
+    if (stillBroken.length === 0) setWarning("");
+    toast({
+      title: `${fixed.length} row${fixed.length !== 1 ? "s" : ""} added to import`,
+      description: stillBroken.length > 0
+        ? `${stillBroken.length} row${stillBroken.length !== 1 ? "s" : ""} still need a Company Name or Email.`
+        : "All skipped rows fixed. Review and import below.",
+    });
+  };
+
   const downloadSkippedRows = () => {
     if (!skippedRows.length) return;
     const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
@@ -435,7 +495,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setSkippedRows([]); setSkippedHeaders([]); setRetrying(false); setDuplicateStrategy("skip"); };
+  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setSkippedRows([]); setEditableSkipped([]); setSkippedHeaders([]); setRetrying(false); setDuplicateStrategy("skip"); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -534,28 +594,71 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
                 {warning}
               </div>
             )}
-            {skippedRows.length > 0 && (
+            {editableSkipped.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium">
-                    {skippedRows.length} skipped row{skippedRows.length !== 1 ? "s" : ""} (column mismatch)
+                    {editableSkipped.length} skipped row{editableSkipped.length !== 1 ? "s" : ""} (column mismatch)
                   </p>
                   <Button variant="outline" size="sm" className="ml-auto h-7 text-xs" onClick={downloadSkippedRows}>
-                    <Download className="mr-2 h-3.5 w-3.5" /> Download to fix
+                    <Download className="mr-2 h-3.5 w-3.5" /> Download
                   </Button>
                 </div>
-                <div className="rounded-lg border overflow-hidden max-h-40 overflow-y-auto bg-muted/30">
-                  <div className="divide-y">
-                    {skippedRows.map((r, i) => (
-                      <div key={i} className="px-3 py-1.5 text-xs font-mono text-muted-foreground truncate">
-                        {r.join(" | ") || "(empty row)"}
-                      </div>
-                    ))}
-                  </div>
-                </div>
                 <p className="text-xs text-muted-foreground">
-                  Download these rows, correct the column count, and re-upload to import them.
+                  Fix the cells so each value lines up with the right column, then add them to the import — no re-upload needed. The gray line shows the original row.
                 </p>
+                <div className="rounded-lg border overflow-x-auto max-h-64 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {skippedHeaders.map((h, i) => (
+                          <TableHead key={i} className="text-xs whitespace-nowrap">{h || `Column ${i + 1}`}</TableHead>
+                        ))}
+                        <TableHead className="text-xs w-8" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {editableSkipped.map((cells, rowIdx) => (
+                        <Fragment key={rowIdx}>
+                          <TableRow>
+                            {cells.map((cell, colIdx) => (
+                              <TableCell key={colIdx} className="py-1.5">
+                                <Input
+                                  value={cell}
+                                  onChange={e => updateSkippedCell(rowIdx, colIdx, e.target.value)}
+                                  className="h-7 text-xs min-w-[120px]"
+                                />
+                              </TableCell>
+                            ))}
+                            <TableCell className="py-1.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-red-600"
+                                onClick={() => removeSkippedRow(rowIdx)}
+                                title="Discard this row"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                          {skippedRows[rowIdx] && (
+                            <TableRow className="border-0 hover:bg-transparent">
+                              <TableCell colSpan={skippedHeaders.length + 1} className="pt-0 pb-2 text-[11px] font-mono text-muted-foreground truncate">
+                                original: {skippedRows[rowIdx].join(" | ") || "(empty row)"}
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </Fragment>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={addFixedSkippedRows}>
+                    <Plus className="mr-2 h-3.5 w-3.5" /> Add fixed rows to import
+                  </Button>
+                </div>
               </div>
             )}
             <div className="rounded-lg border overflow-hidden max-h-56 overflow-y-auto">
