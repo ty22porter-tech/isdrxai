@@ -47,6 +47,7 @@ export default function Prospecting() {
   const [failures, setFailures] = useState<Map<number, string>>(new Map());
   const [addingId, setAddingId] = useState<number | null>(null);
   const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number } | null>(null);
+  const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
   const cancelAddAllRef = useRef(false);
 
   const { toast } = useToast();
@@ -63,6 +64,7 @@ export default function Prospecting() {
     setLeads([]);
     setAdded(new Set());
     setFailures(new Map());
+    setCancelledRemaining(null);
     searchMutation.mutate(
       { data: { city: city.trim(), state, industry, count: parseInt(count) } },
       {
@@ -98,6 +100,12 @@ export default function Prospecting() {
             next.delete(idx);
             return next;
           });
+          setCancelledRemaining((prev) => {
+            if (!prev || !prev.has(idx)) return prev;
+            const next = new Set(prev);
+            next.delete(idx);
+            return next.size > 0 ? next : null;
+          });
           setAddingId(null);
           queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
           toast({ title: "Prospect added", description: `${lead.companyName} added to your pipeline.` });
@@ -123,7 +131,9 @@ export default function Prospecting() {
     let totalFailed = 0;
     let anyRequestSucceeded = false;
     let cancelled = false;
+    const addedThisRun = new Set<number>();
     cancelAddAllRef.current = false;
+    setCancelledRemaining(null);
     setAddAllProgress({ done: 0, total: pending.length });
     try {
       for (let start = 0; start < pending.length; start += CHUNK_SIZE) {
@@ -158,7 +168,10 @@ export default function Prospecting() {
           setAdded((prev) => {
             const next = new Set(prev);
             result.results.forEach((r) => {
-              if (r.success) next.add(chunk[r.index].idx);
+              if (r.success) {
+                next.add(chunk[r.index].idx);
+                addedThisRun.add(chunk[r.index].idx);
+              }
             });
             return next;
           });
@@ -188,9 +201,13 @@ export default function Prospecting() {
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
       const addedUpdated = `${totalAdded} added${totalUpdated ? `, ${totalUpdated} updated` : ""}`;
       if (cancelled) {
+        const remaining = new Set(
+          pending.filter(({ idx }) => !addedThisRun.has(idx)).map(({ idx }) => idx)
+        );
+        setCancelledRemaining(remaining.size > 0 ? remaining : null);
         toast({
           title: "Add all cancelled",
-          description: `${addedUpdated} before cancelling.${totalFailed ? ` ${totalFailed} failed.` : ""}`,
+          description: `${addedUpdated} before cancelling.${remaining.size ? ` ${remaining.size} still need adding.` : ""}${totalFailed ? ` ${totalFailed} failed.` : ""}`,
         });
       } else if (!anyRequestSucceeded) {
         toast({ title: "Failed to add prospects", variant: "destructive" });
@@ -212,6 +229,7 @@ export default function Prospecting() {
   };
 
   const allAdded = leads.length > 0 && leads.every((_, idx) => added.has(idx));
+  const hasRemaining = (cancelledRemaining?.size ?? 0) > 0;
 
   return (
     <Layout>
@@ -289,7 +307,11 @@ export default function Prospecting() {
               {leads.length > 0 && !allAdded && (
                 <Button variant="outline" onClick={handleAddAll} disabled={createProspect.isPending || addAllProgress !== null}>
                   {addAllProgress !== null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                  {addAllProgress !== null ? `Adding ${addAllProgress.done} of ${addAllProgress.total}...` : "Add All to Pipeline"}
+                  {addAllProgress !== null
+                    ? `Adding ${addAllProgress.done} of ${addAllProgress.total}...`
+                    : hasRemaining
+                      ? `Add Remaining (${cancelledRemaining!.size})`
+                      : "Add All to Pipeline"}
                 </Button>
               )}
               {addAllProgress !== null && (
@@ -315,6 +337,12 @@ export default function Prospecting() {
                   {added.size} of {leads.length} added
                 </span>
               )}
+              {hasRemaining && addAllProgress === null && (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {cancelledRemaining!.size} still need adding
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -335,7 +363,7 @@ export default function Prospecting() {
             </div>
             <div className="grid gap-4">
               {leads.map((lead, idx) => (
-                <Card key={idx} className={added.has(idx) ? "opacity-60" : failures.has(idx) ? "border-red-300" : ""}>
+                <Card key={idx} className={added.has(idx) ? "opacity-60" : failures.has(idx) ? "border-red-300" : cancelledRemaining?.has(idx) ? "border-amber-300 bg-amber-50/40" : ""}>
                   <CardContent className="pt-5 pb-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -347,6 +375,11 @@ export default function Prospecting() {
                           >
                             {lead.confidence} fit
                           </Badge>
+                          {cancelledRemaining?.has(idx) && !added.has(idx) && (
+                            <Badge variant="outline" className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200">
+                              Not yet added
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm mb-3">
