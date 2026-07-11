@@ -61,6 +61,18 @@ interface PendingFile {
 }
 
 const SERVICE_TIME_OPTIONS = ["Days", "Evenings", "Weekends"];
+const IT_INTEREST_OPTIONS = [
+  "Co-Managed IT",
+  "Full Managed IT",
+  "Business Continuity",
+  "Cloud Infrastructure",
+  "Cybersecurity",
+  "AI",
+  "Managed Workstation",
+  "Mobile Device Management",
+  "Email Services",
+  "Virtualization",
+];
 const MAX_FILES = 5;
 const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 
@@ -87,6 +99,7 @@ export default function Schedule() {
   const [currentProvider, setCurrentProvider] = useState("");
   const [daysPerWeek, setDaysPerWeek] = useState("");
   const [serviceTimes, setServiceTimes] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
   const [locationCount, setLocationCount] = useState("1");
   const [locations, setLocations] = useState<LocationRow[]>([{ label: "", squareFootage: "" }]);
   const [additionalNotes, setAdditionalNotes] = useState("");
@@ -147,6 +160,10 @@ export default function Schedule() {
     setServiceTimes((prev) => (prev.includes(opt) ? prev.filter((t) => t !== opt) : [...prev, opt]));
   }
 
+  function toggleInterest(opt: string) {
+    setInterests((prev) => (prev.includes(opt) ? prev.filter((t) => t !== opt) : [...prev, opt]));
+  }
+
   function updateLocation(idx: number, field: keyof LocationRow, value: string) {
     setLocations((prev) => prev.map((loc, i) => (i === idx ? { ...loc, [field]: value } : loc)));
   }
@@ -189,6 +206,7 @@ export default function Schedule() {
           currentProvider,
           daysPerWeek,
           serviceTimes,
+          interests,
           locationCount,
           locations,
           additionalNotes,
@@ -225,7 +243,8 @@ export default function Schedule() {
     );
   }
 
-  const copy = info.vertical === "it_services" ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
+  const isIT = info.vertical === "it_services";
+  const copy = isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
 
   const inputClass =
     "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
@@ -304,6 +323,33 @@ export default function Schedule() {
               />
             </div>
 
+            {isIT && (
+              <div>
+                <label className={labelClass}>I'm interested in</label>
+                <p className="text-xs text-slate-500 mb-2">Select all that apply.</p>
+                <div className="flex flex-wrap gap-2">
+                  {IT_INTEREST_OPTIONS.map((opt) => {
+                    const active = interests.includes(opt);
+                    return (
+                      <button
+                        type="button"
+                        key={opt}
+                        onClick={() => toggleInterest(opt)}
+                        aria-pressed={active}
+                        className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                          active
+                            ? "bg-sky-500 text-white"
+                            : "border border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-500"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>{copy.frequencyQuestion}</label>
@@ -352,33 +398,35 @@ export default function Schedule() {
               />
             </div>
 
-            <div className="space-y-3">
-              <label className={labelClass}>{copy.sizeLabel}</label>
-              {locations.map((loc, idx) => (
-                <div key={idx} className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    className={inputClass}
-                    value={loc.label}
-                    onChange={(e) => updateLocation(idx, "label", e.target.value)}
-                    placeholder={`Location ${idx + 1} name / address`}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    className={inputClass}
-                    value={loc.squareFootage}
-                    onChange={(e) => updateLocation(idx, "squareFootage", e.target.value)}
-                    placeholder={copy.sizePlaceholder}
-                  />
-                </div>
-              ))}
-              {(parseInt(locationCount, 10) || 1) > 3 && (
-                <p className="text-sm text-amber-300/90">
-                  You have more than 3 locations — list your first 3 here and we'll call to discuss the
-                  rest.
-                </p>
-              )}
-            </div>
+            {!isIT && (
+              <div className="space-y-3">
+                <label className={labelClass}>{copy.sizeLabel}</label>
+                {locations.map((loc, idx) => (
+                  <div key={idx} className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      className={inputClass}
+                      value={loc.label}
+                      onChange={(e) => updateLocation(idx, "label", e.target.value)}
+                      placeholder={`Location ${idx + 1} name / address`}
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      className={inputClass}
+                      value={loc.squareFootage}
+                      onChange={(e) => updateLocation(idx, "squareFootage", e.target.value)}
+                      placeholder={copy.sizePlaceholder}
+                    />
+                  </div>
+                ))}
+                {(parseInt(locationCount, 10) || 1) > 3 && (
+                  <p className="text-sm text-amber-300/90">
+                    You have more than 3 locations — list your first 3 here and we'll call to discuss the
+                    rest.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className={labelClass}>{copy.uploadLabel}</label>

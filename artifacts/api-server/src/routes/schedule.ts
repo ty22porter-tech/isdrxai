@@ -24,6 +24,7 @@ interface QuestionnaireBody {
   currentProvider?: string;
   daysPerWeek?: string | number;
   serviceTimes?: string[];
+  interests?: string[];
   locationCount?: string | number;
   locations?: LocationEntry[];
   additionalNotes?: string;
@@ -119,6 +120,7 @@ router.post("/:token", async (req, res) => {
     const currentProvider = (body.currentProvider ?? "").trim();
     const daysPerWeek = body.daysPerWeek ?? "";
     const serviceTimes = Array.isArray(body.serviceTimes) ? body.serviceTimes : [];
+    const interests = Array.isArray(body.interests) ? body.interests : [];
     const locationCount = body.locationCount ?? "";
     const locations = Array.isArray(body.locations) ? body.locations : [];
     const additionalNotes = (body.additionalNotes ?? "").trim();
@@ -160,6 +162,11 @@ router.post("/:token", async (req, res) => {
         : "";
 
     const serviceTimesText = serviceTimes.length ? serviceTimes.join(", ") : "Not specified";
+    const interestsText = interests.length ? interests.join(", ") : "Not specified";
+
+    const interestsBlock = isIT
+      ? `\nSERVICES OF INTEREST\n   ${interestsText}\n`
+      : "";
 
     const summary = `${vc.schedule.summaryTitle(prospect.companyName)}
 
@@ -176,10 +183,7 @@ ${isIT ? "IT ENVIRONMENT DETAILS" : "FACILITY DETAILS"}
    ${isIT ? "Employees using computers:       " : "Days per week currently cleaned:  "}${daysPerWeek || "Not provided"}
    ${isIT ? "Preferred contact times:         " : "Service times:                    "}${serviceTimesText}
    Number of locations:              ${numLocations}
-
-${vc.schedule.summarySizeHeading}
-${locationLines || "   Not provided"}${overflowNote}
-
+${interestsBlock}${isIT ? "" : `\n${vc.schedule.summarySizeHeading}\n${locationLines || "   Not provided"}${overflowNote}\n`}
 ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachments.length ? `\n${isIT ? "Document(s)" : "Floor plan(s)"} attached: ${attachments.length} file(s).` : `\nNo ${isIT ? "documents" : "floor plans"} uploaded.`}
 `;
 
