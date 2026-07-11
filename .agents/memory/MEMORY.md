@@ -1,6 +1,7 @@
 # Memory Index
 
 - [DB schema changes](db-schema-changes.md) — additive cols need raw-SQL ALTER (push prompts/breaks) + `cd lib/db && tsc --build --force` (consumers use dist, not src).
+- [Publish approval greyed](publish-approval-blocked-notnull.md) — NOT NULL cols with only app-level `.$defaultFn` (no DB default) make publish diff unappliable on populated prod → button greys; use `.default(sql\`gen_random_uuid()::text\`)`.
 - [Email send paths](email-send-paths.md) — never write status:"sent" without a real Resend dispatch; manual POST /api/emails once only logged. Share emailCompose.ts for CAN-SPAM.
 - [Email/call-script generation paths](email-generation-paths.md) — 3 gen paths (ai.ts template, openai.ts LLM, client email-ai.ts); each must inject client senderName/businessName, omit body signature (composeEmail owns it), and scope prospect by clientId.
 - [Deliverability checks](deliverability-checks.md) — SPF/DKIM come from Resend GET /domains/{id} detail (not list); DMARC only via DNS resolveTxt(_dmarc.<domain>).
