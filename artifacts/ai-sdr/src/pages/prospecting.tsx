@@ -37,6 +37,11 @@ const CONFIDENCE_COLORS: Record<string, string> = {
   low: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+// When "Skip duplicates" is chosen, the server reports duplicates as failures
+// with a "Duplicate:" reason. Detect those so we can report them as skipped
+// rather than failed.
+const isDuplicateError = (error?: string) => !!error && /^duplicate/i.test(error.trim());
+
 export default function Prospecting() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -48,6 +53,7 @@ export default function Prospecting() {
   const [addingId, setAddingId] = useState<number | null>(null);
   const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number } | null>(null);
   const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
+  const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const cancelAddAllRef = useRef(false);
 
   const { toast } = useToast();
@@ -128,6 +134,7 @@ export default function Prospecting() {
     const CHUNK_SIZE = 100;
     let totalAdded = 0;
     let totalUpdated = 0;
+    let totalSkipped = 0;
     let totalFailed = 0;
     let anyRequestSucceeded = false;
     let cancelled = false;
@@ -145,7 +152,7 @@ export default function Prospecting() {
         try {
           const result = await bulkCreateProspects.mutateAsync({
             data: {
-              duplicateStrategy: "update",
+              duplicateStrategy,
               prospects: chunk.map(({ lead }) => ({
                 companyName: lead.companyName,
                 contactName: lead.contactName,
@@ -164,7 +171,13 @@ export default function Prospecting() {
           anyRequestSucceeded = true;
           totalAdded += result.added;
           totalUpdated += result.updated ?? 0;
-          totalFailed += result.failed;
+          if (duplicateStrategy === "skip") {
+            const skippedInChunk = result.results.filter((r) => !r.success && isDuplicateError(r.error)).length;
+            totalSkipped += skippedInChunk;
+            totalFailed += result.failed - skippedInChunk;
+          } else {
+            totalFailed += result.failed;
+          }
           setAdded((prev) => {
             const next = new Set(prev);
             result.results.forEach((r) => {
@@ -180,6 +193,9 @@ export default function Prospecting() {
             result.results.forEach((r) => {
               const idx = chunk[r.index].idx;
               if (r.success) {
+                next.delete(idx);
+              } else if (duplicateStrategy === "skip" && isDuplicateError(r.error)) {
+                // Skipped duplicate — not a failure the user needs to act on.
                 next.delete(idx);
               } else {
                 next.set(idx, r.error || "Could not add prospect");
@@ -199,7 +215,10 @@ export default function Prospecting() {
         setAddAllProgress({ done: Math.min(start + CHUNK_SIZE, pending.length), total: pending.length });
       }
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
-      const addedUpdated = `${totalAdded} added${totalUpdated ? `, ${totalUpdated} updated` : ""}`;
+      const summaryParts = [`${totalAdded} added`];
+      if (totalUpdated) summaryParts.push(`${totalUpdated} updated`);
+      if (totalSkipped) summaryParts.push(`${totalSkipped} skipped`);
+      const addedUpdated = summaryParts.join(", ");
       if (cancelled) {
         const remaining = new Set(
           pending.filter(({ idx }) => !addedThisRun.has(idx)).map(({ idx }) => idx)
@@ -213,7 +232,7 @@ export default function Prospecting() {
         toast({ title: "Failed to add prospects", variant: "destructive" });
       } else if (totalFailed === 0) {
         toast({
-          title: totalUpdated ? "Prospects added and updated" : "All prospects added",
+          title: totalUpdated ? "Prospects added and updated" : totalSkipped ? "Prospects added" : "All prospects added",
           description: `${addedUpdated} in your pipeline.`,
         });
       } else {
@@ -344,6 +363,41 @@ export default function Prospecting() {
                 </span>
               )}
             </div>
+            {leads.length > 0 && !allAdded && (
+              <div className="mt-4 rounded-lg border bg-muted/30 p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">If a prospect already exists in your pipeline</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="add-all-duplicate-strategy"
+                      className="mt-0.5"
+                      checked={duplicateStrategy === "skip"}
+                      onChange={() => setDuplicateStrategy("skip")}
+                      disabled={addAllProgress !== null}
+                    />
+                    <span className="text-sm">
+                      Skip duplicates
+                      <span className="block text-xs text-muted-foreground">Leave existing prospects unchanged</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="add-all-duplicate-strategy"
+                      className="mt-0.5"
+                      checked={duplicateStrategy === "update"}
+                      onChange={() => setDuplicateStrategy("update")}
+                      disabled={addAllProgress !== null}
+                    />
+                    <span className="text-sm">
+                      Update existing
+                      <span className="block text-xs text-muted-foreground">Refresh existing prospects with the latest data</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
