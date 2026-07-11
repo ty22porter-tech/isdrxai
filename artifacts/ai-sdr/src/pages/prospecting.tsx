@@ -61,7 +61,7 @@ export default function Prospecting() {
   const [added, setAdded] = useState<Set<number>>(new Set());
   const [failures, setFailures] = useState<Map<number, string>>(new Map());
   const [addingId, setAddingId] = useState<number | null>(null);
-  const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number } | null>(null);
+  const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number; added: number; updated: number; skipped: number } | null>(null);
   const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [confirmSearchOpen, setConfirmSearchOpen] = useState(false);
@@ -161,7 +161,7 @@ export default function Prospecting() {
     const addedThisRun = new Set<number>();
     cancelAddAllRef.current = false;
     setCancelledRemaining(null);
-    setAddAllProgress({ done: 0, total: pending.length });
+    setAddAllProgress({ done: 0, total: pending.length, added: 0, updated: 0, skipped: 0 });
     try {
       for (let start = 0; start < pending.length; start += CHUNK_SIZE) {
         if (cancelAddAllRef.current) {
@@ -232,7 +232,7 @@ export default function Prospecting() {
             return next;
           });
         }
-        setAddAllProgress({ done: Math.min(start + CHUNK_SIZE, pending.length), total: pending.length });
+        setAddAllProgress({ done: Math.min(start + CHUNK_SIZE, pending.length), total: pending.length, added: totalAdded, updated: totalUpdated, skipped: totalSkipped });
       }
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
       const summaryParts = [`${totalAdded} added`];
@@ -361,6 +361,12 @@ export default function Prospecting() {
                       style={{ width: `${addAllProgress.total ? Math.round((addAllProgress.done / addAllProgress.total) * 100) : 0}%` }}
                     />
                   </div>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    {addAllProgress.added} added
+                    {duplicateStrategy === "update"
+                      ? `, ${addAllProgress.updated} updated`
+                      : `, ${addAllProgress.skipped} skipped`}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
