@@ -113,17 +113,63 @@ function parseCSVRows(text: string): string[][] {
   return rows;
 }
 
-function parseCSV(text: string): Record<string, string>[] {
-  const rows = parseCSVRows(text);
-  if (rows.length < 2) return [];
+type CSVAnalysis =
+  | { ok: false; error: string }
+  | { ok: true; records: Record<string, string>[]; malformed: number };
+
+// Validate + parse a CSV. Rejects non-CSV / binary files (Excel, PDF, etc.) with
+// a clear message, and skips rows whose column count is wildly off from the header
+// so they aren't silently mangled into the wrong fields.
+function analyzeCSV(text: string): CSVAnalysis {
+  const head = text.slice(0, 16);
+  // Binary signatures decoded as text.
+  if (head.startsWith("PK")) {
+    return { ok: false, error: "This looks like an Excel workbook (.xlsx) or a zip file, not a CSV. In Excel, choose File → Save As → CSV, then upload that file." };
+  }
+  if (head.startsWith("%PDF")) {
+    return { ok: false, error: "This looks like a PDF, not a CSV. Please export your prospects to a CSV file and try again." };
+  }
+  if (head.charCodeAt(0) === 0xd0 && head.charCodeAt(1) === 0xcf) {
+    return { ok: false, error: "This looks like an old Excel file (.xls), not a CSV. In Excel, choose File → Save As → CSV, then upload that file." };
+  }
+  if (text.includes("\u0000")) {
+    return { ok: false, error: "This file appears to be binary, not a plain-text CSV. In your spreadsheet app, use Save As → CSV and upload the exported file." };
+  }
+  const replacements = (text.match(/\uFFFD/g) || []).length;
+  if (replacements > 5 && replacements / text.length > 0.02) {
+    return { ok: false, error: "This file doesn't look like a text CSV. Please save it as CSV (comma-separated values) and try again." };
+  }
+
+  const rows = parseCSVRows(text).filter(r => r.some(c => c.trim() !== ""));
+  if (rows.length < 2) {
+    return { ok: false, error: "No data rows found. Make sure your file has a header row and at least one prospect row." };
+  }
+
   const headers = rows[0].map(h => h.trim());
-  return rows.slice(1).map(values => {
+  const headerCount = headers.length;
+  if (headerCount < 2) {
+    return { ok: false, error: "This doesn't look like a comma-separated CSV — the header row has only one column. Make sure columns are separated by commas (not tabs or semicolons)." };
+  }
+
+  const records: Record<string, string>[] = [];
+  let malformed = 0;
+  for (const values of rows.slice(1)) {
+    // A field count wildly different from the header means the row would be
+    // mangled into the wrong columns — flag it instead of importing garbage.
+    if (Math.abs(values.length - headerCount) > 1) { malformed++; continue; }
     const record: Record<string, string> = {};
-    headers.forEach((h, i) => {
-      record[h] = (values[i] ?? "").trim();
-    });
-    return record;
-  }).filter(record => Object.values(record).some(v => v));
+    headers.forEach((h, i) => { record[h] = (values[i] ?? "").trim(); });
+    records.push(record);
+  }
+
+  if (records.length === 0) {
+    return { ok: false, error: "Every row has a different number of columns than the header, so this file can't be read as a valid CSV. Check that your export is properly comma-separated." };
+  }
+  if (malformed > records.length) {
+    return { ok: false, error: `Most rows don't match the header's ${headerCount} columns — this file may not be a valid CSV. Check the delimiter and re-export as CSV.` };
+  }
+
+  return { ok: true, records, malformed };
 }
 
 // Column aliases (ZoomInfo, Apollo, generic)
@@ -188,6 +234,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<ReturnType<typeof mapRow>[]>([]);
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const [progress, setProgress] = useState(0);
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
@@ -202,16 +249,21 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
   const { toast } = useToast();
 
   const handleFile = (file: File) => {
-    setError(""); setRows([]); setDone(false); setProgress(0);
+    setError(""); setWarning(""); setRows([]); setDone(false); setProgress(0);
     const reader = new FileReader();
+    reader.onerror = () => setError("Couldn't read that file. Please try again with a CSV file.");
     reader.onload = e => {
       const text = e.target?.result as string;
-      const parsed = parseCSV(text);
-      if (!parsed.length) { setError("No data rows found. Make sure your CSV has a header row."); return; }
-      const headers = Object.keys(parsed[0]);
-      const mapped = parsed.map(r => mapRow(r, headers)).filter(Boolean) as ReturnType<typeof mapRow>[];
+      const analysis = analyzeCSV(text);
+      if (!analysis.ok) { setError(analysis.error); return; }
+      const { records, malformed } = analysis;
+      const headers = Object.keys(records[0]);
+      const mapped = records.map(r => mapRow(r, headers)).filter(Boolean) as ReturnType<typeof mapRow>[];
       if (!mapped.length) { setError("Couldn't map any rows. Make sure your CSV has Company Name and Email columns."); return; }
       setRows(mapped);
+      if (malformed > 0) {
+        setWarning(`${malformed} row${malformed !== 1 ? "s were" : " was"} skipped because ${malformed !== 1 ? "they had" : "it had"} a different number of columns than the header. The remaining ${mapped.length} look${mapped.length !== 1 ? "" : "s"} good.`);
+      }
     };
     reader.readAsText(file);
   };
@@ -330,7 +382,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setRows([]); setError(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); setDuplicateStrategy("skip"); };
+  const reset = () => { setRows([]); setError(""); setWarning(""); setProgress(0); setDone(false); setImportedCount(0); setUpdatedCount(0); setFailedCount(0); setFailedRows([]); setRetrying(false); setDuplicateStrategy("skip"); };
 
   return (
     <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
@@ -423,6 +475,12 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
               <span className="text-sm font-medium">{rows.length} prospects ready to import</span>
               <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs" onClick={reset}>Clear</Button>
             </div>
+            {warning && (
+              <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                {warning}
+              </div>
+            )}
             <div className="rounded-lg border overflow-hidden max-h-56 overflow-y-auto">
               <Table>
                 <TableHeader>
