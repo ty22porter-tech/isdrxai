@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X } from "lucide-react";
 
 const INDUSTRIES = [
   "Healthcare",
@@ -47,6 +47,7 @@ export default function Prospecting() {
   const [failures, setFailures] = useState<Map<number, string>>(new Map());
   const [addingId, setAddingId] = useState<number | null>(null);
   const [addAllProgress, setAddAllProgress] = useState<{ done: number; total: number } | null>(null);
+  const cancelAddAllRef = useRef(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -120,9 +121,15 @@ export default function Prospecting() {
     let totalAdded = 0;
     let totalFailed = 0;
     let anyRequestSucceeded = false;
+    let cancelled = false;
+    cancelAddAllRef.current = false;
     setAddAllProgress({ done: 0, total: pending.length });
     try {
       for (let start = 0; start < pending.length; start += CHUNK_SIZE) {
+        if (cancelAddAllRef.current) {
+          cancelled = true;
+          break;
+        }
         const chunk = pending.slice(start, start + CHUNK_SIZE);
         try {
           const result = await bulkCreateProspects.mutateAsync({
@@ -176,7 +183,12 @@ export default function Prospecting() {
         setAddAllProgress({ done: Math.min(start + CHUNK_SIZE, pending.length), total: pending.length });
       }
       queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
-      if (!anyRequestSucceeded) {
+      if (cancelled) {
+        toast({
+          title: "Add all cancelled",
+          description: `${totalAdded} prospect${totalAdded !== 1 ? "s" : ""} added before cancelling.${totalFailed ? ` ${totalFailed} failed.` : ""}`,
+        });
+      } else if (!anyRequestSucceeded) {
         toast({ title: "Failed to add prospects", variant: "destructive" });
       } else if (totalFailed === 0) {
         toast({ title: "All prospects added", description: `${totalAdded} prospect${totalAdded !== 1 ? "s" : ""} added to your pipeline.` });
@@ -274,12 +286,22 @@ export default function Prospecting() {
                 </Button>
               )}
               {addAllProgress !== null && (
-                <div className="h-2 w-40 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={addAllProgress.total} aria-valuenow={addAllProgress.done}>
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-300"
-                    style={{ width: `${addAllProgress.total ? Math.round((addAllProgress.done / addAllProgress.total) * 100) : 0}%` }}
-                  />
-                </div>
+                <>
+                  <div className="h-2 w-40 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={addAllProgress.total} aria-valuenow={addAllProgress.done}>
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${addAllProgress.total ? Math.round((addAllProgress.done / addAllProgress.total) * 100) : 0}%` }}
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { cancelAddAllRef.current = true; }}
+                    disabled={cancelAddAllRef.current}
+                  >
+                    <X className="mr-1 h-4 w-4" /> {cancelAddAllRef.current ? "Cancelling..." : "Cancel"}
+                  </Button>
+                </>
               )}
               {leads.length > 0 && (
                 <span className="text-sm text-muted-foreground">
