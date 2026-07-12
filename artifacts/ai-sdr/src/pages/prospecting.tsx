@@ -104,6 +104,13 @@ export default function Prospecting() {
   const [restorable, setRestorable] = useState<ProspectingSnapshot | null>(null);
   const cancelAddAllRef = useRef(false);
   const hydratedRef = useRef(false);
+  // True from the moment hydration finds a restorable snapshot until the user
+  // decides (restore / start fresh / new search). The `restorable` state alone
+  // isn't enough to guard the save effect: on the mount that hydrates, both
+  // effects run in the same commit, so the save effect still sees
+  // restorable === null and would delete the snapshot before the banner even
+  // renders. A ref is updated synchronously, closing that gap.
+  const restorePendingRef = useRef(false);
 
   const { user } = useUser();
   const storageKey = user?.id ? storageKeyForUser(user.id) : null;
@@ -116,6 +123,7 @@ export default function Prospecting() {
   const bulkCreateProspects = useBulkCreateProspects();
 
   const runSearch = () => {
+    restorePendingRef.current = false;
     setRestorable(null);
     setLeads([]);
     setAdded(new Set());
@@ -341,6 +349,7 @@ export default function Prospecting() {
       const tooOld =
         typeof snap?.savedAt === "number" && Date.now() - snap.savedAt > SNAPSHOT_MAX_AGE_MS;
       if (stillUnadded && !tooOld) {
+        restorePendingRef.current = true;
         setRestorable(snap);
       } else {
         localStorage.removeItem(storageKey);
@@ -355,7 +364,7 @@ export default function Prospecting() {
   // nav, refresh, or tab close) doesn't lose it. We hold off while a restore
   // decision is pending so we don't overwrite the saved snapshot first.
   useEffect(() => {
-    if (!hydratedRef.current || !storageKey || restorable) return;
+    if (!hydratedRef.current || !storageKey || restorable || restorePendingRef.current) return;
     if (!hasUnsavedList) {
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
       return;
@@ -415,6 +424,7 @@ export default function Prospecting() {
   const handleRestore = () => {
     const snap = restorable;
     if (!snap) return;
+    restorePendingRef.current = false;
     setCity(snap.params.city);
     setState(snap.params.state);
     setIndustry(snap.params.industry);
@@ -431,6 +441,7 @@ export default function Prospecting() {
   };
 
   const handleStartFresh = () => {
+    restorePendingRef.current = false;
     if (storageKey) {
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     }
