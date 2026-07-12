@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
 
-async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecret?: string }> {
+async function getConnectorCredentials(): Promise<{ secretKey: string; webhookSecret?: string } | null> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? "repl " + process.env.REPL_IDENTITY
@@ -10,36 +10,58 @@ async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecre
       : null;
 
   if (!hostname || !xReplitToken) {
-    throw new Error(
-      "Missing Replit environment variables. Ensure the Stripe integration is connected via the Integrations tab.",
-    );
+    return null;
   }
 
-  const resp = await fetch(
-    `https://${hostname}/api/v2/connection?include_secrets=true&connector_names=stripe`,
-    {
-      headers: { Accept: "application/json", X_REPLIT_TOKEN: xReplitToken },
-      signal: AbortSignal.timeout(10_000),
-    },
+  try {
+    const resp = await fetch(
+      `https://${hostname}/api/v2/connection?include_secrets=true&connector_names=stripe`,
+      {
+        headers: { Accept: "application/json", X_REPLIT_TOKEN: xReplitToken },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+
+    if (!resp.ok) {
+      return null;
+    }
+
+    const data = await resp.json() as { items?: Array<{ settings?: { secret_key?: string; webhook_secret?: string } }> };
+    const settings = data.items?.[0]?.settings;
+
+    if (!settings?.secret_key) {
+      return null;
+    }
+
+    return {
+      secretKey: settings.secret_key,
+      webhookSecret: settings.webhook_secret,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecret?: string }> {
+  // Prefer the Replit Stripe connector when it is bound and serving credentials.
+  const fromConnector = await getConnectorCredentials();
+  if (fromConnector) {
+    return fromConnector;
+  }
+
+  // Fallback: a directly-provided secret key stored as a Replit secret. This is
+  // used when the connector binding is unavailable/stale.
+  const envSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (envSecretKey) {
+    return {
+      secretKey: envSecretKey,
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || undefined,
+    };
+  }
+
+  throw new Error(
+    "Stripe integration not connected or missing secret key. Connect Stripe via the Integrations tab, or set the STRIPE_SECRET_KEY secret.",
   );
-
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch Stripe credentials: ${resp.status} ${resp.statusText}`);
-  }
-
-  const data = await resp.json() as { items?: Array<{ settings?: { secret_key?: string; webhook_secret?: string } }> };
-  const settings = data.items?.[0]?.settings;
-
-  if (!settings?.secret_key) {
-    throw new Error(
-      "Stripe integration not connected or missing secret key. Connect Stripe via the Integrations tab first.",
-    );
-  }
-
-  return {
-    secretKey: settings.secret_key,
-    webhookSecret: settings.webhook_secret,
-  };
 }
 
 export async function getUncachableStripeClient(): Promise<Stripe> {
