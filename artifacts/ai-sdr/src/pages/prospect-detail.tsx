@@ -45,7 +45,7 @@ export default function ProspectDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: prospect, isLoading } = useGetProspect(prospectId, { query: { enabled: !!prospectId } });
+  const { data: prospect, isLoading } = useGetProspect(prospectId, { query: { queryKey: getGetProspectQueryKey(prospectId), enabled: !!prospectId } });
   const { data: emails } = useListEmails({ prospectId });
   const { data: calls } = useListCalls({ prospectId });
   const { data: appointments } = useListAppointments({ status: "scheduled" });
