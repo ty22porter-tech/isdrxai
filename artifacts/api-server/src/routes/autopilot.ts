@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { processAutopilotQueue } from "../lib/autopilotEngine";
 
@@ -54,13 +54,16 @@ router.get("/enrollments", async (req, res) => {
 
 router.post("/enroll", requireEntitlement, async (req, res) => {
   const { campaignId, prospectIds, startNow } = req.body;
-  if (!campaignId || !Array.isArray(prospectIds) || prospectIds.length === 0) {
-    return res.status(400).json({ error: "campaignId and prospectIds required" });
+  if (!Array.isArray(prospectIds) || prospectIds.length === 0) {
+    return res.status(400).json({ error: "prospectIds required" });
   }
 
-  const [campaign] = await db.select().from(campaignsTable)
-    .where(and(eq(campaignsTable.id, campaignId), eq(campaignsTable.clientId, req.clientId)));
-  if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+  // Campaign is optional. Without one, autopilot uses the standard 3-step AI sequence.
+  if (campaignId) {
+    const [campaign] = await db.select().from(campaignsTable)
+      .where(and(eq(campaignsTable.id, campaignId), eq(campaignsTable.clientId, req.clientId)));
+    if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+  }
 
   const client = req.dbUser;
   if (!client.outreachEmail) {
@@ -79,12 +82,14 @@ router.post("/enroll", requireEntitlement, async (req, res) => {
       .where(and(
         eq(autopilotEnrollmentsTable.clientId, req.clientId),
         eq(autopilotEnrollmentsTable.prospectId, prospectId),
-        eq(autopilotEnrollmentsTable.campaignId, campaignId),
+        campaignId
+          ? eq(autopilotEnrollmentsTable.campaignId, campaignId)
+          : isNull(autopilotEnrollmentsTable.campaignId),
       ));
     if (existing.length > 0) continue;
 
     const [enrollment] = await db.insert(autopilotEnrollmentsTable)
-      .values({ clientId: req.clientId, campaignId, prospectId, status: "active", nextSendAt })
+      .values({ clientId: req.clientId, campaignId: campaignId ?? null, prospectId, status: "active", nextSendAt })
       .returning();
     results.push(serializeEnrollment(enrollment));
   }

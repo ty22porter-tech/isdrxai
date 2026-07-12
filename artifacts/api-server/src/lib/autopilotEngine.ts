@@ -158,7 +158,9 @@ export async function processAutopilotQueue(): Promise<void> {
         continue;
       }
 
-      const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, enrollment.campaignId));
+      const [campaign] = enrollment.campaignId
+        ? await db.select().from(campaignsTable).where(eq(campaignsTable.id, enrollment.campaignId))
+        : [undefined];
       const sequence = parseCampaignSequence(campaign?.callScript);
       const totalSteps = sequence.length > 0 ? 1 + sequence.length : 3;
 
@@ -243,9 +245,11 @@ export async function processAutopilotQueue(): Promise<void> {
         .set({ lastContactedAt: sentAt, status: "contacted" })
         .where(eq(prospectsTable.id, prospect.id));
 
-      await db.update(campaignsTable)
-        .set({ emailsSent: db.$count(emailsTable, and(eq(emailsTable.campaignId, enrollment.campaignId))) as any })
-        .where(eq(campaignsTable.id, enrollment.campaignId));
+      if (enrollment.campaignId) {
+        await db.update(campaignsTable)
+          .set({ emailsSent: db.$count(emailsTable, and(eq(emailsTable.campaignId, enrollment.campaignId))) as any })
+          .where(eq(campaignsTable.id, enrollment.campaignId));
+      }
 
     } catch (err: any) {
       await db.update(autopilotEnrollmentsTable)

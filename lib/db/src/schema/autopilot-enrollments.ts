@@ -5,7 +5,7 @@ import { campaignsTable } from "./campaigns";
 export const autopilotEnrollmentsTable = pgTable("autopilot_enrollments", {
   id: serial("id").primaryKey(),
   clientId: text("client_id").notNull(),
-  campaignId: integer("campaign_id").notNull().references(() => campaignsTable.id, { onDelete: "cascade" }),
+  campaignId: integer("campaign_id").references(() => campaignsTable.id, { onDelete: "cascade" }),
   prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("active"),
   currentStep: integer("current_step").notNull().default(0),

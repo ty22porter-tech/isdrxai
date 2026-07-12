@@ -137,7 +137,7 @@ export default function AutopilotPage() {
       apiFetch("/autopilot/enroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaignId: enrollCampaign, prospectIds: selectedProspects, startNow: true }),
+        body: JSON.stringify({ campaignId: enrollCampaign ?? undefined, prospectIds: selectedProspects, startNow: true }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] });
@@ -176,7 +176,7 @@ export default function AutopilotPage() {
             <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-yellow-300 text-sm">Quick setup needed</p>
-              <p className="text-yellow-400/80 text-sm mt-0.5">Add your business name and reply-to email in Settings — takes 30 seconds, no passwords needed.</p>
+              <p className="text-yellow-400/80 text-sm mt-0.5">Add your business name, reply-to email, and business mailing address in Settings — takes 30 seconds, no passwords needed.</p>
               <Link href="/settings">
                 <Button size="sm" variant="outline" className="mt-3 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10">
                   Go to Settings
@@ -338,13 +338,13 @@ export default function AutopilotPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Campaign</label>
+              <label className="text-sm font-medium text-muted-foreground">Campaign (optional)</label>
               <select
                 value={enrollCampaign ?? ""}
-                onChange={e => setEnrollCampaign(Number(e.target.value))}
+                onChange={e => setEnrollCampaign(e.target.value ? Number(e.target.value) : null)}
                 className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="">Select a campaign…</option>
+                <option value="">No campaign — standard 3-step AI sequence</option>
                 {(campaigns as any[]).map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -379,7 +379,7 @@ export default function AutopilotPage() {
               <Button variant="outline" className="flex-1" onClick={() => setEnrollModal(false)}>Cancel</Button>
               <Button
                 className="flex-1"
-                disabled={!enrollCampaign || selectedProspects.length === 0 || enrollMutation.isPending}
+                disabled={selectedProspects.length === 0 || enrollMutation.isPending}
                 onClick={() => enrollMutation.mutate()}
               >
                 {enrollMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting…</> : `Start Autopilot (${selectedProspects.length})`}
