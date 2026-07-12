@@ -8,6 +8,7 @@ import {
   Mail,
   BadgeCheck,
   Building2,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ type Tier = {
   price: string;
   priceNote: string;
   emails: string;
+  users: string;
   tagline: string;
   features: string[];
   popular?: boolean;
@@ -49,13 +51,15 @@ const TIERS: Tier[] = [
   {
     key: "starter",
     productName: "iSDRX Starter",
-    name: "iSDRX Starter",
+    name: "iSDRX AI Starter",
     price: "$249",
     priceNote: "/month",
     emails: "500 AI email sends / month",
+    users: "Includes 1 user",
     tagline: "For solo operators getting their outbound engine running.",
     features: [
       "500 AI email sends per month",
+      "1 User license",
       "1 Sending Domain",
       "CSV Upload",
       "Prospect Search",
@@ -71,15 +75,17 @@ const TIERS: Tier[] = [
   {
     key: "growth",
     productName: "iSDRX Growth",
-    name: "iSDRX Growth",
+    name: "iSDRX AI",
     price: "$499",
     priceNote: "/month",
     emails: "1,000 AI email sends / month",
+    users: "Includes 1 user",
     tagline: "For teams ready to scale multi-step AI outreach.",
     features: [
       "1,000 AI email sends per month",
+      "1 User license",
       "1 Sending Domain",
-      "Everything in Starter",
+      "Everything in iSDRX AI Starter",
       "Advanced AI Personalization",
       "Multi-Step AI Campaigns",
       "Team Dashboard",
@@ -92,15 +98,17 @@ const TIERS: Tier[] = [
   {
     key: "professional",
     productName: "iSDRX Professional",
-    name: "iSDRX Professional",
+    name: "iSDRX AI Growth",
     price: "$799",
     priceNote: "/month",
     emails: "2,500 AI email sends / month",
+    users: "Includes 3 users",
     tagline: "For established sales orgs with serious volume.",
     features: [
       "2,500 AI email sends per month",
+      "3 User licenses",
       "1 Sending Domain",
-      "Everything in Growth",
+      "Everything in iSDRX AI",
       "CRM Integration",
       "API Access",
       "White Glove Support",
@@ -114,9 +122,11 @@ const TIERS: Tier[] = [
     price: "Contact Sales",
     priceNote: "",
     emails: "Unlimited AI email sends",
+    users: "5 or more users",
     tagline: "Custom capacity, integrations, and support at scale.",
     features: [
       "Unlimited AI email sends",
+      "5 or more User licenses",
       "Unlimited Sending Domains",
       "Custom Integrations",
       "Dedicated Customer Success Manager",
@@ -145,6 +155,7 @@ const LAUNCH_PACKAGE_ITEMS = [
 
 const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, string] }> = [
   { label: "AI email sends / month", values: ["500", "1,000", "2,500", "Unlimited"] },
+  { label: "User licenses", values: ["1", "1", "3", "5 or more"] },
   { label: "Sending domains", values: ["1", "1", "1", "Unlimited"] },
   { label: "AI email generation & follow-up", values: ["✓", "✓", "✓", "✓"] },
   { label: "Prospect search & CSV upload", values: ["✓", "✓", "✓", "✓"] },
@@ -160,7 +171,7 @@ const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, s
 const FAQS: Array<{ q: string; a: string }> = [
   {
     q: "How is iSDRX AI priced?",
-    a: "iSDRX AI is licensed per user — not per domain. Each plan covers one user license along with its monthly AI email capacity (the number of AI-generated emails that license can send each month). Need more capacity? Upgrade your plan anytime.",
+    a: "iSDRX AI is licensed per user — not per domain. iSDRX AI Starter and iSDRX AI each include 1 user, iSDRX AI Growth includes 3 users, and Enterprise covers 5 or more users. Each plan also sets your monthly AI email capacity (the number of AI-generated emails you can send each month). Need more capacity or users? Upgrade your plan anytime.",
   },
   {
     q: "How does the 14-day free trial work?",
@@ -305,6 +316,10 @@ export default function Pricing() {
                 <Mail className="w-4 h-4" />
                 {tier.emails}
               </div>
+              <div className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Users className="w-4 h-4 text-primary" />
+                {tier.users}
+              </div>
               <ul className="mt-5 space-y-2.5 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
@@ -367,9 +382,9 @@ export default function Pricing() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="text-left font-semibold p-4">Feature</th>
-                  <th className="text-center font-semibold p-4">Starter</th>
-                  <th className="text-center font-semibold p-4 text-primary">Growth</th>
-                  <th className="text-center font-semibold p-4">Professional</th>
+                  <th className="text-center font-semibold p-4">iSDRX AI Starter</th>
+                  <th className="text-center font-semibold p-4 text-primary">iSDRX AI</th>
+                  <th className="text-center font-semibold p-4">iSDRX AI Growth</th>
                   <th className="text-center font-semibold p-4">Enterprise</th>
                 </tr>
               </thead>
@@ -425,7 +440,7 @@ export default function Pricing() {
             {loadingTier === "growth" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              "Start Free Trial with Growth"
+              "Start Free Trial with iSDRX AI"
             )}
           </Button>
         </div>
