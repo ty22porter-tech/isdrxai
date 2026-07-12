@@ -54,7 +54,7 @@ export function SceneOfferings() {
       </div>
 
       <div className="absolute top-[50%] w-full flex justify-center">
-        <div className="relative w-[80vw] h-[15vw] flex items-center justify-center overflow-hidden border-y border-slate-800 bg-slate-900/30 backdrop-blur-sm">
+        <div className="relative w-[80vw] h-[15vw] flex items-center justify-center overflow-hidden border-y border-slate-800 bg-slate-900/60">
           <motion.div
             key={itemIdx}
             className="text-[6vw] font-black text-accent tracking-tighter"

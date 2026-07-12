@@ -31,8 +31,8 @@ export function SceneClose() {
         <motion.h1
           className="text-[10vw] font-black tracking-tighter text-white leading-none"
           style={{ fontFamily: 'var(--font-display)' }}
-          initial={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
-          animate={phase >= 2 ? { opacity: 1, scale: 1, filter: 'blur(0px)' } : { opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={phase >= 2 ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           iSDRX AI

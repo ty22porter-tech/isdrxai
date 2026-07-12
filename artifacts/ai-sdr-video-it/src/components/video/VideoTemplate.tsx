@@ -112,11 +112,12 @@ export default function VideoTemplate({
 
       {/* Primary Glow */}
       <motion.div
-        className="absolute rounded-full blur-3xl pointer-events-none"
+        className="absolute rounded-full pointer-events-none"
         style={{
           width: '45vw',
           height: '45vw',
-          background: 'radial-gradient(circle, #0EA5E9 0%, transparent 70%)',
+          background: 'radial-gradient(circle, #0EA5E9 0%, transparent 60%)',
+          willChange: 'transform, opacity',
         }}
         animate={{
           x: pos.x,
@@ -129,12 +130,13 @@ export default function VideoTemplate({
 
       {/* Emerald Secondary Glow */}
       <motion.div
-        className="absolute rounded-full blur-3xl pointer-events-none"
+        className="absolute rounded-full pointer-events-none"
         style={{
           width: '30vw',
           height: '30vw',
-          background: 'radial-gradient(circle, #10B981 0%, transparent 70%)',
+          background: 'radial-gradient(circle, #10B981 0%, transparent 60%)',
           opacity: 0.1,
+          willChange: 'transform',
         }}
         animate={{
           x: ['20vw', '65vw', '35vw', '20vw'],

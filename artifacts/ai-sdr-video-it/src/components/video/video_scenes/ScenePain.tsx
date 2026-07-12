@@ -13,9 +13,9 @@ export function ScenePain() {
   return (
     <motion.div
       className="absolute inset-0 flex flex-col items-center justify-center"
-      initial={{ filter: 'blur(20px)', opacity: 0 }}
-      animate={{ filter: 'blur(0px)', opacity: 1 }}
-      exit={{ scale: 1.1, opacity: 0, filter: 'blur(10px)' }}
+      initial={{ scale: 1.06, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 1.1, opacity: 0 }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="relative z-10 text-center px-12">
