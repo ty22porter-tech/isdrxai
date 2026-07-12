@@ -194,9 +194,11 @@ function analyzeCSV(text: string): CSVAnalysis {
   const records: Record<string, string>[] = [];
   const skippedRows: string[][] = [];
   for (const values of rows.slice(headerIdx + 1)) {
-    // A field count wildly different from the header means the row would be
-    // mangled into the wrong columns — flag it instead of importing garbage.
-    if (Math.abs(values.length - headerCount) > 1) {
+    // Any field count that doesn't match the header means the row would be
+    // mangled into the wrong columns — even off by one silently shifts values
+    // into the wrong fields. Flag every mismatch so it can be fixed in-app
+    // instead of importing garbage.
+    if (values.length !== headerCount) {
       // Single-cell notes / trailing summary lines are export noise, not
       // recoverable data — ignore them quietly instead of flagging a skip.
       if (isNoiseLine(values)) continue;
