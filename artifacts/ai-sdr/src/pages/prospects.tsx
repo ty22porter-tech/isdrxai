@@ -73,7 +73,7 @@ function detectDelimiter(text: string): CSVDelimiter {
   return best;
 }
 
-function parseCSVRows(text: string, delimiter: CSVDelimiter = ","): string[][] {
+export function parseCSVRows(text: string, delimiter: CSVDelimiter = ","): string[][] {
   const rows: string[][] = [];
   let field = "";
   let row: string[] = [];
@@ -149,7 +149,7 @@ type CSVAnalysis =
 // Validate + parse a CSV. Rejects non-CSV / binary files (Excel, PDF, etc.) with
 // a clear message, and skips rows whose column count is wildly off from the header
 // so they aren't silently mangled into the wrong fields.
-function analyzeCSV(text: string): CSVAnalysis {
+export function analyzeCSV(text: string): CSVAnalysis {
   const head = text.slice(0, 16);
   // Binary signatures decoded as text.
   if (head.startsWith("PK")) {
