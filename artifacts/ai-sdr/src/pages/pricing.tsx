@@ -160,7 +160,7 @@ const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, s
 const FAQS: Array<{ q: string; a: string }> = [
   {
     q: "How is iSDRX AI priced?",
-    a: "iSDRX AI is licensed by monthly AI email capacity — the number of AI-generated emails your account can send each month — not by the number of users. Invite your whole team at no extra cost; you only pay for sending capacity.",
+    a: "iSDRX AI is licensed per user — not per domain. Each plan covers one user license along with its monthly AI email capacity (the number of AI-generated emails that license can send each month). Need more capacity? Upgrade your plan anytime.",
   },
   {
     q: "How does the 14-day free trial work?",
@@ -246,13 +246,13 @@ export default function Pricing() {
         <div className="text-center space-y-4 pt-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm text-primary font-medium">
             <Mail className="w-4 h-4" />
-            Licensed by AI email capacity — not user count
+            Licensed per user — not per domain
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
             Simple pricing that scales with your outreach
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Every plan includes your entire team. Pick the monthly AI email capacity you need —
+            Each plan is licensed per user. Pick the monthly AI email capacity you need —
             upgrade anytime as your pipeline grows.
           </p>
         </div>
@@ -393,7 +393,7 @@ export default function Pricing() {
             </table>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            All plans include unlimited team members. Pricing is based on monthly AI email capacity only.
+            Plans are licensed per user — not per domain — with pricing based on monthly AI email capacity.
           </p>
         </div>
 

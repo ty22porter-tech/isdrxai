@@ -176,8 +176,8 @@ export default function Billing() {
             <div>
               <div className="font-semibold text-lg">Choose your plan</div>
               <div className="text-muted-foreground text-sm mt-1">
-                Plans start at $249/month with a 14-day free trial — licensed by monthly AI email
-                capacity, not user count.
+                Plans start at $249/month with a 14-day free trial — licensed per user,
+                not per domain.
               </div>
             </div>
             <Link href="/pricing">
