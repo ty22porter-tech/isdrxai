@@ -120,11 +120,12 @@ export default function VideoTemplate({
 
         {/* Persistent background glow */}
         <motion.div
-          className="absolute rounded-full blur-3xl pointer-events-none"
+          className="absolute rounded-full pointer-events-none"
           style={{
             width: '40vw',
             height: '40vw',
-            background: 'radial-gradient(circle, #2563EB 0%, transparent 70%)',
+            background: 'radial-gradient(circle, #2563EB 0%, transparent 60%)',
+            willChange: 'transform, opacity',
           }}
           animate={{
             x: pos.x,
@@ -137,12 +138,13 @@ export default function VideoTemplate({
 
         {/* Cyan secondary glow — always drifts */}
         <motion.div
-          className="absolute rounded-full blur-3xl pointer-events-none"
+          className="absolute rounded-full pointer-events-none"
           style={{
             width: '25vw',
             height: '25vw',
-            background: 'radial-gradient(circle, #38BDF8 0%, transparent 70%)',
+            background: 'radial-gradient(circle, #38BDF8 0%, transparent 60%)',
             opacity: 0.08,
+            willChange: 'transform',
           }}
           animate={{
             x: ['15vw', '60vw', '30vw', '15vw'],

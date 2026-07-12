@@ -19,7 +19,7 @@ export function SceneClose() {
       className="absolute inset-0 flex flex-col items-center justify-center text-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.05, filter: 'blur(8px)', transition: { duration: 0.6 } }}
+      exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.6 } }}
       transition={{ duration: 0.4 }}
     >
       {/* Expanding ring */}
@@ -70,8 +70,8 @@ export function SceneClose() {
       <motion.p
         className="mt-[1.5vh] font-medium"
         style={{ fontSize: '2.2vw', color: '#38BDF8', fontFamily: 'var(--font-display)' }}
-        initial={{ opacity: 0, filter: 'blur(10px)' }}
-        animate={phase >= 2 ? { opacity: 1, filter: 'blur(0px)' } : { opacity: 0, filter: 'blur(10px)' }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={phase >= 2 ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
         transition={{ duration: 0.5, delay: 0.15 }}
       >
         Outreach on autopilot.
