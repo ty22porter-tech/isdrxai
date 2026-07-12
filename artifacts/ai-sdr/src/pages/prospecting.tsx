@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey } from "@workspace/api-client-react";
+import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -317,6 +317,9 @@ export default function Prospecting() {
   };
 
   const allAdded = leads.length > 0 && leads.every((_, idx) => added.has(idx));
+  // Leads known to already exist in the pipeline but not added from this list.
+  // Kept separate from `added` so the "N of M added" summary never double-counts.
+  const skippedNotAdded = [...skipped].filter((idx) => !added.has(idx)).length;
   const hasRemaining = (cancelledRemaining?.size ?? 0) > 0;
   const hasUnaddedLeads = leads.length > 0 && leads.some((_, idx) => !added.has(idx));
   const hasUnsavedList = hasUnaddedLeads || hasRemaining;
@@ -374,6 +377,41 @@ export default function Prospecting() {
     ? restorable.leads.filter((_, i) => !restorable.added.includes(i)).length
     : 0;
 
+  // After restoring a saved list, check the current pipeline for prospects that
+  // were added elsewhere (another page, another device) since the snapshot was
+  // saved. Matching mirrors the server's duplicate check: email, trimmed and
+  // lowercased. Matches are marked "Already in pipeline" (skipped) — never
+  // "added" — so the "N of M added" summary only counts adds made from this
+  // list. If the pipeline fetch fails we leave the restored state as-is; the
+  // server-side duplicate handling still catches any re-add attempts.
+  const reconcileWithPipeline = async (snapLeads: ProspectLead[], snapAdded: Set<number>) => {
+    let prospects: { email: string }[];
+    try {
+      prospects = await queryClient.fetchQuery(getListProspectsQueryOptions());
+    } catch {
+      return;
+    }
+    const pipelineEmails = new Set(prospects.map((p) => p.email.trim().toLowerCase()));
+    const inPipeline = snapLeads
+      .map((lead, idx) => ({ lead, idx }))
+      .filter(({ lead, idx }) => !snapAdded.has(idx) && pipelineEmails.has(lead.email.trim().toLowerCase()))
+      .map(({ idx }) => idx);
+    if (!inPipeline.length) return;
+    setSkipped((prev) => new Set([...prev, ...inPipeline]));
+    setFailures((prev) => {
+      if (!inPipeline.some((idx) => prev.has(idx))) return prev;
+      const next = new Map(prev);
+      inPipeline.forEach((idx) => next.delete(idx));
+      return next;
+    });
+    setCancelledRemaining((prev) => {
+      if (!prev || !inPipeline.some((idx) => prev.has(idx))) return prev;
+      const next = new Set(prev);
+      inPipeline.forEach((idx) => next.delete(idx));
+      return next.size > 0 ? next : null;
+    });
+  };
+
   const handleRestore = () => {
     const snap = restorable;
     if (!snap) return;
@@ -382,12 +420,14 @@ export default function Prospecting() {
     setIndustry(snap.params.industry);
     setCount(snap.params.count);
     setLeads(snap.leads);
-    setAdded(new Set(snap.added));
+    const addedSet = new Set(snap.added);
+    setAdded(addedSet);
     setSkipped(new Set(snap.skipped));
     setFailures(new Map(snap.failures));
     setCancelledRemaining(snap.cancelledRemaining && snap.cancelledRemaining.length ? new Set(snap.cancelledRemaining) : null);
     setDuplicateStrategy(snap.duplicateStrategy);
     setRestorable(null);
+    void reconcileWithPipeline(snap.leads, addedSet);
   };
 
   const handleStartFresh = () => {
@@ -584,6 +624,7 @@ export default function Prospecting() {
               {leads.length > 0 && (
                 <span className="text-sm text-muted-foreground">
                   {added.size} of {leads.length} added
+                  {skippedNotAdded > 0 ? ` · ${skippedNotAdded} already in pipeline` : ""}
                 </span>
               )}
               {hasRemaining && addAllProgress === null && (

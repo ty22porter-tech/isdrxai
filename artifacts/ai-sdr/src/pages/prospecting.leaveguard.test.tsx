@@ -49,6 +49,9 @@ vi.mock("@workspace/api-client-react", () => ({
   }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
   getListProspectsQueryKey: () => ["prospects"],
+  // Restore reconciles against the pipeline; an empty pipeline leaves the
+  // restored state untouched, which is what these guard tests rely on.
+  getListProspectsQueryOptions: () => ({ queryKey: ["prospects"], queryFn: async () => [] }),
 }));
 
 import Prospecting from "./prospecting";
