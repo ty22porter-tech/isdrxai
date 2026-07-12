@@ -28,11 +28,15 @@ This was briefly disabled (routed to client inbox) then re-enabled at the client
 **Reliability caveat (state clearly, do NOT silently "fix"):** auto reply-detection only
 fires while the app is running when the reply arrives. Real data lives in the DEV DB and
 the dev webhook points at the ephemeral preview URL — so replies that land while the
-workspace is asleep are missed. Resend also fans out `email.received` to any prod webhook
-too, but prod is a SEPARATE empty DB so its copy just no-ops (harmless). True 24/7 requires
-running the real operation from the always-on prod deployment (data must live in prod).
-**Only fires for ENROLLED prospects.** A manually-emailed prospect with no live enrollment:
-the reply is logged + forwarded to `outreachEmail`, but no auto-scheduling email is sent.
+workspace is asleep are missed. Resend fans out `email.received` to BOTH dev and prod
+webhooks. As of July 2026 the user operates the LIVE app: prod DB now holds real
+clients/prospects, so the prod copy of a reply is the one that matters — diagnose against
+`environment:"production"` first, not dev. Code fixes only reach prod after a republish.
+**Non-enrolled prospects ARE covered (July 2026):** a verified POSITIVE reply from a
+prospect with no live enrollment auto-creates a minimal enrollment in `replied` state so
+the engine's replied→Calendly branch sends the scheduling email through the same
+idempotent path. Non-positive tones intentionally create NO row (would clog the engine's
+limit-10 `replied` scan). The client-copy forward email always sends — by design.
 **Recover a swallowed reply:** GET `api.resend.com/emails/receiving?limit=N` to list
 inbound, `/emails/receiving/<id>` for the body; forward via POST `/emails`.
 

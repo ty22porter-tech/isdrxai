@@ -230,6 +230,23 @@ export async function handleResendWebhookEvent(event: {
           replyTone: tone,
         })
         .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
+    } else if (tone === "positive") {
+      // The prospect was emailed outside an autopilot sequence (manual/one-off
+      // send), so there is no enrollment to advance — but a verified positive
+      // reply should still trigger the scheduling email. Create a minimal
+      // enrollment in "replied" state so processAutopilotQueue() picks it up
+      // and sends the questionnaire + Calendly email through the same
+      // idempotent path (atomic claim, CAN-SPAM checks) as sequenced prospects.
+      // Only positive tones get a row: the engine ignores non-positive
+      // "replied" rows, and letting them accumulate would clog its scan.
+      await db.insert(autopilotEnrollmentsTable).values({
+        clientId: prospect.clientId,
+        prospectId: prospect.id,
+        status: "replied",
+        repliedAt: new Date(),
+        replyContent: replyText,
+        replyTone: tone,
+      });
     }
 
     await db.insert(activityTable).values({
