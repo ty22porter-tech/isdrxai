@@ -44,9 +44,9 @@ async function getLaunchPackagePriceId(): Promise<string | null> {
 }
 
 const SUBSCRIPTION_PLAN_NAMES = new Set([
-  "iSDRX Starter",
-  "iSDRX Growth",
-  "iSDRX Professional",
+  "iSDRX AI Starter",
+  "iSDRX AI",
+  "iSDRX AI Growth",
 ]);
 
 async function isAllowedPlanPrice(priceId: string): Promise<boolean> {

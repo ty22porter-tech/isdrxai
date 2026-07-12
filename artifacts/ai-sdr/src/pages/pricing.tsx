@@ -50,7 +50,7 @@ type Tier = {
 const TIERS: Tier[] = [
   {
     key: "starter",
-    productName: "iSDRX Starter",
+    productName: "iSDRX AI Starter",
     name: "iSDRX AI Starter",
     price: "$249",
     priceNote: "/month",
@@ -74,7 +74,7 @@ const TIERS: Tier[] = [
   },
   {
     key: "growth",
-    productName: "iSDRX Growth",
+    productName: "iSDRX AI",
     name: "iSDRX AI",
     price: "$499",
     priceNote: "/month",
@@ -97,7 +97,7 @@ const TIERS: Tier[] = [
   },
   {
     key: "professional",
-    productName: "iSDRX Professional",
+    productName: "iSDRX AI Growth",
     name: "iSDRX AI Growth",
     price: "$799",
     priceNote: "/month",

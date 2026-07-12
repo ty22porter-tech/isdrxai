@@ -15,8 +15,8 @@ When rebranding this workspace (current brand: **iSDRX AI**), a plain `rg "OldBr
 
 **Why:** the initial rebrand pass missed the `.replit-artifact` titles precisely because the dir is hidden; a `--hidden` full-repo `rg` is the reliable final check.
 
-## Plan display names ≠ Stripe product names (intentional)
-Pricing tiers show marketing names ("iSDRX AI Starter" / "iSDRX AI" / "iSDRX AI Growth") while `TIERS[].productName` keeps the live Stripe product names ("iSDRX Starter"/"iSDRX Growth"/"iSDRX Professional"). Checkout looks up prices by `product.name` and the api-server whitelists those names — do NOT "fix" the mismatch by renaming `productName`. Stripe-hosted checkout/receipts still show the legacy names; renaming would require a coordinated Stripe + whitelist + frontend change.
+## Plan names are coupled across 3 places (rename in lockstep)
+Live Stripe product names, `TIERS[].productName` in pricing.tsx, and the api-server SUBSCRIPTION_PLAN_NAMES whitelist must all match EXACTLY — checkout looks up prices by `product.name`. Current names (renamed via Stripe API July 2026): "iSDRX AI Starter" / "iSDRX AI" / "iSDRX AI Growth". Any future rename must update all three in one release; renaming the Stripe product is safe for existing subscriptions (they reference product IDs). Local `stripe.products` table re-syncs via webhook/startup backfill.
 
 ## Stripe live-product rename caveat
 Changing the product name in `artifacts/api-server/src/seed-products.ts` does NOT rename the already-created live Stripe product. Seeding matches/creates by name, so a new name creates a **second** product lineage rather than renaming the old one. To rebrand the live product the user must rename it in the Stripe dashboard/API (or map old→new IDs explicitly). Flag this to the user; do not silently reseed.
