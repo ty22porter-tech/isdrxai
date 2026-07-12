@@ -140,6 +140,7 @@ export default function Admin() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [codeLabel, setCodeLabel] = useState("");
   const [codeDays, setCodeDays] = useState("14");
+  const [codeUnlimited, setCodeUnlimited] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const { data: meData, isLoading: meLoading } = useQuery({
@@ -354,16 +355,27 @@ export default function Admin() {
             <div className="w-full sm:w-28">
               <label className="text-xs uppercase tracking-wide text-muted-foreground">Trial days</label>
               <input
-                value={codeDays}
+                value={codeUnlimited ? "" : codeDays}
                 onChange={(e) => setCodeDays(e.target.value.replace(/[^0-9]/g, ""))}
                 inputMode="numeric"
-                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                disabled={codeUnlimited}
+                placeholder={codeUnlimited ? "∞" : undefined}
+                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap cursor-pointer sm:pb-2.5">
+              <input
+                type="checkbox"
+                checked={codeUnlimited}
+                onChange={(e) => setCodeUnlimited(e.target.checked)}
+                className="accent-primary w-4 h-4"
+              />
+              Unlimited (never expires)
+            </label>
             <Button
               className="gap-1.5"
               disabled={generateMutation.isPending}
-              onClick={() => generateMutation.mutate({ label: codeLabel.trim(), trialDays: Number(codeDays) || 14 })}
+              onClick={() => generateMutation.mutate({ label: codeLabel.trim(), trialDays: codeUnlimited ? 0 : Number(codeDays) || 14 })}
             >
               {generateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Generate code
@@ -399,7 +411,7 @@ export default function Admin() {
                   </button>
                   {c.label && <div className="text-muted-foreground text-xs mt-0.5 truncate">{c.label}</div>}
                 </div>
-                <div className="text-muted-foreground text-xs whitespace-nowrap">{c.trialDays}d</div>
+                <div className="text-muted-foreground text-xs whitespace-nowrap">{c.trialDays === 0 ? "Unlimited" : `${c.trialDays}d`}</div>
                 <div className="whitespace-nowrap">
                   {c.redeemedBy
                     ? <span className="text-xs text-muted-foreground">Used{c.redeemedAt ? ` · ${new Date(c.redeemedAt).toLocaleDateString()}` : ""}</span>

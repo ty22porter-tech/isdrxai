@@ -34,7 +34,10 @@ router.post("/redeem", async (req, res) => {
   if (tc.redeemedBy) return res.status(409).json({ error: "already_redeemed", message: "That code has already been used." });
 
   const now = new Date();
-  const trialEndsAt = new Date(now.getTime() + tc.trialDays * 24 * 60 * 60 * 1000);
+  // trialDays === 0 means the code never expires (used for internal live testing).
+  const trialEndsAt = tc.trialDays === 0
+    ? new Date("2999-12-31T00:00:00Z")
+    : new Date(now.getTime() + tc.trialDays * 24 * 60 * 60 * 1000);
 
   // Claim the code and grant the trial atomically. The claim's WHERE only matches
   // while the code is still unredeemed, so two clients racing on the same code
@@ -56,7 +59,7 @@ router.post("/redeem", async (req, res) => {
     throw err;
   }
 
-  res.json({ ok: true, trialEndsAt: trialEndsAt.toISOString(), trialDays: tc.trialDays });
+  return res.json({ ok: true, trialEndsAt: trialEndsAt.toISOString(), trialDays: tc.trialDays });
 });
 
 // Admin: list all trial codes (newest first).
@@ -75,8 +78,12 @@ router.get("/", requireAdmin, async (_req, res) => {
 router.post("/", requireAdmin, async (req, res) => {
   const label = typeof req.body?.label === "string" ? req.body.label.trim() || null : null;
   let trialDays = Number(req.body?.trialDays);
-  if (!Number.isFinite(trialDays) || trialDays < 1) trialDays = 14;
-  trialDays = Math.min(Math.floor(trialDays), 365);
+  if (trialDays === 0) {
+    // 0 = unlimited (never expires) — admin-only option for live testing.
+  } else {
+    if (!Number.isFinite(trialDays) || trialDays < 1) trialDays = 14;
+    trialDays = Math.min(Math.floor(trialDays), 365);
+  }
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateCode();
@@ -90,7 +97,7 @@ router.post("/", requireAdmin, async (req, res) => {
       return res.json({ ...c, createdAt: c.createdAt.toISOString(), redeemedAt: null });
     }
   }
-  res.status(500).json({ error: "generate_failed", message: "Couldn't generate a unique code, please try again." });
+  return res.status(500).json({ error: "generate_failed", message: "Couldn't generate a unique code, please try again." });
 });
 
 export default router;

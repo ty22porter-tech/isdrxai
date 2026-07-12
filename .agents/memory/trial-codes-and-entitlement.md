@@ -31,3 +31,8 @@ user can hit the ungated twin. Any new paid generation/prospect endpoint must ca
   failed grant rolls back the claim (code is never burned without granting the trial).
 - Admin generate/list gated by `requireAdmin`; code format `TRIAL-XXXXXXXX` (ambiguous
   chars 0/O/1/I/L excluded), default 14 days.
+- **Unlimited codes:** `trialDays = 0` is the sentinel for "never expires" (redeem sets
+  `trialEndsAt` = 2999-12-31; entitlement's time check then always passes). Admin-only;
+  owner uses these to test the live product for free across all plans. Billing UI treats
+  trials ending >50 years out as unlimited (display heuristic only — don't rely on it
+  server-side). Trials are plan-independent: any trial = full access on every tier.

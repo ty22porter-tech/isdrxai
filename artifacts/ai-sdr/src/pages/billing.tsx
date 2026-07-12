@@ -59,7 +59,7 @@ export default function Billing() {
         body: JSON.stringify({ code: c }),
       }),
     onSuccess: (data) => {
-      toast({ title: "Free trial activated!", description: `You have full access for ${data.trialDays} days.` });
+      toast({ title: "Free trial activated!", description: data.trialDays === 0 ? "You have full access with no expiration." : `You have full access for ${data.trialDays} days.` });
       setCode("");
       qc.invalidateQueries({ queryKey: ["subscription"] });
       qc.invalidateQueries({ queryKey: ["me"] });
@@ -71,6 +71,8 @@ export default function Billing() {
   const subscription = subData?.subscription;
   const trialEndsAt = subData?.trialEndsAt ? new Date(subData.trialEndsAt) : null;
   const trialActive = trialEndsAt ? trialEndsAt.getTime() > Date.now() : false;
+  // Trials ending more than ~50 years out are "unlimited" test-access trials.
+  const trialUnlimited = trialActive && trialEndsAt!.getTime() - Date.now() > 50 * 365 * 86400000;
   const trialDaysLeft = trialActive ? Math.ceil((trialEndsAt!.getTime() - Date.now()) / 86400000) : 0;
 
   return (
@@ -97,8 +99,8 @@ export default function Billing() {
             <div className="flex items-start gap-3 bg-sky-500/10 border border-sky-500/30 rounded-lg p-4">
               <Sparkles className="w-5 h-5 text-sky-400 mt-0.5 shrink-0" />
               <div>
-                <div className="font-semibold text-sky-300">Free trial active — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</div>
-                <div className="text-muted-foreground text-sm mt-1">Full access through {trialEndsAt!.toLocaleDateString()}. Subscribe before then to keep your account running.</div>
+                <div className="font-semibold text-sky-300">{trialUnlimited ? "Free trial active — no expiration" : `Free trial active — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`}</div>
+                <div className="text-muted-foreground text-sm mt-1">{trialUnlimited ? "You have full access with no end date." : `Full access through ${trialEndsAt!.toLocaleDateString()}. Subscribe before then to keep your account running.`}</div>
               </div>
             </div>
           )}
