@@ -19,6 +19,7 @@ import Calls from "@/pages/calls";
 import Prospecting from "@/pages/prospecting";
 import Sequences from "@/pages/sequences";
 import Billing from "@/pages/billing";
+import Pricing from "@/pages/pricing";
 import Admin from "@/pages/admin";
 import Home from "@/pages/home";
 import Settings from "@/pages/settings";
@@ -227,6 +228,7 @@ function AppRoutes() {
             <Route path="/prospecting" component={() => <ProtectedRoute component={Prospecting} />} />
             <Route path="/sequences" component={() => <ProtectedRoute component={Sequences} />} />
             <Route path="/billing" component={() => <ProtectedRoute component={Billing} />} />
+            <Route path="/pricing" component={() => <ProtectedRoute component={Pricing} />} />
             <Route path="/admin" component={() => <ProtectedRoute component={Admin} />} />
             <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
             <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} />} />

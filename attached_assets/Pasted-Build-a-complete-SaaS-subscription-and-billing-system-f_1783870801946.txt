@@ -1,0 +1,209 @@
+Build a complete SaaS subscription and billing system for iSDRX AI using Stripe.
+
+Pricing Model
+
+The iSDRX AI platform is licensed based on monthly email sends, not the number of users.
+
+All plans include a 14-Day Free Trial.
+
+All customers are required to purchase the AI Sales Launch Package for $995 during checkout.
+
+The onboarding package is mandatory and cannot be removed.
+
+14-Day Free Trial
+Every new customer receives a 14-day free trial.
+All platform features for the selected plan are available during the trial.
+Collect a credit card during sign-up.
+Automatically convert the account to the selected paid subscription after the trial unless cancelled.
+Send automated reminder emails:
+7 days remaining
+3 days remaining
+1 day remaining
+Trial expired / Subscription activated
+Subscription Plans
+iSDRX Starter
+
+$249/month
+
+Includes:
+
+500 AI email sends per month
+(1) Sending Domain
+CSV Upload
+Prospect Search
+AI Email Generation
+AI Follow-Up
+Basic CRM
+Appointment Booking
+Dashboard
+Email Support
+iSDRX Growth (Recommended)
+
+$499/month
+
+Includes:
+
+1,000 AI email sends per month
+(1) Sending Domain
+Everything included in Starter
+Advanced AI Personalization
+Multi-Step AI Campaigns
+Team Dashboard
+Pipeline Reporting
+Priority Support
+
+Display this plan with a "Most Popular" badge.
+
+iSDRX Professional
+
+$799/month
+
+Includes:
+
+2,500 AI email sends per month
+(1) Sending Domain
+Everything included in Growth
+CRM Integration
+API Access
+White Glove Support
+Enterprise
+
+Contact Sales
+
+Includes:
+
+Unlimited AI email sends
+Unlimited Sending Domains
+Custom Integrations
+Dedicated Customer Success Manager
+Custom AI Training
+Single Sign-On (SSO)
+SLA Support
+AI Sales Launch Package (Required)
+
+Every customer purchasing iSDRX AI must purchase the mandatory implementation package.
+
+Price:
+
+$995 (One-Time Required Fee)
+
+Display as:
+
+AI Sales Launch Package
+
+The package includes:
+
+Account Configuration
+Domain Configuration
+DNS Authentication (SPF, DKIM, DMARC)
+Email Platform Configuration
+Calendar Integration
+ICP Development
+AI Prompt Customization
+Sales Workflow Configuration
+Initial Campaign Setup
+CRM Configuration
+Live Implementation Session
+Customer Training
+
+This package is required for every subscription.
+
+Email Usage
+
+Track monthly email usage for every account.
+
+Display:
+
+Emails Used
+Emails Remaining
+Monthly Limit
+Usage Percentage
+
+Show progress bars throughout the application.
+
+Automatically reset usage at the beginning of each billing cycle.
+
+If customers reach their monthly email allowance:
+
+Notify them by email and within the application.
+Recommend upgrading to the next subscription tier.
+Prevent additional sends until the billing cycle resets or the customer upgrades.
+Payment Processing
+
+Use Stripe Checkout.
+
+Support:
+
+Monthly subscriptions
+Required one-time AI Sales Launch Package
+Coupon Codes
+Promotional Discounts
+Automatic Invoicing
+Tax Calculations (where supported)
+Secure Customer Billing Portal
+
+The initial checkout should charge:
+
+AI Sales Launch Package ($995)
+First monthly subscription payment (or begin billing automatically after the free trial if configured)
+Customer Portal
+
+Allow customers to:
+
+Update payment methods
+View invoices
+Download receipts
+Upgrade plans
+Downgrade plans
+Cancel subscriptions
+Restart subscriptions
+Trial Logic
+
+When a customer signs up:
+
+Create a Stripe Customer
+Create the subscription
+Begin the 14-day trial
+Store:
+Stripe Customer ID
+Subscription ID
+Trial Start Date
+Trial End Date
+Subscription Status
+
+Display a dashboard banner showing:
+
+Days remaining in trial
+Upgrade information
+Trial expiration date
+
+When the trial expires:
+
+Automatically activate the paid subscription.
+If payment fails, notify the customer and provide a grace period before restricting email sending.
+Admin Dashboard
+
+Create an executive dashboard displaying:
+
+Monthly Recurring Revenue (MRR)
+Annual Recurring Revenue (ARR)
+Active Customers
+Trial Customers
+Trial Conversion Rate
+Churn Rate
+Monthly Revenue
+Lifetime Customer Value (LTV)
+Email Usage by Customer
+Total Emails Sent
+Average Emails Sent per Customer
+Top Customers by Usage
+Authentication
+
+Require registration before beginning the free trial.
+
+Support:
+
+Email/Password Login
+Password Reset
+Email Verification
+Database

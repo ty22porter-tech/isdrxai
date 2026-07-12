@@ -22,12 +22,73 @@ router.get("/subscription", async (req, res) => {
   }
 });
 
+const LAUNCH_PACKAGE_NAME = "AI Sales Launch Package";
+let launchPackagePriceId: string | null = null;
+
+async function getLaunchPackagePriceId(): Promise<string | null> {
+  if (launchPackagePriceId) return launchPackagePriceId;
+  try {
+    const stripe = await getUncachableStripeClient();
+    const products = await stripe.products.search({
+      query: `name:'${LAUNCH_PACKAGE_NAME}' AND active:'true'`,
+    });
+    const product = products.data[0];
+    if (!product) return null;
+    const prices = await stripe.prices.list({ product: product.id, active: true });
+    const oneTime = prices.data.find((p) => !p.recurring);
+    launchPackagePriceId = oneTime?.id ?? null;
+    return launchPackagePriceId;
+  } catch {
+    return null;
+  }
+}
+
+const SUBSCRIPTION_PLAN_NAMES = new Set([
+  "iSDRX Starter",
+  "iSDRX Growth",
+  "iSDRX Professional",
+]);
+
+async function isAllowedPlanPrice(priceId: string): Promise<boolean> {
+  try {
+    const stripe = await getUncachableStripeClient();
+    const price = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+    if (!price.active || price.recurring?.interval !== "month") return false;
+    const product = price.product;
+    if (typeof product === "string" || product.deleted) return false;
+    return product.active === true && SUBSCRIPTION_PLAN_NAMES.has(product.name);
+  } catch {
+    return false;
+  }
+}
+
 router.post("/checkout", async (req, res) => {
   const { priceId } = req.body;
-  if (!priceId) return res.status(400).json({ error: "priceId required" });
+  if (!priceId || typeof priceId !== "string") {
+    return res.status(400).json({ error: "priceId required" });
+  }
+
+  if (!(await isAllowedPlanPrice(priceId))) {
+    return res.status(400).json({ error: "Invalid plan selected" });
+  }
 
   const user = req.dbUser;
   const stripe = await getUncachableStripeClient();
+
+  // Existing subscribers manage plan changes through the billing portal —
+  // never through a fresh checkout (which would grant another trial).
+  if (user.stripeSubscriptionId) {
+    try {
+      const existing = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      if (existing.status === "active" || existing.status === "trialing" || existing.status === "past_due") {
+        return res.status(400).json({
+          error: "You already have a subscription. Use the billing portal to change plans.",
+        });
+      }
+    } catch {
+      // Subscription no longer exists in Stripe — allow a new checkout.
+    }
+  }
 
   let customerId = user.stripeCustomerId;
   if (!customerId) {
@@ -39,14 +100,35 @@ router.post("/checkout", async (req, res) => {
     customerId = customer.id;
   }
 
+  const lineItems: Array<{ price: string; quantity: number }> = [
+    { price: priceId, quantity: 1 },
+  ];
+
+  // The AI Sales Launch Package is a mandatory one-time fee for every new
+  // subscriber. If it can't be resolved, fail the checkout rather than
+  // silently dropping the required fee.
+  const isNewSubscriber = !user.stripeSubscriptionId;
+  if (isNewSubscriber) {
+    const packagePriceId = await getLaunchPackagePriceId();
+    if (!packagePriceId) {
+      return res.status(500).json({
+        error: "Checkout is temporarily unavailable. Please try again shortly.",
+      });
+    }
+    lineItems.push({ price: packagePriceId, quantity: 1 });
+  }
+
   const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     payment_method_types: ["card"],
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: lineItems,
     mode: "subscription",
-    success_url: `${baseUrl}/?checkout=success`,
-    cancel_url: `${baseUrl}/billing`,
+    // Only first-time subscribers get the 14-day free trial.
+    ...(isNewSubscriber ? { subscription_data: { trial_period_days: 14 } } : {}),
+    allow_promotion_codes: true,
+    success_url: `${baseUrl}/billing?checkout=success`,
+    cancel_url: `${baseUrl}/pricing`,
   });
 
   res.json({ url: session.url });

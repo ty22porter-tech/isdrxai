@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useUser } from "@clerk/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2, Ticket, Sparkles } from "lucide-react";
+import { CreditCard, AlertCircle, ExternalLink, Loader2, Ticket, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/layout";
@@ -37,17 +38,11 @@ export default function Billing() {
   const { user } = useUser();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [code, setCode] = useState("");
 
   const { data: subData } = useQuery({
     queryKey: ["subscription"],
     queryFn: () => apiFetch("/stripe/subscription"),
-  });
-
-  const { data: productsData } = useQuery({
-    queryKey: ["products"],
-    queryFn: () => apiFetch("/stripe/products"),
   });
 
   const portalMutation = useMutation({
@@ -72,25 +67,8 @@ export default function Billing() {
     onError: (err: Error) => toast({ title: "Couldn't redeem code", description: err.message, variant: "destructive" }),
   });
 
-  const handleCheckout = async (priceId: string) => {
-    setLoadingCheckout(true);
-    try {
-      const data = await apiFetch("/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
-      });
-      if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast({ title: "Couldn't start checkout", description: err?.message ?? "Please try again.", variant: "destructive" });
-    } finally {
-      setLoadingCheckout(false);
-    }
-  };
-
   const status = subData?.status ?? "trialing";
   const subscription = subData?.subscription;
-  const products: any[] = productsData?.products ?? [];
   const trialEndsAt = subData?.trialEndsAt ? new Date(subData.trialEndsAt) : null;
   const trialActive = trialEndsAt ? trialEndsAt.getTime() > Date.now() : false;
   const trialDaysLeft = trialActive ? Math.ceil((trialEndsAt!.getTime() - Date.now()) / 86400000) : 0;
@@ -192,51 +170,19 @@ export default function Billing() {
           </div>
         )}
 
-        {!subscription && products.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Choose a Plan</h3>
-            <div className="grid gap-4">
-              {products.map((product: any) =>
-                product.prices?.map((price: any) => (
-                  <div key={price.id} className="rounded-xl border bg-card p-6 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-lg">{product.name}</div>
-                      {product.description && (
-                        <div className="text-muted-foreground text-sm mt-1">{product.description}</div>
-                      )}
-                      <div className="flex flex-wrap items-center gap-3 mt-3">
-                        {["Unlimited Prospects", "AI Email Generation", "Priority Support"].map((f) => (
-                          <div key={f} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            {f}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0 ml-6">
-                      <div className="font-bold text-2xl">
-                        ${((price.unitAmount ?? 0) / 100).toFixed(0)}
-                        <span className="text-muted-foreground text-base font-normal">/{price.recurring?.interval ?? "mo"}</span>
-                      </div>
-                      <Button
-                        className="mt-3"
-                        onClick={() => handleCheckout(price.id)}
-                        disabled={loadingCheckout}
-                      >
-                        {loadingCheckout ? <Loader2 className="w-4 h-4 animate-spin" /> : "Subscribe"}
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+        {!subscription && (
+          <div className="rounded-xl border bg-card p-8 text-center space-y-3">
+            <CreditCard className="w-10 h-10 text-primary mx-auto" />
+            <div>
+              <div className="font-semibold text-lg">Choose your plan</div>
+              <div className="text-muted-foreground text-sm mt-1">
+                Plans start at $249/month with a 14-day free trial — licensed by monthly AI email
+                capacity, not user count.
+              </div>
             </div>
-          </div>
-        )}
-
-        {!subscription && products.length === 0 && (
-          <div className="rounded-xl border bg-card p-8 text-center">
-            <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <div className="text-muted-foreground">No plans available yet. Check back soon.</div>
+            <Link href="/pricing">
+              <Button className="mt-1">View Plans &amp; Pricing</Button>
+            </Link>
           </div>
         )}
       </div>
