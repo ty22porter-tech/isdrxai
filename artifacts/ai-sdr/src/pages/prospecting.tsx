@@ -69,6 +69,23 @@ type ProspectingSnapshot = {
 
 const storageKeyForUser = (userId: string) => `prospecting:inprogress:${userId}`;
 
+// Saved lists reference market data that goes stale over time. Snapshots older
+// than this are auto-discarded on hydration rather than offered for restore.
+const SNAPSHOT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+
+// Human-friendly "saved 3 days ago" style label from a timestamp.
+const formatSavedAgo = (savedAt: number): string => {
+  const diff = Date.now() - savedAt;
+  if (!Number.isFinite(diff) || diff < 0) return "just now";
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+};
+
 export default function Prospecting() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -318,7 +335,9 @@ export default function Prospecting() {
       const stillUnadded =
         (snap?.leads?.length ?? 0) > 0 &&
         (snap.leads.some((_, i) => !addedSet.has(i)) || (snap.cancelledRemaining?.length ?? 0) > 0);
-      if (stillUnadded) {
+      const tooOld =
+        typeof snap?.savedAt === "number" && Date.now() - snap.savedAt > SNAPSHOT_MAX_AGE_MS;
+      if (stillUnadded && !tooOld) {
         setRestorable(snap);
       } else {
         localStorage.removeItem(storageKey);
@@ -446,6 +465,11 @@ export default function Prospecting() {
                     {restorable.params.industry ? ` — ${restorable.params.industry}` : ""}
                     {restorableRemaining > 0 ? ` (${restorableRemaining} not yet added).` : "."}
                   </p>
+                  {typeof restorable.savedAt === "number" && (
+                    <p className="mt-0.5 text-xs text-amber-700/80">
+                      Saved {formatSavedAgo(restorable.savedAt)} — market data may have changed since.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
