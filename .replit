@@ -31,27 +31,3 @@ INBOUND_REPLY_DOMAIN = "sdrai.xyz"
 
 [userenv.development]
 INBOUND_REPLY_DOMAIN = "sdrai.xyz"
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
-
-[[ports]]
-localPort = 18443
-externalPort = 3001
-
-[[ports]]
-localPort = 18963
-externalPort = 3000
-
-[[ports]]
-localPort = 21053
-externalPort = 80
-
-[[ports]]
-localPort = 25069
-externalPort = 3002
