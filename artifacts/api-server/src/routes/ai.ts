@@ -211,7 +211,6 @@ router.post("/generate-call-script", requireEntitlement, async (req, res) => {
 const COMPANY_NAMES: Record<string, string[][]> = {
   Healthcare: [["Summit","Apex","Riverside","Crestview","Meridian","Northside","Lakeside","Pinecrest","Clearwater","Sunrise"],["Medical","Health","Dental","Clinic","Care","Wellness","Therapy","Surgical","Imaging","Rehab"],["Center","Group","Associates","Partners","Institute","Practice","Services","Network","Specialists","Solutions"]],
   Technology: [["Apex","Nexus","Vertex","Coda","Orbit","Flux","Cipher","Helix","Pulse","Vector"],["Tech","Software","Digital","Data","Cloud","AI","Systems","Labs","Solutions","Ventures"],["Inc","Group","Co","Hub","Works","Studio","Corp","Collective","Partners","Platform"]],
-  Legal: [["Morrison","Harper","Blake","Sutton","Langford","Ashford","Caldwell","Drummond","Prescott","Whitfield"],["Law","Legal","Attorneys","Counsel","Advisory","Partners","Litigation","Associates","Defense","Injury"],["Group","LLP","LLC","PLLC","PC","Firm","Office","Practice","Services","Network"]],
   Finance: [["Metro","Pinnacle","Summit","Lakewood","Clearview","Prestige","Horizon","Capital","Alliance","Sterling"],["Financial","Capital","Investment","Wealth","Advisory","Asset","Equity","Fund","Banking","Consulting"],["Partners","Group","Services","Associates","Advisors","Management","Holdings","Solutions","Corp","Inc"]],
   "Commercial Real Estate": [["Greenfield","Harborview","Summit","Riverfront","Midtown","Lakewood","Westgate","Eastbrook","Centennial","Parkview"],["Property","Realty","Real Estate","Commercial","Office","Development","Management","Holdings","Investments","Ventures"],["Group","Partners","LLC","Corp","Associates","Services","Solutions","Network","Inc","Properties"]],
   "Logistics & Warehousing": [["Swift","Atlas","Titan","Apex","Horizon","Vanguard","Nexus","Crest","Patriot","Liberty"],["Logistics","Freight","Transport","Distribution","Supply Chain","Warehousing","Cargo","Shipping","Fulfillment","Delivery"],["Inc","Group","Solutions","Services","Corp","Partners","LLC","Co","Network","Systems"]],
@@ -325,8 +324,8 @@ function generateProspects(city: string, state: string, industry: string, count:
 // ─── IT Services prospect generation (isolated from janitorial pools above) ───
 
 const IT_INDUSTRIES = [
-  "Commercial","Healthcare","Retail","Financial Services","Legal","Insurance",
-  "Manufacturing","Construction","Logistics","Professional Services","Nonprofit",
+  "Commercial","Healthcare","Retail","Financial Services","Insurance",
+  "Manufacturing","Construction","Logistics","Nonprofit",
   "Hospitality","Real Estate",
 ] as const;
 
@@ -335,12 +334,10 @@ const IT_COMPANY_NAMES: Record<string, string[][]> = {
   Healthcare: [["Summit","Riverside","Crestview","Meridian","Northside","Lakeside","Pinecrest","Clearwater","Sunrise","Harborview"],["Medical","Health","Dental","Clinic","Care","Wellness","Surgical","Imaging","Rehab","Behavioral Health"],["Center","Group","Associates","Partners","Practice","Network","Specialists","Institute","Services","Solutions"]],
   Retail: [["Metro","Urban","Hometown","Signature","Prime","Central","Coastal","Evergreen","Liberty","Grandview"],["Retail","Market","Goods","Furnishings","Auto","Grocery","Outfitters","Supply","Merchants","Home"],["Group","Stores","Co","Inc","LLC","Brands","Company","Collective","Partners","Outlets"]],
   "Financial Services": [["Metro","Pinnacle","Summit","Lakewood","Clearview","Prestige","Horizon","Capital","Alliance","Sterling"],["Financial","Capital","Investment","Wealth","Advisory","Asset","Equity","Accounting","Banking","Tax"],["Partners","Group","Services","Associates","Advisors","Management","Holdings","Solutions","Corp","Inc"]],
-  Legal: [["Morrison","Harper","Blake","Sutton","Langford","Ashford","Caldwell","Drummond","Prescott","Whitfield"],["Law","Legal","Attorneys","Counsel","Advisory","Partners","Litigation","Associates","Defense","Injury"],["Group","LLP","LLC","PLLC","PC","Firm","Office","Practice","Services","Network"]],
   Insurance: [["Shield","Anchor","Guardian","Beacon","Cornerstone","Heritage","Reliant","Assurant","Homestead","Foundation"],["Insurance","Risk","Assurance","Benefits","Coverage","Underwriting","Brokerage","Indemnity","Protection","Casualty"],["Agency","Group","Partners","Associates","Services","LLC","Inc","Advisors","Brokers","Co"]],
   Manufacturing: [["Precision","Apex","Allied","Keystone","Ironside","Pinnacle","Superior","National","Heritage","Clearview"],["Manufacturing","Industrial","Fabrication","Production","Assembly","Components","Engineering","Materials","Metalworks","Plastics"],["Inc","Corp","Co","Group","LLC","Solutions","Systems","Industries","Works","Partners"]],
   Construction: [["Granite","Ridgeline","Bluestone","Ironwood","Summit","Foundation","Trueline","Bedrock","Northstar","Crossland"],["Construction","Builders","Contracting","Development","Engineering","Concrete","Structures","Framing","Excavation","Design-Build"],["Inc","Group","Co","LLC","Corp","Partners","Services","Companies","Associates","Enterprises"]],
   Logistics: [["Swift","Atlas","Titan","Apex","Horizon","Vanguard","Nexus","Crest","Patriot","Liberty"],["Logistics","Freight","Transport","Distribution","Supply Chain","Warehousing","Cargo","Shipping","Fulfillment","Delivery"],["Inc","Group","Solutions","Services","Corp","Partners","LLC","Co","Network","Systems"]],
-  "Professional Services": [["Bright","Cornerstone","Meridian","Compass","Clearpath","Vantage","Elevate","Insight","Catalyst","Northgate"],["Consulting","Engineering","Architecture","Marketing","Staffing","Design","Advisory","Research","Strategy","Communications"],["Group","Partners","LLC","Inc","Associates","Firm","Studio","Collective","Services","Co"]],
   Nonprofit: [["Community","Hope","Bridge","Unity","Harvest","Beacon","Cornerstone","Horizon","Foundations","Neighbor"],["Outreach","Foundation","Alliance","Services","Coalition","Charities","Ministries","Network","Initiative","Fund"],["Inc","Center","Association","Organization","Group","Society","Partners","Council","Trust","Project"]],
   Hospitality: [["Grandview","Harbor","Lakeside","Summit","Magnolia","Cypress","Beacon","Heritage","Crestwood","Solstice"],["Hospitality","Hotels","Resorts","Dining","Restaurants","Lodging","Events","Catering","Suites","Venues"],["Group","Inc","LLC","Co","Partners","Collection","Management","Brands","Properties","Company"]],
   "Real Estate": [["Greenfield","Harborview","Summit","Riverfront","Midtown","Lakewood","Westgate","Eastbrook","Centennial","Parkview"],["Property","Realty","Real Estate","Commercial","Office","Development","Management","Holdings","Investments","Ventures"],["Group","Partners","LLC","Corp","Associates","Services","Solutions","Network","Inc","Properties"]],
@@ -349,24 +346,22 @@ const IT_COMPANY_NAMES: Record<string, string[][]> = {
 // [min,max] typical employee counts inside the 5–2000 target range
 const IT_EMP_RANGES: Record<string, [number, number]> = {
   Commercial:[10,300], Healthcare:[15,400], Retail:[20,600], "Financial Services":[8,150],
-  Legal:[5,120], Insurance:[5,100], Manufacturing:[40,800], Construction:[15,350],
-  Logistics:[30,700], "Professional Services":[8,200], Nonprofit:[10,250],
+  Insurance:[5,100], Manufacturing:[40,800], Construction:[15,350],
+  Logistics:[30,700], Nonprofit:[10,250],
   Hospitality:[25,900], "Real Estate":[5,150],
 };
 
-const COMPLIANCE_SENSITIVE = new Set(["Healthcare","Financial Services","Legal","Insurance","Retail","Manufacturing","Construction","Nonprofit"]);
+const COMPLIANCE_SENSITIVE = new Set(["Healthcare","Financial Services","Insurance","Retail","Manufacturing","Construction","Nonprofit"]);
 
 const IT_COMPLIANCE: Record<string, string> = {
   Healthcare: "Likely HIPAA and HITECH-related security requirements",
   "Financial Services": "Likely GLBA and FTC Safeguards Rule obligations; potential SOC 2 expectations",
-  Legal: "Likely client-confidentiality and data privacy requirements; potential SOC 2 expectations",
   Insurance: "Likely FTC Safeguards Rule and state data privacy requirements",
   Retail: "Likely PCI DSS payment security requirements",
   Hospitality: "Likely PCI DSS payment security and guest data privacy requirements",
   Manufacturing: "Potential NIST 800-171 / CMMC requirements if serving government supply chains",
   Construction: "Potential NIST 800-171 / CMMC requirements for government contract work",
   Logistics: "Potential supply-chain security and cyber-insurance requirements",
-  "Professional Services": "Potential SOC 2 and client vendor-security assessment requirements",
   Nonprofit: "Likely donor data privacy and cyber-insurance security requirements",
   Commercial: "Potential state privacy and cyber-insurance security requirements",
   "Real Estate": "Likely wire-fraud prevention and state privacy requirements",
@@ -375,14 +370,12 @@ const IT_COMPLIANCE: Record<string, string> = {
 const IT_NEEDS: Record<string, string[]> = {
   Healthcare: ["Managed IT","Cybersecurity assessment","HIPAA compliance support","Backup and disaster recovery","Microsoft 365 management"],
   "Financial Services": ["Cybersecurity","Compliance consulting","Managed IT","Email security and Microsoft 365","Backup and disaster recovery"],
-  Legal: ["Cybersecurity","Document management and Microsoft 365","Managed IT","Email encryption","Backup and disaster recovery"],
   Insurance: ["Cybersecurity","Compliance support","Managed IT","Microsoft 365 licensing","VoIP and unified communications"],
   Retail: ["Network management","Cybersecurity and PCI support","Managed IT","Help-desk support","VoIP"],
   Hospitality: ["Guest Wi-Fi and network management","Cybersecurity","Managed IT","VoIP","Help-desk support"],
   Manufacturing: ["Managed IT","OT/IT network security","Cybersecurity assessment","Backup and disaster recovery","Compliance consulting"],
   Construction: ["Mobile device management","Managed IT","Cybersecurity","Cloud services","Microsoft 365"],
   Logistics: ["Network management","Mobile device management","Cybersecurity","Managed IT","Backup and disaster recovery"],
-  "Professional Services": ["Managed IT","Microsoft 365 optimization","Cybersecurity","Cloud services","Help-desk support"],
   Nonprofit: ["Managed IT","Microsoft 365 nonprofit licensing","Cybersecurity awareness training","Cloud services","Backup and disaster recovery"],
   Commercial: ["Managed IT","Cybersecurity","Microsoft 365","Help-desk support","Network management"],
   "Real Estate": ["Managed IT","Cybersecurity and wire-fraud prevention","Microsoft 365","Cloud services","Mobile device management"],
@@ -391,14 +384,12 @@ const IT_NEEDS: Record<string, string[]> = {
 const IT_WHY: Record<string, string[]> = {
   Healthcare: ["Compliance-sensitive practice — likely needs security and HIPAA support beyond in-house capacity","Patient systems demand uptime; likely candidate for proactive managed IT","Multiple providers and devices suggest mobile device management needs"],
   "Financial Services": ["Handles sensitive financial data — likely cybersecurity and compliance need","Regulatory expectations make managed security services a strong fit","Client trust depends on secure email and document handling"],
-  Legal: ["Privileged client data makes security a likely priority","Attorneys working remotely suggest device and email security needs","Small internal IT footprint typical — strong managed IT candidate"],
   Insurance: ["Client PII handling suggests likely compliance and security needs","Agency size typically lacks internal IT leadership","Cyber-insurance carriers increasingly require security controls"],
   Retail: ["Payment processing implies likely PCI security needs","Multi-location retail benefits from centralized network management","Seasonal staffing makes help-desk outsourcing attractive"],
   Hospitality: ["Guest Wi-Fi and payment systems create likely security needs","Multi-property operations benefit from managed network services","High staff turnover suggests security awareness training need"],
   Manufacturing: ["Production downtime risk makes managed security a likely fit","Potential government supply-chain compliance requirements","Plant-floor and office systems typically under-supported"],
   Construction: ["Field teams on mobile devices suggest MDM needs","Project data in the cloud implies backup and security needs","Growing firms rarely have internal IT leadership"],
   Logistics: ["Warehouse systems and scanners imply device management needs","Shipment data security increasingly required by partners","Operational downtime is costly — proactive IT is a likely fit"],
-  "Professional Services": ["Client vendor-security questionnaires drive likely SOC 2 interest","Knowledge workers rely on Microsoft 365 — optimization opportunity","Growth-stage firms typically outgrow break/fix IT support"],
   Nonprofit: ["Limited budgets favor outsourced IT over internal hires","Donor data privacy creates likely security needs","Eligible for nonprofit licensing — cost-savings angle"],
   Commercial: ["Mid-sized operations typically lack dedicated IT staff","Likely candidates for bundled managed IT and security","Growing businesses face increasing cyber-insurance requirements"],
   "Real Estate": ["Wire-transfer fraud risk makes email security a likely priority","Distributed agents suggest device and identity management needs","Transaction data privacy expectations are rising"],
@@ -407,14 +398,12 @@ const IT_WHY: Record<string, string[]> = {
 const IT_OUTREACH: Record<string, string> = {
   Healthcare: "Offer a cybersecurity and compliance readiness assessment tailored to medical operations",
   "Financial Services": "Offer a compliance readiness review covering GLBA / FTC Safeguards controls",
-  Legal: "Offer a confidential technology assessment focused on client-data security",
   Insurance: "Offer a cyber-insurance readiness review and security gap assessment",
   Retail: "Offer a network and payment-security assessment across locations",
   Hospitality: "Offer a guest network and payment-security technology assessment",
   Manufacturing: "Offer a discovery call on OT/IT security and supply-chain compliance readiness",
   Construction: "Offer a technology assessment covering field devices and project-data protection",
   Logistics: "Offer a network assessment covering warehouse systems and device management",
-  "Professional Services": "Offer a discovery call on SOC 2 readiness and Microsoft 365 optimization",
   Nonprofit: "Offer an IT consultation highlighting nonprofit licensing savings and security basics",
   Commercial: "Offer a free technology assessment to benchmark IT support and security posture",
   "Real Estate": "Offer a cybersecurity assessment focused on wire-fraud prevention",
@@ -425,12 +414,12 @@ const IT_TITLES_LARGE = ["CIO","CTO","CISO","IT Director","IT Manager","Complian
 const IT_RELEVANT_TITLES = new Set(["CIO","CTO","CISO","IT Director","IT Manager","Compliance Officer"]);
 
 const COMPLIANCE_PRIORITY_INDUSTRIES: Record<string, string[]> = {
-  "High Compliance Need": ["Healthcare","Financial Services","Legal","Insurance"],
+  "High Compliance Need": ["Healthcare","Financial Services","Insurance"],
   "Healthcare Compliance": ["Healthcare"],
   "Financial Compliance": ["Financial Services","Insurance"],
   "Government Contractor Compliance": ["Manufacturing","Construction","Logistics"],
   "Retail and Payment Security": ["Retail","Hospitality"],
-  "Data Privacy Requirements": ["Legal","Professional Services","Real Estate","Nonprofit"],
+  "Data Privacy Requirements": ["Real Estate","Nonprofit"],
 };
 
 function parseEmployeeRange(range?: string): [number, number] | null {
