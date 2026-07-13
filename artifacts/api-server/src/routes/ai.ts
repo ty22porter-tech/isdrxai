@@ -445,9 +445,10 @@ function parseEmployeeRange(range?: string): [number, number] | null {
 function generateItProspects(city: string, state: string, industry: string, count: number, employeeRange?: string, compliancePriority?: string) {
   const rng = seedRandom(city.length * 37 + state.length * 13 + industry.length * 11 + count + (employeeRange?.length ?? 0) * 5 + (compliancePriority?.length ?? 0) * 3);
 
-  // Resolve which industries to draw from
+  // Resolve which industries to draw from (unknown industry values fall back
+  // to the full IT pool — defense against crafted/non-IT industry requests)
   let industryPool: string[];
-  if (industry && industry !== "All Industries") {
+  if (industry && industry !== "All Industries" && (IT_INDUSTRIES as readonly string[]).includes(industry)) {
     industryPool = [industry];
   } else if (compliancePriority && compliancePriority !== "All Prospects" && COMPLIANCE_PRIORITY_INDUSTRIES[compliancePriority]) {
     industryPool = COMPLIANCE_PRIORITY_INDUSTRIES[compliancePriority];

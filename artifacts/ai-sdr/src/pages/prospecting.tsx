@@ -234,6 +234,18 @@ export default function Prospecting() {
     runSearch();
   };
 
+  // IT leads carry scoring/compliance context worth preserving in the pipeline notes.
+  const leadNotes = (lead: ProspectLead) => {
+    let notes = `${lead.contactTitle} — ${lead.whyTarget}`;
+    if (lead.opportunityScore != null) {
+      notes += `\nIT Opportunity Score: ${lead.opportunityScore}${lead.scoreLabel ? ` (${lead.scoreLabel})` : ""}`;
+      if (lead.potentialNeeds?.length) notes += `\nPotential needs: ${lead.potentialNeeds.join(", ")}`;
+      if (lead.complianceConsideration) notes += `\nCompliance: ${lead.complianceConsideration}`;
+      if (lead.recommendedOutreach) notes += `\nRecommended outreach: ${lead.recommendedOutreach}`;
+    }
+    return notes;
+  };
+
   const handleAdd = async (lead: ProspectLead, idx: number) => {
     setAddingId(idx);
     createProspect.mutate(
@@ -247,7 +259,7 @@ export default function Prospecting() {
           city: lead.city,
           state: lead.state,
           website: lead.website,
-          notes: `${lead.contactTitle} — ${lead.whyTarget}`,
+          notes: leadNotes(lead),
           employeeCount: lead.estimatedEmployees,
           squareFootage: lead.estimatedSquareFootage,
         },
@@ -316,7 +328,7 @@ export default function Prospecting() {
                 city: lead.city,
                 state: lead.state,
                 website: lead.website,
-                notes: `${lead.contactTitle} — ${lead.whyTarget}`,
+                notes: leadNotes(lead),
                 employeeCount: lead.estimatedEmployees,
                 squareFootage: lead.estimatedSquareFootage,
               })),
@@ -866,17 +878,57 @@ export default function Prospecting() {
                             <Users className="h-3.5 w-3.5 shrink-0" />
                             <span>{lead.estimatedEmployees} employees</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <SquareStack className="h-3.5 w-3.5 shrink-0" />
-                            <span>{lead.estimatedSquareFootage.toLocaleString()} sq ft</span>
-                          </div>
+                          {lead.estimatedSquareFootage != null && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <SquareStack className="h-3.5 w-3.5 shrink-0" />
+                              <span>{lead.estimatedSquareFootage.toLocaleString()} sq ft</span>
+                            </div>
+                          )}
+                          {lead.estimatedLocations != null && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <SquareStack className="h-3.5 w-3.5 shrink-0" />
+                              <span>{lead.estimatedLocations} location{lead.estimatedLocations === 1 ? "" : "s"} (est.)</span>
+                            </div>
+                          )}
                         </div>
+
+                        {lead.opportunityScore != null && lead.scoreLabel && (
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs font-medium ${SCORE_COLORS[lead.scoreLabel] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}
+                            >
+                              IT Opportunity Score: {lead.opportunityScore} — {lead.scoreLabel}
+                            </Badge>
+                          </div>
+                        )}
+                        {lead.scoreExplanation && (
+                          <p className="text-xs text-muted-foreground mb-2">{lead.scoreExplanation}</p>
+                        )}
 
                         <Separator className="my-2.5" />
                         <p className="text-xs text-muted-foreground">
                           <span className="font-medium text-foreground">Why target: </span>
                           {lead.whyTarget}
                         </p>
+                        {lead.potentialNeeds && lead.potentialNeeds.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            <span className="font-medium text-foreground">Potential needs: </span>
+                            {lead.potentialNeeds.join(", ")}
+                          </p>
+                        )}
+                        {lead.complianceConsideration && (
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            <span className="font-medium text-foreground">Compliance: </span>
+                            {lead.complianceConsideration}
+                          </p>
+                        )}
+                        {lead.recommendedOutreach && (
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            <span className="font-medium text-foreground">Recommended outreach: </span>
+                            {lead.recommendedOutreach}
+                          </p>
+                        )}
                         {failures.has(idx) && !added.has(idx) && (
                           <div className="mt-2.5 flex items-start gap-1.5 rounded-md bg-red-50 border border-red-200 px-2.5 py-1.5">
                             <AlertCircle className="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5" />
