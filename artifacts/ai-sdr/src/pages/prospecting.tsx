@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProspectSearch, useCreateProspect, useBulkCreateProspects, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
@@ -36,6 +36,54 @@ const INDUSTRIES = [
   "Education",
 ];
 
+// IT Services vertical uses its own industry list, employee-range filter, and
+// compliance-priority filter. Janitorial keeps the original list above.
+const IT_INDUSTRIES = [
+  "All Industries",
+  "Commercial",
+  "Healthcare",
+  "Retail",
+  "Financial Services",
+  "Legal",
+  "Insurance",
+  "Manufacturing",
+  "Construction",
+  "Logistics",
+  "Professional Services",
+  "Nonprofit",
+  "Hospitality",
+  "Real Estate",
+];
+
+const IT_EMPLOYEE_RANGES = [
+  "5-2,000 (default)",
+  "5-10",
+  "11-25",
+  "26-50",
+  "51-100",
+  "101-250",
+  "251-500",
+  "501-1,000",
+  "1,001-2,000",
+];
+
+const IT_COMPLIANCE_PRIORITIES = [
+  "All Prospects",
+  "High Compliance Need",
+  "Healthcare Compliance",
+  "Financial Compliance",
+  "Government Contractor Compliance",
+  "Retail and Payment Security",
+  "Data Privacy Requirements",
+];
+
+const SCORE_COLORS: Record<string, string> = {
+  "High Priority": "bg-green-100 text-green-800 border-green-200",
+  "Strong Fit": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Possible Fit": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "Low Priority": "bg-gray-100 text-gray-600 border-gray-200",
+};
+
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
   "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
@@ -58,7 +106,8 @@ const isDuplicateError = (error?: string) => !!error && /^duplicate/i.test(error
 // page, refresh, or tab close. Sets/Maps are stored as arrays for JSON.
 type ProspectingSnapshot = {
   savedAt: number;
-  params: { city: string; state: string; industry: string; count: string };
+  vertical?: string;
+  params: { city: string; state: string; industry: string; count: string; employeeRange?: string; compliancePriority?: string };
   leads: ProspectLead[];
   added: number[];
   skipped: number[];
@@ -86,11 +135,15 @@ const formatSavedAgo = (savedAt: number): string => {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 };
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export default function Prospecting() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [industry, setIndustry] = useState("");
   const [count, setCount] = useState("10");
+  const [employeeRange, setEmployeeRange] = useState(IT_EMPLOYEE_RANGES[0]);
+  const [compliancePriority, setCompliancePriority] = useState("All Prospects");
   const [leads, setLeads] = useState<ProspectLead[]>([]);
   const [added, setAdded] = useState<Set<number>>(new Set());
   const [skipped, setSkipped] = useState<Set<number>>(new Set());
@@ -115,6 +168,22 @@ export default function Prospecting() {
   const { user } = useUser();
   const storageKey = user?.id ? storageKeyForUser(user.id) : null;
 
+  // The active vertical drives which filters, terminology, and result fields
+  // are shown. IT Services and Janitorial prospect lists never mix.
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/users/me`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load profile");
+      return res.json();
+    },
+  });
+  const verticalLoaded = me !== undefined;
+  const isIT = me?.vertical === "it_services";
+  const vertical = isIT ? "it_services" : "janitorial";
+  const verticalLabel = isIT ? "IT Services" : "Janitorial";
+  const industryOptions = isIT ? IT_INDUSTRIES : INDUSTRIES;
+
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -131,7 +200,20 @@ export default function Prospecting() {
     setFailures(new Map());
     setCancelledRemaining(null);
     searchMutation.mutate(
-      { data: { city: city.trim(), state, industry, count: parseInt(count) } },
+      {
+        data: {
+          city: city.trim(),
+          state,
+          industry,
+          count: parseInt(count),
+          ...(isIT
+            ? {
+                employeeRange: employeeRange === IT_EMPLOYEE_RANGES[0] ? undefined : employeeRange,
+                compliancePriority: compliancePriority === "All Prospects" ? undefined : compliancePriority,
+              }
+            : {}),
+        },
+      },
       {
         onSuccess: (data) => setLeads(data),
         onError: () => toast({ title: "Search failed", description: "Could not generate prospects.", variant: "destructive" }),
@@ -336,7 +418,9 @@ export default function Prospecting() {
   // don't auto-populate the page — instead we surface a restore / start-fresh
   // affordance so the user stays in control of a possibly stale list.
   useEffect(() => {
-    if (!storageKey || hydratedRef.current) return;
+    // Wait until the vertical is known so a snapshot saved under the other
+    // vertical is discarded, never restored (vertical isolation requirement).
+    if (!storageKey || !verticalLoaded || hydratedRef.current) return;
     hydratedRef.current = true;
     try {
       const raw = localStorage.getItem(storageKey);
@@ -348,7 +432,8 @@ export default function Prospecting() {
         (snap.leads.some((_, i) => !addedSet.has(i)) || (snap.cancelledRemaining?.length ?? 0) > 0);
       const tooOld =
         typeof snap?.savedAt === "number" && Date.now() - snap.savedAt > SNAPSHOT_MAX_AGE_MS;
-      if (stillUnadded && !tooOld) {
+      const wrongVertical = (snap?.vertical ?? "janitorial") !== vertical;
+      if (stillUnadded && !tooOld && !wrongVertical) {
         restorePendingRef.current = true;
         setRestorable(snap);
       } else {
@@ -358,7 +443,7 @@ export default function Prospecting() {
       // Corrupt/unreadable snapshot — clear it so we start clean next time.
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     }
-  }, [storageKey]);
+  }, [storageKey, verticalLoaded, vertical]);
 
   // Persist the in-progress list whenever it changes, so leaving the page (in-app
   // nav, refresh, or tab close) doesn't lose it. We hold off while a restore
@@ -371,7 +456,8 @@ export default function Prospecting() {
     }
     const snap: ProspectingSnapshot = {
       savedAt: Date.now(),
-      params: { city, state, industry, count },
+      vertical,
+      params: { city, state, industry, count, employeeRange, compliancePriority },
       leads,
       added: [...added],
       skipped: [...skipped],
@@ -380,7 +466,7 @@ export default function Prospecting() {
       duplicateStrategy,
     };
     try { localStorage.setItem(storageKey, JSON.stringify(snap)); } catch { /* ignore quota */ }
-  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, city, state, industry, count]);
+  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, city, state, industry, count, employeeRange, compliancePriority, vertical]);
 
   const restorableRemaining = restorable
     ? restorable.leads.filter((_, i) => !restorable.added.includes(i)).length
@@ -429,6 +515,8 @@ export default function Prospecting() {
     setState(snap.params.state);
     setIndustry(snap.params.industry);
     setCount(snap.params.count);
+    if (snap.params.employeeRange) setEmployeeRange(snap.params.employeeRange);
+    if (snap.params.compliancePriority) setCompliancePriority(snap.params.compliancePriority);
     setLeads(snap.leads);
     const addedSet = new Set(snap.added);
     setAdded(addedSet);
@@ -497,7 +585,9 @@ export default function Prospecting() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Prospect Search</h2>
           <p className="text-muted-foreground mt-1">
-            Generate a targeted list of commercial prospects in any market. Add them directly to your pipeline.
+            {isIT
+              ? "Generate a targeted list of IT services prospects — companies likely to need managed IT, cybersecurity, and compliance support. Add them directly to your pipeline."
+              : "Generate a targeted list of commercial prospects in any market. Add them directly to your pipeline."}
           </p>
         </div>
 
@@ -570,7 +660,7 @@ export default function Prospecting() {
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    {INDUSTRIES.map((ind) => (
+                    {industryOptions.map((ind) => (
                       <SelectItem key={ind} value={ind}>{ind}</SelectItem>
                     ))}
                   </SelectContent>
@@ -589,6 +679,36 @@ export default function Prospecting() {
                   </SelectContent>
                 </Select>
               </div>
+              {isIT && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Employee Count</Label>
+                    <Select value={employeeRange} onValueChange={setEmployeeRange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {IT_EMPLOYEE_RANGES.map((r) => (
+                          <SelectItem key={r} value={r}>{r === IT_EMPLOYEE_RANGES[0] ? r : `${r} employees`}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 col-span-2 md:col-span-2">
+                    <Label>Cybersecurity &amp; Compliance Priority</Label>
+                    <Select value={compliancePriority} onValueChange={setCompliancePriority}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {IT_COMPLIANCE_PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
             </div>
             <div className="mt-5 flex items-center gap-3">
               <Button onClick={handleSearch} disabled={searchMutation.isPending} className="min-w-[140px]">
@@ -686,7 +806,7 @@ export default function Prospecting() {
         {searchMutation.isPending && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground text-sm">Generating prospects for {industry} companies in {city}, {state}...</p>
+            <p className="text-muted-foreground text-sm">Building your {verticalLabel} prospect list…</p>
           </div>
         )}
 

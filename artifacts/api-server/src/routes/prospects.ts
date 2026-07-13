@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
-import { prospectsTable, activityTable } from "@workspace/db";
+import { prospectsTable, activityTable, usersTable } from "@workspace/db";
 import { eq, ilike, and, sql } from "drizzle-orm";
 import {
   ListProspectsQueryParams,
@@ -16,6 +16,13 @@ import { requireAuth } from "../lib/requireAuth";
 
 const router = Router();
 router.use(requireAuth);
+
+// Prospects are stamped with the vertical the client was in when they were
+// created, so vertical-specific data never bleeds between workflows.
+async function currentVertical(clientId: string): Promise<string> {
+  const [client] = await db.select({ vertical: usersTable.vertical }).from(usersTable).where(eq(usersTable.id, clientId));
+  return client?.vertical === "it_services" ? "it_services" : "janitorial";
+}
 
 router.get("/", async (req, res) => {
   const query = ListProspectsQueryParams.parse(req.query);
@@ -33,7 +40,8 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   const body = CreateProspectBody.parse(req.body);
   const scheduleToken = randomUUID();
-  const [prospect] = await db.insert(prospectsTable).values({ ...body, clientId: req.clientId, status: "new", scheduleToken }).returning();
+  const vertical = await currentVertical(req.clientId);
+  const [prospect] = await db.insert(prospectsTable).values({ ...body, clientId: req.clientId, status: "new", scheduleToken, vertical }).returning();
   await db.insert(activityTable).values({
     clientId: req.clientId,
     type: "prospect_added",
@@ -48,6 +56,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post("/bulk", async (req, res) => {
   const { prospects, duplicateStrategy } = BulkCreateProspectsBody.parse(req.body);
+  const vertical = await currentVertical(req.clientId);
   const results: { index: number; success: boolean; updated?: boolean; error?: string; prospect?: any }[] = [];
   let added = 0;
   let updated = 0;
@@ -93,6 +102,7 @@ router.post("/bulk", async (req, res) => {
         clientId: req.clientId,
         status: "new",
         scheduleToken: randomUUID(),
+        vertical,
       },
     });
   }

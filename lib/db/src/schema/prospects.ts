@@ -17,6 +17,7 @@ export const prospectsTable = pgTable("prospects", {
   notes: text("notes"),
   employeeCount: integer("employee_count"),
   squareFootage: integer("square_footage"),
+  vertical: text("vertical"),
   status: text("status").notNull().default("new"),
   scheduleToken: text("schedule_token").notNull().unique().default(sql`gen_random_uuid()::text`),
   unsubscribeToken: text("unsubscribe_token").notNull().unique().default(sql`gen_random_uuid()::text`),

@@ -11,4 +11,8 @@ export interface ProspectSearchRequest {
   state: string;
   industry: string;
   count: number;
+  /** Optional employee-count range filter, e.g. "51-100" (IT Services vertical) */
+  employeeRange?: string;
+  /** Optional cybersecurity & compliance priority filter (IT Services vertical) */
+  compliancePriority?: string;
 }

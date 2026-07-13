@@ -985,10 +985,16 @@ components:
           type: string
         count:
           type: integer
+        employeeRange:
+          type: string
+          description: Optional employee-count range filter, e.g. "51-100" (IT Services vertical)
+        compliancePriority:
+          type: string
+          description: Optional cybersecurity & compliance priority filter (IT Services vertical)
 
     ProspectLead:
       type: object
-      required: [companyName, contactName, contactTitle, email, phone, industry, city, state, estimatedEmployees, estimatedSquareFootage, whyTarget, confidence]
+      required: [companyName, contactName, contactTitle, email, phone, industry, city, state, estimatedEmployees, whyTarget, confidence]
       properties:
         companyName:
           type: string
@@ -1017,6 +1023,30 @@ components:
         confidence:
           type: string
           enum: [high, medium, low]
+        vertical:
+          type: string
+          description: Vertical this lead was generated for (janitorial | it_services)
+        opportunityScore:
+          type: integer
+          description: IT Opportunity Score 0-100 (IT Services vertical only)
+        scoreLabel:
+          type: string
+          description: High Priority | Strong Fit | Possible Fit | Low Priority
+        scoreExplanation:
+          type: string
+        estimatedLocations:
+          type: integer
+          description: Estimated number of locations (IT Services vertical only)
+        potentialNeeds:
+          type: array
+          items:
+            type: string
+          description: Potential IT service needs (IT Services vertical only)
+        complianceConsideration:
+          type: string
+          description: Likely/potential compliance consideration, clearly inferred
+        recommendedOutreach:
+          type: string
 
     DashboardStats:
       type: object

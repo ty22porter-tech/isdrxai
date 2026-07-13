@@ -327,6 +327,10 @@ export interface ProspectSearchRequest {
   state: string;
   industry: string;
   count: number;
+  /** Optional employee-count range filter, e.g. "51-100" (IT Services vertical) */
+  employeeRange?: string;
+  /** Optional cybersecurity & compliance priority filter (IT Services vertical) */
+  compliancePriority?: string;
 }
 
 export type ProspectLeadConfidence = typeof ProspectLeadConfidence[keyof typeof ProspectLeadConfidence];
@@ -349,9 +353,23 @@ export interface ProspectLead {
   state: string;
   website?: string;
   estimatedEmployees: number;
-  estimatedSquareFootage: number;
+  estimatedSquareFootage?: number;
   whyTarget: string;
   confidence: ProspectLeadConfidence;
+  /** Vertical this lead was generated for (janitorial | it_services) */
+  vertical?: string;
+  /** IT Opportunity Score 0-100 (IT Services vertical only) */
+  opportunityScore?: number;
+  /** High Priority | Strong Fit | Possible Fit | Low Priority */
+  scoreLabel?: string;
+  scoreExplanation?: string;
+  /** Estimated number of locations (IT Services vertical only) */
+  estimatedLocations?: number;
+  /** Potential IT service needs (IT Services vertical only) */
+  potentialNeeds?: string[];
+  /** Likely/potential compliance consideration, clearly inferred */
+  complianceConsideration?: string;
+  recommendedOutreach?: string;
 }
 
 export type DashboardStatsProspectsByStatusItem = {

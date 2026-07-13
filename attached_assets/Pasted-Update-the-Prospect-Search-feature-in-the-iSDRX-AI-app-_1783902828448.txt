@@ -1,0 +1,415 @@
+Update the Prospect Search feature in the iSDRX AI app so that prospect results, search logic, filters, AI research, and recommendations change based on the selected business vertical.
+
+The platform currently has two verticals:
+
+Janitorial Services
+IT Services
+Problem to Fix
+
+When the user switches from Janitorial Services to IT Services, the app continues displaying prospects generated from the Janitorial Services search criteria.
+
+This must be corrected.
+
+Prospect data, AI research, search parameters, recommendations, scoring, and displayed results must be isolated by vertical. Janitorial prospects must never appear in the IT Services prospect list unless the company independently qualifies under the IT Services criteria.
+
+Vertical-Switching Behavior
+
+When the user changes the selected vertical:
+
+Clear the currently displayed prospect list.
+Clear the previous vertical’s filters.
+Clear cached AI research results associated with the previous vertical.
+Reset pagination and selected prospects.
+Load the saved filters for the newly selected vertical, when available.
+Run a new search using the newly selected vertical’s targeting criteria.
+Display a loading message:
+
+Building your IT Services prospect list…
+
+Do not reuse the previous vertical’s search query or prospect results.
+
+Store the selected vertical with every prospect search and every prospect record.
+
+Example:
+
+vertical: "janitorial"
+
+or
+
+vertical: "it_services"
+
+Every backend request, database query, saved list, campaign, export, and AI research result must include the vertical identifier.
+
+Janitorial Services Prospect Criteria
+
+Keep the existing Janitorial prospecting logic focused on organizations that are likely to purchase commercial cleaning and facility services.
+
+Examples include:
+
+Commercial property management companies
+Office buildings
+Medical facilities
+Schools and universities
+Industrial and manufacturing facilities
+Warehouses and distribution centers
+Municipal and government facilities
+Retail centers
+Commercial real estate organizations
+Hospitality facilities
+
+Do not change the Janitorial vertical unless necessary to support clean separation between verticals.
+
+New IT Services Prospect Criteria
+
+When IT Services is selected, search for organizations that are potential buyers of:
+
+Managed IT services
+Cybersecurity services
+Cybersecurity compliance support
+Network management
+Cloud services
+Microsoft 365 services
+Help-desk support
+IT infrastructure
+Backup and disaster recovery
+Risk assessments
+Security awareness training
+Compliance consulting
+Technology modernization
+VoIP and unified communications
+Geography
+
+Only show organizations located in the:
+
+United States
+
+Include all U.S. states and Washington, D.C.
+
+Company Size
+
+Only include companies with:
+
+5–2,000 employees
+
+Exclude organizations with fewer than five employees or more than 2,000 employees unless the user manually changes the employee filter.
+
+Target Customer Types
+
+Prioritize commercial organizations in the following categories:
+
+Commercial Businesses
+Professional services firms
+Legal firms
+Accounting and financial services firms
+Insurance agencies
+Commercial real estate companies
+Property management companies
+Construction companies
+Manufacturing companies
+Logistics and transportation companies
+Warehouses and distributors
+Engineering firms
+Architecture firms
+Automotive dealer groups
+Hospitality companies
+Multi-location service businesses
+Franchises
+Nonprofit organizations
+Healthcare
+Medical practices
+Dental groups
+Specialty clinics
+Behavioral health organizations
+Ambulatory surgery centers
+Home healthcare organizations
+Senior living operators
+Assisted-living companies
+Rehabilitation facilities
+Diagnostic and imaging centers
+Healthcare administration organizations
+Retail
+Multi-location retailers
+Regional retail chains
+Franchise operators
+Grocery and specialty-food businesses
+Automotive retailers
+Furniture retailers
+Consumer service companies
+E-commerce companies with physical operations
+
+The search may include companies from any industry when they satisfy the employee, geography, and technology-need criteria.
+
+Cybersecurity Compliance Priority
+
+Cybersecurity compliance is an important component of the IT Services search.
+
+Create a filter named:
+
+Cybersecurity & Compliance Priority
+
+Options:
+
+All Prospects
+High Compliance Need
+Healthcare Compliance
+Financial Compliance
+Government Contractor Compliance
+Retail and Payment Security
+Data Privacy Requirements
+
+Prioritize companies that may need help with:
+
+HIPAA
+HITECH
+PCI DSS
+SOC 2
+NIST Cybersecurity Framework
+NIST 800-171
+CMMC
+GLBA
+FTC Safeguards Rule
+State privacy requirements
+Cyber-insurance security requirements
+Vendor security assessments
+Security policies and employee training
+
+Do not state that a company is legally required to comply with a specific framework unless reliable research confirms it.
+
+Instead, use wording such as:
+
+Likely cybersecurity or compliance need
+
+or:
+
+Potential compliance framework
+
+IT Services Search Filters
+
+Create the following filters for the IT Services vertical:
+
+Location
+Country
+State
+Metropolitan area
+City
+ZIP-code radius
+
+Default:
+
+United States
+
+Employee Count
+
+Default:
+
+5–2,000 employees
+
+Employee ranges:
+
+5–10
+11–25
+26–50
+51–100
+101–250
+251–500
+501–1,000
+1,001–2,000
+Industry
+All Industries
+Commercial
+Healthcare
+Retail
+Financial Services
+Legal
+Insurance
+Manufacturing
+Construction
+Logistics
+Professional Services
+Nonprofit
+Hospitality
+Real Estate
+Other
+Technology Need
+Managed IT
+Cybersecurity
+Compliance
+Microsoft 365
+Cloud Services
+Help Desk
+Backup and Disaster Recovery
+Network Management
+VoIP
+IT Consulting
+Prospect Signals
+Hiring IT personnel
+Recently opened a location
+Expanding operations
+Multiple locations
+Recent cybersecurity concern
+Compliance-sensitive industry
+Outdated website or technology indicators
+No visible internal IT leadership
+Recent company growth
+Recent acquisition or merger
+Decision-Maker Titles
+
+For IT Services searches, prioritize these contacts:
+
+Owner
+Founder
+President
+Chief Executive Officer
+Chief Operating Officer
+Chief Financial Officer
+Chief Information Officer
+Chief Technology Officer
+Chief Information Security Officer
+Vice President of Information Technology
+Director of Information Technology
+IT Director
+IT Manager
+Information Security Director
+Cybersecurity Manager
+Compliance Officer
+Privacy Officer
+Operations Director
+Practice Administrator
+Office Administrator
+Director of Operations
+Facilities and Technology Manager
+
+For smaller businesses, prioritize:
+
+Owner
+President
+Operations Manager
+Office Manager
+Practice Administrator
+
+For companies with more than 100 employees, prioritize:
+
+CIO
+CTO
+CISO
+IT Director
+IT Manager
+Compliance Officer
+Director of Operations
+IT Prospect Scoring
+
+Create an IT Opportunity Score from 0–100.
+
+Use these scoring factors:
+
+Factor	Maximum Points
+Employee count within target range	15
+Compliance-sensitive industry	20
+Multi-location organization	10
+Likely managed IT need	15
+Likely cybersecurity need	20
+Relevant decision-maker identified	10
+Recent growth or technology signal	10
+Score Labels
+80–100: High Priority
+60–79: Strong Fit
+40–59: Possible Fit
+Below 40: Low Priority
+
+Display the score and a short explanation.
+
+Example:
+
+IT Opportunity Score: 86 — High Priority
+Healthcare organization with 125 employees, multiple locations, likely HIPAA-related security needs, and an identified IT Director.
+
+Do not invent facts. Clearly label inferred information.
+
+Prospect Card for IT Services
+
+Each IT Services prospect card should display:
+
+Company name
+Website
+City and state
+Industry
+Estimated employee count
+Number of locations, when available
+Primary decision-maker
+Decision-maker title
+Email and phone, when available
+LinkedIn URL, when available
+IT Opportunity Score
+Potential IT service needs
+Potential compliance considerations
+Research summary
+Recommended outreach angle
+Date researched
+Research source or source URL, when available
+
+Example:
+
+Potential Need: Managed IT, cybersecurity assessment and Microsoft 365 support
+Compliance Consideration: Likely HIPAA-related security requirements
+Recommended Outreach: Offer a cybersecurity and compliance readiness assessment for its multiple medical locations.
+
+AI Research Instructions for IT Services
+
+When researching an IT Services prospect, instruct the AI to determine:
+
+What the organization does.
+Its estimated employee count.
+Whether it has multiple locations.
+Whether it operates in a compliance-sensitive industry.
+Whether an internal IT department is visible.
+Which managed IT or cybersecurity services may be relevant.
+Which decision-maker should be contacted.
+What business signal makes the company worth approaching.
+A personalized outreach angle.
+Whether the information is confirmed or inferred.
+
+The AI must not reuse Janitorial research prompts, Janitorial pain points, cleaning terminology, facility-cleaning services, walkthrough language, or cleaning-service recommendations when IT Services is selected.
+
+For IT Services, use discovery call, technology assessment, cybersecurity assessment, or IT consultation instead of cleaning walkthrough, except when the user manually chooses different wording.
+
+Vertical-Specific Terminology
+Janitorial
+
+Use:
+
+Cleaning walkthrough
+Facility assessment
+Janitorial proposal
+Cleaning scope
+Service frequency
+Square footage
+IT Services
+
+Use:
+
+Discovery call
+Technology assessment
+Cybersecurity assessment
+Compliance readiness review
+IT consultation
+Network assessment
+
+Never display Janitorial terminology in the IT Services workflow.
+
+Database and State Requirements
+
+Add or confirm these fields:
+
+vertical
+searchCriteria
+employeeRange
+industry
+technologyNeeds
+compliancePriority
+prospectSignals
+researchSummary
+opportunityScore
+scoreExplanation
+researchSources
+createdAt
+updatedAt

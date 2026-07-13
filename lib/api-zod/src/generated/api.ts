@@ -605,7 +605,9 @@ export const ProspectSearchBody = zod.object({
   "city": zod.string(),
   "state": zod.string(),
   "industry": zod.string(),
-  "count": zod.number()
+  "count": zod.number(),
+  "employeeRange": zod.string().optional().describe('Optional employee-count range filter, e.g. \"51-100\" (IT Services vertical)'),
+  "compliancePriority": zod.string().optional().describe('Optional cybersecurity & compliance priority filter (IT Services vertical)')
 })
 
 export const ProspectSearchResponseItem = zod.object({
@@ -619,9 +621,17 @@ export const ProspectSearchResponseItem = zod.object({
   "state": zod.string(),
   "website": zod.string().optional(),
   "estimatedEmployees": zod.number(),
-  "estimatedSquareFootage": zod.number(),
+  "estimatedSquareFootage": zod.number().optional(),
   "whyTarget": zod.string(),
-  "confidence": zod.enum(['high', 'medium', 'low'])
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "vertical": zod.string().optional().describe('Vertical this lead was generated for (janitorial | it_services)'),
+  "opportunityScore": zod.number().optional().describe('IT Opportunity Score 0-100 (IT Services vertical only)'),
+  "scoreLabel": zod.string().optional().describe('High Priority | Strong Fit | Possible Fit | Low Priority'),
+  "scoreExplanation": zod.string().optional(),
+  "estimatedLocations": zod.number().optional().describe('Estimated number of locations (IT Services vertical only)'),
+  "potentialNeeds": zod.array(zod.string()).optional().describe('Potential IT service needs (IT Services vertical only)'),
+  "complianceConsideration": zod.string().optional().describe('Likely\/potential compliance consideration, clearly inferred'),
+  "recommendedOutreach": zod.string().optional()
 })
 export const ProspectSearchResponse = zod.array(ProspectSearchResponseItem)
 
