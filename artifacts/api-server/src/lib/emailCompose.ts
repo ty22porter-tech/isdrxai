@@ -11,6 +11,8 @@ export interface ComposeClient {
   businessAddress?: string | null;
   outreachEmail?: string | null;
   vertical?: string | null;
+  companyLogoPath?: string | null;
+  profilePhotoPath?: string | null;
 }
 
 export interface ComposeResult {
@@ -71,7 +73,21 @@ export function composeEmail(
   const ctaHtml = cta
     ? `<p style="margin:0 0 16px"><a href="${cta.url}" style="color:#2563eb">${escapeHtml(cta.label)}</a></p>`
     : "";
-  const signatureHtml = `<p style="margin:0 0 16px">${escapeHtml(signatureLines.join("\n")).replace(/\n/g, "<br>")}</p>`;
+  // Signature with optional headshot (left) and company logo (below). Image
+  // URLs must be absolute so they load inside the recipient's email client.
+  const photoUrl = client.profilePhotoPath ? `${baseUrl}/api/storage${client.profilePhotoPath}` : null;
+  const logoUrl = client.companyLogoPath ? `${baseUrl}/api/storage${client.companyLogoPath}` : null;
+  const signatureTextHtml = escapeHtml(signatureLines.join("\n")).replace(/\n/g, "<br>");
+  const photoCellHtml = photoUrl
+    ? `<td style="vertical-align:top;padding-right:12px"><img src="${photoUrl}" alt="${escapeHtml(client.senderName?.trim() || business)}" width="56" height="56" style="border-radius:50%;display:block;object-fit:cover"></td>`
+    : "";
+  const logoHtml = logoUrl
+    ? `<div style="margin-top:8px"><img src="${logoUrl}" alt="${escapeHtml(business)}" height="36" style="display:block;max-height:36px;width:auto"></div>`
+    : "";
+  const signatureHtml =
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px"><tr>` +
+    `${photoCellHtml}<td style="vertical-align:top;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${signatureTextHtml}${logoHtml}</td>` +
+    `</tr></table>`;
   // Keep the footer visually quiet (no divider rule, small muted text) so the
   // message reads like a personal 1:1 email rather than a bulk newsletter —
   // heavy dividers/footer blocks are a strong Gmail "Promotions" signal.

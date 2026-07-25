@@ -516,7 +516,39 @@ export default function SettingsPage() {
               />
               {attachErr && <p className="text-xs text-red-400">{attachErr}</p>}
               <p className="text-xs text-muted-foreground">
-                Flyers, one-pagers, or anything with extra info about your business. Up to 10 files, 25 MB each.
+                Flyers, one-pagers, or anything with extra info about your business. Up to 10 files, 25 MB each. Attached files are sent alongside your emails — they are not part of the signature.
+              </p>
+            </div>
+
+            {/* Email signature preview */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" /> Email Signature Preview
+              </label>
+              <div className="rounded-lg border border-border bg-white text-gray-900 p-4">
+                <p className="text-[15px] leading-relaxed mb-3 text-gray-500 italic">…end of your email message…</p>
+                <div className="flex items-start gap-3">
+                  {profilePhotoPath && (
+                    <img
+                      src={objectUrl(profilePhotoPath)}
+                      alt="Your photo"
+                      className="w-14 h-14 rounded-full object-cover shrink-0"
+                    />
+                  )}
+                  <div className="text-[15px] leading-relaxed" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+                    <div>Best,</div>
+                    {(senderName || businessName) && <div>{senderName || businessName}</div>}
+                    {senderName && businessName && <div>{businessName}</div>}
+                    {phone && <div>{phone}</div>}
+                    {replyEmail && <div className="text-blue-600 underline">{replyEmail}</div>}
+                    {companyLogoPath && (
+                      <img src={objectUrl(companyLogoPath)} alt="Company logo" className="h-9 w-auto mt-2" />
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This is exactly how your signature will appear at the bottom of every outreach email, using your sender info, photo, and logo above. Tip: include your title in the Sender Name field (e.g. "Ty Porter, MBA - Director of Sales").
               </p>
             </div>
           </div>
