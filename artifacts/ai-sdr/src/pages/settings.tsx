@@ -525,27 +525,39 @@ export default function SettingsPage() {
               <label className="text-sm font-medium flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" /> Email Signature Preview
               </label>
-              <div className="rounded-lg border border-border bg-white text-gray-900 p-4">
-                <p className="text-[15px] leading-relaxed mb-3 text-gray-500 italic">…end of your email message…</p>
-                <div className="flex items-start gap-3">
-                  {profilePhotoPath && (
-                    <img
-                      src={objectUrl(profilePhotoPath)}
-                      alt="Your photo"
-                      className="w-14 h-14 rounded-full object-cover shrink-0"
-                    />
-                  )}
-                  <div className="text-[15px] leading-relaxed" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
-                    <div>Best,</div>
-                    {(senderName || businessName) && <div>{senderName || businessName}</div>}
-                    {senderName && businessName && <div>{businessName}</div>}
-                    {phone && <div>{phone}</div>}
-                    {replyEmail && <div className="text-blue-600 underline">{replyEmail}</div>}
-                    {companyLogoPath && (
-                      <img src={objectUrl(companyLogoPath)} alt="Company logo" className="h-9 w-auto mt-2" />
-                    )}
-                  </div>
-                </div>
+              <div className="rounded-lg border border-border bg-white text-gray-900 p-4" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+                <p className="text-[15px] mb-3 text-gray-500 italic">…end of your email message…</p>
+                <p className="text-[15px] mb-4">Best,</p>
+                {(() => {
+                  const raw = (senderName || businessName || "Your Name").trim();
+                  const i = raw.indexOf(" - ");
+                  const name = i > -1 ? raw.slice(0, i).trim() : raw;
+                  const title = i > -1 ? raw.slice(i + 3).trim() : "";
+                  return (
+                    <div className="flex items-center justify-between gap-8">
+                      <div className="min-w-0">
+                        {profilePhotoPath && (
+                          <img
+                            src={objectUrl(profilePhotoPath)}
+                            alt="Your photo"
+                            className="w-[90px] h-[90px] object-cover mb-3"
+                          />
+                        )}
+                        <div className="text-lg font-bold leading-snug">{name}</div>
+                        {title && <div className="text-base leading-snug">{title}</div>}
+                        {businessName && (
+                          <div className="text-sm font-semibold tracking-wide text-blue-600 uppercase mt-0.5">{businessName}</div>
+                        )}
+                        <div className="border-t border-red-600 w-64 max-w-full my-3.5" />
+                        {phone && <div className="text-[15px] underline mb-1.5">{phone}</div>}
+                        {replyEmail && <div className="text-[15px] underline">{replyEmail}</div>}
+                      </div>
+                      {companyLogoPath && (
+                        <img src={objectUrl(companyLogoPath)} alt="Company logo" className="w-[120px] h-auto shrink-0 self-center" />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <p className="text-xs text-muted-foreground">
                 This is exactly how your signature will appear at the bottom of every outreach email, using your sender info, photo, and logo above. Tip: include your title in the Sender Name field (e.g. "Ty Porter, MBA - Director of Sales").

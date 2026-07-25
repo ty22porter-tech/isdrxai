@@ -73,21 +73,39 @@ export function composeEmail(
   const ctaHtml = cta
     ? `<p style="margin:0 0 16px"><a href="${cta.url}" style="color:#2563eb">${escapeHtml(cta.label)}</a></p>`
     : "";
-  // Signature with optional headshot (left) and company logo (below). Image
-  // URLs must be absolute so they load inside the recipient's email client.
+  // Signature block: square headshot on top, bold name + title, business name,
+  // divider rule, then contact lines — with the company logo to the right.
+  // Image URLs must be absolute so they load inside the recipient's email client.
   const photoUrl = client.profilePhotoPath ? `${baseUrl}/api/storage${client.profilePhotoPath}` : null;
   const logoUrl = client.companyLogoPath ? `${baseUrl}/api/storage${client.companyLogoPath}` : null;
-  const signatureTextHtml = escapeHtml(signatureLines.join("\n")).replace(/\n/g, "<br>");
-  const photoCellHtml = photoUrl
-    ? `<td style="vertical-align:top;padding-right:12px"><img src="${photoUrl}" alt="${escapeHtml(client.senderName?.trim() || business)}" width="56" height="56" style="border-radius:50%;display:block;object-fit:cover"></td>`
+  const senderRaw = client.senderName?.trim() || business;
+  // "Ty Porter, MBA - Director of Sales" → name "Ty Porter, MBA", title "Director of Sales"
+  const dashIdx = senderRaw.indexOf(" - ");
+  const senderDisplayName = dashIdx > -1 ? senderRaw.slice(0, dashIdx).trim() : senderRaw;
+  const senderTitle = dashIdx > -1 ? senderRaw.slice(dashIdx + 3).trim() : "";
+  const phoneTrim = client.phone?.trim() || "";
+  const emailTrim = client.outreachEmail?.trim() || "";
+
+  const photoHtml = photoUrl
+    ? `<img src="${photoUrl}" alt="${escapeHtml(senderDisplayName)}" width="90" height="90" style="display:block;object-fit:cover;margin:0 0 12px">`
     : "";
-  const logoHtml = logoUrl
-    ? `<div style="margin-top:8px"><img src="${logoUrl}" alt="${escapeHtml(business)}" height="36" style="display:block;max-height:36px;width:auto"></div>`
+  const nameHtml = `<div style="font-size:18px;font-weight:bold;color:#111827">${escapeHtml(senderDisplayName)}</div>`;
+  const titleHtml = senderTitle ? `<div style="font-size:16px;color:#111827">${escapeHtml(senderTitle)}</div>` : "";
+  const businessHtml = `<div style="font-size:14px;font-weight:600;letter-spacing:.5px;color:#2563eb;text-transform:uppercase;margin-top:2px">${escapeHtml(business)}</div>`;
+  const ruleHtml = `<div style="border-top:1px solid #dc2626;width:260px;margin:14px 0"></div>`;
+  const contactRows = [
+    phoneTrim ? `<div style="margin:0 0 6px"><a href="tel:${escapeHtml(phoneTrim.replace(/[^+\d]/g, ""))}" style="color:#111827;text-decoration:underline">${escapeHtml(phoneTrim)}</a></div>` : "",
+    emailTrim ? `<div style="margin:0 0 6px"><a href="mailto:${escapeHtml(emailTrim)}" style="color:#111827;text-decoration:underline">${escapeHtml(emailTrim)}</a></div>` : "",
+  ].filter(Boolean).join("");
+  const logoCellHtml = logoUrl
+    ? `<td style="vertical-align:middle;padding-left:40px"><img src="${logoUrl}" alt="${escapeHtml(business)}" width="120" style="display:block;max-width:120px;height:auto"></td>`
     : "";
   const signatureHtml =
+    `<p style="margin:0 0 16px">Best,</p>` +
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px"><tr>` +
-    `${photoCellHtml}<td style="vertical-align:top;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${signatureTextHtml}${logoHtml}</td>` +
-    `</tr></table>`;
+    `<td style="vertical-align:top;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.4">` +
+    `${photoHtml}${nameHtml}${titleHtml}${businessHtml}${ruleHtml}${contactRows}` +
+    `</td>${logoCellHtml}</tr></table>`;
   // Keep the footer visually quiet (no divider rule, small muted text) so the
   // message reads like a personal 1:1 email rather than a bulk newsletter —
   // heavy dividers/footer blocks are a strong Gmail "Promotions" signal.
