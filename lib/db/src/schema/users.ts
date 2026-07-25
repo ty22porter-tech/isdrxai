@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -22,6 +22,9 @@ export const usersTable = pgTable("users", {
   autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
   vertical: text("vertical").notNull().default("janitorial"),
   verticalSelected: boolean("vertical_selected").notNull().default(true),
+  companyLogoPath: text("company_logo_path"),
+  profilePhotoPath: text("profile_photo_path"),
+  attachments: jsonb("attachments").$type<{ path: string; name: string; size: number; contentType: string }[]>().notNull().default([]),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ createdAt: true });

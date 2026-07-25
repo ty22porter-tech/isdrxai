@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox } from "lucide-react";
+import { useUpload } from "@workspace/object-storage-web";
+import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox, ImageIcon, Camera, Paperclip, Trash2, FileText, Upload } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -12,6 +13,88 @@ async function apiFetch(path: string, options?: RequestInit) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as any).error || `API error ${res.status}`);
   return data;
+}
+
+const objectUrl = (path: string) => `${BASE_URL}/api/storage${path}`;
+
+type Attachment = { path: string; name: string; size: number; contentType: string };
+
+function formatSize(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ImageUploadCard({
+  label,
+  hint,
+  icon,
+  value,
+  rounded,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  icon: React.ReactNode;
+  value: string | null;
+  rounded?: boolean;
+  onChange: (path: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const { uploadFile, isUploading } = useUpload({
+    basePath: `${BASE_URL}/api/storage`,
+    onSuccess: (res) => onChange(res.objectPath),
+    onError: (e) => setErr(e.message),
+  });
+
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    setErr(null);
+    if (!file.type.startsWith("image/")) {
+      setErr("Please choose an image file (PNG, JPG, etc.)");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErr("Image must be under 10 MB");
+      return;
+    }
+    await uploadFile(file);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium flex items-center gap-2">{icon} {label}</label>
+      <div className="flex items-center gap-4">
+        <div className={`w-16 h-16 shrink-0 border border-border bg-background flex items-center justify-center overflow-hidden ${rounded ? "rounded-full" : "rounded-lg"}`}>
+          {value ? (
+            <img src={objectUrl(value)} alt={label} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-muted-foreground">{icon}</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => inputRef.current?.click()}>
+            {isUploading ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Uploading…</> : <><Upload className="w-3.5 h-3.5 mr-1.5" /> {value ? "Replace" : "Upload"}</>}
+          </Button>
+          {value && (
+            <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-red-400" onClick={() => onChange(null)}>
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Remove
+            </Button>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
+        />
+      </div>
+      {err && <p className="text-xs text-red-400">{err}</p>}
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -31,7 +114,41 @@ export default function SettingsPage() {
   const [replyEmail, setReplyEmail] = useState("");
   const [calendlyUrl, setCalendlyUrl] = useState("");
   const [vertical, setVertical] = useState("janitorial");
+  const [companyLogoPath, setCompanyLogoPath] = useState<string | null>(null);
+  const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachErr, setAttachErr] = useState<string | null>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const pendingFileRef = useRef<File | null>(null);
+  const attachUpload = useUpload({
+    basePath: `${BASE_URL}/api/storage`,
+    onSuccess: (res) => {
+      const f = pendingFileRef.current;
+      setAttachments((prev) => [
+        ...prev,
+        { path: res.objectPath, name: f?.name ?? "file", size: f?.size ?? 0, contentType: f?.type || "application/octet-stream" },
+      ]);
+      pendingFileRef.current = null;
+    },
+    onError: (e) => setAttachErr(e.message),
+  });
+
+  const handleAttachFile = async (file?: File) => {
+    if (!file) return;
+    setAttachErr(null);
+    if (attachments.length >= 10) {
+      setAttachErr("You can attach up to 10 files.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setAttachErr("Files must be under 25 MB.");
+      return;
+    }
+    pendingFileRef.current = file;
+    await attachUpload.uploadFile(file);
+  };
 
   useEffect(() => {
     if (me) {
@@ -42,6 +159,9 @@ export default function SettingsPage() {
       setReplyEmail(me.outreachEmail ?? "");
       setCalendlyUrl(me.calendlyUrl ?? "");
       setVertical(me.vertical ?? "janitorial");
+      setCompanyLogoPath(me.companyLogoPath ?? null);
+      setProfilePhotoPath(me.profilePhotoPath ?? null);
+      setAttachments(Array.isArray(me.attachments) ? me.attachments : []);
     }
   }, [me]);
 
@@ -58,6 +178,9 @@ export default function SettingsPage() {
           outreachEmail: replyEmail,
           calendlyUrl,
           vertical,
+          companyLogoPath,
+          profilePhotoPath,
+          attachments,
         }),
       }),
     onSuccess: () => {
@@ -314,6 +437,88 @@ export default function SettingsPage() {
                 </a>
               )}
             </p>
+          </div>
+
+          <div className="border-t border-border pt-5 space-y-5">
+            <div>
+              <p className="text-sm font-medium flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-primary" /> Branding & Files
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Add your company logo, a photo of yourself, and any files (like a flyer or capabilities sheet) to include with your outreach.
+              </p>
+            </div>
+
+            <ImageUploadCard
+              label="Company Logo"
+              hint="Shown in your emails and on your scheduling page so prospects recognize your brand."
+              icon={<Building2 className="w-4 h-4 text-primary" />}
+              value={companyLogoPath}
+              onChange={setCompanyLogoPath}
+            />
+
+            <ImageUploadCard
+              label="Your Photo"
+              hint="A friendly headshot builds trust — prospects like to see who's reaching out."
+              icon={<Camera className="w-4 h-4 text-primary" />}
+              value={profilePhotoPath}
+              rounded
+              onChange={setProfilePhotoPath}
+            />
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-primary" /> Attached Files
+              </label>
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  {attachments.map((a, i) => (
+                    <div key={a.path} className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm truncate">{a.name}</div>
+                        {a.size > 0 && <div className="text-xs text-muted-foreground">{formatSize(a.size)}</div>}
+                      </div>
+                      <a
+                        href={objectUrl(a.path)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:text-primary/80 shrink-0"
+                      >
+                        View
+                      </a>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-red-400 shrink-0"
+                        onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                        aria-label={`Remove ${a.name}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={attachUpload.isUploading || attachments.length >= 10}
+                onClick={() => attachInputRef.current?.click()}
+              >
+                {attachUpload.isUploading ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Uploading…</> : <><Upload className="w-3.5 h-3.5 mr-1.5" /> Attach a file</>}
+              </Button>
+              <input
+                ref={attachInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => { handleAttachFile(e.target.files?.[0]); e.target.value = ""; }}
+              />
+              {attachErr && <p className="text-xs text-red-400">{attachErr}</p>}
+              <p className="text-xs text-muted-foreground">
+                Flyers, one-pagers, or anything with extra info about your business. Up to 10 files, 25 MB each.
+              </p>
+            </div>
           </div>
 
           {saveMsg && (
