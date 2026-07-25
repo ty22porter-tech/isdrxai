@@ -101,7 +101,7 @@ export function composeEmail(
   const businessHtml = `<div style="font-size:14px;font-weight:600;letter-spacing:.5px;color:#2563eb;text-transform:uppercase;margin-top:2px">${escapeHtml(business)}</div>`;
   const ruleHtml = `<div style="border-top:1px solid #dc2626;width:260px;margin:14px 0"></div>`;
   const contactRow = (label: string, valueHtml: string) =>
-    `<div style="margin:0 0 6px"><span style="font-weight:bold">${label}:</span> ${valueHtml}</div>`;
+    `<div style="margin:0 0 4px;font-size:13px"><span style="font-weight:bold">${label}:</span> ${valueHtml}</div>`;
   const contactRows = [
     phoneTrim ? contactRow("Office Phone", `<a href="tel:${escapeHtml(phoneTrim.replace(/[^+\d]/g, ""))}" style="color:#111827;text-decoration:underline">${escapeHtml(phoneTrim)}</a>`) : "",
     mobileTrim ? contactRow("Mobile", `<a href="tel:${escapeHtml(mobileTrim.replace(/[^+\d]/g, ""))}" style="color:#111827;text-decoration:underline">${escapeHtml(mobileTrim)}</a>`) : "",

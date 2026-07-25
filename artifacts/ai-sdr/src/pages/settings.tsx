@@ -667,10 +667,10 @@ export default function SettingsPage() {
                           <div className="text-sm font-semibold tracking-wide text-blue-600 uppercase mt-0.5">{businessName}</div>
                         )}
                         <div className="border-t border-red-600 w-64 max-w-full my-3.5" />
-                        {phone && <div className="text-[15px] mb-1.5"><span className="font-bold">Office Phone:</span> <span className="underline">{phone}</span></div>}
-                        {mobilePhone && <div className="text-[15px] mb-1.5"><span className="font-bold">Mobile:</span> <span className="underline">{mobilePhone}</span></div>}
-                        {replyEmail && <div className="text-[15px] mb-1.5"><span className="font-bold">Email:</span> <span className="underline">{replyEmail}</span></div>}
-                        {website && <div className="text-[15px]"><span className="font-bold">Website:</span> <span className="underline">{website}</span></div>}
+                        {phone && <div className="text-[13px] mb-1"><span className="font-bold">Office Phone:</span> <span className="underline">{phone}</span></div>}
+                        {mobilePhone && <div className="text-[13px] mb-1"><span className="font-bold">Mobile:</span> <span className="underline">{mobilePhone}</span></div>}
+                        {replyEmail && <div className="text-[13px] mb-1"><span className="font-bold">Email:</span> <span className="underline">{replyEmail}</span></div>}
+                        {website && <div className="text-[13px]"><span className="font-bold">Website:</span> <span className="underline">{website}</span></div>}
                       </div>
                       {companyLogoPath && (
                         <img src={objectUrl(companyLogoPath)} alt="Company logo" className="w-[120px] h-auto shrink-0 self-center" />
