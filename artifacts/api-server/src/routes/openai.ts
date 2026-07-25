@@ -111,6 +111,12 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
     const challengeList = challenges.slice(0, 3).map(c => `• ${c}`).join("\n");
     const industryLabel = industry || "commercial";
 
+    // Optional per-industry few-shot example (style/structure reference).
+    const example = vc.exampleEmails?.[industry];
+    const exampleBlock = example
+      ? `\n\nHere is a proven example email for this industry. Model its structure, tone, and messaging closely (a short empathetic opening about their operational pressures, the pain of unreliable vendors, a bulleted list of concrete benefits, a "partner/extension of your team" positioning, and a soft 15-minute ask). Adapt the wording — do not copy it verbatim — and refer to the sender's own company naturally. A bulleted benefits list IS allowed when following this example.\n\nEXAMPLE SUBJECT: ${example.subject}\nEXAMPLE BODY:\n${example.body}`
+      : "";
+
     const systemPrompt = templateMode
       ? `You are an expert B2B sales copywriter for ${senderClause}. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders. The template must be specific to the ${industryLabel} industry and reference its real challenges with ${vc.serviceNoun}.${offeringFocus} Emails are conversational, specific, concise, and never generic. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. End with one clear, specific call to action. ${noSignatureRule}`
       : `You are an expert B2B sales copywriter for ${senderClause}. Your emails are conversational, specific, concise, and never generic. You write ${vc.serviceNoun} sales emails to ${vc.audience}.${offeringFocus} Always use the prospect's real name and company. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. Never use bullet points unless the prompt asks. End with one clear, specific call to action. ${noSignatureRule}`;
@@ -127,7 +133,7 @@ This template targets ${industryLabel} businesses. Known ${industryLabel} ${vc.k
 ${challengeList}
 
 Tone and approach: ${getStepTone(step, vc.offerName)}
-${campaignContext ? `\nAdditional campaign context: ${campaignContext}` : ""}
+${campaignContext ? `\nAdditional campaign context: ${campaignContext}` : ""}${exampleBlock}
 
 Output format — return ONLY valid JSON with no markdown, no code block, no extra text:
 {"subject": "...", "body": "..."}
@@ -143,7 +149,7 @@ ${campaignContext ? `- Campaign context: ${campaignContext}` : ""}
 Known ${industry} ${vc.key === "it_services" ? "IT and technology" : "facility"} challenges:
 ${challengeList}
 
-Tone and approach: ${getStepTone(step, vc.offerName)}
+Tone and approach: ${getStepTone(step, vc.offerName)}${exampleBlock}
 
 Output format — return ONLY valid JSON with no markdown, no code block, no extra text:
 {"subject": "...", "body": "..."}

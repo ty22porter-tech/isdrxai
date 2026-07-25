@@ -28,6 +28,13 @@ export interface VerticalConfig {
   offerings: string[];
   /** Per-industry challenges — SAME industry keys for both verticals */
   industryChallenges: Record<string, string[]>;
+  /**
+   * Optional per-industry example emails used as few-shot style references for the
+   * AI generator. Bodies must NOT contain a signature (composeEmail owns it) and must
+   * use {{contactName}}/{{companyName}} placeholders instead of real prospect data.
+   * Never hardcode a sender/company name — the generator substitutes the client's own.
+   */
+  exampleEmails?: Record<string, { subject: string; body: string }>;
   fallbackChallenges: string[];
   /** Scheduling questionnaire wording */
   schedule: {
@@ -123,6 +130,29 @@ const JANITORIAL: VerticalConfig = {
     "maintaining a clean, professional environment",
     "finding a reliable and consistent janitorial partner",
   ],
+  exampleEmails: {
+    "Logistics & Warehousing": {
+      subject: "Keeping warehouse operations moving without vendor headaches",
+      body: `Hi {{contactName}},
+
+Managing an industrial facility today means balancing productivity, safety, labor shortages, and operating costs—all while keeping your operation running without interruption.
+
+One area that often creates unnecessary challenges is facility cleaning. Inconsistent service, poor communication, and vendors that require constant follow-up can consume valuable time that should be spent supporting operations.
+
+We partner with warehouse and distribution operations to provide reliable commercial cleaning programs that help:
+
+- Maintain cleaner, safer work environments
+- Support OSHA and safety initiatives
+- Improve employee experience in breakrooms, restrooms, and common areas
+- Deliver consistent service across one or multiple locations
+- Schedule cleaning around production—not during it
+- Reduce the time facility teams spend managing vendors
+
+Rather than simply cleaning buildings, our goal is to become an extension of your operations team by providing consistent communication, measurable quality inspections, and responsive support.
+
+Would you be open to a brief 15-minute conversation next week to learn how other warehouse operations are reducing vendor management while maintaining a cleaner, safer facility?`,
+    },
+  },
   schedule: {
     headline: "Schedule your free walkthrough",
     intro: (b, c) =>
