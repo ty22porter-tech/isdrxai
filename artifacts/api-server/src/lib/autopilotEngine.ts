@@ -193,7 +193,13 @@ export async function processAutopilotQueue(): Promise<void> {
 
       const composed = composeEmail(coreBody, client, prospect);
 
-      const fileAttachments = await getClientEmailAttachments(client.attachments, console);
+      // Step-based attachments: intro flyer on step 1 only, then case studies
+      // on steps 3 and 5 to give prospects fresh material as the campaign advances.
+      let attachmentSource: unknown = null;
+      if (nextStep === 1) attachmentSource = client.attachments;
+      else if (nextStep === 3 && client.step3CaseStudy) attachmentSource = [client.step3CaseStudy];
+      else if (nextStep === 5 && client.step5CaseStudy) attachmentSource = [client.step5CaseStudy];
+      const fileAttachments = await getClientEmailAttachments(attachmentSource, console);
       await sendEmail({
         attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
         fromName: client.businessName ?? client.outreachEmail,

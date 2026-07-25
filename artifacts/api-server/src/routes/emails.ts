@@ -88,7 +88,16 @@ router.post("/", requireEntitlement, async (req, res) => {
   // Actually dispatch the email through Resend. If this fails, surface the error
   // and do NOT record it as sent.
   try {
-    const fileAttachments = await getClientEmailAttachments(client.attachments, req.log);
+    // Intro attachments (flyer etc.) only go on the FIRST email to a prospect —
+    // repeating them on every follow-up hurts deliverability.
+    const [priorEmail] = await db
+      .select({ id: emailsTable.id })
+      .from(emailsTable)
+      .where(eq(emailsTable.prospectId, prospect.id))
+      .limit(1);
+    const fileAttachments = priorEmail
+      ? []
+      : await getClientEmailAttachments(client.attachments, req.log);
     await sendEmail({
       attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
       fromName: client.businessName?.trim() || client.outreachEmail,

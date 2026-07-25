@@ -54,6 +54,8 @@ router.get("/me", async (req, res) => {
     companyLogoPath: user.companyLogoPath,
     profilePhotoPath: user.profilePhotoPath,
     attachments: user.attachments ?? [],
+    step3CaseStudy: user.step3CaseStudy ?? null,
+    step5CaseStudy: user.step5CaseStudy ?? null,
     platformEmailReady: resendReady,
     platformFromEmail: getPlatformFromEmail(),
     autopilotReady: resendReady && !!(user.outreachEmail) && !!(user.businessAddress),
@@ -61,7 +63,14 @@ router.get("/me", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone, vertical, website, mobilePhone, companyLogoPath, profilePhotoPath, attachments } = req.body;
+  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone, vertical, website, mobilePhone, companyLogoPath, profilePhotoPath, attachments, step3CaseStudy, step5CaseStudy } = req.body;
+
+  const cleanCaseStudy = async (v: any) => ({
+    path: await normalizeAndOwn(v.path, req.clientId),
+    name: String(v.name).slice(0, 200),
+    size: typeof v.size === "number" ? v.size : 0,
+    contentType: typeof v.contentType === "string" ? v.contentType : "application/octet-stream",
+  });
   const update: Record<string, any> = {};
   if (typeof website === "string" || website === null) update.website = website ? String(website).trim().slice(0, 300) : null;
   if (typeof mobilePhone === "string" || mobilePhone === null) update.mobilePhone = mobilePhone ? String(mobilePhone).trim().slice(0, 50) : null;
@@ -94,6 +103,16 @@ router.put("/settings", async (req, res) => {
         });
       }
       update.attachments = cleaned;
+    }
+
+    if (step3CaseStudy === null) update.step3CaseStudy = null;
+    else if (step3CaseStudy && typeof step3CaseStudy.path === "string" && typeof step3CaseStudy.name === "string") {
+      update.step3CaseStudy = await cleanCaseStudy(step3CaseStudy);
+    }
+
+    if (step5CaseStudy === null) update.step5CaseStudy = null;
+    else if (step5CaseStudy && typeof step5CaseStudy.path === "string" && typeof step5CaseStudy.name === "string") {
+      update.step5CaseStudy = await cleanCaseStudy(step5CaseStudy);
     }
   } catch (err) {
     req.log.error({ err }, "Failed to process uploaded files in settings");
@@ -130,6 +149,8 @@ router.put("/settings", async (req, res) => {
     companyLogoPath: user.companyLogoPath,
     profilePhotoPath: user.profilePhotoPath,
     attachments: user.attachments ?? [],
+    step3CaseStudy: user.step3CaseStudy ?? null,
+    step5CaseStudy: user.step5CaseStudy ?? null,
     platformEmailReady: resendReady,
     autopilotReady: resendReady && !!(user.outreachEmail) && !!(user.businessAddress),
   });

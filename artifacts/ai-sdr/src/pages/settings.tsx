@@ -25,6 +25,69 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function SingleFileCard({
+  label,
+  hint,
+  accept,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  accept?: string;
+  value: Attachment | null;
+  onChange: (file: Attachment | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const pendingRef = useRef<File | null>(null);
+  const { uploadFile, isUploading } = useUpload({
+    basePath: `${BASE_URL}/api/storage`,
+    onSuccess: (res) => {
+      const f = pendingRef.current;
+      onChange({ path: res.objectPath, name: f?.name ?? "file", size: f?.size ?? 0, contentType: f?.type || "application/octet-stream" });
+      pendingRef.current = null;
+    },
+    onError: (e) => setErr(e.message),
+  });
+
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    setErr(null);
+    if (file.size > 25 * 1024 * 1024) {
+      setErr("File must be under 25 MB");
+      return;
+    }
+    pendingRef.current = file;
+    await uploadFile(file);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium flex items-center gap-2"><Paperclip className="w-4 h-4 text-primary" /> {label}</label>
+      {value ? (
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm truncate">{value.name}</div>
+            {value.size > 0 && <div className="text-xs text-muted-foreground">{formatSize(value.size)}</div>}
+          </div>
+          <a href={objectUrl(value.path)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:text-primary/80 shrink-0">View</a>
+          <button type="button" className="text-muted-foreground hover:text-red-400 shrink-0" onClick={() => onChange(null)} aria-label={`Remove ${value.name}`}>
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ) : null}
+      <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => inputRef.current?.click()}>
+        {isUploading ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Uploading…</> : <><Upload className="w-3.5 h-3.5 mr-1.5" /> {value ? "Replace" : "Upload"}</>}
+      </Button>
+      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }} />
+      {err && <p className="text-xs text-red-400">{err}</p>}
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
 function ImageUploadCard({
   label,
   hint,
@@ -119,6 +182,8 @@ export default function SettingsPage() {
   const [companyLogoPath, setCompanyLogoPath] = useState<string | null>(null);
   const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [step3CaseStudy, setStep3CaseStudy] = useState<Attachment | null>(null);
+  const [step5CaseStudy, setStep5CaseStudy] = useState<Attachment | null>(null);
   const [attachErr, setAttachErr] = useState<string | null>(null);
   const attachInputRef = useRef<HTMLInputElement>(null);
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -166,6 +231,8 @@ export default function SettingsPage() {
       setCompanyLogoPath(me.companyLogoPath ?? null);
       setProfilePhotoPath(me.profilePhotoPath ?? null);
       setAttachments(Array.isArray(me.attachments) ? me.attachments : []);
+      setStep3CaseStudy(me.step3CaseStudy ?? null);
+      setStep5CaseStudy(me.step5CaseStudy ?? null);
     }
   }, [me]);
 
@@ -187,6 +254,8 @@ export default function SettingsPage() {
           companyLogoPath,
           profilePhotoPath,
           attachments,
+          step3CaseStudy,
+          step5CaseStudy,
         }),
       }),
     onSuccess: () => {
@@ -550,9 +619,24 @@ export default function SettingsPage() {
               />
               {attachErr && <p className="text-xs text-red-400">{attachErr}</p>}
               <p className="text-xs text-muted-foreground">
-                Flyers, one-pagers, or anything with extra info about your business. Up to 10 files, 25 MB each. Attached files are sent alongside your emails — they are not part of the signature.
+                Flyers, one-pagers, or anything with extra info about your business. Up to 10 files, 25 MB each. These are attached to the FIRST email only — follow-ups get the case studies below instead.
               </p>
             </div>
+
+            <SingleFileCard
+              label="Case Study — Step 3"
+              hint="Attached to the third email in your campaign sequence. Fresh material keeps prospects engaged as the campaign advances."
+              value={step3CaseStudy}
+              onChange={setStep3CaseStudy}
+            />
+
+            <SingleFileCard
+              label="Case Study or Audio (MP3) — Step 5"
+              hint="Attached to the fifth email in your campaign sequence. A case study PDF or a short MP3 works well here."
+              accept=".pdf,.doc,.docx,.mp3,audio/mpeg,application/pdf"
+              value={step5CaseStudy}
+              onChange={setStep5CaseStudy}
+            />
 
             {/* Email signature preview */}
             <div className="space-y-1.5">

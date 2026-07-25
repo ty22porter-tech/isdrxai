@@ -27,6 +27,8 @@ export const usersTable = pgTable("users", {
   companyLogoPath: text("company_logo_path"),
   profilePhotoPath: text("profile_photo_path"),
   attachments: jsonb("attachments").$type<{ path: string; name: string; size: number; contentType: string }[]>().notNull().default([]),
+  step3CaseStudy: jsonb("step3_case_study").$type<{ path: string; name: string; size: number; contentType: string } | null>(),
+  step5CaseStudy: jsonb("step5_case_study").$type<{ path: string; name: string; size: number; contentType: string } | null>(),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ createdAt: true });
