@@ -11,6 +11,8 @@ export interface ComposeClient {
   businessAddress?: string | null;
   outreachEmail?: string | null;
   vertical?: string | null;
+  website?: string | null;
+  mobilePhone?: string | null;
   companyLogoPath?: string | null;
   profilePhotoPath?: string | null;
 }
@@ -50,8 +52,10 @@ export function composeEmail(
     "Best,",
     client.senderName?.trim() || business,
     client.senderName?.trim() ? business : "",
-    client.phone?.trim() || "",
-    client.outreachEmail?.trim() || "",
+    client.phone?.trim() ? `Office Phone: ${client.phone.trim()}` : "",
+    client.mobilePhone?.trim() ? `Mobile: ${client.mobilePhone.trim()}` : "",
+    client.outreachEmail?.trim() ? `Email: ${client.outreachEmail.trim()}` : "",
+    client.website?.trim() ? `Website: ${client.website.trim()}` : "",
   ].filter(Boolean);
 
   const addressLine = client.businessAddress?.trim()
@@ -84,7 +88,10 @@ export function composeEmail(
   const senderDisplayName = dashIdx > -1 ? senderRaw.slice(0, dashIdx).trim() : senderRaw;
   const senderTitle = dashIdx > -1 ? senderRaw.slice(dashIdx + 3).trim() : "";
   const phoneTrim = client.phone?.trim() || "";
+  const mobileTrim = client.mobilePhone?.trim() || "";
   const emailTrim = client.outreachEmail?.trim() || "";
+  const websiteTrim = client.website?.trim() || "";
+  const websiteHref = websiteTrim && !/^https?:\/\//i.test(websiteTrim) ? `https://${websiteTrim}` : websiteTrim;
 
   const photoHtml = photoUrl
     ? `<img src="${photoUrl}" alt="${escapeHtml(senderDisplayName)}" width="90" height="90" style="display:block;object-fit:cover;margin:0 0 12px">`
@@ -93,9 +100,13 @@ export function composeEmail(
   const titleHtml = senderTitle ? `<div style="font-size:16px;color:#111827">${escapeHtml(senderTitle)}</div>` : "";
   const businessHtml = `<div style="font-size:14px;font-weight:600;letter-spacing:.5px;color:#2563eb;text-transform:uppercase;margin-top:2px">${escapeHtml(business)}</div>`;
   const ruleHtml = `<div style="border-top:1px solid #dc2626;width:260px;margin:14px 0"></div>`;
+  const contactRow = (label: string, valueHtml: string) =>
+    `<div style="margin:0 0 6px"><span style="font-weight:bold">${label}:</span> ${valueHtml}</div>`;
   const contactRows = [
-    phoneTrim ? `<div style="margin:0 0 6px"><a href="tel:${escapeHtml(phoneTrim.replace(/[^+\d]/g, ""))}" style="color:#111827;text-decoration:underline">${escapeHtml(phoneTrim)}</a></div>` : "",
-    emailTrim ? `<div style="margin:0 0 6px"><a href="mailto:${escapeHtml(emailTrim)}" style="color:#111827;text-decoration:underline">${escapeHtml(emailTrim)}</a></div>` : "",
+    phoneTrim ? contactRow("Office Phone", `<a href="tel:${escapeHtml(phoneTrim.replace(/[^+\d]/g, ""))}" style="color:#111827;text-decoration:underline">${escapeHtml(phoneTrim)}</a>`) : "",
+    mobileTrim ? contactRow("Mobile", `<a href="tel:${escapeHtml(mobileTrim.replace(/[^+\d]/g, ""))}" style="color:#111827;text-decoration:underline">${escapeHtml(mobileTrim)}</a>`) : "",
+    emailTrim ? contactRow("Email", `<a href="mailto:${escapeHtml(emailTrim)}" style="color:#111827;text-decoration:underline">${escapeHtml(emailTrim)}</a>`) : "",
+    websiteTrim ? contactRow("Website", `<a href="${escapeHtml(websiteHref)}" style="color:#111827;text-decoration:underline">${escapeHtml(websiteTrim)}</a>`) : "",
   ].filter(Boolean).join("");
   const logoCellHtml = logoUrl
     ? `<td style="vertical-align:middle;padding-left:40px"><img src="${logoUrl}" alt="${escapeHtml(business)}" width="120" style="display:block;max-width:120px;height:auto"></td>`

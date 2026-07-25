@@ -2,6 +2,7 @@ import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTab
 import { eq, and, lte, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
+import { getClientEmailAttachments } from "./clientAttachments";
 import { composeEmail, unsubscribeHeaders } from "./emailCompose";
 import { getPublicAppUrl } from "./publicUrl";
 import { resolveReplyTo } from "./inboundAddressing";
@@ -192,7 +193,9 @@ export async function processAutopilotQueue(): Promise<void> {
 
       const composed = composeEmail(coreBody, client, prospect);
 
+      const fileAttachments = await getClientEmailAttachments(client.attachments, console);
       await sendEmail({
+        attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
         fromName: client.businessName ?? client.outreachEmail,
         fromEmail: client.sendingEmail ?? undefined,
         replyTo: resolveReplyTo(client.outreachEmail, prospect.replyToken),

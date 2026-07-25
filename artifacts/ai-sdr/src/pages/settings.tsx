@@ -110,6 +110,8 @@ export default function SettingsPage() {
   const [businessName, setBusinessName] = useState("");
   const [senderName, setSenderName] = useState("");
   const [phone, setPhone] = useState("");
+  const [mobilePhone, setMobilePhone] = useState("");
+  const [website, setWebsite] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [replyEmail, setReplyEmail] = useState("");
   const [calendlyUrl, setCalendlyUrl] = useState("");
@@ -155,6 +157,8 @@ export default function SettingsPage() {
       setBusinessName(me.businessName ?? "");
       setSenderName(me.senderName ?? "");
       setPhone(me.phone ?? "");
+      setMobilePhone(me.mobilePhone ?? "");
+      setWebsite(me.website ?? "");
       setBusinessAddress(me.businessAddress ?? "");
       setReplyEmail(me.outreachEmail ?? "");
       setCalendlyUrl(me.calendlyUrl ?? "");
@@ -178,6 +182,8 @@ export default function SettingsPage() {
           outreachEmail: replyEmail,
           calendlyUrl,
           vertical,
+          mobilePhone: mobilePhone || null,
+          website: website || null,
           companyLogoPath,
           profilePhotoPath,
           attachments,
@@ -385,7 +391,35 @@ export default function SettingsPage() {
               placeholder="e.g. (555) 123-4567"
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
-            <p className="text-xs text-muted-foreground">Added to your email signature so prospects can call you directly.</p>
+            <p className="text-xs text-muted-foreground">Shown as "Office Phone" in your email signature.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" /> Mobile / Fax Number <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={mobilePhone}
+              onChange={e => setMobilePhone(e.target.value)}
+              placeholder="e.g. (555) 987-6543"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <p className="text-xs text-muted-foreground">Shown as "Mobile" in your email signature when provided.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <ExternalLink className="w-4 h-4 text-primary" /> Company Website <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={website}
+              onChange={e => setWebsite(e.target.value)}
+              placeholder="e.g. www.yourcompany.com"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <p className="text-xs text-muted-foreground">Shown as "Website" in your email signature when provided.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -549,8 +583,10 @@ export default function SettingsPage() {
                           <div className="text-sm font-semibold tracking-wide text-blue-600 uppercase mt-0.5">{businessName}</div>
                         )}
                         <div className="border-t border-red-600 w-64 max-w-full my-3.5" />
-                        {phone && <div className="text-[15px] underline mb-1.5">{phone}</div>}
-                        {replyEmail && <div className="text-[15px] underline">{replyEmail}</div>}
+                        {phone && <div className="text-[15px] mb-1.5"><span className="font-bold">Office Phone:</span> <span className="underline">{phone}</span></div>}
+                        {mobilePhone && <div className="text-[15px] mb-1.5"><span className="font-bold">Mobile:</span> <span className="underline">{mobilePhone}</span></div>}
+                        {replyEmail && <div className="text-[15px] mb-1.5"><span className="font-bold">Email:</span> <span className="underline">{replyEmail}</span></div>}
+                        {website && <div className="text-[15px]"><span className="font-bold">Website:</span> <span className="underline">{website}</span></div>}
                       </div>
                       {companyLogoPath && (
                         <img src={objectUrl(companyLogoPath)} alt="Company logo" className="w-[120px] h-auto shrink-0 self-center" />

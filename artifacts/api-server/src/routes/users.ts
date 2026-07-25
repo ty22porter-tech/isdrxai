@@ -49,6 +49,8 @@ router.get("/me", async (req, res) => {
     vertical: user.vertical,
     verticalSelected: user.verticalSelected,
     autopilotEnabled: user.autopilotEnabled,
+    website: user.website,
+    mobilePhone: user.mobilePhone,
     companyLogoPath: user.companyLogoPath,
     profilePhotoPath: user.profilePhotoPath,
     attachments: user.attachments ?? [],
@@ -59,8 +61,10 @@ router.get("/me", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone, vertical, companyLogoPath, profilePhotoPath, attachments } = req.body;
+  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone, vertical, website, mobilePhone, companyLogoPath, profilePhotoPath, attachments } = req.body;
   const update: Record<string, any> = {};
+  if (typeof website === "string" || website === null) update.website = website ? String(website).trim().slice(0, 300) : null;
+  if (typeof mobilePhone === "string" || mobilePhone === null) update.mobilePhone = mobilePhone ? String(mobilePhone).trim().slice(0, 50) : null;
 
   try {
     if (companyLogoPath === null) update.companyLogoPath = null;
@@ -121,6 +125,8 @@ router.put("/settings", async (req, res) => {
     timezone: user.timezone,
     vertical: user.vertical,
     verticalSelected: user.verticalSelected,
+    website: user.website,
+    mobilePhone: user.mobilePhone,
     companyLogoPath: user.companyLogoPath,
     profilePhotoPath: user.profilePhotoPath,
     attachments: user.attachments ?? [],

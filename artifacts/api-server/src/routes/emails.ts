@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { sendEmail } from "../lib/emailSender";
+import { getClientEmailAttachments } from "../lib/clientAttachments";
 import { resolveReplyTo } from "../lib/inboundAddressing";
 import {
   composeEmail,
@@ -87,7 +88,9 @@ router.post("/", requireEntitlement, async (req, res) => {
   // Actually dispatch the email through Resend. If this fails, surface the error
   // and do NOT record it as sent.
   try {
+    const fileAttachments = await getClientEmailAttachments(client.attachments, req.log);
     await sendEmail({
+      attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
       fromName: client.businessName?.trim() || client.outreachEmail,
       fromEmail: client.sendingEmail ?? undefined,
       replyTo: resolveReplyTo(client.outreachEmail, replyToken),

@@ -22,6 +22,8 @@ export const usersTable = pgTable("users", {
   autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
   vertical: text("vertical").notNull().default("janitorial"),
   verticalSelected: boolean("vertical_selected").notNull().default(true),
+  website: text("website"),
+  mobilePhone: text("mobile_phone"),
   companyLogoPath: text("company_logo_path"),
   profilePhotoPath: text("profile_photo_path"),
   attachments: jsonb("attachments").$type<{ path: string; name: string; size: number; contentType: string }[]>().notNull().default([]),
