@@ -302,6 +302,13 @@ export default function SettingsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: calendlySync } = useQuery({
+    queryKey: ["calendly-status"],
+    queryFn: () => apiFetch("/calendly/status"),
+    enabled: isLoaded && !!user,
+    refetchOnWindowFocus: false,
+  });
+
   const checkIcon = (status: string) => {
     if (status === "pass") return <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />;
     if (status === "warn") return <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />;
@@ -565,6 +572,43 @@ export default function SettingsPage() {
               (Calendly → Integrations → API &amp; Webhooks → Personal Access Token) as the <span className="font-mono">CALENDLY_API_TOKEN</span> secret —
               the app then registers a verified webhook on its own. Bookings made through emailed links are always tracked either way.
             </p>
+            {calendlySync && (
+              <div
+                className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 ${
+                  calendlySync.state === "connected"
+                    ? "border-emerald-500/30 bg-emerald-500/10"
+                    : calendlySync.state === "failed"
+                      ? "border-red-500/30 bg-red-500/10"
+                      : "border-border bg-background"
+                }`}
+              >
+                {calendlySync.state === "connected" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                ) : calendlySync.state === "failed" ? (
+                  <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                ) : (
+                  <MinusCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                )}
+                <div className="min-w-0">
+                  <div
+                    className={`text-xs font-semibold ${
+                      calendlySync.state === "connected"
+                        ? "text-emerald-400"
+                        : calendlySync.state === "failed"
+                          ? "text-red-400"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {calendlySync.state === "connected"
+                      ? "Direct-booking sync connected"
+                      : calendlySync.state === "failed"
+                        ? "Direct-booking sync failed"
+                        : "Direct-booking sync not configured"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{calendlySync.detail}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-border pt-5 space-y-5">

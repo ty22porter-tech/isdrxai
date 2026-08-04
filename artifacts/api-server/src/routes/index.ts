@@ -18,6 +18,7 @@ import trialCodesRouter from "./trialCodes";
 import storageRouter from "./storage";
 import engagementRouter from "./engagement";
 import notificationsRouter from "./notifications";
+import calendlyStatusRouter from "./calendlyStatus";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ router.use("/deliverability", deliverabilityRouter);
 router.use("/trial-codes", trialCodesRouter);
 router.use("/engagement", engagementRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/calendly", calendlyStatusRouter);
 router.use(storageRouter);
 
 export default router;

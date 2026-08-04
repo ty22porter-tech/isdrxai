@@ -5,6 +5,31 @@ import { logger } from "./logger";
 const WEBHOOK_PATH = "/api/calendly/webhook";
 const CALENDLY_API = "https://api.calendly.com";
 
+export type CalendlyWebhookStatus = {
+  /** connected = subscription registered/reused at boot; not_configured = no
+   *  CALENDLY_API_TOKEN; failed = token present but registration failed. */
+  state: "connected" | "not_configured" | "failed";
+  /** Human-readable detail safe to show in the client Settings page. */
+  detail: string;
+  /** ISO timestamp of when the status was recorded (boot time). */
+  checkedAt: string | null;
+};
+
+let webhookStatus: CalendlyWebhookStatus = {
+  state: "not_configured",
+  detail: "Webhook registration has not run yet.",
+  checkedAt: null,
+};
+
+function setStatus(state: CalendlyWebhookStatus["state"], detail: string) {
+  webhookStatus = { state, detail, checkedAt: new Date().toISOString() };
+}
+
+/** Registration outcome recorded by ensureCalendlyWebhook at boot. */
+export function getCalendlyWebhookStatus(): CalendlyWebhookStatus {
+  return webhookStatus;
+}
+
 /**
  * Idempotently ensure a Calendly webhook subscription points at this
  * deployment, mirroring the Resend webhook self-provisioning in
@@ -27,12 +52,14 @@ export async function ensureCalendlyWebhook(): Promise<void> {
     if (!process.env.CALENDLY_WEBHOOK_SIGNING_KEY) {
       logger.info("CALENDLY_API_TOKEN not set — Calendly webhook not auto-registered (direct-booking sync stays off until configured)");
     }
+    setStatus("not_configured", "CALENDLY_API_TOKEN is not set, so direct-booking sync is off. Bookings made through your Calendly link won't appear here automatically.");
     return;
   }
 
   const base = getPublicAppUrl();
   if (!base) {
     logger.warn("Cannot resolve public app URL — Calendly webhook not configured");
+    setStatus("failed", "Couldn't resolve this app's public URL, so the Calendly webhook wasn't registered.");
     return;
   }
   const callbackUrl = `${base}${WEBHOOK_PATH}`;
@@ -48,6 +75,7 @@ export async function ensureCalendlyWebhook(): Promise<void> {
     const sessionSecret = process.env.SESSION_SECRET;
     if (!sessionSecret || sessionSecret.length < 32) {
       logger.error("Cannot derive a Calendly webhook signing key: set CALENDLY_WEBHOOK_SIGNING_KEY, or a SESSION_SECRET of at least 32 chars. Webhook not registered; production requests stay rejected (fail closed).");
+      setStatus("failed", "No usable signing key: set CALENDLY_WEBHOOK_SIGNING_KEY (or a strong SESSION_SECRET). Webhook not registered.");
       return;
     }
     signingKey = crypto.createHmac("sha256", sessionSecret).update("calendly-webhook-signing-key").digest("hex");
@@ -59,6 +87,7 @@ export async function ensureCalendlyWebhook(): Promise<void> {
     const meRes = await fetch(`${CALENDLY_API}/users/me`, { headers });
     if (!meRes.ok) {
       logger.error({ status: meRes.status }, "Calendly /users/me failed — check CALENDLY_API_TOKEN");
+      setStatus("failed", `Calendly rejected the API token (HTTP ${meRes.status}). Check CALENDLY_API_TOKEN.`);
       return;
     }
     const me: any = await meRes.json();
@@ -66,6 +95,7 @@ export async function ensureCalendlyWebhook(): Promise<void> {
     const userUri: string | undefined = me?.resource?.uri;
     if (!organization || !userUri) {
       logger.error("Calendly /users/me missing organization/user URI");
+      setStatus("failed", "Calendly account lookup succeeded but returned no organization/user — webhook not registered.");
       return;
     }
 
@@ -87,6 +117,7 @@ export async function ensureCalendlyWebhook(): Promise<void> {
       if (existing) {
         logger.info({ callbackUrl, scope, uri: existing.uri }, "Reusing existing Calendly webhook subscription");
         process.env.CALENDLY_WEBHOOK_SIGNING_KEY = signingKey;
+        setStatus("connected", `Webhook active (${scope} scope) — direct Calendly bookings sync automatically.`);
         return;
       }
 
@@ -108,6 +139,7 @@ export async function ensureCalendlyWebhook(): Promise<void> {
         const created: any = await createRes.json();
         logger.info({ callbackUrl, scope, uri: created?.resource?.uri }, "Created Calendly webhook subscription");
         process.env.CALENDLY_WEBHOOK_SIGNING_KEY = signingKey;
+        setStatus("connected", `Webhook registered (${scope} scope) — direct Calendly bookings sync automatically.`);
         return;
       }
       const text = await createRes.text().catch(() => "");
@@ -115,7 +147,9 @@ export async function ensureCalendlyWebhook(): Promise<void> {
     }
 
     logger.error({ callbackUrl }, "Failed to register Calendly webhook under any scope");
+    setStatus("failed", "Calendly refused the webhook registration under both organization and user scope. The API token may lack webhook permissions (requires a paid Calendly plan).");
   } catch (err: any) {
     logger.error({ err: err?.message, callbackUrl }, "Failed to ensure Calendly webhook");
+    setStatus("failed", "Couldn't reach the Calendly API to register the webhook. See server logs for details.");
   }
 }
