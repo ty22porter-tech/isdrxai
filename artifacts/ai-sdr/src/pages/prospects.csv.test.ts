@@ -113,3 +113,70 @@ describe("analyzeCSV", () => {
     expect(result.malformed).toBe(1);
   });
 });
+
+describe("analyzeCSV – non-CSV file rejection", () => {
+  it("rejects an .xlsx / zip file (PK signature) with Save-As guidance", () => {
+    // Simulate the PK\x03\x04 magic bytes that open every .xlsx/zip file.
+    const xlsxContent = "PK\x03\x04somebinarydata";
+    const result = analyzeCSV(xlsxContent);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/xlsx/i);
+      expect(result.error).toMatch(/save as/i);
+    }
+  });
+
+  it("rejects a PDF file (%PDF signature) with re-export guidance", () => {
+    const pdfContent = "%PDF-1.4 fake pdf content here";
+    const result = analyzeCSV(pdfContent);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/pdf/i);
+      expect(result.error).toMatch(/csv/i);
+    }
+  });
+
+  it("rejects a file containing null bytes (binary payload)", () => {
+    // Null bytes (\u0000) are never valid in a text CSV.
+    const binaryContent = "Company Name,Contact Name\u0000\u0000\u0000garbage binary data";
+    const result = analyzeCSV(binaryContent);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/binary/i);
+      expect(result.error).toMatch(/csv/i);
+    }
+  });
+
+  it("rejects a file whose header has only one column", () => {
+    // A file with a single column cannot be a valid prospect export — it's
+    // either a plain-text list or just a description column with no delimiter.
+    const csv = [
+      "Just a single column header",
+      "Row one value",
+      "Row two value",
+    ].join("\n");
+    const result = analyzeCSV(csv);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/one column/i);
+    }
+  });
+
+  it("rejects when most data rows don't match the header column count", () => {
+    // Rows with 2 cells vs. a 3-column header: they have multiple non-empty
+    // cells so they are NOT noise lines — they are genuine mismatched rows.
+    // With 2 mismatched rows and only 1 valid row, malformed > records.length,
+    // which should surface the "most rows don't match" error.
+    const csv = [
+      "Company Name,Contact Name,Email Address",
+      "Acme Corp,Jane Doe",           // 2 cells → mismatch (not noise: 2 non-empty cells)
+      "Globex Inc,John Roe",          // 2 cells → mismatch (not noise)
+      "Initech,Bill Lumbergh,bill@initech.com", // correct
+    ].join("\n");
+    const result = analyzeCSV(csv);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/most rows/i);
+    }
+  });
+});
