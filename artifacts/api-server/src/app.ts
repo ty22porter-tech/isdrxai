@@ -17,6 +17,7 @@ import {
 import router from "./routes";
 import scheduleRouter from "./routes/schedule";
 import unsubscribeRouter from "./routes/unsubscribe";
+import { handleCalendlyWebhook } from "./routes/calendlyWebhook";
 
 const app: Express = express();
 
@@ -83,6 +84,13 @@ app.post(
       logger.error({ err }, "Delivery event processing failed"),
     );
   },
+);
+
+// 1c. Calendly webhook BEFORE express.json() — needs raw Buffer for HMAC signature.
+app.post(
+  "/api/calendly/webhook",
+  express.raw({ type: "application/json" }),
+  handleCalendlyWebhook,
 );
 
 // 2. Clerk proxy BEFORE body parsers (streams raw bytes)
