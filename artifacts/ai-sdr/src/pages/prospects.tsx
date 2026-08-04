@@ -225,6 +225,50 @@ export function analyzeCSV(text: string): CSVAnalysis {
   return { ok: true, records, malformed, skippedRows, headers };
 }
 
+// Decode + analyze a raw CSV file buffer, automatically recovering files saved
+// in the wrong encoding. Strategy: honor a BOM if present, otherwise try UTF-8
+// first; if the analysis fails (e.g. dominated by replacement characters or
+// null bytes — classic signs of a UTF-16 or Latin-1 export read as UTF-8),
+// retry with common alternate encodings before giving up. Genuine binary files
+// (xlsx/zip, PDF, legacy .xls) are never retried.
+export function analyzeCSVBuffer(buffer: ArrayBuffer): CSVAnalysis {
+  const bytes = new Uint8Array(buffer);
+  const decode = (encoding: string): string | null => {
+    try {
+      return new TextDecoder(encoding).decode(buffer);
+    } catch {
+      return null;
+    }
+  };
+
+  // BOM detection picks the primary encoding.
+  let primary = "utf-8";
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) primary = "utf-16le";
+  else if (bytes[0] === 0xfe && bytes[1] === 0xff) primary = "utf-16be";
+
+  const primaryText = decode(primary) ?? "";
+  const first = analyzeCSV(primaryText);
+  if (first.ok) return first;
+
+  // Real binary formats — retrying with another text encoding can't help.
+  const isBinarySignature =
+    (bytes[0] === 0x50 && bytes[1] === 0x4b) || // PK → xlsx/zip
+    (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) || // %PDF
+    (bytes[0] === 0xd0 && bytes[1] === 0xcf); // OLE2 → legacy .xls
+  if (isBinarySignature) return first;
+
+  for (const encoding of ["utf-16le", "utf-16be", "windows-1252"]) {
+    if (encoding === primary) continue;
+    const text = decode(encoding);
+    if (text === null) continue;
+    const retry = analyzeCSV(text);
+    if (retry.ok) return retry;
+  }
+
+  // No alternate encoding produced a clean parse — surface the original error.
+  return first;
+}
+
 // Column aliases (ZoomInfo, Apollo, generic)
 const COLUMN_MAP: Record<string, string[]> = {
   companyName:  ["Company Name", "Company", "organization_name", "Account Name"],
@@ -333,8 +377,8 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
     const reader = new FileReader();
     reader.onerror = () => setError("Couldn't read that file. Please try again with a CSV file.");
     reader.onload = e => {
-      const text = e.target?.result as string;
-      const analysis = analyzeCSV(text);
+      const buffer = e.target?.result as ArrayBuffer;
+      const analysis = analyzeCSVBuffer(buffer);
       if (!analysis.ok) { setError(analysis.error); return; }
       const { records, malformed, skippedRows: skipped, headers: fileHeaders } = analysis;
       const headers = Object.keys(records[0]);
@@ -348,7 +392,7 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
         setWarning(`${malformed} row${malformed !== 1 ? "s were" : " was"} skipped because ${malformed !== 1 ? "they had" : "it had"} a different number of columns than the header. The remaining ${mapped.length} look${mapped.length !== 1 ? "" : "s"} good.`);
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {

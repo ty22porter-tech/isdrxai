@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeCSV } from "./prospects";
+import { analyzeCSV, analyzeCSVBuffer } from "./prospects";
 
 // Narrow the CSVAnalysis union to the success shape so tests can read records/
 // skippedRows/headers without repeating the `ok` guard everywhere.
@@ -11,6 +11,19 @@ function expectOk(result: ReturnType<typeof analyzeCSV>) {
 }
 
 const HEADER = "Company Name,Contact Name,Email Address";
+
+// Encode a string as UTF-16LE bytes (optionally with a BOM) — Node/browser
+// TextEncoder only supports UTF-8, so build the buffer by hand.
+function encodeUTF16LE(text: string, { bom }: { bom: boolean }): ArrayBuffer {
+  const codeUnits: number[] = bom ? [0xfeff] : [];
+  for (let i = 0; i < text.length; i++) codeUnits.push(text.charCodeAt(i));
+  const bytes = new Uint8Array(codeUnits.length * 2);
+  codeUnits.forEach((u, i) => {
+    bytes[i * 2] = u & 0xff;
+    bytes[i * 2 + 1] = u >> 8;
+  });
+  return bytes.buffer;
+}
 
 describe("analyzeCSV", () => {
   it("skips a leading disclaimer line and still picks the real header", () => {
@@ -196,6 +209,59 @@ describe("analyzeCSV – non-CSV file rejection", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toMatch(/one column/i);
+    }
+  });
+
+  it("recovers a UTF-16LE-encoded file (with BOM) instead of rejecting it", () => {
+    const csv = [
+      HEADER,
+      "Acme Corp,Jane Doe,jane@acme.com",
+      "Globex Inc,John Roe,john@globex.com",
+    ].join("\n");
+    const buffer = encodeUTF16LE(csv, { bom: true });
+    const result = expectOk(analyzeCSVBuffer(buffer));
+    expect(result.headers).toEqual(["Company Name", "Contact Name", "Email Address"]);
+    expect(result.records).toHaveLength(2);
+    expect(result.records[0]["Email Address"]).toBe("jane@acme.com");
+  });
+
+  it("recovers a UTF-16LE-encoded file without a BOM via retry", () => {
+    const csv = [
+      HEADER,
+      "Acme Corp,Jane Doe,jane@acme.com",
+      "Globex Inc,John Roe,john@globex.com",
+    ].join("\n");
+    const buffer = encodeUTF16LE(csv, { bom: false });
+    const result = expectOk(analyzeCSVBuffer(buffer));
+    expect(result.records).toHaveLength(2);
+    expect(result.records[1]["Company Name"]).toBe("Globex Inc");
+  });
+
+  it("recovers a windows-1252 (Latin-1) export with accented names", () => {
+    // "José García" in windows-1252: é=0xE9, í=0xED — invalid UTF-8 sequences.
+    const line = "Acme Corp,Jos\xE9 Garc\xEDa,jose@acme.com";
+    const csv = [HEADER, line, "Globex Inc,John Roe,john@globex.com"].join("\n");
+    // But note: analyzeCSV's UTF-8 pass only fails when replacement chars are
+    // dominant (>5 and >2%), so pack in enough accented rows to trip it.
+    const accented = Array.from({ length: 10 }, (_, i) =>
+      `Caf\xE9 N\xB0${i} S.A.,Jos\xE9 Garc\xEDa,jose${i}@caf\xE9.com`
+    );
+    const fullCsv = [HEADER, ...accented, line].join("\n");
+    const bytes = new Uint8Array(fullCsv.length);
+    for (let i = 0; i < fullCsv.length; i++) bytes[i] = fullCsv.charCodeAt(i) & 0xff;
+    const result = expectOk(analyzeCSVBuffer(bytes.buffer));
+    expect(result.records.length).toBe(11);
+    expect(result.records[0]["Contact Name"]).toBe("José García");
+    void csv;
+  });
+
+  it("still rejects a genuinely binary buffer after retries fail", () => {
+    // xlsx (PK) signature — must not be 'recovered' by an alternate encoding.
+    const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0x01, 0x02, 0x03]);
+    const result = analyzeCSVBuffer(bytes.buffer);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/xlsx/i);
     }
   });
 
