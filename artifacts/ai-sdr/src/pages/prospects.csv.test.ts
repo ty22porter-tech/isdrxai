@@ -158,6 +158,32 @@ describe("analyzeCSV – non-CSV file rejection", () => {
     }
   });
 
+  it("rejects a file dominated by Unicode replacement characters (wrong encoding)", () => {
+    // Simulates a file read with the wrong encoding: >5 \uFFFD chars and a
+    // replacement-char ratio well above the 2% threshold.
+    const garbled = "Company Name,Contact\n" + "\uFFFD".repeat(50) + ",data,more";
+    const result = analyzeCSV(garbled);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/doesn't look like a text CSV/i);
+      expect(result.error).toMatch(/save it as CSV/i);
+    }
+  });
+
+  it("accepts a file with a few stray replacement characters below the threshold", () => {
+    // A handful of \uFFFD chars (≤5, and far under 2% of content) shouldn't
+    // block an otherwise valid CSV — e.g. a couple of mangled accented names.
+    const csv = [
+      HEADER,
+      "Acme Corp,Jos\uFFFD Garc\uFFFDa,jose@acme.com",
+      "Globex Inc,Ren\uFFFDe Roe,rene@globex.com",
+      "Initech,Bill Lumbergh,bill@initech.com",
+    ].join("\n");
+    const result = expectOk(analyzeCSV(csv));
+    expect(result.records).toHaveLength(3);
+    expect(result.malformed).toBe(0);
+  });
+
   it("rejects a file whose header has only one column", () => {
     // A file with a single column cannot be a valid prospect export — it's
     // either a plain-text list or just a description column with no delimiter.
