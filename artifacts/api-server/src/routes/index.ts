@@ -16,6 +16,7 @@ import autopilotRouter from "./autopilot";
 import deliverabilityRouter from "./deliverability";
 import trialCodesRouter from "./trialCodes";
 import storageRouter from "./storage";
+import engagementRouter from "./engagement";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,7 @@ router.use("/video-views", videoViewsRouter);
 router.use("/autopilot", autopilotRouter);
 router.use("/deliverability", deliverabilityRouter);
 router.use("/trial-codes", trialCodesRouter);
+router.use("/engagement", engagementRouter);
 router.use(storageRouter);
 
 export default router;

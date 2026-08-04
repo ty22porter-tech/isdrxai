@@ -35,12 +35,13 @@ export interface SendEmailOptions {
   headers?: Record<string, string>;
 }
 
-export async function sendEmail(options: SendEmailOptions): Promise<void> {
+/** Sends the email and returns the Resend message id (used to match delivery webhooks). */
+export async function sendEmail(options: SendEmailOptions): Promise<string | undefined> {
   const { fromName, fromEmail: fromEmailOverride, replyTo, to, subject, body, html, attachments, headers } = options;
   const fromEmail = fromEmailOverride?.trim() || getPlatformFromEmail();
   const resend = getResend();
 
-  const { error } = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: `${fromName.trim()} <${fromEmail}>`,
     replyTo: replyTo.trim(),
     to: to.trim(),
@@ -52,6 +53,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
   });
 
   if (error) throw new Error(error.message);
+  return data?.id;
 }
 
 export async function isResendConfigured(): Promise<boolean> {

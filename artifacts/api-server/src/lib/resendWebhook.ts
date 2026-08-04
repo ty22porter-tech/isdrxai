@@ -34,6 +34,8 @@ export async function ensureResendWebhook(): Promise<void> {
   const endpoint = `${base}${WEBHOOK_PATH}`;
   const resend = new Resend(apiKey);
 
+  const WEBHOOK_EVENTS = ["email.received", "email.delivered", "email.bounced", "email.complained"];
+
   try {
     const list = await resend.webhooks.list({ limit: 100 });
     const existing = (list.data?.data ?? []).find((w) => w.endpoint === endpoint);
@@ -43,8 +45,20 @@ export async function ensureResendWebhook(): Promise<void> {
       const full = await resend.webhooks.get(existing.id);
       secret = full.data?.signing_secret;
       logger.info({ endpoint, id: existing.id }, "Reusing existing Resend inbound webhook");
+      // Older webhooks were registered for email.received only — make sure the
+      // delivery lifecycle events are subscribed too. Best-effort: some SDK
+      // versions may not expose update.
+      try {
+        const hooks: any = resend.webhooks;
+        if (typeof hooks.update === "function") {
+          await hooks.update({ id: existing.id, events: WEBHOOK_EVENTS });
+          logger.info({ endpoint }, "Updated Resend webhook event subscriptions");
+        }
+      } catch (err: any) {
+        logger.warn({ err: err?.message }, "Could not update Resend webhook events — delivery tracking may be limited");
+      }
     } else {
-      const created = await resend.webhooks.create({ endpoint, events: ["email.received"] });
+      const created = await resend.webhooks.create({ endpoint, events: WEBHOOK_EVENTS as any });
       secret = created.data?.signing_secret;
       logger.info({ endpoint, id: created.data?.id }, "Created Resend inbound webhook");
     }

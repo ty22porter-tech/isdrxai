@@ -17,11 +17,30 @@ export interface ComposeClient {
   profilePhotoPath?: string | null;
 }
 
+export interface TrackedLinkSpec {
+  /** "cta" | "website" | "attachment" */
+  kind: string;
+  /** Slug used in the tracked URL, unique within the email: "cta", "website", "att0"... */
+  slug: string;
+  name?: string;
+  /** Real destination: an absolute URL, or an object-storage path for attachments. */
+  destination: string;
+}
+
+export interface TrackingOptions {
+  /** Unguessable per-email token; embedded in the pixel and tracked-link URLs. */
+  token: string;
+  /** Collateral delivered as tracked "View" links instead of file attachments. */
+  linkedFiles?: { name: string; path: string }[];
+}
+
 export interface ComposeResult {
   text: string;
   html: string;
   unsubscribePageUrl: string;
   unsubscribeApiUrl: string;
+  /** Links that were rewritten to tracked redirects — persist to email_links after insert. */
+  trackedLinks: TrackedLinkSpec[];
 }
 
 /**
@@ -42,10 +61,24 @@ export function composeEmail(
   client: ComposeClient,
   prospect: { companyName: string; unsubscribeToken: string },
   cta?: { label: string; url: string },
+  tracking?: TrackingOptions,
 ): ComposeResult {
   const baseUrl = getPublicAppUrl();
   const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.unsubscribeToken}`;
   const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.unsubscribeToken}`;
+
+  const trackedLinks: TrackedLinkSpec[] = [];
+  const trackedUrl = (slug: string) => `${baseUrl}/api/t/l/${tracking!.token}/${slug}`;
+
+  // Signature website link: when tracking is enabled it is rewritten to a
+  // tracked redirect in BOTH the HTML and plain-text outputs.
+  const websiteTrim = client.website?.trim() || "";
+  let websiteHref = websiteTrim && !/^https?:\/\//i.test(websiteTrim) ? `https://${websiteTrim}` : websiteTrim;
+  if (websiteHref && tracking) {
+    trackedLinks.push({ kind: "website", slug: "website", name: websiteTrim, destination: websiteHref });
+    websiteHref = trackedUrl("website");
+  }
+  const websiteTextDisplay = (raw: string) => (tracking && websiteHref ? `${raw} (${websiteHref})` : raw);
 
   const business = client.businessName?.trim() || "Our Company";
   const signatureLines = [
@@ -55,7 +88,7 @@ export function composeEmail(
     client.phone?.trim() ? `Office Phone: ${client.phone.trim()}` : "",
     client.mobilePhone?.trim() ? `Mobile: ${client.mobilePhone.trim()}` : "",
     client.outreachEmail?.trim() ? `Email: ${client.outreachEmail.trim()}` : "",
-    client.website?.trim() ? `Website: ${client.website.trim()}` : "",
+    client.website?.trim() ? `Website: ${websiteTextDisplay(client.website.trim())}` : "",
   ].filter(Boolean);
 
   const addressLine = client.businessAddress?.trim()
@@ -64,9 +97,26 @@ export function composeEmail(
 
   const footerIntro = `You're receiving this email because we believe ${prospect.companyName} may benefit from ${getVerticalConfig(client.vertical).footerServicePhrase}.`;
 
-  const ctaText = cta ? `\n\n${cta.label}: ${cta.url}` : "";
+  // When tracking is enabled, the CTA and signature-website links are rewritten
+  // to tracked redirect URLs; the real destinations are returned in trackedLinks
+  // and stored server-side, so the redirect endpoint never follows caller input.
+  let ctaHref = cta?.url ?? "";
+  if (cta && tracking) {
+    trackedLinks.push({ kind: "cta", slug: "cta", name: cta.label, destination: cta.url });
+    ctaHref = trackedUrl("cta");
+  }
+
+  const linkedFiles = tracking?.linkedFiles ?? [];
+  linkedFiles.forEach((f, i) => {
+    trackedLinks.push({ kind: "attachment", slug: `att${i}`, name: f.name, destination: f.path });
+  });
+  const linkedFilesText = linkedFiles.length
+    ? `\n\n${linkedFiles.map((f, i) => `View: ${f.name} — ${trackedUrl(`att${i}`)}\nDownload: ${trackedUrl(`att${i}`)}?dl=1`).join("\n")}`
+    : "";
+
+  const ctaText = cta ? `\n\n${cta.label}: ${ctaHref}` : "";
   const text =
-    `${coreBody.trim()}${ctaText}\n\n` +
+    `${coreBody.trim()}${ctaText}${linkedFilesText}\n\n` +
     `${signatureLines.join("\n")}\n\n` +
     `${addressLine}\n${footerIntro}\nPrefer not to hear from us? Unsubscribe: ${unsubscribePageUrl}`;
 
@@ -75,7 +125,12 @@ export function composeEmail(
     .map(p => `<p style="margin:0 0 16px">${p.replace(/\n/g, "<br>")}</p>`)
     .join("");
   const ctaHtml = cta
-    ? `<p style="margin:0 0 16px"><a href="${cta.url}" style="color:#2563eb">${escapeHtml(cta.label)}</a></p>`
+    ? `<p style="margin:0 0 16px"><a href="${ctaHref}" style="color:#2563eb">${escapeHtml(cta.label)}</a></p>`
+    : "";
+  const linkedFilesHtml = linkedFiles.length
+    ? `<p style="margin:0 0 16px">${linkedFiles
+        .map((f, i) => `📎 <a href="${trackedUrl(`att${i}`)}" style="color:#2563eb">View: ${escapeHtml(f.name)}</a> &nbsp;<a href="${trackedUrl(`att${i}`)}?dl=1" style="color:#6b7280;font-size:13px">(download)</a>`)
+        .join("<br>")}</p>`
     : "";
   // Signature block: square headshot on top, bold name + title, business name,
   // divider rule, then contact lines — with the company logo to the right.
@@ -90,8 +145,6 @@ export function composeEmail(
   const phoneTrim = client.phone?.trim() || "";
   const mobileTrim = client.mobilePhone?.trim() || "";
   const emailTrim = client.outreachEmail?.trim() || "";
-  const websiteTrim = client.website?.trim() || "";
-  const websiteHref = websiteTrim && !/^https?:\/\//i.test(websiteTrim) ? `https://${websiteTrim}` : websiteTrim;
 
   const photoHtml = photoUrl
     ? `<img src="${photoUrl}" alt="${escapeHtml(senderDisplayName)}" width="90" height="90" style="display:block;object-fit:cover;margin:0 0 12px">`
@@ -125,9 +178,13 @@ export function composeEmail(
     `${escapeHtml(addressLine)}<br>${escapeHtml(footerIntro)}<br>` +
     `Prefer not to hear from us? <a href="${unsubscribePageUrl}" style="color:#9ca3af">Unsubscribe</a>.` +
     `</p>`;
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${ctaHtml}${signatureHtml}${footerHtml}</div>`;
+  // Open-tracking pixel — 1x1 transparent GIF served by the tracking endpoint.
+  const pixelHtml = tracking
+    ? `<img src="${baseUrl}/api/t/o/${tracking.token}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px">`
+    : "";
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${ctaHtml}${linkedFilesHtml}${signatureHtml}${footerHtml}${pixelHtml}</div>`;
 
-  return { text, html, unsubscribePageUrl, unsubscribeApiUrl };
+  return { text, html, unsubscribePageUrl, unsubscribeApiUrl, trackedLinks };
 }
 
 export function unsubscribeHeaders(unsubscribeApiUrl: string, replyTo: string): Record<string, string> {

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { emailsTable, campaignsTable, prospectsTable, activityTable, usersTable } from "@workspace/db";
+import { emailsTable, campaignsTable, prospectsTable, activityTable, usersTable, emailLinksTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
@@ -79,10 +79,13 @@ router.post("/", requireEntitlement, async (req, res) => {
     await db.update(prospectsTable).set(tokenUpdates).where(eq(prospectsTable.id, prospect.id));
   }
 
+  const trackingToken = randomUUID();
   const composed = composeEmail(
     body.body,
     client,
     { companyName: prospect.companyName, unsubscribeToken },
+    undefined,
+    { token: trackingToken },
   );
 
   // Actually dispatch the email through Resend. If this fails, surface the error
@@ -98,7 +101,7 @@ router.post("/", requireEntitlement, async (req, res) => {
     const fileAttachments = priorEmail
       ? []
       : await getClientEmailAttachments(client.attachments, req.log);
-    await sendEmail({
+    var resendId = await sendEmail({
       attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
       fromName: client.businessName?.trim() || client.outreachEmail,
       fromEmail: client.sendingEmail ?? undefined,
@@ -123,8 +126,22 @@ router.post("/", requireEntitlement, async (req, res) => {
       body: composed.text,
       clientId: req.clientId,
       status: "sent",
+      trackingToken,
+      resendId: resendId ?? null,
     })
     .returning();
+
+  if (composed.trackedLinks.length > 0) {
+    await db.insert(emailLinksTable).values(composed.trackedLinks.map(l => ({
+      emailId: email.id,
+      clientId: req.clientId,
+      prospectId: prospect.id,
+      kind: l.kind,
+      slug: l.slug,
+      name: l.name ?? null,
+      destination: l.destination,
+    })));
+  }
 
   await db.insert(activityTable).values({
     clientId: req.clientId,

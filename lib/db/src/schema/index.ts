@@ -1,6 +1,7 @@
 export * from "./prospects";
 export * from "./campaigns";
 export * from "./emails";
+export * from "./email-events";
 export * from "./calls";
 export * from "./appointments";
 export * from "./activity";

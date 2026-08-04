@@ -7,6 +7,8 @@ import { Resend } from "resend";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
 import { handleResendWebhookEvent } from "./lib/inboundReply";
+import { handleDeliveryWebhookEvent } from "./lib/deliveryEvents";
+import trackingRouter from "./routes/tracking";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -77,6 +79,9 @@ app.post(
     handleResendWebhookEvent(event as any).catch((err) =>
       logger.error({ err }, "Inbound reply processing failed"),
     );
+    handleDeliveryWebhookEvent(event as any).catch((err) =>
+      logger.error({ err }, "Delivery event processing failed"),
+    );
   },
 );
 
@@ -107,6 +112,10 @@ app.use("/api/schedule", scheduleRouter);
 // Public unsubscribe endpoints (no auth) — mounted before the Clerk auth middleware
 // so prospects (and mail providers doing one-click List-Unsubscribe) can reach them.
 app.use("/api/unsubscribe", express.json(), unsubscribeRouter);
+
+// Public engagement-tracking endpoints (pixel + tracked link redirects) — no
+// auth; keyed by unguessable per-email tokens and rate-limited internally.
+app.use("/api/t", trackingRouter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

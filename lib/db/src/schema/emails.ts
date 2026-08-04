@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { prospectsTable } from "./prospects";
@@ -15,6 +16,15 @@ export const emailsTable = pgTable("emails", {
   sentAt: timestamp("sent_at").notNull().defaultNow(),
   openedAt: timestamp("opened_at"),
   repliedAt: timestamp("replied_at"),
+  /** Unguessable token embedded in the tracking pixel / tracked-link URLs. */
+  trackingToken: text("tracking_token").notNull().unique().default(sql`gen_random_uuid()::text`),
+  /** Resend message id — lets delivery webhooks (delivered/bounced) find this row. */
+  resendId: text("resend_id"),
+  deliveredAt: timestamp("delivered_at"),
+  bouncedAt: timestamp("bounced_at"),
+  totalOpens: integer("total_opens").notNull().default(0),
+  validOpens: integer("valid_opens").notNull().default(0),
+  lastOpenedAt: timestamp("last_opened_at"),
 });
 
 export const insertEmailSchema = createInsertSchema(emailsTable).omit({ id: true, sentAt: true, clientId: true });

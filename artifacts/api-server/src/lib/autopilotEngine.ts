@@ -1,4 +1,4 @@
-import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable } from "@workspace/db";
+import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable, emailLinksTable } from "@workspace/db";
 import { eq, and, lte, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
@@ -191,16 +191,19 @@ export async function processAutopilotQueue(): Promise<void> {
         coreBody = await generateStepEmail(Math.min(nextStep, 3), prospect, client.businessName ?? "our company", vc);
       }
 
-      const composed = composeEmail(coreBody, client, prospect);
+      // Step-based collateral: intro flyer files on step 1 only; the step 3/5
+      // case studies are delivered as TRACKED "View" links (not file attachments)
+      // so we can record whether the prospect actually engaged with them.
+      const caseStudy = nextStep === 3 ? client.step3CaseStudy : nextStep === 5 ? client.step5CaseStudy : null;
+      const linkedFiles = caseStudy && typeof (caseStudy as any).path === "string" && typeof (caseStudy as any).name === "string"
+        ? [{ name: (caseStudy as any).name as string, path: (caseStudy as any).path as string }]
+        : [];
+      const trackingToken = randomUUID();
+      const composed = composeEmail(coreBody, client, prospect, undefined, { token: trackingToken, linkedFiles });
 
-      // Step-based attachments: intro flyer on step 1 only, then case studies
-      // on steps 3 and 5 to give prospects fresh material as the campaign advances.
-      let attachmentSource: unknown = null;
-      if (nextStep === 1) attachmentSource = client.attachments;
-      else if (nextStep === 3 && client.step3CaseStudy) attachmentSource = [client.step3CaseStudy];
-      else if (nextStep === 5 && client.step5CaseStudy) attachmentSource = [client.step5CaseStudy];
+      const attachmentSource: unknown = nextStep === 1 ? client.attachments : null;
       const fileAttachments = await getClientEmailAttachments(attachmentSource, console);
-      await sendEmail({
+      const resendId = await sendEmail({
         attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
         fromName: client.businessName ?? client.outreachEmail,
         fromEmail: client.sendingEmail ?? undefined,
@@ -213,7 +216,7 @@ export async function processAutopilotQueue(): Promise<void> {
       });
 
       const sentAt = new Date();
-      await db.insert(emailsTable).values({
+      const [emailRow] = await db.insert(emailsTable).values({
         clientId: enrollment.clientId,
         prospectId: prospect.id,
         campaignId: enrollment.campaignId,
@@ -221,7 +224,21 @@ export async function processAutopilotQueue(): Promise<void> {
         body: composed.text,
         status: "sent",
         sentAt,
-      });
+        trackingToken,
+        resendId: resendId ?? null,
+      }).returning();
+
+      if (composed.trackedLinks.length > 0) {
+        await db.insert(emailLinksTable).values(composed.trackedLinks.map(l => ({
+          emailId: emailRow.id,
+          clientId: enrollment.clientId,
+          prospectId: prospect.id,
+          kind: l.kind,
+          slug: l.slug,
+          name: l.name ?? null,
+          destination: l.destination,
+        })));
+      }
 
       await db.insert(activityTable).values({
         clientId: enrollment.clientId,
@@ -317,10 +334,11 @@ export async function processAutopilotQueue(): Promise<void> {
       const scheduleUrl = `${getPublicAppUrl()}/schedule/${prospect.scheduleToken}`;
       const subject = vc.offerSubject(prospect.companyName);
       const coreBody = await generateCalendlyEmail(prospect, vc);
+      const trackingToken = randomUUID();
       const composed = composeEmail(coreBody, client, prospect, {
         label: vc.offerCtaLabel,
         url: scheduleUrl,
-      });
+      }, { token: trackingToken });
 
       // Atomically claim this enrollment BEFORE sending so a concurrent queue run
       // (the 5-min timer racing the inbound-reply trigger) can't double-send the
@@ -335,8 +353,9 @@ export async function processAutopilotQueue(): Promise<void> {
         .returning();
       if (claimed.length === 0) continue;
 
+      let calendlyResendId: string | undefined;
       try {
-        await sendEmail({
+        calendlyResendId = await sendEmail({
           fromName: client.businessName ?? client.outreachEmail,
           fromEmail: client.sendingEmail ?? undefined,
           replyTo: resolveReplyTo(client.outreachEmail, prospect.replyToken),
@@ -354,7 +373,7 @@ export async function processAutopilotQueue(): Promise<void> {
         continue;
       }
 
-      await db.insert(emailsTable).values({
+      const [calendlyEmailRow] = await db.insert(emailsTable).values({
         clientId: enrollment.clientId,
         prospectId: prospect.id,
         campaignId: enrollment.campaignId,
@@ -362,7 +381,21 @@ export async function processAutopilotQueue(): Promise<void> {
         body: composed.text,
         status: "sent",
         sentAt,
-      });
+        trackingToken,
+        resendId: calendlyResendId ?? null,
+      }).returning();
+
+      if (composed.trackedLinks.length > 0) {
+        await db.insert(emailLinksTable).values(composed.trackedLinks.map(l => ({
+          emailId: calendlyEmailRow.id,
+          clientId: enrollment.clientId,
+          prospectId: prospect.id,
+          kind: l.kind,
+          slug: l.slug,
+          name: l.name ?? null,
+          destination: l.destination,
+        })));
+      }
 
       await db.insert(activityTable).values({
         clientId: enrollment.clientId,
