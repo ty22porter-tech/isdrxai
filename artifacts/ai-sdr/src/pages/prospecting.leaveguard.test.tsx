@@ -122,6 +122,20 @@ const leaveDialog = () =>
 beforeEach(() => {
   setLocationMock.mockClear();
   localStorage.clear();
+  // The component gates hydration on the /api/users/me query succeeding
+  // (verticalLoaded). Provide a minimal stub so the effect can run.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (String(url).includes("/api/users/me")) {
+        return new Response(JSON.stringify({ vertical: "janitorial" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(null, { status: 404 });
+    }),
+  );
 });
 
 describe("Prospecting leave-page guard", () => {
@@ -201,6 +215,26 @@ describe("Prospecting leave-page guard", () => {
 
     // Give any effect a chance to attach; the guard should stay silent.
     await waitFor(() => expect(screen.getByText("Globex")).toBeInTheDocument());
+    expect(leaveDialog()).not.toBeInTheDocument();
+  });
+
+  it("does NOT trigger the warning when every lead is already in the pipeline (all skipped, no failures)", async () => {
+    // All leads are in the `skipped` set (already in pipeline) with no failures.
+    // The page should treat the list as fully handled: no leave dialog, no banner.
+    seedSnapshot({
+      leads: [makeLead("Acme"), makeLead("Globex")],
+      added: [],
+      skipped: [0, 1],
+      failures: [],
+    });
+    renderPage();
+
+    // No restore banner should appear — the snapshot is auto-cleared.
+    expect(screen.queryByRole("button", { name: /Restore list/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("link", { name: "Dashboard" }));
+
+    await waitFor(() => expect(screen.getByText("Prospect Search")).toBeInTheDocument());
     expect(leaveDialog()).not.toBeInTheDocument();
   });
 

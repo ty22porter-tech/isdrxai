@@ -107,6 +107,20 @@ const restoreList = async () => {
 beforeEach(() => {
   localStorage.clear();
   searchResults = [];
+  // The component gates hydration on the /api/users/me query succeeding
+  // (verticalLoaded). Provide a minimal stub so the effect can run.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (String(url).includes("/api/users/me")) {
+        return new Response(JSON.stringify({ vertical: "janitorial" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(null, { status: 404 });
+    }),
+  );
 });
 
 describe("Prospecting persistence: leaving and returning", () => {
@@ -167,20 +181,22 @@ describe("Prospecting persistence: leaving and returning", () => {
   });
 
   it("re-saves the restored list so leaving and returning again still offers restore", async () => {
+    // Lead 0 added, lead 1 skipped (already in pipeline), lead 2 genuinely
+    // unadded — the list still has work to do, so it must be re-persisted.
     seedSnapshot({
-      leads: [makeLead("Acme"), makeLead("Globex")],
+      leads: [makeLead("Acme"), makeLead("Globex"), makeLead("Initech")],
       added: [0],
       skipped: [1],
     });
     const first = renderPage();
     await restoreList();
-    await screen.findByText("Acme");
+    await screen.findByText("Initech");
 
     // The save effect re-persists the restored (still unfinished) list.
     await waitFor(() => {
       const snap = readSnapshot();
       expect(snap).not.toBeNull();
-      expect(snap!.leads).toHaveLength(2);
+      expect(snap!.leads).toHaveLength(3);
       expect(snap!.added).toEqual([0]);
       expect(snap!.skipped).toEqual([1]);
     });
@@ -191,7 +207,7 @@ describe("Prospecting persistence: leaving and returning", () => {
 
     expect(await screen.findByText("Pick up where you left off")).toBeInTheDocument();
     await restoreList();
-    expect(await screen.findByText("Acme")).toBeInTheDocument();
+    expect(await screen.findByText("Initech")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Added/i })).toBeDisabled();
     expect(screen.getByText("Already in pipeline")).toBeInTheDocument();
   });

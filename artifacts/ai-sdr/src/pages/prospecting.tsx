@@ -242,7 +242,9 @@ export default function Prospecting() {
       toast({ title: "Fill in all fields", description: "City, state, and industry are required.", variant: "destructive" });
       return;
     }
-    const hasUnaddedLeads = leads.length > 0 && leads.some((_, idx) => !added.has(idx));
+    const hasUnaddedLeads =
+      leads.length > 0 &&
+      leads.some((_, idx) => !added.has(idx) && !(skipped.has(idx) && !failures.has(idx)));
     if ((hasUnaddedLeads || (cancelledRemaining?.size ?? 0) > 0) && addAllProgress === null) {
       setConfirmSearchOpen(true);
       return;
@@ -439,7 +441,12 @@ export default function Prospecting() {
   // Kept separate from `added` so the "N of M added" summary never double-counts.
   const skippedNotAdded = [...skipped].filter((idx) => !added.has(idx)).length;
   const hasRemaining = (cancelledRemaining?.size ?? 0) > 0;
-  const hasUnaddedLeads = leads.length > 0 && leads.some((_, idx) => !added.has(idx));
+  // A lead is "handled" when it is added OR it is skipped (already in pipeline)
+  // without a real failure. Skipped leads with a recorded failure still need
+  // the user's attention, so they continue to count as unadded.
+  const hasUnaddedLeads =
+    leads.length > 0 &&
+    leads.some((_, idx) => !added.has(idx) && !(skipped.has(idx) && !failures.has(idx)));
   const hasUnsavedList = hasUnaddedLeads || hasRemaining;
 
   // Restore any in-progress list saved from a previous visit (per client). We
@@ -455,9 +462,16 @@ export default function Prospecting() {
       if (!raw) return;
       const snap = JSON.parse(raw) as ProspectingSnapshot;
       const addedSet = new Set(snap?.added ?? []);
+      const skippedSet = new Set(snap?.skipped ?? []);
+      const failureSet = new Set((snap?.failures ?? []).map(([idx]) => idx));
+      // A lead is "handled" if it is added OR it is skipped without a real failure.
+      // A snapshot is restorable only when at least one lead still needs attention,
+      // or a cancelled-remaining highlight is present.
       const stillUnadded =
         (snap?.leads?.length ?? 0) > 0 &&
-        (snap.leads.some((_, i) => !addedSet.has(i)) || (snap.cancelledRemaining?.length ?? 0) > 0);
+        (snap.leads.some(
+          (_, i) => !addedSet.has(i) && !(skippedSet.has(i) && !failureSet.has(i)),
+        ) || (snap.cancelledRemaining?.length ?? 0) > 0);
       const tooOld =
         typeof snap?.savedAt === "number" && Date.now() - snap.savedAt > SNAPSHOT_MAX_AGE_MS;
       const wrongVertical = (snap?.vertical ?? "janitorial") !== vertical;

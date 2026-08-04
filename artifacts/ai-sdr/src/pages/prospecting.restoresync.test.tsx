@@ -95,6 +95,20 @@ beforeEach(() => {
   localStorage.clear();
   pipeline = [];
   pipelineFetch = async () => pipeline;
+  // The component gates hydration on the /api/users/me query succeeding
+  // (verticalLoaded). Provide a minimal stub so the effect can run.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (String(url).includes("/api/users/me")) {
+        return new Response(JSON.stringify({ vertical: "janitorial" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(null, { status: 404 });
+    }),
+  );
 });
 
 describe("Prospecting restore pipeline reconciliation", () => {
