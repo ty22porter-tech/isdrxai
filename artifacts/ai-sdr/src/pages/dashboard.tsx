@@ -9,9 +9,42 @@ async function apiFetch<T>(path: string): Promise<T> {
 }
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Mail, PhoneCall, Calendar, ArrowUpRight, Eye, MousePointerClick, Paperclip, AlertTriangle } from "lucide-react";
+import { Users, Mail, PhoneCall, Calendar, ArrowUpRight, Eye, MousePointerClick, Paperclip, AlertTriangle, Flame, Info, Send, CalendarCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EngagementTable } from "@/components/engagement-table";
 import { Link } from "wouter";
+
+function StatCard({ title, value, sub, icon, tooltip }: {
+  title: string;
+  value: number | string;
+  sub?: React.ReactNode;
+  icon: React.ReactNode;
+  tooltip?: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+        <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+          {title}
+          {tooltip && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[260px]">{tooltip}</TooltipContent>
+            </Tooltip>
+          )}
+        </CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className="text-2xl font-bold">{value}</div>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface EngagementSummary {
   emailsSent: number;
@@ -25,6 +58,11 @@ interface EngagementSummary {
   attachmentsViewed: number;
   attachmentDownloads: number;
   calendlyClicks: number;
+  hotProspects: number;
+  mediumProspects: number;
+  lowProspects: number;
+  meetingRequestsSent: number;
+  meetingsScheduled: number;
 }
 
 function useEngagementSummary() {
@@ -109,83 +147,51 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        {/* Engagement tracking section */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Email Engagement</h3>
+        {/* Prospect Engagement and Buying Intent */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Prospect Engagement and Buying Intent</h3>
+            <p className="text-sm text-muted-foreground">
+              Who's opening, clicking, and ready to talk — across all your outreach.
+            </p>
+          </div>
           {engagementLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-24" />)}
             </div>
           ) : engagement ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Valid Opens</CardTitle>
-                  <Eye className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-bold">{engagement.validOpens}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{engagement.totalOpens} total incl. bots</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Prospects Opened</CardTitle>
-                  <Users className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-bold">{engagement.prospectsWhoOpened}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {engagement.repeatedOpenProspects > 0
-                      ? <span className="text-orange-500 font-medium">{engagement.repeatedOpenProspects} opened 3×+</span>
-                      : "of total sent"}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Links Clicked</CardTitle>
-                  <MousePointerClick className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-bold">{engagement.linksClicked}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{engagement.calendlyClicks} scheduling clicks</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Case Studies Viewed</CardTitle>
-                  <Paperclip className="h-4 w-4 text-purple-500" />
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-bold">{engagement.attachmentsViewed}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{engagement.attachmentDownloads} downloaded</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Delivered</CardTitle>
-                  <Mail className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-bold">{engagement.emailsDelivered}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">of {engagement.emailsSent} sent</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Bounced</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-2xl font-bold">{engagement.emailsBounced}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">bad addresses</p>
-                </CardContent>
-              </Card>
+              <StatCard title="Emails Sent" value={engagement.emailsSent} icon={<Send className="h-4 w-4 text-blue-500" />} />
+              <StatCard title="Emails Delivered" value={engagement.emailsDelivered}
+                sub={engagement.emailsBounced > 0 ? <span className="text-red-500">{engagement.emailsBounced} bounced</span> : "confirmed by provider"}
+                icon={<Mail className="h-4 w-4 text-green-500" />} />
+              <StatCard title="Prospects Who Opened" value={engagement.prospectsWhoOpened}
+                tooltip="Open tracking is an estimate — privacy protections and email scanners can hide real opens or trigger false ones."
+                icon={<Users className="h-4 w-4 text-blue-500" />} />
+              <StatCard title="Total Valid Opens" value={engagement.validOpens}
+                sub={`${engagement.totalOpens} total incl. bots`}
+                tooltip="Open tracking is an estimate — privacy protections and email scanners can hide real opens or trigger false ones. Obvious bot opens are filtered out."
+                icon={<Eye className="h-4 w-4 text-blue-500" />} />
+              <StatCard title="Repeated-Open Prospects" value={engagement.repeatedOpenProspects} sub="3+ valid opens"
+                icon={<AlertTriangle className="h-4 w-4 text-orange-500" />} />
+              <StatCard title="Attachments Viewed" value={engagement.attachmentsViewed}
+                sub={`${engagement.attachmentDownloads} downloaded`}
+                icon={<Paperclip className="h-4 w-4 text-purple-500" />} />
+              <StatCard title="Links Clicked" value={engagement.linksClicked} icon={<MousePointerClick className="h-4 w-4 text-green-500" />} />
+              <StatCard title="Hot / Medium / Low"
+                value={`${engagement.hotProspects} / ${engagement.mediumProspects} / ${engagement.lowProspects}`}
+                sub="prospects by interest level"
+                icon={<Flame className="h-4 w-4 text-orange-500" />} />
+              <StatCard title="Automated Meeting Requests Sent" value={engagement.meetingRequestsSent}
+                sub="triggered by repeated opens"
+                icon={<Send className="h-4 w-4 text-primary" />} />
+              <StatCard title="Calendly Links Clicked" value={engagement.calendlyClicks} icon={<MousePointerClick className="h-4 w-4 text-primary" />} />
+              <StatCard title="Meetings Scheduled" value={engagement.meetingsScheduled} icon={<CalendarCheck className="h-4 w-4 text-emerald-500" />} />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No engagement data yet — stats appear once emails are sent.</p>
           )}
+          <EngagementTable />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

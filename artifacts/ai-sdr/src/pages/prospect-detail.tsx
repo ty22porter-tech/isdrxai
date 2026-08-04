@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
   useGetProspect,
   useUpdateProspect,
@@ -26,8 +26,65 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Building2, MapPin, Phone, Mail, Globe, Users, Maximize, 
-  Sparkles, Send, PhoneCall, Calendar, ChevronRight
+  Sparkles, Send, PhoneCall, Calendar, ChevronRight,
+  Eye, EyeOff, MousePointerClick, Paperclip, Flame, AlertTriangle,
+  CalendarCheck, MessageSquare, Lightbulb, FileQuestion
 } from "lucide-react";
+import { InterestBadge } from "@/components/interest-badge";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+interface TimelineItem {
+  ts: string;
+  type: string;
+  title: string;
+  detail: string | null;
+  source: string;
+}
+
+interface TimelineResponse {
+  interestLevel: "low" | "medium" | "hot";
+  systemInterestLevel: string;
+  manualInterestLevel: string | null;
+  engagementScore: number;
+  nextAction: string;
+  nextActionReason: string;
+  items: TimelineItem[];
+}
+
+const TIMELINE_ICONS: Record<string, { icon: React.ComponentType<{ className?: string }>; bg: string; fg: string }> = {
+  email_sent:                  { icon: Send,              bg: "bg-blue-100 dark:bg-blue-950",     fg: "text-blue-600 dark:text-blue-400" },
+  email_delivered:             { icon: Mail,              bg: "bg-green-100 dark:bg-green-950",   fg: "text-green-600 dark:text-green-400" },
+  email_bounced:               { icon: AlertTriangle,     bg: "bg-red-100 dark:bg-red-950",       fg: "text-red-600 dark:text-red-400" },
+  reply:                       { icon: MessageSquare,     bg: "bg-emerald-100 dark:bg-emerald-950", fg: "text-emerald-600 dark:text-emerald-400" },
+  open:                        { icon: Eye,               bg: "bg-blue-100 dark:bg-blue-950",     fg: "text-blue-600 dark:text-blue-400" },
+  open_filtered:               { icon: EyeOff,            bg: "bg-muted",                          fg: "text-muted-foreground" },
+  link_click:                  { icon: MousePointerClick, bg: "bg-green-100 dark:bg-green-950",   fg: "text-green-600 dark:text-green-400" },
+  calendly_click:              { icon: Calendar,          bg: "bg-primary/10",                     fg: "text-primary" },
+  attachment_view:             { icon: Paperclip,         bg: "bg-purple-100 dark:bg-purple-950", fg: "text-purple-600 dark:text-purple-400" },
+  attachment_download:         { icon: Paperclip,         bg: "bg-purple-100 dark:bg-purple-950", fg: "text-purple-600 dark:text-purple-400" },
+  interest_change:             { icon: Flame,             bg: "bg-orange-100 dark:bg-orange-950", fg: "text-orange-600 dark:text-orange-400" },
+  meeting_request_sent:        { icon: Send,              bg: "bg-primary/10",                     fg: "text-primary" },
+  meeting_request_queued:      { icon: Send,              bg: "bg-muted",                          fg: "text-muted-foreground" },
+  meeting_request_suppressed:  { icon: AlertTriangle,     bg: "bg-muted",                          fg: "text-muted-foreground" },
+  meeting_scheduled:           { icon: CalendarCheck,     bg: "bg-emerald-100 dark:bg-emerald-950", fg: "text-emerald-600 dark:text-emerald-400" },
+  questionnaire_opened:        { icon: FileQuestion,      bg: "bg-blue-100 dark:bg-blue-950",     fg: "text-blue-600 dark:text-blue-400" },
+  questionnaire_submitted:     { icon: FileQuestion,      bg: "bg-emerald-100 dark:bg-emerald-950", fg: "text-emerald-600 dark:text-emerald-400" },
+  positive_reply:              { icon: MessageSquare,     bg: "bg-emerald-100 dark:bg-emerald-950", fg: "text-emerald-600 dark:text-emerald-400" },
+};
+
+function useProspectTimeline(prospectId: number) {
+  return useQuery<TimelineResponse>({
+    queryKey: ["prospect-timeline", prospectId],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/engagement/prospects/${prospectId}/timeline`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: !!prospectId,
+    staleTime: 30_000,
+  });
+}
 
 const PIPELINE_STAGES = [
   { value: "new",               label: "New",               color: "bg-blue-100 text-blue-800 border-blue-200" },
@@ -46,6 +103,7 @@ export default function ProspectDetail() {
   const queryClient = useQueryClient();
 
   const { data: prospect, isLoading } = useGetProspect(prospectId, { query: { queryKey: getGetProspectQueryKey(prospectId), enabled: !!prospectId } });
+  const { data: timeline, isLoading: timelineLoading } = useProspectTimeline(prospectId);
   const { data: emails } = useListEmails({ prospectId });
   const { data: calls } = useListCalls({ prospectId });
   const { data: appointments } = useListAppointments({ status: "scheduled" });
@@ -216,8 +274,19 @@ export default function ProspectDetail() {
                 {updateProspect.isPending && (
                   <span className="text-xs text-muted-foreground animate-pulse">Saving…</span>
                 )}
+                <InterestBadge prospect={prospect} showLabel />
               </div>
             </div>
+            {timeline && (
+              <div className="mt-4 flex items-start gap-2 rounded-md border bg-muted/40 px-3 py-2 max-w-xl">
+                <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <span className="font-medium">Recommended next action: </span>
+                  {timeline.nextAction}
+                  <p className="text-xs text-muted-foreground mt-0.5">{timeline.nextActionReason}</p>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" /> {prospect.contactName}</div>
               <div className="flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4" /> {prospect.email}</div>
@@ -390,36 +459,55 @@ export default function ProspectDetail() {
           <TabsContent value="timeline" className="pt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>Engagement Timeline</CardTitle>
+                <CardDescription>
+                  Every event in chronological order — sends, deliveries, opens (estimated), clicks, interest changes, and meetings.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-8">
-                  {/* Mocked timeline for demo completeness. In reality, would fetch merged activity feed */}
-                  {emails?.map(e => (
-                    <div key={`e-${e.id}`} className="flex gap-4">
-                      <div className="mt-1 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <Mail className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Email Sent: {e.subject}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(e.sentAt).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {calls?.map(c => (
-                    <div key={`c-${c.id}`} className="flex gap-4">
-                      <div className="mt-1 h-8 w-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                        <PhoneCall className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Call Logged: {c.status}</p>
-                        {c.notes && <p className="text-sm text-muted-foreground mt-1">{c.notes}</p>}
-                        <p className="text-xs text-muted-foreground mt-1">{new Date(c.createdAt).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {(!emails?.length && !calls?.length) && <p className="text-muted-foreground text-sm">No activity recorded yet.</p>}
-                </div>
+                {timelineLoading ? (
+                  <p className="text-sm text-muted-foreground animate-pulse">Loading timeline…</p>
+                ) : (
+                  <div className="space-y-6">
+                    {(() => {
+                      const events: { key: string; ts: string; icon: React.ReactNode; title: string; detail?: string | null; source: string }[] = [
+                        ...(timeline?.items ?? []).map((it, i) => {
+                          const cfg = TIMELINE_ICONS[it.type] ?? TIMELINE_ICONS.email_sent;
+                          const Icon = cfg.icon;
+                          return {
+                            key: `t-${i}`,
+                            ts: it.ts,
+                            icon: <div className={`mt-1 h-8 w-8 rounded-full ${cfg.bg} flex items-center justify-center shrink-0`}><Icon className={`h-4 w-4 ${cfg.fg}`} /></div>,
+                            title: it.title,
+                            detail: it.detail,
+                            source: it.source,
+                          };
+                        }),
+                        ...(calls ?? []).map(c => ({
+                          key: `c-${c.id}`,
+                          ts: c.createdAt,
+                          icon: <div className="mt-1 h-8 w-8 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center shrink-0"><PhoneCall className="h-4 w-4 text-green-600 dark:text-green-400" /></div>,
+                          title: `Call logged: ${c.status.replace(/_/g, " ")}`,
+                          detail: c.notes ?? null,
+                          source: "Calls",
+                        })),
+                      ].sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
+                      if (!events.length) return <p className="text-muted-foreground text-sm">No activity recorded yet.</p>;
+                      return events.map(ev => (
+                        <div key={ev.key} className="flex gap-4">
+                          {ev.icon}
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm">{ev.title}</p>
+                            {ev.detail && <p className="text-sm text-muted-foreground mt-0.5 break-words">{ev.detail}</p>}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {new Date(ev.ts).toLocaleString()} · {ev.source}
+                            </p>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
