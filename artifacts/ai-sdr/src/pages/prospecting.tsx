@@ -189,7 +189,25 @@ export default function Prospecting() {
   const createProspect = useCreateProspect();
   const bulkCreateProspects = useBulkCreateProspects();
 
-  const runSearch = () => {
+  const runSearch = (overrideParams?: ProspectingSnapshot["params"]) => {
+    const searchCity = overrideParams?.city ?? city;
+    const searchState = overrideParams?.state ?? state;
+    const searchIndustry = overrideParams?.industry ?? industry;
+    const searchCount = overrideParams?.count ?? count;
+    const searchEmployeeRange = overrideParams?.employeeRange ?? employeeRange;
+    const searchCompliancePriority = overrideParams?.compliancePriority ?? compliancePriority;
+
+    // If called with override params, sync the form fields so the user sees what
+    // was searched after the results arrive.
+    if (overrideParams) {
+      setCity(searchCity);
+      setState(searchState);
+      setIndustry(searchIndustry);
+      setCount(searchCount);
+      if (overrideParams.employeeRange) setEmployeeRange(overrideParams.employeeRange);
+      if (overrideParams.compliancePriority) setCompliancePriority(overrideParams.compliancePriority);
+    }
+
     restorePendingRef.current = false;
     setRestorable(null);
     setLeads([]);
@@ -200,14 +218,14 @@ export default function Prospecting() {
     searchMutation.mutate(
       {
         data: {
-          city: city.trim(),
-          state,
-          industry,
-          count: parseInt(count),
+          city: searchCity.trim(),
+          state: searchState,
+          industry: searchIndustry,
+          count: parseInt(searchCount),
           ...(isIT
             ? {
-                employeeRange: employeeRange === IT_EMPLOYEE_RANGES[0] ? undefined : employeeRange,
-                compliancePriority: compliancePriority === "All Prospects" ? undefined : compliancePriority,
+                employeeRange: searchEmployeeRange === IT_EMPLOYEE_RANGES[0] ? undefined : searchEmployeeRange,
+                compliancePriority: searchCompliancePriority === "All Prospects" ? undefined : searchCompliancePriority,
               }
             : {}),
         },
@@ -546,6 +564,18 @@ export default function Prospecting() {
     setRestorable(null);
   };
 
+  // Re-run a fresh prospect search using the saved snapshot's params, discarding
+  // the stale stored leads. The form fields are updated to match the re-run so
+  // the user can see (and adjust) exactly what was searched.
+  const handleSearchAgain = () => {
+    const snap = restorable;
+    if (!snap) return;
+    if (storageKey) {
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+    }
+    runSearch(snap.params);
+  };
+
   // Warn before leaving the page while a partly-added prospect list (or a
   // cancelled "Add all" highlight) would be lost. Covers browser refresh/close
   // (beforeunload) and in-app wouter navigation (link click interception).
@@ -623,9 +653,12 @@ export default function Prospecting() {
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={handleStartFresh}>
                   Start fresh
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSearchAgain}>
+                  <RefreshCw className="mr-1.5 h-4 w-4" /> Search again
                 </Button>
                 <Button size="sm" onClick={handleRestore}>
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Restore list
@@ -985,7 +1018,7 @@ export default function Prospecting() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep current list</AlertDialogCancel>
-            <AlertDialogAction onClick={runSearch}>Discard and search</AlertDialogAction>
+            <AlertDialogAction onClick={() => runSearch()}>Discard and search</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
