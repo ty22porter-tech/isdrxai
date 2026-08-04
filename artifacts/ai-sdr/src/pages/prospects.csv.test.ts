@@ -126,6 +126,17 @@ describe("analyzeCSV – non-CSV file rejection", () => {
     }
   });
 
+  it("rejects a legacy .xls file (D0 CF signature) with Save-As guidance", () => {
+    // Legacy Excel files start with the OLE2 compound-file magic bytes D0 CF.
+    const xlsContent = "\xD0\xCF\x11\xE0somebinarydata";
+    const result = analyzeCSV(xlsContent);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/\.xls\b/i);
+      expect(result.error).toMatch(/save as/i);
+    }
+  });
+
   it("rejects a PDF file (%PDF signature) with re-export guidance", () => {
     const pdfContent = "%PDF-1.4 fake pdf content here";
     const result = analyzeCSV(pdfContent);
