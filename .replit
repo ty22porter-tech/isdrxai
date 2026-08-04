@@ -32,6 +32,9 @@ INBOUND_REPLY_DOMAIN = "sdrai.xyz"
 [userenv.development]
 INBOUND_REPLY_DOMAIN = "sdrai.xyz"
 
+[userenv.shared]
+PUBLIC_APP_URL = "https://iSDRXAI.replit.app"
+
 [[ports]]
 localPort = 8080
 externalPort = 8080
