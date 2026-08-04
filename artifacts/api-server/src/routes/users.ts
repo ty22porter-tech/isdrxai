@@ -3,6 +3,7 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { isResendConfigured, getPlatformFromEmail } from "../lib/emailSender";
+import { getEngagementSettings, DEFAULT_ENGAGEMENT_SETTINGS } from "../lib/engagementScoring";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { getObjectAclPolicy } from "../lib/objectAcl";
 
@@ -59,7 +60,72 @@ router.get("/me", async (req, res) => {
     platformEmailReady: resendReady,
     platformFromEmail: getPlatformFromEmail(),
     autopilotReady: resendReady && !!(user.outreachEmail) && !!(user.businessAddress),
+    engagementSettings: getEngagementSettings(user),
   });
+});
+
+// Engagement Automation settings — validated field-by-field, stored as a
+// partial overlay on the server defaults so future default changes flow through.
+router.put("/engagement-settings", async (req, res) => {
+  const b = req.body ?? {};
+  const cur = (req.dbUser.engagementSettings ?? {}) as Record<string, any>;
+  const next: Record<string, any> = { ...cur };
+
+  const bool = (k: string) => { if (typeof b[k] === "boolean") next[k] = b[k]; };
+  bool("openTrackingEnabled");
+  bool("attachmentTrackingEnabled");
+  bool("autoFollowUpEnabled");
+
+  const int = (k: string, min: number, max: number) => {
+    if (b[k] !== undefined) {
+      const v = Math.round(Number(b[k]));
+      if (!Number.isFinite(v) || v < min || v > max) throw Object.assign(new Error(`${k} must be between ${min} and ${max}`), { status: 400 });
+      next[k] = v;
+    }
+  };
+  try {
+    int("mediumMin", 1, 1000);
+    int("hotMin", 2, 1000);
+    int("dedupWindowMinutes", 1, 1440);
+    int("followUpDelayMinutes", 0, 10080);
+    int("dailySendCap", 1, 500);
+    const med = next.mediumMin ?? DEFAULT_ENGAGEMENT_SETTINGS.mediumMin;
+    const hot = next.hotMin ?? DEFAULT_ENGAGEMENT_SETTINGS.hotMin;
+    if (hot <= med) throw Object.assign(new Error("The Hot threshold must be higher than the Medium threshold"), { status: 400 });
+
+    if (b.points && typeof b.points === "object") {
+      const pts: Record<string, number> = { ...(cur.points ?? {}) };
+      for (const key of Object.keys(DEFAULT_ENGAGEMENT_SETTINGS.points)) {
+        if (b.points[key] !== undefined) {
+          const v = Math.round(Number(b.points[key]));
+          if (!Number.isFinite(v) || v < 0 || v > 100) throw Object.assign(new Error(`Point value "${key}" must be between 0 and 100`), { status: 400 });
+          pts[key] = v;
+        }
+      }
+      next.points = pts;
+    }
+
+    if (b.template && typeof b.template === "object") {
+      const tpl: Record<string, string> = { ...(cur.template ?? {}) };
+      if (typeof b.template.subject === "string") {
+        if (!b.template.subject.trim()) throw Object.assign(new Error("Template subject cannot be empty"), { status: 400 });
+        tpl.subject = b.template.subject.slice(0, 200);
+      }
+      if (typeof b.template.body === "string") {
+        if (!b.template.body.trim()) throw Object.assign(new Error("Template body cannot be empty"), { status: 400 });
+        tpl.body = b.template.body.slice(0, 5000);
+      }
+      next.template = tpl;
+    }
+  } catch (err: any) {
+    return res.status(err.status ?? 400).json({ error: err.message });
+  }
+
+  const [user] = await db.update(usersTable)
+    .set({ engagementSettings: next })
+    .where(eq(usersTable.id, req.clientId))
+    .returning();
+  res.json({ engagementSettings: getEngagementSettings(user) });
 });
 
 router.put("/settings", async (req, res) => {

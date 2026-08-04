@@ -13,6 +13,8 @@ import {
   GetProspectParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/requireAuth";
+import { db as _db, scoreEventsTable } from "@workspace/db";
+import { desc } from "drizzle-orm";
 
 const router = Router();
 router.use(requireAuth);
@@ -205,6 +207,70 @@ router.patch("/:id", async (req, res) => {
     });
   }
   res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+});
+
+// Manual interest override (authorized: the owning client). level=null clears
+// the override; every change is preserved in the score history.
+router.post("/:id/interest-override", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid prospect id" });
+  const { level } = req.body ?? {};
+  if (level !== null && !["low", "medium", "hot"].includes(level)) {
+    return res.status(400).json({ error: "level must be 'low', 'medium', 'hot', or null to clear" });
+  }
+  const [prospect] = await db.update(prospectsTable)
+    .set({ manualInterestLevel: level, manualInterestSetAt: level ? new Date() : null })
+    .where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)))
+    .returning();
+  if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+  await db.insert(scoreEventsTable).values({
+    clientId: req.clientId,
+    prospectId: id,
+    eventType: "manual_override",
+    points: 0,
+    reason: level ? `Interest manually set to ${level} (system score ${prospect.engagementScore} preserved)` : "Manual interest override cleared",
+    scoreAfter: prospect.engagementScore,
+    interestLevelAfter: level ?? prospect.interestLevel,
+  });
+  res.json({
+    id: prospect.id,
+    engagementScore: prospect.engagementScore,
+    interestLevel: prospect.interestLevel,
+    manualInterestLevel: prospect.manualInterestLevel,
+    manualInterestSetAt: prospect.manualInterestSetAt?.toISOString() ?? null,
+  });
+});
+
+// Toggle the "Mark for LinkedIn Outreach" flag (surfaced in Hot alerts; no automation).
+router.post("/:id/linkedin-flag", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid prospect id" });
+  const flag = !!req.body?.flag;
+  const [prospect] = await db.update(prospectsTable)
+    .set({ linkedinOutreach: flag })
+    .where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)))
+    .returning();
+  if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+  res.json({ id: prospect.id, linkedinOutreach: prospect.linkedinOutreach });
+});
+
+// Score history (with reasons) for a prospect.
+router.get("/:id/score-history", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid prospect id" });
+  const events = await _db.select().from(scoreEventsTable)
+    .where(and(eq(scoreEventsTable.prospectId, id), eq(scoreEventsTable.clientId, req.clientId)))
+    .orderBy(desc(scoreEventsTable.createdAt))
+    .limit(200);
+  res.json(events.map(e => ({
+    id: e.id,
+    eventType: e.eventType,
+    points: e.points,
+    reason: e.reason,
+    scoreAfter: e.scoreAfter,
+    interestLevelAfter: e.interestLevelAfter,
+    createdAt: e.createdAt.toISOString(),
+  })));
 });
 
 router.delete("/:id", async (req, res) => {

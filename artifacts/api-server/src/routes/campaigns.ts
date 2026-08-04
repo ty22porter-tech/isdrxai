@@ -34,7 +34,16 @@ router.get("/:id", async (req, res) => {
 
 router.patch("/:id", async (req, res) => {
   const { id } = UpdateCampaignParams.parse({ id: parseInt(req.params.id) });
-  const body = UpdateCampaignBody.parse(req.body);
+  const body: Record<string, any> = UpdateCampaignBody.parse(req.body);
+  // followUpMode is not in the generated zod schema (Option A/B for the
+  // repeated-open follow-up) — validate and pass it through manually.
+  const fm = (req.body ?? {}).followUpMode;
+  if (fm !== undefined) {
+    if (fm !== "meeting_request" && fm !== "questionnaire_first") {
+      return res.status(400).json({ error: "followUpMode must be 'meeting_request' or 'questionnaire_first'" });
+    }
+    body.followUpMode = fm;
+  }
   const [campaign] = await db.update(campaignsTable).set(body).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId))).returning();
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
   res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });

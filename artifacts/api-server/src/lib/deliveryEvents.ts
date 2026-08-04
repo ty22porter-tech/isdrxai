@@ -1,5 +1,6 @@
 import { db, emailsTable, prospectsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { cancelPendingAutomation } from "./engagementScoring";
 import { logger } from "./logger";
 
 /**
@@ -33,6 +34,7 @@ export async function handleDeliveryWebhookEvent(event: { type?: string; data?: 
     await db.update(prospectsTable)
       .set({ status: "invalid" })
       .where(and(eq(prospectsTable.id, email.prospectId), eq(prospectsTable.status, "contacted")));
+    await cancelPendingAutomation(email.prospectId, "Email bounced");
     logger.info({ emailId: email.id, prospectId: email.prospectId }, "Email bounced — prospect marked invalid");
     return;
   }
@@ -41,5 +43,6 @@ export async function handleDeliveryWebhookEvent(event: { type?: string; data?: 
   await db.update(prospectsTable)
     .set({ optedOut: true, optedOutAt: now })
     .where(eq(prospectsTable.id, email.prospectId));
+  await cancelPendingAutomation(email.prospectId, "Spam complaint");
   logger.info({ emailId: email.id, prospectId: email.prospectId }, "Spam complaint — prospect opted out");
 }

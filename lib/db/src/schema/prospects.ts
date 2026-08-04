@@ -22,6 +22,15 @@ export const prospectsTable = pgTable("prospects", {
   scheduleToken: text("schedule_token").notNull().unique().default(sql`gen_random_uuid()::text`),
   unsubscribeToken: text("unsubscribe_token").notNull().unique().default(sql`gen_random_uuid()::text`),
   replyToken: text("reply_token").notNull().unique().default(sql`gen_random_uuid()::text`),
+  /** System engagement score (sum of score_events points). */
+  engagementScore: integer("engagement_score").notNull().default(0),
+  /** Interest level computed from the score + thresholds: "low" | "medium" | "hot". */
+  interestLevel: text("interest_level").notNull().default("low"),
+  /** Manual override set by the client; preserved alongside the system score. */
+  manualInterestLevel: text("manual_interest_level"),
+  manualInterestSetAt: timestamp("manual_interest_set_at"),
+  /** Flag surfaced in Hot alerts — no automation attached (out of scope). */
+  linkedinOutreach: boolean("linkedin_outreach").notNull().default(false),
   optedOut: boolean("opted_out").notNull().default(false),
   optedOutAt: timestamp("opted_out_at"),
   lastContactedAt: timestamp("last_contacted_at"),

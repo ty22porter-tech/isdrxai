@@ -18,6 +18,8 @@ export const campaignsTable = pgTable("campaigns", {
   appointmentsSet: integer("appointments_set").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
+  /** Repeated-open follow-up flavor: "meeting_request" (Option A, Calendly link) | "questionnaire_first" (Option B). */
+  followUpMode: text("follow_up_mode").notNull().default("meeting_request"),
 });
 
 export const insertCampaignSchema = createInsertSchema(campaignsTable).omit({ id: true, createdAt: true, clientId: true });

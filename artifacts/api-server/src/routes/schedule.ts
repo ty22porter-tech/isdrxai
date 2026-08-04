@@ -5,6 +5,7 @@ import { prospectsTable, usersTable, activityTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail, type EmailAttachment } from "../lib/emailSender";
 import { getVerticalConfig } from "../lib/verticals";
+import { recordEngagementEvent } from "../lib/engagementScoring";
 import type { Request, Response, NextFunction } from "express";
 
 const router = Router();
@@ -105,6 +106,9 @@ router.get("/:token", async (req, res) => {
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, prospect.clientId));
+
+    // Interest scoring: questionnaire opened (scored once per prospect).
+    recordEngagementEvent(prospect.id, "questionnaire_opened").catch(() => {});
 
     res.json({
       companyName: prospect.companyName,
@@ -245,6 +249,11 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
       prospectId: prospect.id,
       prospectName: prospect.contactName,
     });
+
+    // Interest scoring: questionnaire submitted (once per prospect). A meeting
+    // is now in motion, so any pending repeated-open follow-up is redundant —
+    // the automation processor suppresses it via the prospect's status.
+    recordEngagementEvent(prospect.id, "questionnaire_submitted").catch(() => {});
 
     res.json({ ok: true, calendlyUrl: client.calendlyUrl ?? null });
   } catch (err: any) {

@@ -4,6 +4,7 @@ import { db, emailsTable, emailOpenEventsTable, emailLinksTable, linkClickEvents
 import { eq, and, gte, sql } from "drizzle-orm";
 import { getPublicAppUrl } from "../lib/publicUrl";
 import { logger } from "../lib/logger";
+import { recordEngagementEvent } from "../lib/engagementScoring";
 
 /**
  * Public engagement-tracking endpoints (no auth — keyed by unguessable
@@ -97,6 +98,7 @@ router.get("/o/:token", async (req, res) => {
     // Dedup check + event insert + counter update run in one transaction,
     // serialized per email+IP+UA via an advisory lock so two concurrent hits
     // in the window can't both count as valid opens.
+    let countedValidOpen = false;
     await db.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`${token}|${ip}|${userAgent}`}))`);
 
@@ -112,6 +114,7 @@ router.get("/o/:token", async (req, res) => {
         ))
         .limit(1);
       const isValid = !isBot && !recent;
+      countedValidOpen = isValid;
 
       await tx.insert(emailOpenEventsTable).values({
         emailId: email.id,
@@ -133,6 +136,11 @@ router.get("/o/:token", async (req, res) => {
         })
         .where(eq(emailsTable.id, email.id));
     });
+
+    // Interest scoring + repeated-open follow-up trigger (never throws).
+    if (countedValidOpen) {
+      await recordEngagementEvent(email.prospectId, "open", { emailId: email.id, campaignId: email.campaignId });
+    }
   } catch (err) {
     logger.error({ err }, "Open-tracking event failed");
   }
@@ -178,6 +186,15 @@ router.get("/l/:token/:slug", async (req, res) => {
           ? { downloadCount: sql`${emailLinksTable.downloadCount} + 1`, lastClickedAt: new Date() }
           : { clickCount: sql`${emailLinksTable.clickCount} + 1`, lastClickedAt: new Date() })
         .where(eq(emailLinksTable.id, link.id));
+
+      // Interest scoring: cta links are scheduling/Calendly links, attachments
+      // are collateral views; anything else is a plain link click.
+      const eventType = link.kind === "cta" ? "calendly_click" : link.kind === "attachment" ? "attachment_view" : "link_click";
+      await recordEngagementEvent(email.prospectId, eventType, {
+        emailId: email.id,
+        campaignId: email.campaignId,
+        detail: link.name ?? link.kind,
+      });
     }).catch((err) => logger.error({ err }, "Link-click event failed"));
   } catch (err) {
     logger.error({ err }, "Tracked link redirect failed");

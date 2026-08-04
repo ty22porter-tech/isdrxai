@@ -16,4 +16,5 @@
 - [Dev/prod Clerk + data split](env-clerk-and-data-split.md) — dev & prod are SEPARATE Clerk tenants (key-by-host) → same person has different user IDs; clientId NOT portable across envs; dev DB is test/seed only; deploy is autoscale (no always-on).
 - [Apollo integration status](apollo-integration-status.md) — valid APOLLO_API_KEY saved but Apollo Free plan blocks search API (403); user chose to keep mock generator for now.
 - [Settings file uploads](settings-file-uploads.md) — uploads have no ACL until settings save "claims" them (owner check prevents hijack); serve route: public ACL→anyone, no ACL→any authed user.
+- [Engagement scoring](engagement-scoring.md) — score = sum of score_events (prospect cols are caches); automation idempotent via (prospect,campaign_key,type) unique; followUpMode bypasses generated zod.
 - [Stale lib dist after codegen](stale-lib-dist-after-codegen.md) — orval regen can leave lib dist/*.d.ts stale (tsbuildinfo skips rebuild); artifact typechecks fail on "missing" fields → `tsc --build --force` the lib.

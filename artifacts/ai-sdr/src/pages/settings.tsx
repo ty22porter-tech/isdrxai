@@ -233,8 +233,28 @@ export default function SettingsPage() {
       setAttachments(Array.isArray(me.attachments) ? me.attachments : []);
       setStep3CaseStudy(me.step3CaseStudy ?? null);
       setStep5CaseStudy(me.step5CaseStudy ?? null);
+      if (me.engagementSettings) setEng(me.engagementSettings);
     }
   }, [me]);
+
+  // ── Engagement Automation settings (saved via their own endpoint) ──────────
+  const [eng, setEng] = useState<any>(null);
+  const [engMsg, setEngMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const engMutation = useMutation({
+    mutationFn: () =>
+      apiFetch("/users/engagement-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eng),
+      }),
+    onSuccess: (data: any) => {
+      setEng(data.engagementSettings);
+      qc.invalidateQueries({ queryKey: ["me"] });
+      setEngMsg({ type: "ok", text: "Engagement automation settings saved!" });
+      setTimeout(() => setEngMsg(null), 3000);
+    },
+    onError: (err: Error) => setEngMsg({ type: "err", text: err.message }),
+  });
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -684,6 +704,112 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
+
+          {/* ── Engagement Automation ─────────────────────────────────────── */}
+          {eng && (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Engagement Automation</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Score prospect interest from opens, clicks, and replies — and automatically send a 15-minute meeting request after the 3rd valid open (uses your Calendly link above).
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[
+                  { key: "openTrackingEnabled", label: "Open tracking" },
+                  { key: "attachmentTrackingEnabled", label: "Attachment tracking" },
+                  { key: "autoFollowUpEnabled", label: "Auto meeting follow-up" },
+                ].map(t => (
+                  <label key={t.key} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!eng[t.key]}
+                      onChange={e => setEng({ ...eng, [t.key]: e.target.checked })}
+                      className="accent-primary"
+                    />
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[
+                  { key: "mediumMin", label: "Medium at ≥", hint: "points" },
+                  { key: "hotMin", label: "Hot at ≥", hint: "points" },
+                  { key: "dedupWindowMinutes", label: "Open dedup", hint: "minutes" },
+                  { key: "followUpDelayMinutes", label: "Send delay", hint: "minutes" },
+                  { key: "dailySendCap", label: "Daily cap", hint: "emails/day" },
+                ].map(f => (
+                  <div key={f.key} className="space-y-1">
+                    <label className="text-xs font-medium">{f.label}</label>
+                    <input
+                      type="number"
+                      value={eng[f.key] ?? ""}
+                      onChange={e => setEng({ ...eng, [f.key]: e.target.value === "" ? "" : Number(e.target.value) })}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground">{f.hint}</p>
+                  </div>
+                ))}
+              </div>
+
+              <details className="rounded-lg border border-border px-3 py-2">
+                <summary className="text-sm font-medium cursor-pointer">Point values</summary>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
+                  {[
+                    ["open1", "1st open"], ["open2", "2nd open"], ["open3", "3rd open"], ["openMore", "4th+ open"],
+                    ["linkClick", "Link click"], ["attachmentView", "Attachment view"], ["attachmentViewRepeat", "Repeat attachment"], ["calendlyClick", "Calendly click"],
+                    ["questionnaireOpened", "Questionnaire opened"], ["questionnaireSubmitted", "Questionnaire submitted"], ["positiveReply", "Positive reply"], ["meetingScheduled", "Meeting scheduled"],
+                  ].map(([k, label]) => (
+                    <div key={k} className="space-y-1">
+                      <label className="text-xs">{label}</label>
+                      <input
+                        type="number"
+                        value={eng.points?.[k] ?? ""}
+                        onChange={e => setEng({ ...eng, points: { ...eng.points, [k]: e.target.value === "" ? "" : Number(e.target.value) } })}
+                        className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </details>
+
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Repeated-Open Meeting Follow-Up template</p>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Subject</label>
+                  <input
+                    value={eng.template?.subject ?? ""}
+                    onChange={e => setEng({ ...eng, template: { ...eng.template, subject: e.target.value } })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Body</label>
+                  <textarea
+                    rows={7}
+                    value={eng.template?.body ?? ""}
+                    onChange={e => setEng({ ...eng, template: { ...eng.template, body: e.target.value } })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Placeholders: {"{{contactName}} {{companyName}} {{city}} {{state}} {{industry}}"}. Your signature, Calendly button, and unsubscribe footer are added automatically. Per-campaign, you can switch between Option A (Calendly link) and Option B (questionnaire first) on the Campaigns page.
+                  </p>
+                </div>
+              </div>
+
+              {engMsg && (
+                <div className={`rounded-lg px-4 py-3 flex items-center gap-2 text-sm ${engMsg.type === "ok" ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}>
+                  {engMsg.type === "ok" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                  {engMsg.text}
+                </div>
+              )}
+              <Button variant="outline" className="w-full" disabled={engMutation.isPending} onClick={() => engMutation.mutate()}>
+                {engMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : "Save Engagement Automation Settings"}
+              </Button>
+            </div>
+          )}
 
           {saveMsg && (
             <div className={`rounded-lg px-4 py-3 flex items-center gap-2 text-sm ${saveMsg.type === "ok" ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}>

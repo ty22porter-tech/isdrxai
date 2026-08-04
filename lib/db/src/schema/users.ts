@@ -29,6 +29,8 @@ export const usersTable = pgTable("users", {
   attachments: jsonb("attachments").$type<{ path: string; name: string; size: number; contentType: string }[]>().notNull().default([]),
   step3CaseStudy: jsonb("step3_case_study").$type<{ path: string; name: string; size: number; contentType: string } | null>(),
   step5CaseStudy: jsonb("step5_case_study").$type<{ path: string; name: string; size: number; contentType: string } | null>(),
+  /** Engagement Automation settings (partial — merged with server defaults). */
+  engagementSettings: jsonb("engagement_settings").$type<Record<string, unknown> | null>(),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ createdAt: true });

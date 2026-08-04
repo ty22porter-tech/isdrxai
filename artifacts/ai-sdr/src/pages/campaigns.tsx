@@ -315,6 +315,24 @@ export default function Campaigns() {
     );
   };
 
+  // followUpMode is not in the generated API client's schema, so send it with
+  // a plain fetch — the server validates and applies it manually.
+  const handleFollowUpModeChange = async (id: number, mode: string) => {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/campaigns/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followUpMode: mode }),
+      });
+      if (!res.ok) throw new Error();
+      toast({ title: mode === "questionnaire_first" ? "Follow-up set to Option B (questionnaire first)" : "Follow-up set to Option A (meeting request)" });
+      invalidate();
+    } catch {
+      toast({ title: "Failed to update follow-up mode", variant: "destructive" });
+    }
+  };
+
   const handleDelete = (id: number, name: string) => {
     deleteCampaign.mutate(
       { id },
@@ -478,6 +496,23 @@ export default function Campaigns() {
             >
               <Play className="mr-2 h-3.5 w-3.5" /> Resume
             </Button>
+          )}
+
+          {/* Repeated-open follow-up: Option A (meeting request) vs Option B (questionnaire first) */}
+          {(c.type === "email" || c.type === "mixed") && (
+            <div className="mt-4 space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Repeated-Open Follow-Up</label>
+              <Select
+                value={c.followUpMode ?? "meeting_request"}
+                onValueChange={v => handleFollowUpModeChange(c.id, v)}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="meeting_request">Option A — Meeting request (Calendly link)</SelectItem>
+                  <SelectItem value="questionnaire_first">Option B — Questionnaire first, then Calendly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           )}
         </CardContent>
       </Card>

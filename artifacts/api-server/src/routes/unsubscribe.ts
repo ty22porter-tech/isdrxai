@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, prospectsTable, usersTable, autopilotEnrollmentsTable, activityTable } from "@workspace/db";
 import { eq, and, inArray, or } from "drizzle-orm";
+import { cancelPendingAutomation } from "../lib/engagementScoring";
 
 const router = Router();
 
@@ -54,6 +55,8 @@ router.post("/:token", async (req, res) => {
         eq(autopilotEnrollmentsTable.prospectId, prospect.id),
         inArray(autopilotEnrollmentsTable.status, ["active", "replied", "calendly_sent", "paused"]),
       ));
+
+    await cancelPendingAutomation(prospect.id, "Prospect unsubscribed");
 
     await db.insert(activityTable).values({
       clientId: prospect.clientId,

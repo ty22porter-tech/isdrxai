@@ -11,6 +11,7 @@ import { Resend } from "resend";
 import { sendEmail } from "./emailSender";
 import { analyzeReplyTone, processAutopilotQueue } from "./autopilotEngine";
 import { extractAddress, parseTokenFromRecipients } from "./inboundAddressing";
+import { recordEngagementEvent, cancelPendingAutomation } from "./engagementScoring";
 import { logger } from "./logger";
 
 let _resend: Resend | null = null;
@@ -247,6 +248,18 @@ export async function handleResendWebhookEvent(event: {
         replyContent: replyText,
         replyTone: tone,
       });
+    }
+
+    // Interest scoring: positive replies add points; negative replies set a
+    // terminal status and cancel any pending repeated-open follow-up.
+    if (tone === "positive") {
+      await recordEngagementEvent(prospect.id, "positive_reply").catch(() => {});
+    } else if (tone === "negative") {
+      await cancelPendingAutomation(prospect.id, "Prospect replied negatively");
+      await db.update(prospectsTable)
+        .set({ status: "not_interested" })
+        .where(eq(prospectsTable.id, prospect.id))
+        .catch(() => {});
     }
 
     await db.insert(activityTable).values({

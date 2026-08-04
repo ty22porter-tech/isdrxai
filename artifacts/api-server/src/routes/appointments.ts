@@ -10,6 +10,7 @@ import {
   DeleteAppointmentParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/requireAuth";
+import { recordEngagementEvent, cancelPendingAutomation } from "../lib/engagementScoring";
 
 const router = Router();
 router.use(requireAuth);
@@ -43,6 +44,10 @@ router.post("/", async (req, res) => {
     prospectName: prospect?.contactName ?? null,
   });
   await db.update(prospectsTable).set({ status: "appointment_set" }).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
+  // Interest scoring: meeting scheduled (+points, once), and any pending
+  // repeated-open follow-up is now moot.
+  await recordEngagementEvent(body.prospectId, "meeting_scheduled");
+  await cancelPendingAutomation(body.prospectId, "Meeting already scheduled");
   res.status(201).json(serializeAppt(appt));
 });
 

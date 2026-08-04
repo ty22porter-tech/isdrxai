@@ -17,6 +17,7 @@ import deliverabilityRouter from "./deliverability";
 import trialCodesRouter from "./trialCodes";
 import storageRouter from "./storage";
 import engagementRouter from "./engagement";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -37,6 +38,7 @@ router.use("/autopilot", autopilotRouter);
 router.use("/deliverability", deliverabilityRouter);
 router.use("/trial-codes", trialCodesRouter);
 router.use("/engagement", engagementRouter);
+router.use("/notifications", notificationsRouter);
 router.use(storageRouter);
 
 export default router;

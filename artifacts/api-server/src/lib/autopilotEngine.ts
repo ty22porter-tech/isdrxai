@@ -7,6 +7,7 @@ import { composeEmail, unsubscribeHeaders } from "./emailCompose";
 import { getPublicAppUrl } from "./publicUrl";
 import { resolveReplyTo } from "./inboundAddressing";
 import { getVerticalConfig, offeringForStep, type VerticalConfig } from "./verticals";
+import { processEngagementAutomation } from "./engagementAutomation";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -425,6 +426,11 @@ export function startAutopilotEngine(logger: { info: (msg: string) => void; erro
       await processAutopilotQueue();
     } catch (err: any) {
       logger.error("Autopilot engine error", { err: err.message });
+    }
+    try {
+      await processEngagementAutomation();
+    } catch (err: any) {
+      logger.error("Engagement automation error", { err: err.message });
     }
   };
 

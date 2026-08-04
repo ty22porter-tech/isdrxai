@@ -20,7 +20,10 @@ import {
   Settings,
   Menu,
   X,
+  Bell,
+  Flame,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +52,71 @@ async function apiFetch(path: string) {
   const res = await fetch(`${BASE_URL}/api${path}`, { credentials: "include" });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
+}
+
+function NotificationBell() {
+  const queryClient = useQueryClient();
+  const { data } = useQuery<{ unread: number; notifications: Array<{ id: number; type: string; title: string; body: string; prospectId: number | null; readAt: string | null; createdAt: string }> }>({
+    queryKey: ["notifications"],
+    queryFn: () => apiFetch("/notifications"),
+    refetchInterval: 60_000,
+  });
+  const unread = data?.unread ?? 0;
+  const items = data?.notifications ?? [];
+
+  const markAllRead = async () => {
+    await fetch(`${BASE_URL}/api/notifications/read-all`, { method: "POST", credentials: "include" });
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  };
+  const markRead = async (id: number) => {
+    await fetch(`${BASE_URL}/api/notifications/${id}/read`, { method: "POST", credentials: "include" });
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80 p-0">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
+          <span className="text-sm font-semibold">Notifications</span>
+          {unread > 0 && (
+            <button onClick={markAllRead} className="text-xs text-primary hover:underline">Mark all read</button>
+          )}
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {items.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications yet.</p>
+          ) : items.map(n => (
+            <Link
+              key={n.id}
+              href={n.prospectId ? `/prospects/${n.prospectId}` : "/prospects"}
+              onClick={() => { if (!n.readAt) markRead(n.id); }}
+            >
+              <div className={cn("px-3 py-2.5 border-b last:border-b-0 cursor-pointer hover:bg-muted/50", !n.readAt && "bg-primary/5")}>
+                <div className="flex items-start gap-2">
+                  {n.type === "hot_prospect" ? <Flame className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" /> : <Bell className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />}
+                  <div className="min-w-0">
+                    <p className={cn("text-sm leading-snug", !n.readAt && "font-semibold")}>{n.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.body}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function VerticalOnboardingDialog({ open }: { open: boolean }) {
@@ -226,6 +294,8 @@ export function Layout({ children }: LayoutProps) {
           <Building2 className="h-5 w-5 text-primary mr-2" />
           <span className="font-semibold tracking-tight">iSDRX AI</span>
         </div>
+        <div className="flex items-center gap-1">
+        <NotificationBell />
         <Button
           variant="ghost"
           size="icon"
@@ -235,6 +305,7 @@ export function Layout({ children }: LayoutProps) {
         >
           {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
+        </div>
       </div>
 
       {/* Mobile nav drawer */}
@@ -252,6 +323,7 @@ export function Layout({ children }: LayoutProps) {
           <h1 className="text-lg font-semibold">
             {currentPage?.name ?? "iSDRX AI"}
           </h1>
+          <NotificationBell />
         </header>
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-background">
