@@ -1,13 +1,44 @@
 import { useGetDashboardStats, useGetActivityFeed } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+async function apiFetch<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE_URL}/api${path}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Mail, PhoneCall, Calendar, ArrowUpRight, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Users, Mail, PhoneCall, Calendar, ArrowUpRight, Eye, MousePointerClick, Paperclip, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
+
+interface EngagementSummary {
+  emailsSent: number;
+  emailsDelivered: number;
+  emailsBounced: number;
+  totalOpens: number;
+  validOpens: number;
+  prospectsWhoOpened: number;
+  repeatedOpenProspects: number;
+  linksClicked: number;
+  attachmentsViewed: number;
+  attachmentDownloads: number;
+  calendlyClicks: number;
+}
+
+function useEngagementSummary() {
+  return useQuery<EngagementSummary>({
+    queryKey: ["engagement-summary"],
+    queryFn: () => apiFetch<EngagementSummary>("/engagement/summary"),
+    staleTime: 60_000,
+  });
+}
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats();
   const { data: activity, isLoading: activityLoading } = useGetActivityFeed({ limit: 10 });
+  const { data: engagement, isLoading: engagementLoading } = useEngagementSummary();
 
   return (
     <Layout>
@@ -77,6 +108,85 @@ export default function Dashboard() {
             </Card>
           </div>
         ) : null}
+
+        {/* Engagement tracking section */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Email Engagement</h3>
+          {engagementLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-24" />)}
+            </div>
+          ) : engagement ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Valid Opens</CardTitle>
+                  <Eye className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{engagement.validOpens}</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{engagement.totalOpens} total incl. bots</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Prospects Opened</CardTitle>
+                  <Users className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{engagement.prospectsWhoOpened}</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {engagement.repeatedOpenProspects > 0
+                      ? <span className="text-orange-500 font-medium">{engagement.repeatedOpenProspects} opened 3×+</span>
+                      : "of total sent"}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Links Clicked</CardTitle>
+                  <MousePointerClick className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{engagement.linksClicked}</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{engagement.calendlyClicks} scheduling clicks</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Case Studies Viewed</CardTitle>
+                  <Paperclip className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{engagement.attachmentsViewed}</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{engagement.attachmentDownloads} downloaded</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Delivered</CardTitle>
+                  <Mail className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{engagement.emailsDelivered}</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">of {engagement.emailsSent} sent</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Bounced</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-2xl font-bold">{engagement.emailsBounced}</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">bad addresses</p>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No engagement data yet — stats appear once emails are sent.</p>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
