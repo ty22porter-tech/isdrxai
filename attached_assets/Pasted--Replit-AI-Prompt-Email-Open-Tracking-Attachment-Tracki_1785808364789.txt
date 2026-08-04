@@ -1,0 +1,666 @@
+## Replit AI Prompt — Email Open Tracking, Attachment Tracking, and Automated Meeting Follow-Up
+
+Copy and paste the following prompt into the Replit Agent:
+
+---
+
+# Feature: Repeated-Open Meeting Follow-Up and Prospect Interest Dashboard
+
+Add a new feature to the iSDRX AI application called:
+
+## Repeated-Open Meeting Follow-Up™
+
+The feature must track prospect engagement, display that activity on the customer dashboard, assign an interest level, and automatically send a meeting-request email when a prospect demonstrates elevated interest.
+
+## Primary Objective
+
+Allow each iSDRX AI customer to see:
+
+* How many times each prospect opened an email
+* The date and time of each recorded email open
+* Whether the prospect clicked or viewed an attachment
+* Which attachment was accessed
+* How many times each attachment was accessed
+* Whether the prospect clicked any links
+* Whether the prospect replied
+* The prospect’s current interest level
+* Whether an automated meeting-request email was sent
+* Whether the prospect clicked the Calendly link
+* Whether a meeting was scheduled, when that information is available
+
+When a prospect records more than two valid email opens, meaning the third valid open, automatically send a follow-up email requesting a 15-minute meeting and include the customer’s Calendly scheduling link.
+
+---
+
+# 1. Email Open Tracking
+
+Add a unique tracking pixel to every outbound campaign email.
+
+Each tracking pixel must be associated with:
+
+* Customer account ID
+* Campaign ID
+* Prospect ID
+* Contact ID
+* Email message ID
+* Sequence step
+* Date and time sent
+* Tracking token
+
+When the pixel loads, create an email-open event.
+
+Store:
+
+* Prospect ID
+* Email message ID
+* Campaign ID
+* Open timestamp
+* IP address, when legally permitted
+* User-agent information
+* Device category, when available
+* Approximate location, when available and legally permitted
+* Whether the open appears to be automated or human
+* Whether the open is unique
+* Total open count
+* Unique open count
+
+## Open-Count Rules
+
+Do not count every pixel request as a genuine new open.
+
+Deduplicate repeated requests that occur within a short period from the same message, IP address, and user agent.
+
+Use a configurable default deduplication window of 10 minutes.
+
+Example:
+
+* Five pixel requests within two minutes from the same source should count as one open.
+* A later open outside the deduplication window may count as another open.
+
+Attempt to identify and label possible:
+
+* Apple Mail Privacy Protection activity
+* Security scanner activity
+* Corporate email gateway activity
+* Automated bot opens
+* Image prefetching
+
+Show both:
+
+* Total recorded opens
+* Estimated valid human opens
+
+Use estimated valid human opens to trigger automation whenever possible.
+
+Clearly label open tracking as an estimate because privacy protections and email-security systems can generate automated opens.
+
+---
+
+# 2. Attachment Engagement Tracking
+
+Do not send attachments only as untracked email files.
+
+For trackable collateral, upload the content to secure application-hosted storage and insert a unique tracked link into the email.
+
+Support:
+
+* PDF capability statements
+* Flyers
+* Brochures
+* Testimonials
+* Case studies
+* Images
+* MP3 files
+* Videos
+* Other approved documents
+
+When a prospect clicks the tracked attachment link, record an attachment-engagement event.
+
+Store:
+
+* Prospect ID
+* Campaign ID
+* Email message ID
+* Attachment ID
+* Attachment name
+* Attachment type
+* Click timestamp
+* Total attachment clicks
+* Unique attachment clicks
+* Whether the content viewer was opened
+* Time spent in the viewer, when technically available
+* Download event, when available
+
+Display the status as:
+
+* Not Viewed
+* Viewed
+* Viewed Multiple Times
+* Downloaded
+
+Do not claim that an attachment was read unless the system can verify content-view activity. Use “viewed,” “opened,” “clicked,” or “downloaded,” based on the event recorded.
+
+---
+
+# 3. Link and Calendly Tracking
+
+Convert every outbound link into a unique tracked redirect URL.
+
+Track:
+
+* Link clicked
+* Link destination
+* Click timestamp
+* Number of clicks
+* Unique clicks
+* Calendly link clicks
+* Prequalification-form clicks
+* Website clicks
+* LinkedIn-profile clicks, if included
+
+Each customer must be able to enter and save their own Calendly link under:
+
+**Settings → Scheduling**
+
+Required fields:
+
+* Scheduling provider
+* Calendly URL
+* Default meeting duration
+* Default meeting type
+* Default meeting-request email template
+* Assigned sales representative
+* Time zone
+
+The default meeting duration should be 15 minutes.
+
+---
+
+# 4. Automated Meeting-Request Trigger
+
+Trigger the automated meeting follow-up after a prospect has more than two estimated valid email opens.
+
+This means:
+
+* First valid open: no automated meeting request
+* Second valid open: no automated meeting request
+* Third valid open: send the meeting-request email
+* Fourth and later opens: do not repeatedly send the same meeting-request email
+
+The trigger must run only once per prospect per campaign unless a customer manually resets or re-enrolls the prospect.
+
+Before sending, confirm:
+
+* The prospect has not replied negatively
+* The prospect has not unsubscribed
+* The email address is not suppressed
+* The prospect has not already scheduled a meeting
+* A meeting-request email has not already been sent for this campaign
+* The campaign is active
+* The customer has enabled this automation
+* A valid Calendly link exists
+* The prospect is not marked “Do Not Contact”
+* The daily sending limit has not been exceeded
+
+Store:
+
+* Trigger date and time
+* Trigger reason
+* Open count at trigger
+* Attachment activity at trigger
+* Meeting-request email status
+* Delivery status
+* Calendly-click status
+* Meeting-booked status
+
+---
+
+# 5. Meeting-Request Email
+
+Create an editable email template named:
+
+## Repeated-Open Meeting Follow-Up
+
+Default subject line:
+
+**Would a brief 15-minute conversation be helpful?**
+
+Default email body:
+
+Hi {{first_name}},
+
+I wanted to follow up because the information I shared may be relevant to {{company_name}}.
+
+Would you be open to a brief 15-minute conversation to discuss your current priorities and determine whether our solution may be a fit?
+
+You can select a convenient time here:
+
+{{calendly_link}}
+
+Best,
+{{sales_representative_name}}
+{{sales_representative_title}}
+{{customer_company_name}}
+
+Allow each customer to edit:
+
+* Subject
+* Greeting
+* Email body
+* CTA text
+* Signature
+* Calendly link
+* Delay before sending
+* Trigger threshold
+* Meeting duration
+* Assigned representative
+
+Add an optional setting to delay the message by:
+
+* Immediately
+* 15 minutes
+* 30 minutes
+* 1 hour
+* Custom delay
+
+Default to 30 minutes after the third valid open so the automation does not appear unnaturally immediate.
+
+---
+
+# 6. Interest-Level Scoring
+
+Create three visible interest-status buttons or badges:
+
+* Hot
+* Medium
+* Low
+
+Display the current status on every prospect record, campaign table, and dashboard.
+
+Use both engagement score and meaningful actions rather than email opens alone.
+
+## Default Scoring Model
+
+Assign points as follows:
+
+* First valid email open: +1
+* Second valid email open: +2
+* Third valid email open: +3
+* Each additional valid open: +1
+* Link clicked: +4
+* Attachment viewed: +5
+* Attachment viewed more than once: additional +3
+* Calendly link clicked: +8
+* Prequalification form opened: +6
+* Prequalification form submitted: +12
+* Positive email reply: +15
+* Meeting scheduled: +20
+* Negative reply: set status to Not Interested
+* Unsubscribe: set status to Unsubscribed
+* Email bounce: set status to Invalid
+
+## Default Interest Categories
+
+### Low Interest
+
+Score of 0–4
+
+Examples:
+
+* Email delivered but not opened
+* One or two opens with no additional engagement
+
+### Medium Interest
+
+Score of 5–11
+
+Examples:
+
+* Multiple valid opens
+* One link click
+* Initial attachment engagement
+
+### Hot Interest
+
+Score of 12 or higher
+
+Examples:
+
+* Repeated opens plus attachment activity
+* Calendly link clicked
+* Prequalification form completed
+* Positive reply
+* Meeting scheduled
+
+Make all score values and thresholds editable by an administrator.
+
+Use status badges that are visually easy to distinguish, but also include text labels so the system remains accessible.
+
+Allow authorized users to manually override the interest level.
+
+Store:
+
+* System-calculated status
+* Manually assigned status
+* Score
+* Score history
+* Reason for the latest score change
+* Date and time updated
+
+---
+
+# 7. Dashboard Updates
+
+Add a dashboard section titled:
+
+## Prospect Engagement and Buying Intent
+
+Display summary cards for:
+
+* Emails Sent
+* Emails Delivered
+* Prospects Who Opened
+* Total Valid Opens
+* Repeated-Open Prospects
+* Attachments Viewed
+* Links Clicked
+* Hot Prospects
+* Medium-Interest Prospects
+* Low-Interest Prospects
+* Automated Meeting Requests Sent
+* Calendly Links Clicked
+* Meetings Scheduled
+
+Add a prospect engagement table with these columns:
+
+* Prospect Name
+* Company
+* Campaign
+* Last Email Sent
+* Total Opens
+* Estimated Valid Opens
+* Last Opened
+* Attachment Viewed
+* Attachment-View Count
+* Link Clicks
+* Reply Status
+* Interest Score
+* Interest Level
+* Meeting Request Sent
+* Calendly Clicked
+* Meeting Scheduled
+* Assigned Sales Representative
+* Recommended Next Action
+
+Allow the user to:
+
+* Sort by open count
+* Sort by interest score
+* Filter by Hot, Medium, or Low
+* Filter by campaign
+* Filter by assigned representative
+* Filter by attachment activity
+* Filter by meeting-request status
+* Search by prospect or company
+* Export results to CSV
+* Open the full prospect activity timeline
+
+---
+
+# 8. Prospect Activity Timeline
+
+Add a chronological timeline to each prospect record.
+
+Example:
+
+* Email sent — August 3, 2026, 9:00 AM
+* Email delivered — August 3, 2026, 9:01 AM
+* First valid open — August 3, 2026, 9:17 AM
+* Attachment viewed — August 3, 2026, 9:19 AM
+* Second valid open — August 3, 2026, 1:42 PM
+* Third valid open — August 4, 2026, 8:11 AM
+* Interest changed from Medium to Hot
+* Automated 15-minute meeting request scheduled
+* Meeting-request email sent — August 4, 2026, 8:41 AM
+* Calendly link clicked — August 4, 2026, 9:03 AM
+* Meeting scheduled — August 6, 2026, 2:00 PM
+
+Include the source and reason for every event.
+
+---
+
+# 9. Sales-Representative Alerts
+
+When a prospect becomes Hot, notify the assigned sales representative.
+
+Notifications should be available through:
+
+* In-app notification
+* Email notification
+* Dashboard alert
+
+The notification should include:
+
+* Prospect name
+* Company
+* Campaign
+* Number of valid opens
+* Attachment activity
+* Link activity
+* Interest score
+* Reason the prospect became Hot
+* Recommended next action
+* Link to the prospect profile
+
+Suggested notification:
+
+**High-interest prospect detected**
+
+{{prospect_name}} at {{company_name}} has opened the email {{valid_open_count}} times and viewed {{attachment_name}}. A meeting-request email has been sent. Review the prospect and consider sending a LinkedIn connection request.
+
+Add a button:
+
+**View Prospect**
+
+Add another button:
+
+**Mark for LinkedIn Outreach**
+
+---
+
+# 10. Recommended Next Actions
+
+Generate a recommended action based on the prospect’s behavior.
+
+Examples:
+
+* No opens: verify email address or change subject line
+* One open: continue sequence
+* Two opens: monitor engagement
+* Three opens: meeting-request email triggered
+* Attachment viewed: prioritize follow-up
+* Repeated attachment views: alert sales representative
+* Calendly clicked but not booked: send scheduling reminder
+* Positive reply: assign immediately to sales
+* Prequalification form submitted: create qualified opportunity
+* Meeting scheduled: prepare Opportunity Brief
+
+---
+
+# 11. Automation Settings
+
+Create an administration page under:
+
+**Settings → Engagement Automation**
+
+Include controls for:
+
+* Enable or disable open tracking
+* Enable or disable attachment tracking
+* Enable or disable automatic meeting follow-up
+* Valid-open threshold
+* Deduplication window
+* Interest-score rules
+* Hot/Medium/Low thresholds
+* Meeting email delay
+* Calendly URL
+* Meeting duration
+* Email template
+* Assigned sales representative
+* Business hours
+* Time zone
+* Maximum automated follow-ups
+* Whether attachment engagement can trigger the meeting email
+* Whether a prequalification form or Calendly request is sent first
+
+Include two automation options:
+
+### Option A: Request a Meeting
+
+Send the 15-minute Calendly meeting request when the threshold is reached.
+
+### Option B: Gather More Intelligence First
+
+Send a prequalification form when the threshold is reached. After the form is submitted, send the Calendly scheduling link.
+
+Allow the customer to choose one option for each campaign.
+
+---
+
+# 12. Database Requirements
+
+Create or update database models for:
+
+* Prospect
+* Campaign
+* OutboundEmail
+* EmailEvent
+* EmailOpenEvent
+* LinkClickEvent
+* Attachment
+* AttachmentEvent
+* EngagementScore
+* InterestStatus
+* AutomationTrigger
+* MeetingRequest
+* CalendarClick
+* ScheduledMeeting
+* Notification
+* AuditLog
+
+All events must use unique IDs and timestamps.
+
+Prevent duplicate automation through a database-level idempotency key using:
+
+* Prospect ID
+* Campaign ID
+* Automation type
+
+---
+
+# 13. API and Background Jobs
+
+Create secure endpoints for:
+
+* Tracking-pixel requests
+* Tracked-link redirects
+* Attachment-view events
+* Calendly webhook events, when available
+* Prospect engagement summaries
+* Dashboard analytics
+* Manual interest overrides
+* Automation settings
+
+Use background jobs or a durable queue for:
+
+* Sending automated emails
+* Recalculating interest scores
+* Processing engagement events
+* Generating notifications
+* Retrying failed email deliveries
+
+Do not perform critical automation only in the browser.
+
+---
+
+# 14. Compliance and Safety Requirements
+
+Include:
+
+* Unsubscribe handling
+* Suppression-list checking
+* Bounce handling
+* Do Not Contact status
+* Customer-configured sending limits
+* Audit logs
+* Role-based access
+* Data-retention settings
+* Consent and privacy disclosures where required
+
+Do not represent email-open data as perfectly accurate.
+
+Add a tooltip next to “Email Opens”:
+
+> Email-open activity is estimated. Privacy features, security scanners, and automated image loading may affect recorded results.
+
+Do not send meeting requests to prospects who have:
+
+* Unsubscribed
+* Replied negatively
+* Bounced
+* Been marked Do Not Contact
+* Already scheduled a meeting
+
+---
+
+# 15. Acceptance Criteria
+
+The feature is complete when:
+
+1. Every outbound email can contain a unique tracking pixel.
+2. Valid email opens are stored and visible on the dashboard.
+3. Automated or duplicate opens are identified when possible.
+4. Trackable attachment links record prospect engagement.
+5. The prospect’s total and valid open counts are displayed.
+6. The prospect receives one automated meeting-request email after the third valid open.
+7. The email includes the customer’s 15-minute Calendly link.
+8. Duplicate meeting-request emails are prevented.
+9. Every prospect receives a calculated Hot, Medium, or Low interest level.
+10. Users can filter and sort prospects by engagement.
+11. Sales representatives are notified when a prospect becomes Hot.
+12. The full engagement timeline is visible on the prospect profile.
+13. Calendly link clicks are tracked.
+14. Meetings are marked scheduled when Calendly webhook data is available.
+15. All suppression, unsubscribe, and negative-response rules are enforced.
+16. The feature works on desktop and mobile.
+17. Automated tests cover tracking, scoring, deduplication, and meeting-email triggers.
+
+---
+
+## Dashboard Labels
+
+Use these exact labels:
+
+* Total Opens
+* Valid Opens
+* Last Opened
+* Attachment Viewed
+* Attachment Engagement
+* Interest Score
+* Interest Level
+* Meeting Request Sent
+* Calendly Link Clicked
+* Meeting Scheduled
+* Recommended Next Action
+
+## Interest Buttons
+
+Display these buttons on the prospect record:
+
+**Low Interest**
+
+**Medium Interest**
+
+**Hot Prospect**
+
+The calculated button should appear selected automatically. Authorized users may change it manually, but the application must preserve both the system score and manual override in the audit history.
