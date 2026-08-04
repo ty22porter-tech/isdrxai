@@ -18,7 +18,7 @@ router.get("/dashboard", async (req, res) => {
   );
   const [emailsSent] = await db.select({ count: count() }).from(emailsTable).where(eq(emailsTable.clientId, cid));
   const [callsMade] = await db.select({ count: count() }).from(callsTable).where(eq(callsTable.clientId, cid));
-  const [appointmentsSet] = await db.select({ count: count() }).from(appointmentsTable).where(eq(appointmentsTable.clientId, cid));
+  const [appointmentsSet] = await db.select({ count: count() }).from(appointmentsTable).where(and(eq(appointmentsTable.clientId, cid), sql`${appointmentsTable.status} != 'cancelled'`));
   const [appointmentsCompleted] = await db.select({ count: count() }).from(appointmentsTable).where(and(eq(appointmentsTable.clientId, cid), eq(appointmentsTable.status, "completed")));
   const [thisWeek] = await db.select({ count: count() }).from(activityTable).where(and(eq(activityTable.clientId, cid), gte(activityTable.createdAt, weekAgo)));
 

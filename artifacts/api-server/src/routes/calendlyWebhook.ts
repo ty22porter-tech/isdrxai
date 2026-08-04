@@ -36,6 +36,74 @@ function verifySignature(rawBody: Buffer, header: string | undefined, key: strin
   }
 }
 
+async function handleInviteeCanceled(event: any, res: Response): Promise<Response> {
+  const payload = event.payload ?? {};
+  const inviteeUri: string | undefined = payload.uri;
+  if (!inviteeUri) {
+    logger.warn("Calendly invitee.canceled missing invitee URI");
+    return res.status(200).json({ received: true, ignored: true });
+  }
+
+  try {
+    // Idempotent: only flips a still-active appointment; retries (or a
+    // cancel for an already-cancelled booking) match zero rows.
+    const updated = await db
+      .update(appointmentsTable)
+      .set({ status: "cancelled" })
+      .where(and(
+        eq(appointmentsTable.calendlyInviteeUri, inviteeUri),
+        sql`${appointmentsTable.status} != 'cancelled'`,
+      ))
+      .returning();
+
+    if (updated.length === 0) {
+      // Unknown invitee URI or already cancelled — nothing to do.
+      return res.status(200).json({ received: true, matched: false });
+    }
+
+    const appt = updated[0];
+    const [prospect] = await db
+      .select()
+      .from(prospectsTable)
+      .where(eq(prospectsTable.id, appt.prospectId));
+
+    const rescheduled = payload.rescheduled === true;
+    await db.insert(activityTable).values({
+      clientId: appt.clientId,
+      type: "appointment_cancelled",
+      description: `Calendly booking ${rescheduled ? "rescheduled" : "cancelled"}${prospect ? ` by ${prospect.companyName}` : ""}`,
+      prospectId: appt.prospectId,
+      prospectName: prospect?.contactName ?? null,
+    });
+
+    // If this was the prospect's only active appointment (and not a
+    // reschedule, where a new invitee.created re-books immediately), roll
+    // their status back so the pipeline doesn't show a meeting that no
+    // longer exists.
+    if (prospect && prospect.status === "appointment_set") {
+      const [remaining] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(appointmentsTable)
+        .where(and(
+          eq(appointmentsTable.prospectId, appt.prospectId),
+          sql`${appointmentsTable.status} != 'cancelled'`,
+        ));
+      if ((remaining?.count ?? 0) === 0) {
+        await db
+          .update(prospectsTable)
+          .set({ status: "contacted" })
+          .where(and(eq(prospectsTable.id, prospect.id), eq(prospectsTable.clientId, prospect.clientId)));
+      }
+    }
+
+    logger.info({ prospectId: appt.prospectId, clientId: appt.clientId, rescheduled }, "Calendly booking cancelled");
+    return res.status(200).json({ received: true, matched: true });
+  } catch (err) {
+    logger.error({ err }, "Calendly invitee.canceled processing failed");
+    return res.status(500).json({ error: "Processing failed" });
+  }
+}
+
 export async function handleCalendlyWebhook(req: Request, res: Response): Promise<Response> {
   const raw = req.body as Buffer;
 
@@ -55,6 +123,10 @@ export async function handleCalendlyWebhook(req: Request, res: Response): Promis
     event = JSON.parse(raw.toString("utf8"));
   } catch {
     return res.status(400).json({ error: "Invalid JSON" });
+  }
+
+  if (event?.event === "invitee.canceled") {
+    return handleInviteeCanceled(event, res);
   }
 
   if (event?.event !== "invitee.created") {
