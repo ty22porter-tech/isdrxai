@@ -13,9 +13,11 @@ import { logger } from "../lib/logger";
  *
  * Mounted BEFORE express.json() with a raw body so the Calendly signature
  * (HMAC-SHA256 over "t.body" from the Calendly-Webhook-Signature header) can
- * be verified when CALENDLY_WEBHOOK_SIGNING_KEY is set. Without the key we
- * still accept events (the payload alone can't inflate scores beyond one
- * meeting_scheduled per prospect) but log a warning.
+ * be verified. The key comes from CALENDLY_WEBHOOK_SIGNING_KEY or is set at
+ * boot by ensureCalendlyWebhook (lib/calendlyWebhook.ts) when
+ * CALENDLY_API_TOKEN auto-registers the subscription. Without a key,
+ * production requests are rejected (fail closed); development accepts them
+ * with a warning.
  *
  * Idempotency: the invitee URI is stored on the appointment row under a
  * unique index; webhook retries hit onConflictDoNothing, and
@@ -114,8 +116,13 @@ export async function handleCalendlyWebhook(req: Request, res: Response): Promis
       logger.warn("Calendly webhook signature verification failed");
       return res.status(400).json({ error: "Invalid signature" });
     }
+  } else if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT) {
+    // Fail closed in production: without a signing key we cannot tell real
+    // Calendly events from forged bookings posted to a discovered URL.
+    logger.error("Calendly webhook rejected — no signing key configured in production (set CALENDLY_API_TOKEN for auto-registration or CALENDLY_WEBHOOK_SIGNING_KEY)");
+    return res.status(403).json({ error: "Webhook signature verification not configured" });
   } else {
-    logger.warn("CALENDLY_WEBHOOK_SIGNING_KEY not set — accepting Calendly webhook without signature verification");
+    logger.warn("CALENDLY_WEBHOOK_SIGNING_KEY not set — accepting Calendly webhook without signature verification (development only)");
   }
 
   let event: any;

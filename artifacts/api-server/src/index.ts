@@ -4,6 +4,7 @@ import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { startAutopilotEngine } from "./lib/autopilotEngine";
 import { ensureResendWebhook } from "./lib/resendWebhook";
+import { ensureCalendlyWebhook } from "./lib/calendlyWebhook";
 import { bootstrapAdmin } from "./lib/bootstrapAdmin";
 
 const rawPort = process.env["PORT"];
@@ -45,6 +46,7 @@ async function initStripe() {
 await initStripe();
 await bootstrapAdmin();
 await ensureResendWebhook();
+await ensureCalendlyWebhook();
 startAutopilotEngine(logger);
 
 app.listen(port, (err) => {
