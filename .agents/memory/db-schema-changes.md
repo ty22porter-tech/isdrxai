@@ -29,14 +29,18 @@ description: How to make Drizzle schema column additions actually take effect (t
 The db lib exposes `ensureAdditiveColumns(pool, logger)` (schemaGuard) plus a CLI script
 `pnpm --filter @workspace/db run ensure-columns`. It diffs drizzle schema vs
 information_schema and applies `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` for nullable
-or DB-defaulted columns; it loudly reports (exit 1) missing tables and NOT NULL columns
-without a DB default — those still need manual SQL. It runs (1) at api-server startup,
+or DB-defaulted columns, and now also CREATE TABLE IF NOT EXISTS for tables missing
+entirely (columns, PKs, defaults, unique indexes; foreign keys and check constraints
+are deliberately omitted and warned loudly — exit 0). It still exits 1 for NOT NULL
+columns without a DB default, generated columns, and unique indexes over SQL
+expressions — those need manual SQL. It runs (1) at api-server startup,
 (2) from the post-merge script (`scripts/post-merge.sh`), and (3) as a self-heal inside
 requireAuth when a users select hits Postgres 42703 (missing column).
 **Why:** a merged task's new users column once 500'd every API request because
 requireAuth selects the full row; drizzle push can't run non-interactively here.
-**How to apply:** trust the guard for additive columns; only hand-write SQL for new
-tables, NOT NULL-without-default, renames, or constraint changes.
+**How to apply:** trust the guard for additive columns and brand-new tables; only
+hand-write SQL for FKs on auto-created tables, NOT NULL-without-default, renames,
+or constraint changes.
 
 # NOT NULL UNIQUE column added by a merged task → silent insert breakage
 

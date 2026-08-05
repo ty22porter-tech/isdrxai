@@ -11,6 +11,9 @@ import { ensureAdditiveColumns } from "./schemaGuard";
 const result = await ensureAdditiveColumns(pool, console);
 await pool.end();
 
+if (result.createdTables.length > 0) {
+  console.log(`[schema-guard] created ${result.createdTables.length} missing table(s): ${result.createdTables.join(", ")}`);
+}
 if (result.applied.length > 0) {
   console.log(`[schema-guard] applied ${result.applied.length} additive column(s): ${result.applied.join(", ")}`);
 }
