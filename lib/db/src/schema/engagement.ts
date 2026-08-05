@@ -1,5 +1,8 @@
 import { pgTable, text, serial, integer, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+import { emailsTable } from "./emails";
+import { prospectsTable } from "./prospects";
+
 /**
  * Interest-scoring + engagement-automation tables.
  *
@@ -11,8 +14,8 @@ import { pgTable, text, serial, integer, timestamp, uniqueIndex } from "drizzle-
 export const scoreEventsTable = pgTable("score_events", {
   id: serial("id").primaryKey(),
   clientId: text("client_id").notNull().default(""),
-  prospectId: integer("prospect_id").notNull(),
-  emailId: integer("email_id"),
+  prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
+  emailId: integer("email_id").references(() => emailsTable.id, { onDelete: "set null" }),
   /** open | link_click | attachment_view | calendly_click | questionnaire_opened | questionnaire_submitted | positive_reply | meeting_scheduled | manual_override */
   eventType: text("event_type").notNull(),
   points: integer("points").notNull().default(0),
@@ -34,7 +37,7 @@ export const scoreEventsTable = pgTable("score_events", {
 export const automationRunsTable = pgTable("automation_runs", {
   id: serial("id").primaryKey(),
   clientId: text("client_id").notNull().default(""),
-  prospectId: integer("prospect_id").notNull(),
+  prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
   campaignKey: integer("campaign_key").notNull().default(0),
   automationType: text("automation_type").notNull().default("meeting_request"),
   /** pending | sending | sent | suppressed | failed */
@@ -46,7 +49,7 @@ export const automationRunsTable = pgTable("automation_runs", {
   scheduledFor: timestamp("scheduled_for").notNull().defaultNow(),
   sentAt: timestamp("sent_at"),
   /** emails.id of the sent meeting-request email. */
-  emailId: integer("email_id"),
+  emailId: integer("email_id").references(() => emailsTable.id, { onDelete: "set null" }),
   /** Suppression / failure detail for the audit record. */
   resultDetail: text("result_detail"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -61,7 +64,7 @@ export const notificationsTable = pgTable("notifications", {
   type: text("type").notNull().default("info"),
   title: text("title").notNull(),
   body: text("body").notNull().default(""),
-  prospectId: integer("prospect_id"),
+  prospectId: integer("prospect_id").references(() => prospectsTable.id, { onDelete: "cascade" }),
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
