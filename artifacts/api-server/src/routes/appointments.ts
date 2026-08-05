@@ -58,7 +58,7 @@ router.patch("/:id", async (req, res) => {
   if (body.scheduledAt) updateData.scheduledAt = new Date(body.scheduledAt);
   const [appt] = await db.update(appointmentsTable).set(updateData).where(and(eq(appointmentsTable.id, id), eq(appointmentsTable.clientId, req.clientId))).returning();
   if (!appt) return res.status(404).json({ error: "Appointment not found" });
-  res.json(serializeAppt(appt));
+  return res.json(serializeAppt(appt));
 });
 
 router.delete("/:id", async (req, res) => {

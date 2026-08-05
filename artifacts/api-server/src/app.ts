@@ -31,10 +31,10 @@ app.post(
     try {
       const sig = Array.isArray(signature) ? signature[0] : signature;
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
-      res.status(200).json({ received: true });
+      return res.status(200).json({ received: true });
     } catch (error: any) {
       logger.error({ err: error }, "Webhook error");
-      res.status(400).json({ error: "Webhook processing error" });
+      return res.status(400).json({ error: "Webhook processing error" });
     }
   },
 );
@@ -83,6 +83,7 @@ app.post(
     handleDeliveryWebhookEvent(event as any).catch((err) =>
       logger.error({ err }, "Delivery event processing failed"),
     );
+    return;
   },
 );
 

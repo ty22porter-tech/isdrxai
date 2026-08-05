@@ -182,14 +182,14 @@ router.post("/bulk", async (req, res) => {
   }
 
   results.sort((a, b) => a.index - b.index);
-  res.json({ added, updated, failed, results });
+  return res.json({ added, updated, failed, results });
 });
 
 router.get("/:id", async (req, res) => {
   const { id } = GetProspectParams.parse({ id: parseInt(req.params.id) });
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
 router.patch("/:id", async (req, res) => {
@@ -206,7 +206,7 @@ router.patch("/:id", async (req, res) => {
       prospectName: prospect.contactName,
     });
   }
-  res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
 // Manual interest override (authorized: the owning client). level=null clears
@@ -232,7 +232,7 @@ router.post("/:id/interest-override", async (req, res) => {
     scoreAfter: prospect.engagementScore,
     interestLevelAfter: level ?? prospect.interestLevel,
   });
-  res.json({
+  return res.json({
     id: prospect.id,
     engagementScore: prospect.engagementScore,
     interestLevel: prospect.interestLevel,
@@ -251,7 +251,7 @@ router.post("/:id/linkedin-flag", async (req, res) => {
     .where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)))
     .returning();
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  res.json({ id: prospect.id, linkedinOutreach: prospect.linkedinOutreach });
+  return res.json({ id: prospect.id, linkedinOutreach: prospect.linkedinOutreach });
 });
 
 // Score history (with reasons) for a prospect.
@@ -262,7 +262,7 @@ router.get("/:id/score-history", async (req, res) => {
     .where(and(eq(scoreEventsTable.prospectId, id), eq(scoreEventsTable.clientId, req.clientId)))
     .orderBy(desc(scoreEventsTable.createdAt))
     .limit(200);
-  res.json(events.map(e => ({
+  return res.json(events.map(e => ({
     id: e.id,
     eventType: e.eventType,
     points: e.points,

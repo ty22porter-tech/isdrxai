@@ -35,7 +35,7 @@ router.post("/:id/read", async (req, res) => {
   await db.update(notificationsTable)
     .set({ readAt: new Date() })
     .where(and(eq(notificationsTable.id, id), eq(notificationsTable.clientId, req.clientId), isNull(notificationsTable.readAt)));
-  res.json({ ok: true });
+  return res.json({ ok: true });
 });
 
 router.post("/read-all", async (req, res) => {

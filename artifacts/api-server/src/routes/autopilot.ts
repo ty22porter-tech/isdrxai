@@ -98,11 +98,11 @@ router.post("/enroll", requireEntitlement, async (req, res) => {
     processAutopilotQueue().catch(() => {});
   }
 
-  res.status(201).json({ enrolled: results.length, enrollments: results });
+  return res.status(201).json({ enrolled: results.length, enrollments: results });
 });
 
 router.post("/enrollments/:id/reply", requireEntitlement, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id));
   const { replyContent } = req.body;
   if (!replyContent) return res.status(400).json({ error: "replyContent required" });
 
@@ -130,7 +130,7 @@ router.post("/enrollments/:id/reply", requireEntitlement, async (req, res) => {
     .returning();
 
   processAutopilotQueue().catch(() => {});
-  res.json(serializeEnrollment(updated));
+  return res.json(serializeEnrollment(updated));
 });
 
 router.post("/enrollments/:id/book", async (req, res) => {
@@ -140,7 +140,7 @@ router.post("/enrollments/:id/book", async (req, res) => {
     .where(and(eq(autopilotEnrollmentsTable.id, id), eq(autopilotEnrollmentsTable.clientId, req.clientId)))
     .returning();
   if (!updated) return res.status(404).json({ error: "Not found" });
-  res.json(serializeEnrollment(updated));
+  return res.json(serializeEnrollment(updated));
 });
 
 router.patch("/enrollments/:id", async (req, res) => {
@@ -151,7 +151,7 @@ router.patch("/enrollments/:id", async (req, res) => {
     .where(and(eq(autopilotEnrollmentsTable.id, id), eq(autopilotEnrollmentsTable.clientId, req.clientId)))
     .returning();
   if (!updated) return res.status(404).json({ error: "Not found" });
-  res.json(serializeEnrollment(updated));
+  return res.json(serializeEnrollment(updated));
 });
 
 router.delete("/enrollments/:id", async (req, res) => {

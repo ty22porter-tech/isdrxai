@@ -195,7 +195,7 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
   const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   const result = generatePersonalizedEmail(prospect, client, body.tone);
-  res.json(result);
+  return res.json(result);
 });
 
 router.post("/generate-call-script", requireEntitlement, async (req, res) => {
@@ -204,7 +204,7 @@ router.post("/generate-call-script", requireEntitlement, async (req, res) => {
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
   const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   const result = generateCallScript(prospect, client, body.objective);
-  res.json(result);
+  return res.json(result);
 });
 
 // Company name pools per industry

@@ -16,9 +16,9 @@ router.get("/subscription", async (req, res) => {
   try {
     const stripe = await getUncachableStripeClient();
     const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-    res.json({ subscription, status: user.status, trialEndsAt });
+    return res.json({ subscription, status: user.status, trialEndsAt });
   } catch {
-    res.json({ subscription: null, status: user.status, trialEndsAt });
+    return res.json({ subscription: null, status: user.status, trialEndsAt });
   }
 });
 
@@ -131,7 +131,7 @@ router.post("/checkout", async (req, res) => {
     cancel_url: `${baseUrl}/pricing`,
   });
 
-  res.json({ url: session.url });
+  return res.json({ url: session.url });
 });
 
 router.post("/billing-portal", async (req, res) => {
@@ -147,7 +147,7 @@ router.post("/billing-portal", async (req, res) => {
     return_url: `${baseUrl}/billing`,
   });
 
-  res.json({ url: session.url });
+  return res.json({ url: session.url });
 });
 
 router.get("/products", async (_req, res) => {

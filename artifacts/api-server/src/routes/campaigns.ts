@@ -29,7 +29,7 @@ router.get("/:id", async (req, res) => {
   const { id } = GetCampaignParams.parse({ id: parseInt(req.params.id) });
   const [campaign] = await db.select().from(campaignsTable).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId)));
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
-  res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
+  return res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
 
 router.patch("/:id", async (req, res) => {
@@ -46,7 +46,7 @@ router.patch("/:id", async (req, res) => {
   }
   const [campaign] = await db.update(campaignsTable).set(body).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId))).returning();
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
-  res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
+  return res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
 
 router.delete("/:id", async (req, res) => {

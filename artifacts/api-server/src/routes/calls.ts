@@ -45,7 +45,7 @@ router.patch("/:id", async (req, res) => {
   const body = UpdateCallBody.parse(req.body);
   const [call] = await db.update(callsTable).set(body).where(and(eq(callsTable.id, id), eq(callsTable.clientId, req.clientId))).returning();
   if (!call) return res.status(404).json({ error: "Call not found" });
-  res.json(serializeCall(call));
+  return res.json(serializeCall(call));
 });
 
 export default router;

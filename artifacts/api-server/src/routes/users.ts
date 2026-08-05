@@ -125,7 +125,7 @@ router.put("/engagement-settings", async (req, res) => {
     .set({ engagementSettings: next })
     .where(eq(usersTable.id, req.clientId))
     .returning();
-  res.json({ engagementSettings: getEngagementSettings(user) });
+  return res.json({ engagementSettings: getEngagementSettings(user) });
 });
 
 router.put("/settings", async (req, res) => {

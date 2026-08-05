@@ -73,7 +73,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
   req.clientId = userId;
   req.dbUser = user;
-  next();
+  return next();
 };
 
 /**
@@ -98,5 +98,5 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
   if (!req.dbUser?.isAdmin) {
     return res.status(403).json({ error: "Forbidden" });
   }
-  next();
+  return next();
 };

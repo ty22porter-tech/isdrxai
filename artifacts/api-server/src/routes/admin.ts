@@ -50,7 +50,7 @@ router.get("/clients", async (_req, res) => {
       },
     };
   }));
-  res.json({ clients });
+  return res.json({ clients });
 });
 
 router.patch("/clients/:id", async (req, res) => {
@@ -71,7 +71,7 @@ router.patch("/clients/:id", async (req, res) => {
   }
   const [user] = await db.update(usersTable).set(update).where(eq(usersTable.id, id)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ ...user, createdAt: user.createdAt.toISOString() });
+  return res.json({ ...user, createdAt: user.createdAt.toISOString() });
 });
 
 router.get("/video-views", async (_req, res) => {

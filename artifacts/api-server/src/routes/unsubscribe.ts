@@ -28,7 +28,7 @@ router.get("/:token", async (req, res) => {
 
   const [client] = await db.select().from(usersTable).where(eq(usersTable.id, prospect.clientId));
 
-  res.json({
+  return res.json({
     companyName: prospect.companyName,
     email: prospect.email,
     businessName: client?.businessName ?? "this sender",
@@ -67,7 +67,7 @@ router.post("/:token", async (req, res) => {
     });
   }
 
-  res.json({ ok: true, message: "You've been unsubscribed and won't receive further emails." });
+  return res.json({ ok: true, message: "You've been unsubscribed and won't receive further emails." });
 });
 
 export default router;

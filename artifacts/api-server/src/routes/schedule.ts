@@ -110,7 +110,7 @@ router.get("/:token", async (req, res) => {
     // Interest scoring: questionnaire opened (scored once per prospect).
     recordEngagementEvent(prospect.id, "questionnaire_opened").catch(() => {});
 
-    res.json({
+    return res.json({
       companyName: prospect.companyName,
       contactName: prospect.contactName,
       email: prospect.email,
@@ -121,7 +121,7 @@ router.get("/:token", async (req, res) => {
     });
   } catch (err: any) {
     console.error("schedule GET error:", err?.message);
-    res.status(500).json({ error: "Something went wrong" });
+    return res.status(500).json({ error: "Something went wrong" });
   }
 });
 
@@ -255,10 +255,10 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
     // the automation processor suppresses it via the prospect's status.
     recordEngagementEvent(prospect.id, "questionnaire_submitted").catch(() => {});
 
-    res.json({ ok: true, calendlyUrl: client.calendlyUrl ?? null });
+    return res.json({ ok: true, calendlyUrl: client.calendlyUrl ?? null });
   } catch (err: any) {
     console.error("schedule POST error:", err?.message);
-    res.status(500).json({ error: "Failed to submit. Please try again." });
+    return res.status(500).json({ error: "Failed to submit. Please try again." });
   }
 });
 

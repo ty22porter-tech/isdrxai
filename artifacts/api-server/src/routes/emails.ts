@@ -154,7 +154,7 @@ router.post("/", requireEntitlement, async (req, res) => {
     await db.update(campaignsTable).set({ emailsSent: sql`${campaignsTable.emailsSent} + 1` }).where(and(eq(campaignsTable.id, body.campaignId), eq(campaignsTable.clientId, req.clientId)));
   }
   await db.update(prospectsTable).set({ lastContactedAt: new Date(), status: "contacted" }).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
-  res.status(201).json(serializeEmail(email));
+  return res.status(201).json(serializeEmail(email));
 });
 
 router.patch("/:id", async (req, res) => {
@@ -166,7 +166,7 @@ router.patch("/:id", async (req, res) => {
   if (body.repliedAt) updateData.repliedAt = new Date(body.repliedAt);
   const [email] = await db.update(emailsTable).set(updateData).where(and(eq(emailsTable.id, id), eq(emailsTable.clientId, req.clientId))).returning();
   if (!email) return res.status(404).json({ error: "Email not found" });
-  res.json(serializeEmail(email));
+  return res.json(serializeEmail(email));
 });
 
 export default router;
