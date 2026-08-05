@@ -17,6 +17,15 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Deep health check — verifies each major database table is queryable
+ */
+export const DeepHealthCheckResponse = zod.object({
+  "status": zod.enum(['ok', 'degraded']),
+  "checks": zod.record(zod.string(), zod.string())
+})
+
+
+/**
  * @summary List all prospects
  */
 export const ListProspectsQueryParams = zod.object({

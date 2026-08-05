@@ -28,6 +28,21 @@ export interface HealthStatus {
   status: string;
 }
 
+export type DeepHealthStatusStatus = typeof DeepHealthStatusStatus[keyof typeof DeepHealthStatusStatus];
+
+
+export const DeepHealthStatusStatus = {
+  ok: 'ok',
+  degraded: 'degraded',
+} as const;
+
+export type DeepHealthStatusChecks = {[key: string]: string};
+
+export interface DeepHealthStatus {
+  status: DeepHealthStatusStatus;
+  checks: DeepHealthStatusChecks;
+}
+
 export type ProspectStatus = typeof ProspectStatus[keyof typeof ProspectStatus];
 
 

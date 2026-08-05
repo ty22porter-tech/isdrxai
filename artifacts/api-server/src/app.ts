@@ -101,6 +101,10 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(
   pinoHttp({
     logger,
+    // Every 5xx response gets a structured error-level log line so silent
+    // production breakage shows up in deployment logs without a user report.
+    customLogLevel: (_req, res, err) =>
+      res.statusCode >= 500 || err ? "error" : "info",
     serializers: {
       req(req) {
         return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
@@ -141,5 +145,20 @@ app.use(
 
 // 5. API routes
 app.use("/api", router);
+
+// 6. Final error handler — logs a structured error line (method, path, stack)
+// for every unhandled route error so production 500s are visible in the
+// deployment logs, then returns a generic 500 without leaking internals.
+app.use(
+  (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error(
+      { err, method: req.method, path: req.originalUrl?.split("?")[0] },
+      "Unhandled request error (500)",
+    );
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
 
 export default app;

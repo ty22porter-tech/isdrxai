@@ -48,7 +48,24 @@ async function initStripe() {
 // anything selects from it — a single missing column would otherwise 500
 // every request that goes through requireAuth.
 try {
-  await ensureAdditiveColumns(pool, logger);
+  const guard = await ensureAdditiveColumns(pool, logger);
+  // Surface the full schema-guard outcome in deployment logs so a missing
+  // column/table is visible immediately after a deploy, not after a user 500.
+  logger.info(
+    {
+      createdTables: guard.createdTables,
+      appliedColumns: guard.applied,
+      warnings: guard.warnings,
+      unfixable: guard.unfixable,
+    },
+    `[schema-guard] startup check complete: ${guard.createdTables.length} table(s) created, ${guard.applied.length} column(s) added, ${guard.unfixable.length} unfixable issue(s)`,
+  );
+  if (guard.unfixable.length > 0) {
+    logger.error(
+      { unfixable: guard.unfixable },
+      "[schema-guard] UNFIXABLE schema drift detected — requests touching these tables WILL return 500s until fixed manually",
+    );
+  }
 } catch (err) {
   logger.error({ err }, "[schema-guard] startup schema check failed — continuing, but requests may fail if the schema has drifted");
 }

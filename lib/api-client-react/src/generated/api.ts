@@ -33,6 +33,7 @@ import type {
   CampaignInput,
   CampaignUpdate,
   DashboardStats,
+  DeepHealthStatus,
   Email,
   EmailInput,
   EmailUpdate,
@@ -149,6 +150,83 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeepHealthCheckUrl = () => {
+
+
+
+
+  return `/api/health`
+}
+
+/**
+ * @summary Deep health check — verifies each major database table is queryable
+ */
+export const deepHealthCheck = async ( options?: RequestInit): Promise<DeepHealthStatus> => {
+
+  return customFetch<DeepHealthStatus>(getDeepHealthCheckUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeepHealthCheckQueryKey = () => {
+    return [
+    `/api/health`
+    ] as const;
+    }
+
+
+export const getDeepHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof deepHealthCheck>>, TError = ErrorType<DeepHealthStatus>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof deepHealthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDeepHealthCheckQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof deepHealthCheck>>> = ({ signal }) => deepHealthCheck({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof deepHealthCheck>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DeepHealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof deepHealthCheck>>>
+export type DeepHealthCheckQueryError = ErrorType<DeepHealthStatus>
+
+
+/**
+ * @summary Deep health check — verifies each major database table is queryable
+ */
+
+export function useDeepHealthCheck<TData = Awaited<ReturnType<typeof deepHealthCheck>>, TError = ErrorType<DeepHealthStatus>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof deepHealthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDeepHealthCheckQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
