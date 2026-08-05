@@ -1,7 +1,28 @@
 import { getAuth } from "@clerk/express";
-import { db, usersTable } from "@workspace/db";
+import { db, pool, usersTable, ensureAdditiveColumns } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
+import { logger } from "./logger";
+
+/**
+ * Selects the user row, tolerating a database that is missing a newly added
+ * optional column (Postgres error 42703). On that error it self-heals by
+ * applying safe additive columns, then retries once — so a single new
+ * optional field can never take down every endpoint.
+ */
+async function selectUserById(userId: string) {
+  try {
+    return await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  } catch (err) {
+    if ((err as { code?: string })?.code !== "42703") throw err;
+    logger.error(
+      { err },
+      "[schema-guard] users select failed due to a missing column — attempting to self-heal by applying additive schema changes",
+    );
+    await ensureAdditiveColumns(pool, logger);
+    return await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  }
+}
 
 declare global {
   namespace Express {
@@ -20,7 +41,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  let [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  let [user] = await selectUserById(userId);
 
   if (!user) {
     const emailAddresses = (auth as any)?.sessionClaims?.email_addresses;
@@ -38,7 +59,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       .returning();
 
     if (!user) {
-      [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+      [user] = await selectUserById(userId);
     }
   }
 

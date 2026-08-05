@@ -6,6 +6,7 @@ import { startAutopilotEngine } from "./lib/autopilotEngine";
 import { ensureResendWebhook } from "./lib/resendWebhook";
 import { ensureCalendlyWebhook } from "./lib/calendlyWebhook";
 import { bootstrapAdmin } from "./lib/bootstrapAdmin";
+import { pool, ensureAdditiveColumns } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
 
@@ -41,6 +42,15 @@ async function initStripe() {
   } catch (err) {
     logger.error({ err }, "Failed to initialize Stripe — continuing without it");
   }
+}
+
+// Ensure the live DB has every column the drizzle schema expects before
+// anything selects from it — a single missing column would otherwise 500
+// every request that goes through requireAuth.
+try {
+  await ensureAdditiveColumns(pool, logger);
+} catch (err) {
+  logger.error({ err }, "[schema-guard] startup schema check failed — continuing, but requests may fail if the schema has drifted");
 }
 
 await initStripe();
