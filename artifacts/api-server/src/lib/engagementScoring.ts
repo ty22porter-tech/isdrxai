@@ -259,13 +259,19 @@ async function sendHotAlert(
   prospect: { id: number; clientId: string; companyName: string; contactName: string; email: string; city: string; state: string; industry: string; linkedinOutreach: boolean },
   score: number,
 ): Promise<void> {
-  const [notif] = await db.insert(notificationsTable).values({
-    clientId: prospect.clientId,
-    type: "hot_prospect",
-    title: `${prospect.companyName} is now a Hot prospect`,
-    body: `${prospect.contactName} at ${prospect.companyName} reached an engagement score of ${score}. Consider reaching out personally.`,
-    prospectId: prospect.id,
-  }).returning();
+  let notif: { id: number } | undefined;
+  try {
+    [notif] = await db.insert(notificationsTable).values({
+      clientId: prospect.clientId,
+      type: "hot_prospect",
+      title: `${prospect.companyName} is now a Hot prospect`,
+      body: `${prospect.contactName} at ${prospect.companyName} reached an engagement score of ${score}. Consider reaching out personally.`,
+      prospectId: prospect.id,
+    }).returning();
+  } catch (err) {
+    // Never let a failed in-app notification block the alert email.
+    logger.error({ err, prospectId: prospect.id }, "Hot-alert in-app notification failed (email will still be sent)");
+  }
 
   const alertTo = client.outreachEmail?.trim() || client.email?.trim();
   if (!alertTo) return;
@@ -294,6 +300,11 @@ async function sendHotAlert(
         `Tip: hot prospects are opening your emails repeatedly — a personal touch (call or LinkedIn) works best right now.`,
     });
   } catch (err) {
-    logger.error({ err, prospectId: prospect.id, notificationId: notif?.id }, "Hot-alert email failed (in-app notification was saved)");
+    logger.error(
+      { err, prospectId: prospect.id, notificationId: notif?.id },
+      notif
+        ? "Hot-alert email failed (in-app notification was saved)"
+        : "Hot-alert email failed AND in-app notification failed — no alert channel succeeded",
+    );
   }
 }
