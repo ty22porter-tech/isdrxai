@@ -282,6 +282,9 @@ async function sendHotAlert(
     .where(eq(emailsTable.prospectId, prospect.id))
     .orderBy(sql`${emailsTable.sentAt} desc`)
     .limit(1);
+  const prospectUrl = `${appUrl}/prospects?prospect=${prospect.id}`;
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   try {
     await sendEmail({
       fromName: "iSDRX AI Alerts",
@@ -296,8 +299,18 @@ async function sendHotAlert(
         `Industry: ${prospect.industry}\n` +
         (lastEmail ? `Last email: ${lastEmail.subject}\n` : "") +
         `Marked for LinkedIn outreach: ${prospect.linkedinOutreach ? "yes" : "no"}\n\n` +
-        `View prospect: ${appUrl}/prospects?prospect=${prospect.id}\n\n` +
+        `Click here to review: ${prospectUrl}\n\n` +
         `Tip: hot prospects are opening your emails repeatedly — a personal touch (call or LinkedIn) works best right now.`,
+      html:
+        `<p>${escapeHtml(prospect.contactName ?? "")} at ${escapeHtml(prospect.companyName ?? "")} just became a <strong>HOT</strong> prospect (engagement score ${score}).</p>` +
+        `<p>Company: ${escapeHtml(prospect.companyName ?? "")}<br>` +
+        `Contact: ${escapeHtml(prospect.contactName ?? "")} &lt;${escapeHtml(prospect.email ?? "")}&gt;<br>` +
+        `Location: ${escapeHtml([prospect.city, prospect.state].filter(Boolean).join(", "))}<br>` +
+        `Industry: ${escapeHtml(prospect.industry ?? "")}<br>` +
+        (lastEmail ? `Last email: ${escapeHtml(lastEmail.subject ?? "")}<br>` : "") +
+        `Marked for LinkedIn outreach: ${prospect.linkedinOutreach ? "yes" : "no"}</p>` +
+        `<p><a href="${prospectUrl}">Click here to review</a></p>` +
+        `<p>Tip: hot prospects are opening your emails repeatedly — a personal touch (call or LinkedIn) works best right now.</p>`,
     });
   } catch (err) {
     logger.error(
