@@ -22,6 +22,86 @@ export type SchemaGuardResult = {
 
 const dialect = new PgDialect();
 
+type LiveColumn = {
+  /** normalized comparable type, or null when we can't compare confidently */
+  normalizedType: string | null;
+  /** raw type string for error messages */
+  rawType: string;
+};
+
+/**
+ * Normalizes a type name (from drizzle's `getSQLType()` or from
+ * information_schema) into a canonical comparable form. Returns null when the
+ * type is not one we know how to compare confidently — in that case the guard
+ * skips the comparison rather than risking a false positive.
+ */
+function normalizeType(sqlType: string): string | null {
+  const t = sqlType.trim().toLowerCase();
+
+  // Parametrized types: compare base name + params as-is.
+  const paramMatch = t.match(/^([a-z ]+?)\s*\((.+)\)$/);
+  const base = paramMatch ? paramMatch[1].trim() : t;
+  const params = paramMatch ? `(${paramMatch[2].replace(/\s+/g, "")})` : "";
+
+  const aliases: Record<string, string> = {
+    serial: "integer",
+    serial4: "integer",
+    bigserial: "bigint",
+    serial8: "bigint",
+    smallserial: "smallint",
+    serial2: "smallint",
+    int: "integer",
+    int4: "integer",
+    int8: "bigint",
+    int2: "smallint",
+    bool: "boolean",
+    "character varying": "varchar",
+    "double precision": "double precision",
+    float8: "double precision",
+    float4: "real",
+    "timestamp without time zone": "timestamp",
+    timestamptz: "timestamp with time zone",
+    "time without time zone": "time",
+    timetz: "time with time zone",
+    decimal: "numeric",
+    char: "character",
+    bpchar: "character",
+  };
+
+  const known = new Set([
+    "text",
+    "integer",
+    "bigint",
+    "smallint",
+    "boolean",
+    "jsonb",
+    "json",
+    "timestamp",
+    "timestamp with time zone",
+    "date",
+    "time",
+    "time with time zone",
+    "uuid",
+    "varchar",
+    "character",
+    "numeric",
+    "real",
+    "double precision",
+    "bytea",
+    "interval",
+  ]);
+
+  const canonical = aliases[base] ?? base;
+  if (!known.has(canonical)) return null;
+
+  // Length/precision params only matter for types where they change storage
+  // semantics; for varchar/character/numeric include them in the comparison.
+  if (["varchar", "character", "numeric"].includes(canonical) && params) {
+    return canonical + params;
+  }
+  return canonical;
+}
+
 type TableConfig = ReturnType<typeof getTableConfig>;
 
 /**
@@ -146,16 +226,36 @@ export async function ensureAdditiveColumns(
     if (is(value, PgTable)) tables.push(value as PgTable);
   }
 
-  const live = await pool.query<{ table_name: string; column_name: string }>(
-    `SELECT table_name, column_name
+  const live = await pool.query<{
+    table_name: string;
+    column_name: string;
+    data_type: string;
+    udt_name: string;
+    character_maximum_length: number | null;
+    numeric_precision: number | null;
+    numeric_scale: number | null;
+  }>(
+    `SELECT table_name, column_name, data_type, udt_name,
+            character_maximum_length, numeric_precision, numeric_scale
        FROM information_schema.columns
       WHERE table_schema = 'public'`,
   );
-  const liveTables = new Map<string, Set<string>>();
+  const liveTables = new Map<string, Map<string, LiveColumn>>();
   for (const row of live.rows) {
     let cols = liveTables.get(row.table_name);
-    if (!cols) liveTables.set(row.table_name, (cols = new Set()));
-    cols.add(row.column_name);
+    if (!cols) liveTables.set(row.table_name, (cols = new Map()));
+
+    // Build a comparable type string from information_schema data.
+    let raw = row.data_type === "USER-DEFINED" || row.data_type === "ARRAY" ? row.udt_name : row.data_type;
+    if (row.character_maximum_length != null) {
+      raw += `(${row.character_maximum_length})`;
+    } else if (
+      (row.data_type === "numeric" || row.data_type === "decimal") &&
+      row.numeric_precision != null
+    ) {
+      raw += row.numeric_scale != null ? `(${row.numeric_precision},${row.numeric_scale})` : `(${row.numeric_precision})`;
+    }
+    cols.set(row.column_name, { normalizedType: normalizeType(raw), rawType: raw });
   }
 
   for (const table of tables) {
@@ -183,8 +283,48 @@ export async function ensureAdditiveColumns(
       continue;
     }
 
+    // Columns that exist in the DB but not in the schema — candidates for a
+    // rename (schema renamed the column, DB still has the old name).
+    const schemaColNames = new Set(cfg.columns.map((c) => c.name));
+    const orphanCols = [...liveCols.keys()].filter((name) => !schemaColNames.has(name));
+
     for (const col of cfg.columns) {
-      if (liveCols.has(col.name)) continue;
+      const liveCol = liveCols.get(col.name);
+      if (liveCol) {
+        // Column exists — check for a type change.
+        const expected = normalizeType(col.getSQLType());
+        if (
+          expected !== null &&
+          liveCol.normalizedType !== null &&
+          expected !== liveCol.normalizedType
+        ) {
+          result.unfixable.push(
+            `column "${cfg.name}"."${col.name}" type mismatch — schema expects ${col.getSQLType()} but database has ${liveCol.rawType}; ` +
+              `ALTER the column type manually (with a USING clause if needed)`,
+          );
+        }
+        continue;
+      }
+
+      // Column missing from the DB. If the same table also has columns the
+      // schema no longer knows about, this is likely a RENAME — adding a new
+      // empty column would silently orphan the old data, so refuse.
+      const expectedType = normalizeType(col.getSQLType());
+      const renameCandidates = orphanCols.filter((name) => {
+        const orphan = liveCols.get(name)!;
+        return (
+          expectedType === null ||
+          orphan.normalizedType === null ||
+          orphan.normalizedType === expectedType
+        );
+      });
+      if (renameCandidates.length > 0) {
+        result.unfixable.push(
+          `column "${cfg.name}"."${col.name}" is missing but the table has unmatched column(s) of a compatible type (${renameCandidates.join(", ")}) — ` +
+            `this looks like a RENAME; run ALTER TABLE "${cfg.name}" RENAME COLUMN manually instead of letting the guard add an empty column`,
+        );
+        continue;
+      }
 
       const defaultSql = renderDefault(col.default);
       let ddl: string | null = null;
