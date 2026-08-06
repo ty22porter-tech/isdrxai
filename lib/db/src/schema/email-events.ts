@@ -20,6 +20,8 @@ export const emailOpenEventsTable = pgTable("email_open_events", {
   botReason: text("bot_reason"),
   /** Counted toward validOpens (non-bot AND outside the dedup window). */
   isValid: boolean("is_valid").notNull().default(false),
+  /** Open inferred from a link click / attachment view (pixel was blocked), not from the tracking pixel. */
+  inferredFromClick: boolean("inferred_from_click").notNull().default(false),
 });
 
 /**

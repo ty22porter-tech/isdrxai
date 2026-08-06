@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request } from "express";
 import { db, emailsTable, emailOpenEventsTable, emailLinksTable, linkClickEventsTable } from "@workspace/db";
+// (emailOpenEventsTable also backs inferred opens recorded from link clicks)
 import { eq, and, gte, sql } from "drizzle-orm";
 import { getPublicAppUrl } from "../lib/publicUrl";
 import { logger } from "../lib/logger";
@@ -181,6 +182,41 @@ router.get("/l/:token/:slug", async (req, res) => {
       isBot,
     }).then(async () => {
       if (isBot) return;
+      const now = new Date();
+
+      // A human click proves the email was opened even when the tracking
+      // pixel was blocked. If this email has 0 valid opens, record ONE
+      // inferred open. The conditional UPDATE (valid_opens = 0) is the
+      // atomic guard: concurrent clicks/pixel hits can't double-insert, and
+      // a later real pixel open just counts as open #2 (no double-counting).
+      const inferred = await db.execute(sql`
+        update emails
+        set total_opens = total_opens + 1,
+            valid_opens = valid_opens + 1,
+            last_opened_at = ${now},
+            opened_at = coalesce(opened_at, ${now})
+        where id = ${email.id} and valid_opens = 0
+        returning id
+      `);
+      if ((inferred.rowCount ?? 0) > 0) {
+        await db.insert(emailOpenEventsTable).values({
+          emailId: email.id,
+          clientId: email.clientId,
+          prospectId: email.prospectId,
+          ip,
+          userAgent,
+          isBot: false,
+          botReason: null,
+          isValid: true,
+          inferredFromClick: true,
+        });
+        await recordEngagementEvent(email.prospectId, "open", {
+          emailId: email.id,
+          campaignId: email.campaignId,
+          detail: "inferred from link click (pixel blocked)",
+        });
+      }
+
       await db.update(emailLinksTable)
         .set(isDownload
           ? { downloadCount: sql`${emailLinksTable.downloadCount} + 1`, lastClickedAt: new Date() }

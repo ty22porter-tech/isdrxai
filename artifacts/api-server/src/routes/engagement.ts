@@ -358,6 +358,7 @@ router.get("/prospects/:id", async (req, res) => {
       isBot: e.isBot,
       botReason: e.botReason,
       isValid: e.isValid,
+      inferredFromClick: e.inferredFromClick,
     })),
     clickEvents: clickEvents.map(e => ({
       id: e.id,
@@ -416,11 +417,13 @@ router.get("/prospects/:id/timeline", async (req, res) => {
     items.push({
       ts: o.openedAt.toISOString(),
       type: o.isValid ? "open" : "open_filtered",
-      title: o.isValid ? "Email opened (estimated)" : "Open filtered out",
+      title: !o.isValid ? "Open filtered out"
+        : o.inferredFromClick ? "Email opened (confirmed by link click)"
+        : "Email opened (estimated)",
       detail: o.isValid
         ? subj(o.emailId)
         : `${o.botReason ?? "bot/scanner or duplicate"}${subj(o.emailId) ? ` — ${subj(o.emailId)}` : ""}`,
-      source: "Open tracking (estimate)",
+      source: o.isValid && o.inferredFromClick ? "Inferred from click tracking" : "Open tracking (estimate)",
     });
   }
   for (const c of clickEvents) {
