@@ -60,6 +60,17 @@ router.get("/summary", async (req, res) => {
     .from(emailLinksTable)
     .where(eq(emailLinksTable.clientId, clientId));
 
+  // "Filtered bot activity" indicator: automated scanner hits we recorded but
+  // excluded from scoring and from the human click/open counts above.
+  const [botAgg] = await db
+    .select({ botClicksFiltered: sql<number>`count(*) filter (where ${linkClickEventsTable.isBot})::int` })
+    .from(linkClickEventsTable)
+    .where(eq(linkClickEventsTable.clientId, clientId));
+  const [botOpenAgg] = await db
+    .select({ botOpensFiltered: sql<number>`count(*) filter (where ${emailOpenEventsTable.isBot})::int` })
+    .from(emailOpenEventsTable)
+    .where(eq(emailOpenEventsTable.clientId, clientId));
+
   // Interest level counts use the EFFECTIVE level (manual override wins).
   const levelRows = await db
     .select({
@@ -95,6 +106,8 @@ router.get("/summary", async (req, res) => {
     attachmentsViewed: linkAgg?.attachmentsViewed ?? 0,
     attachmentDownloads: linkAgg?.attachmentDownloads ?? 0,
     calendlyClicks: linkAgg?.calendlyClicks ?? 0,
+    botClicksFiltered: botAgg?.botClicksFiltered ?? 0,
+    botOpensFiltered: botOpenAgg?.botOpensFiltered ?? 0,
     hotProspects: levelCount("hot"),
     mediumProspects: levelCount("medium"),
     lowProspects: levelCount("low"),
@@ -367,6 +380,7 @@ router.get("/prospects/:id", async (req, res) => {
       eventType: e.eventType,
       clickedAt: e.clickedAt.toISOString(),
       isBot: e.isBot,
+      botReason: e.botReason,
     })),
   });
 });
@@ -437,7 +451,9 @@ router.get("/prospects/:id/timeline", async (req, res) => {
       ts: c.clickedAt.toISOString(),
       type: c.eventType === "download" ? "attachment_download" : kind === "cta" ? "calendly_click" : kind === "attachment" ? "attachment_view" : "link_click",
       title: c.isBot ? `${label} (filtered as bot)` : label,
-      detail: link?.name ?? null,
+      detail: c.isBot
+        ? [c.botReason ?? "bot/scanner", link?.name].filter(Boolean).join(" — ")
+        : link?.name ?? null,
       source: "Click tracking",
     });
   }

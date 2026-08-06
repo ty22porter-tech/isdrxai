@@ -57,6 +57,8 @@ export const linkClickEventsTable = pgTable("link_click_events", {
   ip: text("ip"),
   userAgent: text("user_agent"),
   isBot: boolean("is_bot").notNull().default(false),
+  /** Why the click was flagged as automated (security-scanner, prefetch-window, click-burst, ...). */
+  botReason: text("bot_reason"),
 });
 
 export type EmailOpenEvent = typeof emailOpenEventsTable.$inferSelect;

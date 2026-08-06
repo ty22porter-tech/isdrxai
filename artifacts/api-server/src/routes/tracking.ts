@@ -28,6 +28,9 @@ const DEDUP_WINDOW_MS =
 /** Opens recorded this soon after send are almost certainly scanner/prefetch activity. */
 const PREFETCH_GRACE_MS = 15 * 1000;
 
+/** A different link of the same email clicked within this window = scanner sweep. */
+const CLICK_BURST_WINDOW_MS = 10 * 1000;
+
 // --- Simple in-memory rate limit (per IP, per minute) -----------------------
 const rlBuckets = new Map<string, { count: number; resetAt: number }>();
 function rateLimited(ip: string): boolean {
@@ -163,7 +166,33 @@ router.get("/l/:token/:slug", async (req, res) => {
     if (!link) return res.redirect(base || "/");
 
     const userAgent = ((req.headers["user-agent"] as string) ?? "").slice(0, 500);
-    const isBot = !!botReason(userAgent);
+    const nowMs = Date.now();
+
+    // Same bot heuristics as opens, extended for clicks:
+    //  1. Known scanner/bot/http-client user agents.
+    //  2. Clicks within seconds of send — security gateways pre-click every
+    //     link before the email ever reaches the inbox.
+    //  3. All-links-at-once bursts: a DIFFERENT link of the same email was
+    //     clicked within the last few seconds (scanners fetch every URL in
+    //     one sweep; humans don't click multiple links in <10s).
+    let clickBotReason: string | null = botReason(userAgent);
+    if (!clickBotReason && nowMs - email.sentAt.getTime() < PREFETCH_GRACE_MS) {
+      clickBotReason = "prefetch-window";
+    }
+    if (!clickBotReason) {
+      const burstStart = new Date(nowMs - CLICK_BURST_WINDOW_MS);
+      const [burst] = await db
+        .select({ id: linkClickEventsTable.id })
+        .from(linkClickEventsTable)
+        .where(and(
+          eq(linkClickEventsTable.emailId, email.id),
+          sql`${linkClickEventsTable.linkId} != ${link.id}`,
+          gte(linkClickEventsTable.clickedAt, burstStart),
+        ))
+        .limit(1);
+      if (burst) clickBotReason = "click-burst";
+    }
+    const isBot = !!clickBotReason;
     const isDownload = req.query.dl === "1" && link.kind === "attachment";
 
     // Attachment destinations are storage paths served by the app; everything
@@ -180,6 +209,7 @@ router.get("/l/:token/:slug", async (req, res) => {
       ip,
       userAgent,
       isBot,
+      botReason: clickBotReason,
     }).then(async () => {
       if (isBot) return;
       const now = new Date();
