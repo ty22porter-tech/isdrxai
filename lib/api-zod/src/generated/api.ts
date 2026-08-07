@@ -49,7 +49,10 @@ export const ListProspectsResponseItem = zod.object({
   "squareFootage": zod.number().nullish(),
   "status": zod.enum(['new', 'contacted', 'interested', 'qualified', 'appointment_set', 'closed_won', 'closed_lost']),
   "lastContactedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "title": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "enrichedAt": zod.string().nullish()
 })
 export const ListProspectsResponse = zod.array(ListProspectsResponseItem)
 
@@ -86,7 +89,10 @@ export const CreateProspectResponse = zod.object({
   "squareFootage": zod.number().nullish(),
   "status": zod.enum(['new', 'contacted', 'interested', 'qualified', 'appointment_set', 'closed_won', 'closed_lost']),
   "lastContactedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "title": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "enrichedAt": zod.string().nullish()
 })
 
 
@@ -136,7 +142,10 @@ export const BulkCreateProspectsResponse = zod.object({
   "squareFootage": zod.number().nullish(),
   "status": zod.enum(['new', 'contacted', 'interested', 'qualified', 'appointment_set', 'closed_won', 'closed_lost']),
   "lastContactedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "title": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "enrichedAt": zod.string().nullish()
 }).optional()
 }))
 })
@@ -155,6 +164,26 @@ export const BulkDeleteProspectsBody = zod.object({
 
 export const BulkDeleteProspectsResponse = zod.object({
   "deleted": zod.number()
+})
+
+
+/**
+ * @summary Enrich many prospects via Apollo people enrichment
+ */
+export const bulkEnrichProspectsBodyIdsMax = 100;
+
+
+
+export const BulkEnrichProspectsBody = zod.object({
+  "ids": zod.array(zod.number()).min(1).max(bulkEnrichProspectsBodyIdsMax)
+})
+
+export const BulkEnrichProspectsResponse = zod.object({
+  "enriched": zod.number(),
+  "skipped": zod.number(),
+  "failed": zod.number(),
+  "planBlocked": zod.boolean().optional().describe('True when Apollo rejected the request because the account plan has no API access.'),
+  "errors": zod.array(zod.string()).optional()
 })
 
 
@@ -180,7 +209,10 @@ export const GetProspectResponse = zod.object({
   "squareFootage": zod.number().nullish(),
   "status": zod.enum(['new', 'contacted', 'interested', 'qualified', 'appointment_set', 'closed_won', 'closed_lost']),
   "lastContactedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "title": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "enrichedAt": zod.string().nullish()
 })
 
 
@@ -221,7 +253,10 @@ export const UpdateProspectResponse = zod.object({
   "squareFootage": zod.number().nullish(),
   "status": zod.enum(['new', 'contacted', 'interested', 'qualified', 'appointment_set', 'closed_won', 'closed_lost']),
   "lastContactedAt": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "title": zod.string().nullish(),
+  "linkedinUrl": zod.string().nullish(),
+  "enrichedAt": zod.string().nullish()
 })
 
 

@@ -28,4 +28,10 @@ export interface Prospect {
   /** @nullable */
   lastContactedAt?: string | null;
   createdAt: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  enrichedAt?: string | null;
 }

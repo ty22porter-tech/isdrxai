@@ -26,6 +26,8 @@ import type {
   AppointmentUpdate,
   BulkDeleteInput,
   BulkDeleteResult,
+  BulkEnrichInput,
+  BulkEnrichResult,
   BulkProspectsInput,
   BulkProspectsResult,
   Call,
@@ -533,6 +535,76 @@ export const useBulkDeleteProspects = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getBulkDeleteProspectsMutationOptions(options));
+    }
+
+export const getBulkEnrichProspectsUrl = () => {
+
+
+
+
+  return `/api/prospects/bulk-enrich`
+}
+
+/**
+ * @summary Enrich many prospects via Apollo people enrichment
+ */
+export const bulkEnrichProspects = async (bulkEnrichInput: BulkEnrichInput, options?: RequestInit): Promise<BulkEnrichResult> => {
+
+  return customFetch<BulkEnrichResult>(getBulkEnrichProspectsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkEnrichInput)
+  }
+);}
+
+
+
+
+export const getBulkEnrichProspectsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkEnrichProspects>>, TError,{data: BodyType<BulkEnrichInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkEnrichProspects>>, TError,{data: BodyType<BulkEnrichInput>}, TContext> => {
+
+const mutationKey = ['bulkEnrichProspects'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkEnrichProspects>>, {data: BodyType<BulkEnrichInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkEnrichProspects(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkEnrichProspectsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkEnrichProspects>>>
+    export type BulkEnrichProspectsMutationBody = BodyType<BulkEnrichInput>
+    export type BulkEnrichProspectsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Enrich many prospects via Apollo people enrichment
+ */
+export const useBulkEnrichProspects = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkEnrichProspects>>, TError,{data: BodyType<BulkEnrichInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkEnrichProspects>>,
+        TError,
+        {data: BodyType<BulkEnrichInput>},
+        TContext
+      > => {
+      return useMutation(getBulkEnrichProspectsMutationOptions(options));
     }
 
 export const getGetProspectUrl = (id: number,) => {

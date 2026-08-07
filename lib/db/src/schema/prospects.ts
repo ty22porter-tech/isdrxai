@@ -29,6 +29,12 @@ export const prospectsTable = pgTable("prospects", {
   /** Manual override set by the client; preserved alongside the system score. */
   manualInterestLevel: text("manual_interest_level"),
   manualInterestSetAt: timestamp("manual_interest_set_at"),
+  /** Contact's job title, filled by Apollo people enrichment. */
+  title: text("title"),
+  /** Contact's LinkedIn profile URL, filled by Apollo people enrichment. */
+  linkedinUrl: text("linkedin_url"),
+  /** When Apollo enrichment last succeeded for this prospect. */
+  enrichedAt: timestamp("enriched_at"),
   /** Flag surfaced in Hot alerts — no automation attached (out of scope). */
   linkedinOutreach: boolean("linkedin_outreach").notNull().default(false),
   optedOut: boolean("opted_out").notNull().default(false),

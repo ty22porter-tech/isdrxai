@@ -8,12 +8,14 @@ import {
   CreateProspectBody,
   BulkCreateProspectsBody,
   BulkDeleteProspectsBody,
+  BulkEnrichProspectsBody,
   UpdateProspectParams,
   UpdateProspectBody,
   DeleteProspectParams,
   GetProspectParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
+import { enrichPerson } from "../lib/apollo";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 
@@ -36,6 +38,7 @@ router.get("/", async (req, res) => {
   res.json(prospects.map(p => ({
     ...p,
     lastContactedAt: p.lastContactedAt?.toISOString() ?? null,
+    enrichedAt: p.enrichedAt?.toISOString() ?? null,
     createdAt: p.createdAt.toISOString(),
   })));
 });
@@ -52,7 +55,7 @@ router.post("/", async (req, res) => {
     prospectId: prospect.id,
     prospectName: prospect.contactName,
   });
-  res.status(201).json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  res.status(201).json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -134,7 +137,7 @@ router.post("/bulk", async (req, res) => {
         index: row.index,
         success: true,
         updated: true,
-        prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
+        prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
       });
     } catch (err: any) {
       failed++;
@@ -171,7 +174,7 @@ router.post("/bulk", async (req, res) => {
         results.push({
           index: row.index,
           success: true,
-          prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
+          prospect: { ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() },
         });
       }
     } catch (err: any) {
@@ -190,7 +193,7 @@ router.get("/:id", async (req, res) => {
   const { id } = GetProspectParams.parse({ id: parseInt(req.params.id) });
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
 router.patch("/:id", async (req, res) => {
@@ -207,7 +210,7 @@ router.patch("/:id", async (req, res) => {
       prospectName: prospect.contactName,
     });
   }
-  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
 // Manual interest override (authorized: the owning client). level=null clears
@@ -272,6 +275,62 @@ router.get("/:id/score-history", async (req, res) => {
     interestLevelAfter: e.interestLevelAfter,
     createdAt: e.createdAt.toISOString(),
   })));
+});
+
+// Placeholder values from CSV imports / mock data that enrichment may overwrite.
+const isPlaceholderPhone = (phone: string) => !phone || /^\(?0{3}\)?[\s.-]?0{3}[\s.-]?0{4}$/.test(phone.trim());
+
+// Bulk enrich selected prospects via Apollo people enrichment.
+router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
+  const { ids } = BulkEnrichProspectsBody.parse(req.body);
+  const rows = await db.select().from(prospectsTable)
+    .where(and(eq(prospectsTable.clientId, req.clientId), inArray(prospectsTable.id, ids)));
+
+  let enriched = 0, skipped = 0, failed = 0, planBlocked = false;
+  const errors: string[] = [];
+
+  const processOne = async (p: typeof rows[number]) => {
+    if (planBlocked) return;
+    const result = await enrichPerson({ email: p.email, contactName: p.contactName, companyName: p.companyName });
+    if (!result.ok) {
+      // Plan-blocked applies to every row — stop the whole run with a clear message.
+      if (result.planBlocked) {
+        planBlocked = true;
+        if (!errors.includes(result.error)) errors.unshift(result.error);
+        return;
+      }
+      failed++;
+      if (errors.length < 5) errors.push(`${p.companyName}: ${result.error}`);
+      return;
+    }
+    if (!result.person) { skipped++; return; }
+    const e = result.person;
+    await db.update(prospectsTable).set({
+      title: e.title ?? p.title,
+      linkedinUrl: e.linkedinUrl ?? p.linkedinUrl,
+      phone: e.phone && isPlaceholderPhone(p.phone) ? e.phone : p.phone,
+      city: p.city || (e.city ?? ""),
+      state: p.state || (e.state ?? ""),
+      website: p.website ?? e.website,
+      employeeCount: p.employeeCount ?? e.employeeCount,
+      enrichedAt: new Date(),
+    }).where(and(eq(prospectsTable.id, p.id), eq(prospectsTable.clientId, req.clientId)));
+    enriched++;
+  };
+
+  // Bounded concurrency (5 at a time) keeps 100-prospect runs well under request timeouts.
+  const queue = [...rows];
+  await Promise.all(Array.from({ length: 5 }, async () => {
+    while (queue.length && !planBlocked) {
+      const p = queue.shift();
+      if (p) await processOne(p);
+    }
+  }));
+
+  if (planBlocked) {
+    return res.json({ enriched, skipped, failed: rows.length - enriched - skipped, planBlocked: true, errors: errors.slice(0, 1) });
+  }
+  return res.json({ enriched, skipped, failed, planBlocked: false, errors });
 });
 
 // Bulk delete selected prospects (only ones owned by this client).

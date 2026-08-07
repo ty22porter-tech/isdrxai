@@ -143,6 +143,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/BulkDeleteResult"
 
+  /prospects/bulk-enrich:
+    post:
+      operationId: bulkEnrichProspects
+      tags: [prospects]
+      summary: Enrich many prospects via Apollo people enrichment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkEnrichInput"
+      responses:
+        "200":
+          description: Per-prospect enrichment results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkEnrichResult"
+
   /prospects/{id}:
     get:
       operationId: getProspect
@@ -776,6 +795,12 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
+        title:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        enrichedAt:
+          type: ["string", "null"]
 
     ProspectInput:
       type: object
@@ -828,6 +853,35 @@ components:
           maxItems: 5000
           items:
             type: integer
+
+    BulkEnrichInput:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: integer
+
+    BulkEnrichResult:
+      type: object
+      required: [enriched, skipped, failed]
+      properties:
+        enriched:
+          type: integer
+        skipped:
+          type: integer
+        failed:
+          type: integer
+        planBlocked:
+          type: boolean
+          description: True when Apollo rejected the request because the account plan has no API access.
+        errors:
+          type: array
+          items:
+            type: string
 
     BulkDeleteResult:
       type: object

@@ -1,6 +1,6 @@
 import { useState, useRef, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useListProspects, useCreateProspect, useBulkCreateProspects, useBulkDeleteProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
+import { useListProspects, useCreateProspect, useBulkCreateProspects, useBulkDeleteProspects, useBulkEnrichProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { Layout } from "@/components/layout";
@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download, Flame, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download, Flame, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Linkedin } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
@@ -980,6 +980,42 @@ export default function Prospects() {
   };
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
 
+  // bulk enrich (Apollo)
+  const bulkEnrichProspects = useBulkEnrichProspects();
+  const handleBulkEnrich = () => {
+    if (bulkEnrichProspects.isPending || selected.size === 0) return;
+    if (selected.size > 100) {
+      toast({
+        title: "Too many prospects selected",
+        description: `Enrichment runs up to 100 prospects at a time — you have ${selected.size} selected. Narrow the list (e.g. with search) and try again.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    bulkEnrichProspects.mutate({ data: { ids: Array.from(selected) } }, {
+      onSuccess: (result: any) => {
+        if (result?.planBlocked) {
+          toast({
+            title: "Apollo plan upgrade needed",
+            description: result?.errors?.[0] ?? "Apollo's API requires a paid Apollo plan.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const parts = [
+          `${result?.enriched ?? 0} enriched`,
+          result?.skipped ? `${result.skipped} not found` : "",
+          result?.failed ? `${result.failed} failed` : "",
+        ].filter(Boolean);
+        toast({ title: "Enrichment complete", description: parts.join(" · ") });
+        refetch();
+      },
+      onError: (err: any) => {
+        toast({ title: "Enrichment failed", description: err?.data?.error || err?.message || "Please try again", variant: "destructive" });
+      },
+    });
+  };
+
   // bulk delete
   const bulkDeleteProspects = useBulkDeleteProspects();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -1196,6 +1232,10 @@ export default function Prospects() {
                 </div>
               </DialogContent>
             </Dialog>
+            <Button size="sm" variant="outline" onClick={handleBulkEnrich} disabled={bulkEnrichProspects.isPending}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {bulkEnrichProspects.isPending ? "Enriching…" : "Enrich with Apollo"}
+            </Button>
             <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
               <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -1272,7 +1312,15 @@ export default function Prospects() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">{prospect.contactName}</div>
+                        <div className="font-medium flex items-center gap-1.5">
+                          {prospect.contactName}
+                          {prospect.linkedinUrl && (
+                            <a href={prospect.linkedinUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="LinkedIn profile">
+                              <Linkedin className="h-3.5 w-3.5 text-[#0A66C2]" />
+                            </a>
+                          )}
+                        </div>
+                        {prospect.title && <div className="text-xs text-muted-foreground">{prospect.title}</div>}
                         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                           <div className="flex items-center gap-1"><Mail className="h-3 w-3" /> {prospect.email}</div>
                           <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> {prospect.phone}</div>

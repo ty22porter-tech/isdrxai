@@ -77,6 +77,12 @@ export interface Prospect {
   /** @nullable */
   lastContactedAt?: string | null;
   createdAt: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  enrichedAt?: string | null;
 }
 
 export interface ProspectInput {
@@ -116,6 +122,23 @@ export interface BulkDeleteInput {
      * @maxItems 5000
      */
   ids: number[];
+}
+
+export interface BulkEnrichInput {
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  ids: number[];
+}
+
+export interface BulkEnrichResult {
+  enriched: number;
+  skipped: number;
+  failed: number;
+  /** True when Apollo rejected the request because the account plan has no API access. */
+  planBlocked?: boolean;
+  errors?: string[];
 }
 
 export interface BulkDeleteResult {
