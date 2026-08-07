@@ -15,7 +15,7 @@ import {
   GetProspectParams,
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
-import { enrichPerson } from "../lib/apollo";
+import { enrichPerson, isPlaceholderEmail } from "../lib/apollo";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 
@@ -279,6 +279,8 @@ router.get("/:id/score-history", async (req, res) => {
 
 // Placeholder values from CSV imports / mock data that enrichment may overwrite.
 const isPlaceholderPhone = (phone: string) => !phone || /^\(?0{3}\)?[\s.-]?0{3}[\s.-]?0{4}$/.test(phone.trim());
+// "Owner" is the generic contactName assigned to Google Maps prospects before enrichment.
+const isPlaceholderContactName = (name: string) => !name || name.trim() === "" || name.trim() === "Owner";
 
 // Bulk enrich selected prospects via Apollo people enrichment.
 router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
@@ -291,7 +293,13 @@ router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
 
   const processOne = async (p: typeof rows[number]) => {
     if (planBlocked) return;
-    const result = await enrichPerson({ email: p.email, contactName: p.contactName, companyName: p.companyName });
+    const result = await enrichPerson({
+      email: p.email,
+      contactName: p.contactName,
+      companyName: p.companyName,
+      website: p.website,
+      vertical: p.vertical,
+    });
     if (!result.ok) {
       // Plan-blocked applies to every row — stop the whole run with a clear message.
       if (result.planBlocked) {
@@ -305,7 +313,15 @@ router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
     }
     if (!result.person) { skipped++; return; }
     const e = result.person;
+
+    // Non-destructive merge: only fill in fields that are missing or placeholders.
+    // contactName: fill when current value is "Owner" or empty.
+    // email: fill when current value is a .invalid placeholder.
+    // phone: fill only when current value is the (000) 000-0000 placeholder.
+    // city/state/website/employeeCount: fill only when currently missing.
     await db.update(prospectsTable).set({
+      contactName: e.contactName && isPlaceholderContactName(p.contactName) ? e.contactName : p.contactName,
+      email: e.email && isPlaceholderEmail(p.email) ? e.email : p.email,
       title: e.title ?? p.title,
       linkedinUrl: e.linkedinUrl ?? p.linkedinUrl,
       phone: e.phone && isPlaceholderPhone(p.phone) ? e.phone : p.phone,
