@@ -2,9 +2,10 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody } from "@workspace/api-zod";
+import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody, EnrichLeadsBody } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
+import { enrichPerson } from "../lib/apollo";
 
 const router = Router();
 router.use(requireAuth);
@@ -446,6 +447,87 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     console.error("prospect-search failed:", err);
     return res.status(502).json({ error: "Could not reach Google Places. Please try again in a moment." });
   }
+});
+
+// ─── Lead enrichment (pre-pipeline) ──────────────────────────────────────────
+// Runs Apollo people search against unsaved search-results leads so the real
+// decision-maker name and email appear on the results page before the user
+// adds anything to the pipeline. Returns a per-lead status so the UI can show
+// a clear "not found" indicator instead of silently keeping placeholders.
+
+type EnrichLeadResult = {
+  index: number;
+  status: "enriched" | "not_found" | "failed";
+  contactName?: string;
+  email?: string;
+  title?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  employeeCount?: number;
+  error?: string;
+};
+
+router.post("/enrich-leads", requireEntitlement, async (req, res) => {
+  const { leads } = EnrichLeadsBody.parse(req.body);
+
+  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  const vertical = getVerticalConfig(client?.vertical).key;
+
+  const results: EnrichLeadResult[] = [];
+  let planBlocked = false;
+  let runError: string | undefined;
+
+  const processOne = async (index: number) => {
+    if (planBlocked) {
+      results.push({ index, status: "failed", error: runError });
+      return;
+    }
+    const lead = leads[index];
+    const result = await enrichPerson({
+      email: lead.email,
+      contactName: lead.contactName ?? null,
+      companyName: lead.companyName,
+      website: lead.website ?? null,
+      vertical,
+    });
+    if (!result.ok) {
+      if (result.planBlocked) {
+        planBlocked = true;
+        runError = result.error;
+      }
+      results.push({ index, status: "failed", error: result.error });
+      return;
+    }
+    const p = result.person;
+    // "Enriched" requires at least a real name or a real email — anything less
+    // is a not-found so the UI never claims a contact it doesn't have.
+    if (!p || (!p.contactName && !p.email)) {
+      results.push({ index, status: "not_found" });
+      return;
+    }
+    results.push({
+      index,
+      status: "enriched",
+      contactName: p.contactName ?? undefined,
+      email: p.email ?? undefined,
+      title: p.title ?? undefined,
+      phone: p.phone ?? undefined,
+      linkedinUrl: p.linkedinUrl ?? undefined,
+      employeeCount: p.employeeCount ?? undefined,
+    });
+  };
+
+  // Bounded concurrency (5 at a time) — same pattern as /prospects/bulk-enrich.
+  const queue = leads.map((_, i) => i);
+  await Promise.all(Array.from({ length: 5 }, async () => {
+    while (queue.length) {
+      const i = queue.shift();
+      if (i !== undefined) await processOne(i);
+    }
+  }));
+
+  results.sort((a, b) => a.index - b.index);
+  return res.json({ results, planBlocked, ...(runError ? { error: runError } : {}) });
 });
 
 export default router;

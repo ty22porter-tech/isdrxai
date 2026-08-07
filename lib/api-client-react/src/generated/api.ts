@@ -41,6 +41,8 @@ import type {
   Email,
   EmailInput,
   EmailUpdate,
+  EnrichLeadsRequest,
+  EnrichLeadsResult,
   ErrorEnvelope,
   GenerateCallScriptRequest,
   GenerateEmailRequest,
@@ -2213,6 +2215,76 @@ export const useProspectSearch = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getProspectSearchMutationOptions(options));
+    }
+
+export const getEnrichLeadsUrl = () => {
+
+
+
+
+  return `/api/ai/enrich-leads`
+}
+
+/**
+ * @summary Find the real decision-maker name and email for unsaved search leads (Apollo people search)
+ */
+export const enrichLeads = async (enrichLeadsRequest: EnrichLeadsRequest, options?: RequestInit): Promise<EnrichLeadsResult> => {
+
+  return customFetch<EnrichLeadsResult>(getEnrichLeadsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(enrichLeadsRequest)
+  }
+);}
+
+
+
+
+export const getEnrichLeadsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enrichLeads>>, TError,{data: BodyType<EnrichLeadsRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enrichLeads>>, TError,{data: BodyType<EnrichLeadsRequest>}, TContext> => {
+
+const mutationKey = ['enrichLeads'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enrichLeads>>, {data: BodyType<EnrichLeadsRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  enrichLeads(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnrichLeadsMutationResult = NonNullable<Awaited<ReturnType<typeof enrichLeads>>>
+    export type EnrichLeadsMutationBody = BodyType<EnrichLeadsRequest>
+    export type EnrichLeadsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Find the real decision-maker name and email for unsaved search leads (Apollo people search)
+ */
+export const useEnrichLeads = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enrichLeads>>, TError,{data: BodyType<EnrichLeadsRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof enrichLeads>>,
+        TError,
+        {data: BodyType<EnrichLeadsRequest>},
+        TContext
+      > => {
+      return useMutation(getEnrichLeadsMutationOptions(options));
     }
 
 export const getGetDashboardStatsUrl = () => {

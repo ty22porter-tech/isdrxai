@@ -48,6 +48,7 @@ vi.mock("@workspace/api-client-react", () => ({
     isPending: false,
   }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
+  useEnrichLeads: () => ({ mutate: vi.fn(), isPending: false }),
   getListProspectsQueryKey: () => ["prospects"],
   // Restore reconciles against the pipeline; an empty pipeline leaves the
   // restored state untouched, which is what these guard tests rely on.

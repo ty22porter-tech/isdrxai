@@ -698,6 +698,39 @@ export const ProspectSearchResponse = zod.array(ProspectSearchResponseItem)
 
 
 /**
+ * @summary Find the real decision-maker name and email for unsaved search leads (Apollo people search)
+ */
+export const enrichLeadsBodyLeadsMax = 20;
+
+
+
+export const EnrichLeadsBody = zod.object({
+  "leads": zod.array(zod.object({
+  "companyName": zod.string(),
+  "contactName": zod.string().optional(),
+  "email": zod.string(),
+  "website": zod.string().optional()
+})).min(1).max(enrichLeadsBodyLeadsMax)
+})
+
+export const EnrichLeadsResponse = zod.object({
+  "planBlocked": zod.boolean().optional().describe('True when Apollo rejected the request because the account plan has no API access.'),
+  "error": zod.string().optional().describe('Run-level error message (e.g. plan blocked or missing API key).'),
+  "results": zod.array(zod.object({
+  "index": zod.number().describe('Index of the lead in the request array.'),
+  "status": zod.enum(['enriched', 'not_found', 'failed']),
+  "contactName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "title": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "linkedinUrl": zod.string().optional(),
+  "employeeCount": zod.number().optional(),
+  "error": zod.string().optional()
+}))
+})
+
+
+/**
  * @summary Get dashboard summary statistics
  */
 export const GetDashboardStatsResponse = zod.object({

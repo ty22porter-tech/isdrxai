@@ -402,6 +402,51 @@ export interface ProspectSearchRequest {
   compliancePriority?: string;
 }
 
+export type EnrichLeadsRequestLeadsItem = {
+  companyName: string;
+  contactName?: string;
+  email: string;
+  website?: string;
+};
+
+export interface EnrichLeadsRequest {
+  /**
+     * @minItems 1
+     * @maxItems 20
+     */
+  leads: EnrichLeadsRequestLeadsItem[];
+}
+
+export type EnrichLeadsResultResultsItemStatus = typeof EnrichLeadsResultResultsItemStatus[keyof typeof EnrichLeadsResultResultsItemStatus];
+
+
+export const EnrichLeadsResultResultsItemStatus = {
+  enriched: 'enriched',
+  not_found: 'not_found',
+  failed: 'failed',
+} as const;
+
+export type EnrichLeadsResultResultsItem = {
+  /** Index of the lead in the request array. */
+  index: number;
+  status: EnrichLeadsResultResultsItemStatus;
+  contactName?: string;
+  email?: string;
+  title?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  employeeCount?: number;
+  error?: string;
+};
+
+export interface EnrichLeadsResult {
+  /** True when Apollo rejected the request because the account plan has no API access. */
+  planBlocked?: boolean;
+  /** Run-level error message (e.g. plan blocked or missing API key). */
+  error?: string;
+  results: EnrichLeadsResultResultsItem[];
+}
+
 export type ProspectLeadConfidence = typeof ProspectLeadConfidence[keyof typeof ProspectLeadConfidence];
 
 

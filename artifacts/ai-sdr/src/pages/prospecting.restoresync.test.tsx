@@ -28,6 +28,7 @@ vi.mock("@workspace/api-client-react", () => ({
   useProspectSearch: () => ({ mutate: vi.fn(), isPending: false, isIdle: true }),
   useCreateProspect: () => ({ mutate: vi.fn(), isPending: false }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
+  useEnrichLeads: () => ({ mutate: vi.fn(), isPending: false }),
   getListProspectsQueryKey: () => ["prospects"],
   getListProspectsQueryOptions: () => ({ queryKey: ["prospects"], queryFn: () => pipelineFetch() }),
 }));

@@ -585,6 +585,25 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProspectLead"
 
+  /ai/enrich-leads:
+    post:
+      operationId: enrichLeads
+      tags: [ai]
+      summary: Find the real decision-maker name and email for unsaved search leads (Apollo people search)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichLeadsRequest"
+      responses:
+        "200":
+          description: Per-lead enrichment results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichLeadsResult"
+
   /stats/dashboard:
     get:
       operationId: getDashboardStats
@@ -1236,6 +1255,64 @@ components:
         compliancePriority:
           type: string
           description: Optional cybersecurity & compliance priority filter (IT Services vertical)
+
+    EnrichLeadsRequest:
+      type: object
+      required: [leads]
+      properties:
+        leads:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            required: [companyName, email]
+            properties:
+              companyName:
+                type: string
+              contactName:
+                type: string
+              email:
+                type: string
+              website:
+                type: string
+
+    EnrichLeadsResult:
+      type: object
+      required: [results]
+      properties:
+        planBlocked:
+          type: boolean
+          description: True when Apollo rejected the request because the account plan has no API access.
+        error:
+          type: string
+          description: Run-level error message (e.g. plan blocked or missing API key).
+        results:
+          type: array
+          items:
+            type: object
+            required: [index, status]
+            properties:
+              index:
+                type: integer
+                description: Index of the lead in the request array.
+              status:
+                type: string
+                enum: [enriched, not_found, failed]
+              contactName:
+                type: string
+              email:
+                type: string
+              title:
+                type: string
+              phone:
+                type: string
+              linkedinUrl:
+                type: string
+              employeeCount:
+                type: integer
+              error:
+                type: string
 
     ProspectLead:
       type: object
