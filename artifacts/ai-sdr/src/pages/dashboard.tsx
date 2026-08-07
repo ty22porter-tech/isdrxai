@@ -9,7 +9,7 @@ async function apiFetch<T>(path: string): Promise<T> {
 }
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Mail, PhoneCall, Calendar, ArrowUpRight, Eye, MousePointerClick, Paperclip, AlertTriangle, Flame, Info, Send, CalendarCheck } from "lucide-react";
+import { Users, Mail, PhoneCall, Calendar, ArrowUpRight, Eye, MousePointerClick, Paperclip, AlertTriangle, Flame, Info, Send, CalendarCheck, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EngagementTable } from "@/components/engagement-table";
@@ -63,6 +63,8 @@ interface EngagementSummary {
   lowProspects: number;
   meetingRequestsSent: number;
   meetingsScheduled: number;
+  botClicksFiltered: number;
+  botOpensFiltered: number;
 }
 
 function useEngagementSummary() {
@@ -190,6 +192,24 @@ export default function Dashboard() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No engagement data yet — stats appear once emails are sent.</p>
+          )}
+          {engagement && (engagement.botClicksFiltered > 0 || engagement.botOpensFiltered > 0) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground cursor-help">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>
+                    {[
+                      engagement.botOpensFiltered > 0 ? `${engagement.botOpensFiltered} bot open${engagement.botOpensFiltered === 1 ? "" : "s"}` : null,
+                      engagement.botClicksFiltered > 0 ? `${engagement.botClicksFiltered} bot click${engagement.botClicksFiltered === 1 ? "" : "s"}` : null,
+                    ].filter(Boolean).join(" and ")} filtered
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[280px]">
+                Automated activity from email security scanners was detected and excluded from the counts above and from prospect interest scores.
+              </TooltipContent>
+            </Tooltip>
           )}
           <EngagementTable />
         </div>

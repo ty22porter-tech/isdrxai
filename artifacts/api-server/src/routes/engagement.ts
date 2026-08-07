@@ -449,7 +449,8 @@ router.get("/prospects/:id/timeline", async (req, res) => {
       : "Link clicked";
     items.push({
       ts: c.clickedAt.toISOString(),
-      type: c.eventType === "download" ? "attachment_download" : kind === "cta" ? "calendly_click" : kind === "attachment" ? "attachment_view" : "link_click",
+      type: c.isBot ? "click_filtered"
+        : c.eventType === "download" ? "attachment_download" : kind === "cta" ? "calendly_click" : kind === "attachment" ? "attachment_view" : "link_click",
       title: c.isBot ? `${label} (filtered as bot)` : label,
       detail: c.isBot
         ? [c.botReason ?? "bot/scanner", link?.name].filter(Boolean).join(" — ")

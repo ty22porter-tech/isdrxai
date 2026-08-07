@@ -59,6 +59,7 @@ const TIMELINE_ICONS: Record<string, { icon: React.ComponentType<{ className?: s
   reply:                       { icon: MessageSquare,     bg: "bg-emerald-100 dark:bg-emerald-950", fg: "text-emerald-600 dark:text-emerald-400" },
   open:                        { icon: Eye,               bg: "bg-blue-100 dark:bg-blue-950",     fg: "text-blue-600 dark:text-blue-400" },
   open_filtered:               { icon: EyeOff,            bg: "bg-muted",                          fg: "text-muted-foreground" },
+  click_filtered:              { icon: MousePointerClick, bg: "bg-muted",                          fg: "text-muted-foreground" },
   link_click:                  { icon: MousePointerClick, bg: "bg-green-100 dark:bg-green-950",   fg: "text-green-600 dark:text-green-400" },
   calendly_click:              { icon: Calendar,          bg: "bg-primary/10",                     fg: "text-primary" },
   attachment_view:             { icon: Paperclip,         bg: "bg-purple-100 dark:bg-purple-950", fg: "text-purple-600 dark:text-purple-400" },
