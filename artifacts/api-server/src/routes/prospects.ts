@@ -2,11 +2,12 @@ import { Router } from "express";
 import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
 import { prospectsTable, activityTable, usersTable } from "@workspace/db";
-import { eq, ilike, and, sql } from "drizzle-orm";
+import { eq, ilike, and, sql, inArray } from "drizzle-orm";
 import {
   ListProspectsQueryParams,
   CreateProspectBody,
   BulkCreateProspectsBody,
+  BulkDeleteProspectsBody,
   UpdateProspectParams,
   UpdateProspectBody,
   DeleteProspectParams,
@@ -271,6 +272,15 @@ router.get("/:id/score-history", async (req, res) => {
     interestLevelAfter: e.interestLevelAfter,
     createdAt: e.createdAt.toISOString(),
   })));
+});
+
+// Bulk delete selected prospects (only ones owned by this client).
+router.post("/bulk-delete", async (req, res) => {
+  const { ids } = BulkDeleteProspectsBody.parse(req.body);
+  const deleted = await db.delete(prospectsTable)
+    .where(and(eq(prospectsTable.clientId, req.clientId), inArray(prospectsTable.id, ids)))
+    .returning({ id: prospectsTable.id });
+  res.json({ deleted: deleted.length });
 });
 
 router.delete("/:id", async (req, res) => {

@@ -24,6 +24,8 @@ import type {
   Appointment,
   AppointmentInput,
   AppointmentUpdate,
+  BulkDeleteInput,
+  BulkDeleteResult,
   BulkProspectsInput,
   BulkProspectsResult,
   Call,
@@ -461,6 +463,76 @@ export const useBulkCreateProspects = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getBulkCreateProspectsMutationOptions(options));
+    }
+
+export const getBulkDeleteProspectsUrl = () => {
+
+
+
+
+  return `/api/prospects/bulk-delete`
+}
+
+/**
+ * @summary Delete many prospects at once
+ */
+export const bulkDeleteProspects = async (bulkDeleteInput: BulkDeleteInput, options?: RequestInit): Promise<BulkDeleteResult> => {
+
+  return customFetch<BulkDeleteResult>(getBulkDeleteProspectsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkDeleteInput)
+  }
+);}
+
+
+
+
+export const getBulkDeleteProspectsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteProspects>>, TError,{data: BodyType<BulkDeleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteProspects>>, TError,{data: BodyType<BulkDeleteInput>}, TContext> => {
+
+const mutationKey = ['bulkDeleteProspects'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkDeleteProspects>>, {data: BodyType<BulkDeleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkDeleteProspects(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkDeleteProspectsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkDeleteProspects>>>
+    export type BulkDeleteProspectsMutationBody = BodyType<BulkDeleteInput>
+    export type BulkDeleteProspectsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete many prospects at once
+ */
+export const useBulkDeleteProspects = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteProspects>>, TError,{data: BodyType<BulkDeleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkDeleteProspects>>,
+        TError,
+        {data: BodyType<BulkDeleteInput>},
+        TContext
+      > => {
+      return useMutation(getBulkDeleteProspectsMutationOptions(options));
     }
 
 export const getGetProspectUrl = (id: number,) => {

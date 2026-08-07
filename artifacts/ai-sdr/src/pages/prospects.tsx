@@ -1,6 +1,6 @@
 import { useState, useRef, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useListProspects, useCreateProspect, useBulkCreateProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
+import { useListProspects, useCreateProspect, useBulkCreateProspects, useBulkDeleteProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { Layout } from "@/components/layout";
@@ -16,7 +16,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download, Flame } from "lucide-react";
+import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download, Flame, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -920,6 +921,50 @@ export default function Prospects() {
     industry: "", city: "", state: "",
   });
 
+  // sorting
+  type SortKey = "company" | "contact" | "location" | "status" | "interest" | "lastContacted";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+  const interestRank = (p: any) => {
+    const level = p.manualInterestLevel ?? p.interestLevel ?? "low";
+    const rank = level === "hot" ? 2 : level === "medium" ? 1 : 0;
+    return rank * 1000 + (p.engagementScore ?? 0);
+  };
+  const sortedProspects = (() => {
+    const list = [...(prospects ?? [])];
+    if (!sortKey) return list;
+    const dir = sortDir === "asc" ? 1 : -1;
+    const cmpStr = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", undefined, { sensitivity: "base" });
+    list.sort((a: any, b: any) => {
+      switch (sortKey) {
+        case "company": return dir * cmpStr(a.companyName, b.companyName);
+        case "contact": return dir * cmpStr(a.contactName, b.contactName);
+        case "location": return dir * (cmpStr(a.state, b.state) || cmpStr(a.city, b.city));
+        case "status": return dir * cmpStr(a.status, b.status);
+        case "interest": return dir * (interestRank(a) - interestRank(b));
+        case "lastContacted": {
+          const ta = a.lastContactedAt ? new Date(a.lastContactedAt).getTime() : 0;
+          const tb = b.lastContactedAt ? new Date(b.lastContactedAt).getTime() : 0;
+          return dir * (ta - tb);
+        }
+        default: return 0;
+      }
+    });
+    return list;
+  })();
+  const SortIcon = ({ column }: { column: SortKey }) =>
+    sortKey === column
+      ? (sortDir === "asc" ? <ArrowUp className="ml-1 h-3 w-3 inline" /> : <ArrowDown className="ml-1 h-3 w-3 inline" />)
+      : <ArrowUpDown className="ml-1 h-3 w-3 inline opacity-40" />;
+
   // selection
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const allIds = (prospects ?? []).map(p => p.id);
@@ -934,6 +979,24 @@ export default function Prospects() {
     });
   };
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
+
+  // bulk delete
+  const bulkDeleteProspects = useBulkDeleteProspects();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const handleBulkDelete = () => {
+    if (bulkDeleteProspects.isPending || selected.size === 0) return;
+    bulkDeleteProspects.mutate({ data: { ids: Array.from(selected) } }, {
+      onSuccess: (result: any) => {
+        toast({ title: `${result?.deleted ?? selected.size} prospect${(result?.deleted ?? selected.size) !== 1 ? "s" : ""} deleted` });
+        setSelected(new Set());
+        setDeleteOpen(false);
+        refetch();
+      },
+      onError: (err: any) => {
+        toast({ title: "Delete failed", description: err?.data?.error || err?.message || "Please try again", variant: "destructive" });
+      },
+    });
+  };
 
   // quick send
   const [sendOpen, setSendOpen] = useState(false);
@@ -1133,6 +1196,30 @@ export default function Prospects() {
                 </div>
               </DialogContent>
             </Dialog>
+            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Selected
+              </Button>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {selected.size} prospect{selected.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes the selected prospect{selected.size !== 1 ? "s" : ""} and cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={bulkDeleteProspects.isPending}
+                    onClick={e => { e.preventDefault(); handleBulkDelete(); }}
+                  >
+                    {bulkDeleteProspects.isPending ? "Deleting…" : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}><X className="h-4 w-4" /></Button>
           </div>
         )}
@@ -1151,12 +1238,12 @@ export default function Prospects() {
                   <TableHead className="w-10 pl-4">
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Interest</TableHead>
-                  <TableHead>Last Contacted</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("company")}>Company<SortIcon column="company" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("contact")}>Contact<SortIcon column="contact" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("location")}>Location<SortIcon column="location" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>Status<SortIcon column="status" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("interest")}>Interest<SortIcon column="interest" /></TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("lastContacted")}>Last Contacted<SortIcon column="lastContacted" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1165,7 +1252,7 @@ export default function Prospects() {
                 ) : prospects?.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No prospects found.</TableCell></TableRow>
                 ) : (
-                  prospects?.map(prospect => (
+                  sortedProspects.map(prospect => (
                     <TableRow
                       key={prospect.id}
                       className={`cursor-pointer hover:bg-muted/50 ${selected.has(prospect.id) ? "bg-primary/5" : ""}`}

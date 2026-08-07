@@ -143,6 +143,22 @@ export const BulkCreateProspectsResponse = zod.object({
 
 
 /**
+ * @summary Delete many prospects at once
+ */
+export const bulkDeleteProspectsBodyIdsMax = 5000;
+
+
+
+export const BulkDeleteProspectsBody = zod.object({
+  "ids": zod.array(zod.number()).min(1).max(bulkDeleteProspectsBodyIdsMax)
+})
+
+export const BulkDeleteProspectsResponse = zod.object({
+  "deleted": zod.number()
+})
+
+
+/**
  * @summary Get a prospect by ID
  */
 export const GetProspectParams = zod.object({

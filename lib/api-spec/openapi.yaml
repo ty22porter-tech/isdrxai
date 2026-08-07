@@ -124,6 +124,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/BulkProspectsResult"
 
+  /prospects/bulk-delete:
+    post:
+      operationId: bulkDeleteProspects
+      tags: [prospects]
+      summary: Delete many prospects at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkDeleteInput"
+      responses:
+        "200":
+          description: Number of prospects deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkDeleteResult"
+
   /prospects/{id}:
     get:
       operationId: getProspect
@@ -798,6 +817,24 @@ components:
           enum: [skip, update]
           default: skip
           description: How to handle rows whose email matches an existing prospect. "skip" fails the row; "update" merges new data into the existing prospect.
+
+    BulkDeleteInput:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          items:
+            type: integer
+
+    BulkDeleteResult:
+      type: object
+      required: [deleted]
+      properties:
+        deleted:
+          type: integer
 
     BulkProspectsResult:
       type: object

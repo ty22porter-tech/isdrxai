@@ -13,6 +13,8 @@ export * from './appointmentInput';
 export * from './appointmentStatus';
 export * from './appointmentType';
 export * from './appointmentUpdate';
+export * from './bulkDeleteInput';
+export * from './bulkDeleteResult';
 export * from './bulkProspectRowResult';
 export * from './bulkProspectsInput';
 export * from './bulkProspectsInputDuplicateStrategy';

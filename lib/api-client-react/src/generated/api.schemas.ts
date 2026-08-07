@@ -110,6 +110,18 @@ export interface BulkProspectsInput {
   duplicateStrategy?: BulkProspectsInputDuplicateStrategy;
 }
 
+export interface BulkDeleteInput {
+  /**
+     * @minItems 1
+     * @maxItems 5000
+     */
+  ids: number[];
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+}
+
 export interface BulkProspectRowResult {
   index: number;
   success: boolean;
