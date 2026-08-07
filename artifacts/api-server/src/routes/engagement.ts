@@ -154,6 +154,27 @@ router.get("/table", async (req, res) => {
     .groupBy(emailLinksTable.prospectId);
   const linkByProspect = new Map(linkAggs.map(r => [r.prospectId, r]));
 
+  // Per-prospect bot-filtered activity (scanner hits excluded from scoring).
+  const botOpenAggs = await db
+    .select({
+      prospectId: emailOpenEventsTable.prospectId,
+      botOpens: sql<number>`count(*) filter (where ${emailOpenEventsTable.isBot})::int`,
+    })
+    .from(emailOpenEventsTable)
+    .where(eq(emailOpenEventsTable.clientId, clientId))
+    .groupBy(emailOpenEventsTable.prospectId);
+  const botOpensByProspect = new Map(botOpenAggs.map(r => [r.prospectId, r.botOpens]));
+
+  const botClickAggs = await db
+    .select({
+      prospectId: linkClickEventsTable.prospectId,
+      botClicks: sql<number>`count(*) filter (where ${linkClickEventsTable.isBot})::int`,
+    })
+    .from(linkClickEventsTable)
+    .where(eq(linkClickEventsTable.clientId, clientId))
+    .groupBy(linkClickEventsTable.prospectId);
+  const botClicksByProspect = new Map(botClickAggs.map(r => [r.prospectId, r.botClicks]));
+
   const autoRuns = await db
     .select({
       prospectId: automationRunsTable.prospectId,
@@ -215,6 +236,8 @@ router.get("/table", async (req, res) => {
       attachmentViewed,
       attachmentDownloads: l?.attachmentDownloads ?? 0,
       linksClicked: input.linksClicked,
+      botOpensFiltered: botOpensByProspect.get(p.id) ?? 0,
+      botClicksFiltered: botClicksByProspect.get(p.id) ?? 0,
       calendlyClicked: input.calendlyClicked,
       interestScore: p.engagementScore,
       interestLevel: effectiveLevel,
@@ -268,12 +291,12 @@ router.get("/table", async (req, res) => {
     };
     const header = [
       "Company", "Contact", "Email", "Campaigns", "Emails Sent", "Emails Delivered", "Total Opens", "Valid Opens",
-      "Last Opened", "Attachment Viewed", "Links Clicked", "Interest Score", "Interest Level", "Manual Override",
+      "Last Opened", "Attachment Viewed", "Links Clicked", "Bot Opens Filtered", "Bot Clicks Filtered", "Interest Score", "Interest Level", "Manual Override",
       "Meeting Request Sent", "Calendly Link Clicked", "Meeting Scheduled", "Recommended Next Action",
     ];
     const lines = [header.join(",")].concat(rows.map(r => [
       r.companyName, r.contactName, r.email, r.campaigns, r.emailsSent, r.emailsDelivered, r.totalOpens, r.validOpens,
-      r.lastOpenedAt ?? "", r.attachmentViewed ? "Yes" : "No", r.linksClicked, r.interestScore,
+      r.lastOpenedAt ?? "", r.attachmentViewed ? "Yes" : "No", r.linksClicked, r.botOpensFiltered, r.botClicksFiltered, r.interestScore,
       r.interestLevel, r.manualOverride ? "Yes" : "No", r.meetingRequestSent ? "Yes" : "No",
       r.calendlyClicked ? "Yes" : "No", r.meetingScheduled ? "Yes" : "No", r.nextAction,
     ].map(esc).join(",")));

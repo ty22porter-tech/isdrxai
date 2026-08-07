@@ -29,6 +29,8 @@ export interface EngagementRow {
   attachmentViewed: boolean;
   attachmentDownloads: number;
   linksClicked: number;
+  botOpensFiltered: number;
+  botClicksFiltered: number;
   calendlyClicked: boolean;
   interestScore: number;
   interestLevel: "low" | "medium" | "hot";
@@ -219,14 +221,42 @@ export function EngagementTable() {
                     <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate">{r.campaigns || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{r.emailsSent} sent / {r.emailsDelivered} delivered</TableCell>
                     <TableCell className="text-center">{r.totalOpens}</TableCell>
-                    <TableCell className="text-center font-medium">{r.validOpens}</TableCell>
+                    <TableCell className="text-center font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        {r.validOpens}
+                        {r.botOpensFiltered > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-[10px] font-normal text-muted-foreground cursor-help whitespace-nowrap">({r.botOpensFiltered} filtered)</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[240px]">
+                              {r.botOpensFiltered} open{r.botOpensFiltered === 1 ? "" : "s"} looked like automated scanner/bot activity and {r.botOpensFiltered === 1 ? "was" : "were"} excluded from valid opens and scoring.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell className="whitespace-nowrap text-xs">{r.lastOpenedAt ? new Date(r.lastOpenedAt).toLocaleString() : "—"}</TableCell>
                     <TableCell className="text-center">
                       {r.attachmentViewed
                         ? <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/30">{r.attachmentDownloads > 0 ? "Downloaded" : "Viewed"}</Badge>
                         : <span className="text-muted-foreground text-xs">No</span>}
                     </TableCell>
-                    <TableCell className="text-center">{r.linksClicked}</TableCell>
+                    <TableCell className="text-center">
+                      <span className="inline-flex items-center gap-1.5">
+                        {r.linksClicked}
+                        {r.botClicksFiltered > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-[10px] text-muted-foreground cursor-help whitespace-nowrap">({r.botClicksFiltered} filtered)</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[240px]">
+                              {r.botClicksFiltered} click{r.botClicksFiltered === 1 ? "" : "s"} looked like automated scanner/bot activity and {r.botClicksFiltered === 1 ? "was" : "were"} excluded from link clicks and scoring.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-center font-medium">{r.interestScore}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`${INTEREST_STYLES[r.interestLevel]} gap-1 whitespace-nowrap`}>
