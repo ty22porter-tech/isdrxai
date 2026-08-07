@@ -659,7 +659,7 @@ export const GenerateCallScriptResponse = zod.object({
 
 
 /**
- * @summary Generate a batch of prospect leads for a given city, state, and industry
+ * @summary Search real local businesses (Google Places) for a given city, state, and industry
  */
 export const ProspectSearchBody = zod.object({
   "city": zod.string(),
@@ -680,7 +680,8 @@ export const ProspectSearchResponseItem = zod.object({
   "city": zod.string(),
   "state": zod.string(),
   "website": zod.string().optional(),
-  "estimatedEmployees": zod.number(),
+  "address": zod.string().optional().describe('Street address of the business (from Google Places)'),
+  "estimatedEmployees": zod.number().optional(),
   "estimatedSquareFootage": zod.number().optional(),
   "whyTarget": zod.string(),
   "confidence": zod.enum(['high', 'medium', 'low']),

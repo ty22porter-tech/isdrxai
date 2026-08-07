@@ -568,7 +568,7 @@ paths:
     post:
       operationId: prospectSearch
       tags: [ai]
-      summary: Generate a batch of prospect leads for a given city, state, and industry
+      summary: Search real local businesses (Google Places) for a given city, state, and industry
       requestBody:
         required: true
         content:
@@ -1239,7 +1239,7 @@ components:
 
     ProspectLead:
       type: object
-      required: [companyName, contactName, contactTitle, email, phone, industry, city, state, estimatedEmployees, whyTarget, confidence]
+      required: [companyName, contactName, contactTitle, email, phone, industry, city, state, whyTarget, confidence]
       properties:
         companyName:
           type: string
@@ -1259,6 +1259,9 @@ components:
           type: string
         website:
           type: string
+        address:
+          type: string
+          description: Street address of the business (from Google Places)
         estimatedEmployees:
           type: integer
         estimatedSquareFootage:

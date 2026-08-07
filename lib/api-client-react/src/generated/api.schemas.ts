@@ -421,7 +421,9 @@ export interface ProspectLead {
   city: string;
   state: string;
   website?: string;
-  estimatedEmployees: number;
+  /** Street address of the business (from Google Places) */
+  address?: string;
+  estimatedEmployees?: number;
   estimatedSquareFootage?: number;
   whyTarget: string;
   confidence: ProspectLeadConfidence;

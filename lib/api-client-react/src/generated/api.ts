@@ -2154,7 +2154,7 @@ export const getProspectSearchUrl = () => {
 }
 
 /**
- * @summary Generate a batch of prospect leads for a given city, state, and industry
+ * @summary Search real local businesses (Google Places) for a given city, state, and industry
  */
 export const prospectSearch = async (prospectSearchRequest: ProspectSearchRequest, options?: RequestInit): Promise<ProspectLead[]> => {
 
@@ -2202,7 +2202,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ProspectSearchMutationError = ErrorType<unknown>
 
     /**
- * @summary Generate a batch of prospect leads for a given city, state, and industry
+ * @summary Search real local businesses (Google Places) for a given city, state, and industry
  */
 export const useProspectSearch = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}

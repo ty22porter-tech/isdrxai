@@ -55,6 +55,11 @@ router.post("/", requireEntitlement, async (req, res) => {
   if (!prospect.email) {
     return res.status(400).json({ error: "This prospect has no email address." });
   }
+  if (prospect.email.endsWith(".invalid")) {
+    return res.status(400).json({
+      error: "This prospect's email is a placeholder — a real contact email must be found before sending outreach. Use the 'Find contact' enrichment to get a verified address.",
+    });
+  }
   if (prospect.optedOut) {
     return res.status(409).json({ error: "This prospect has unsubscribed and cannot be emailed." });
   }

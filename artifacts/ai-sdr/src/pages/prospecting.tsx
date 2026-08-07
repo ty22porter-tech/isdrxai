@@ -232,7 +232,12 @@ export default function Prospecting() {
       },
       {
         onSuccess: (data) => setLeads(data),
-        onError: () => toast({ title: "Search failed", description: "Could not generate prospects.", variant: "destructive" }),
+        onError: (err: any) =>
+          toast({
+            title: "Search failed",
+            description: err?.data?.error || err?.message || "Could not search for businesses.",
+            variant: "destructive",
+          }),
       }
     );
   };
@@ -919,10 +924,12 @@ export default function Prospecting() {
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
                             <span>{lead.city}, {lead.state}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Users className="h-3.5 w-3.5 shrink-0" />
-                            <span>{lead.estimatedEmployees} employees</span>
-                          </div>
+                          {lead.estimatedEmployees != null && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Users className="h-3.5 w-3.5 shrink-0" />
+                              <span>{lead.estimatedEmployees} employees</span>
+                            </div>
+                          )}
                           {lead.estimatedSquareFootage != null && (
                             <div className="flex items-center gap-1.5 text-muted-foreground">
                               <SquareStack className="h-3.5 w-3.5 shrink-0" />
