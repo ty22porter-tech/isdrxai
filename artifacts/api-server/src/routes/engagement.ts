@@ -175,6 +175,40 @@ router.get("/table", async (req, res) => {
     .groupBy(linkClickEventsTable.prospectId);
   const botClicksByProspect = new Map(botClickAggs.map(r => [r.prospectId, r.botClicks]));
 
+  // Distinct bot reasons (with counts) per prospect, so the "(N filtered)"
+  // tooltips can explain WHY activity was excluded.
+  const botOpenReasonRows = await db
+    .select({
+      prospectId: emailOpenEventsTable.prospectId,
+      reason: sql<string>`coalesce(${emailOpenEventsTable.botReason}, 'unspecified')`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(emailOpenEventsTable)
+    .where(and(eq(emailOpenEventsTable.clientId, clientId), eq(emailOpenEventsTable.isBot, true)))
+    .groupBy(emailOpenEventsTable.prospectId, sql`coalesce(${emailOpenEventsTable.botReason}, 'unspecified')`);
+  const botClickReasonRows = await db
+    .select({
+      prospectId: linkClickEventsTable.prospectId,
+      reason: sql<string>`coalesce(${linkClickEventsTable.botReason}, 'unspecified')`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(linkClickEventsTable)
+    .where(and(eq(linkClickEventsTable.clientId, clientId), eq(linkClickEventsTable.isBot, true)))
+    .groupBy(linkClickEventsTable.prospectId, sql`coalesce(${linkClickEventsTable.botReason}, 'unspecified')`);
+  const collectReasons = (rows: { prospectId: number; reason: string; n: number }[]) => {
+    const map = new Map<number, { reason: string; count: number }[]>();
+    for (const r of rows) {
+      const list = map.get(r.prospectId) ?? [];
+      list.push({ reason: r.reason, count: r.n });
+      map.set(r.prospectId, list);
+    }
+    // Most frequent reasons first.
+    for (const list of map.values()) list.sort((a, b) => b.count - a.count);
+    return map;
+  };
+  const botOpenReasonsByProspect = collectReasons(botOpenReasonRows);
+  const botClickReasonsByProspect = collectReasons(botClickReasonRows);
+
   const autoRuns = await db
     .select({
       prospectId: automationRunsTable.prospectId,
@@ -238,6 +272,8 @@ router.get("/table", async (req, res) => {
       linksClicked: input.linksClicked,
       botOpensFiltered: botOpensByProspect.get(p.id) ?? 0,
       botClicksFiltered: botClicksByProspect.get(p.id) ?? 0,
+      botOpenReasons: botOpenReasonsByProspect.get(p.id) ?? [],
+      botClickReasons: botClickReasonsByProspect.get(p.id) ?? [],
       calendlyClicked: input.calendlyClicked,
       interestScore: p.engagementScore,
       interestLevel: effectiveLevel,

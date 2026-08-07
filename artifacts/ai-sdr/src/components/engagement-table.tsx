@@ -31,6 +31,8 @@ export interface EngagementRow {
   linksClicked: number;
   botOpensFiltered: number;
   botClicksFiltered: number;
+  botOpenReasons: { reason: string; count: number }[];
+  botClickReasons: { reason: string; count: number }[];
   calendlyClicked: boolean;
   interestScore: number;
   interestLevel: "low" | "medium" | "hot";
@@ -51,6 +53,33 @@ interface TableResponse {
 }
 
 const PAGE_SIZE = 25;
+
+// Human-readable labels for the bot-filter reason codes recorded by tracking.
+const BOT_REASON_LABELS: Record<string, string> = {
+  "security-scanner": "Email security scanner",
+  bot: "Bot / crawler user-agent",
+  "http-client": "Automated HTTP client",
+  prefetch: "Mail app prefetch",
+  "prefetch-window": "Opened seconds after send (likely prefetch)",
+  "click-burst": "Burst of clicks within a short window",
+  "no-user-agent": "No browser identification",
+  unspecified: "Automated pattern",
+};
+const botReasonLabel = (reason: string) => BOT_REASON_LABELS[reason] ?? reason;
+
+function BotReasonList({ reasons }: { reasons: { reason: string; count: number }[] }) {
+  if (!reasons?.length) return null;
+  return (
+    <ul className="mt-1.5 space-y-0.5 border-t border-border/50 pt-1.5">
+      {reasons.map(r => (
+        <li key={r.reason} className="flex justify-between gap-3">
+          <span>{botReasonLabel(r.reason)}</span>
+          <span className="text-muted-foreground tabular-nums">×{r.count}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function buildParams(state: Record<string, string>, extra: Record<string, string> = {}) {
   const params = new URLSearchParams();
@@ -229,8 +258,9 @@ export function EngagementTable() {
                             <TooltipTrigger asChild>
                               <span className="text-[10px] font-normal text-muted-foreground cursor-help whitespace-nowrap">({r.botOpensFiltered} filtered)</span>
                             </TooltipTrigger>
-                            <TooltipContent className="max-w-[240px]">
+                            <TooltipContent className="max-w-[260px]">
                               {r.botOpensFiltered} open{r.botOpensFiltered === 1 ? "" : "s"} looked like automated scanner/bot activity and {r.botOpensFiltered === 1 ? "was" : "were"} excluded from valid opens and scoring.
+                              <BotReasonList reasons={r.botOpenReasons} />
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -250,8 +280,9 @@ export function EngagementTable() {
                             <TooltipTrigger asChild>
                               <span className="text-[10px] text-muted-foreground cursor-help whitespace-nowrap">({r.botClicksFiltered} filtered)</span>
                             </TooltipTrigger>
-                            <TooltipContent className="max-w-[240px]">
+                            <TooltipContent className="max-w-[260px]">
                               {r.botClicksFiltered} click{r.botClicksFiltered === 1 ? "" : "s"} looked like automated scanner/bot activity and {r.botClicksFiltered === 1 ? "was" : "were"} excluded from link clicks and scoring.
+                              <BotReasonList reasons={r.botClickReasons} />
                             </TooltipContent>
                           </Tooltip>
                         )}
