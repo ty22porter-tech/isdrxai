@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowLeft, CheckCircle2, Play, Send } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Maximize2, Play, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,11 @@ export default function BookDemoPage() {
   const [form, setForm] = useState({ name: "", company: "", email: "", phone: "", industry: "trade-services", message: "", website: "" });
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  const videoBoxRef = useRef<HTMLDivElement>(null);
+  const goFullscreen = () => {
+    videoBoxRef.current?.requestFullscreen?.().catch(() => {});
+  };
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -76,17 +81,26 @@ export default function BookDemoPage() {
                 </button>
               ))}
             </div>
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-card aspect-video">
+            <div ref={videoBoxRef} className="relative rounded-2xl overflow-hidden border border-white/10 bg-card aspect-video group">
               <iframe
                 key={activeVideo.id}
                 src={activeVideo.url}
                 title={`iSDRX AI product video — ${activeVideo.label}`}
                 className="w-full h-full"
-                allow="autoplay"
+                allow="autoplay; fullscreen"
+                allowFullScreen
               />
+              <button
+                onClick={goFullscreen}
+                aria-label="Expand video to full screen"
+                title="Full screen"
+                className="absolute top-3 right-3 p-2 rounded-lg bg-black/60 text-white border border-white/20 hover:bg-black/80 transition-colors"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
-              Now playing: <span className="text-white">{activeVideo.label}</span>
+              Now playing: <span className="text-white">{activeVideo.label}</span> — use the <Maximize2 className="inline w-3.5 h-3.5" /> button for full screen
             </p>
           </div>
 

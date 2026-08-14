@@ -9,14 +9,15 @@ import { SceneCampaigns } from './video_scenes/SceneCampaigns';
 import { SceneSequences } from './video_scenes/SceneSequences';
 import { SceneClose } from './video_scenes/SceneClose';
 
+// Durations padded ~1.6x so on-screen text is comfortably readable.
 export const SCENE_DURATIONS = {
-  hook: 2800,
-  pain: 3500,
-  reveal: 2000,
-  emails: 4500,
-  campaigns: 4000,
-  sequences: 3500,
-  close: 4500,
+  hook: 4500,
+  pain: 5600,
+  reveal: 3200,
+  emails: 7200,
+  campaigns: 6400,
+  sequences: 5600,
+  close: 7200,
 };
 
 const SCENE_COMPONENTS: Record<string, React.ComponentType> = {

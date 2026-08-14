@@ -152,11 +152,11 @@ function Hero() {
               Start Prospecting Now <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </a>
-          <a href={VIDEO_URL} className="w-full sm:w-auto">
-            <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 hover:bg-white/5 hover:text-white w-full sm:w-auto">
+          <Button asChild size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 hover:bg-white/5 hover:text-white w-full sm:w-auto">
+            <Link href="/book-demo" className="w-full sm:w-auto">
               <Play className="mr-2 w-5 h-5" /> Watch Demo
-            </Button>
-          </a>
+            </Link>
+          </Button>
         </motion.div>
 
         <motion.div 

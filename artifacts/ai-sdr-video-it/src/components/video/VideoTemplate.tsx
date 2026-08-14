@@ -8,13 +8,14 @@ import { SceneOfferings } from './video_scenes/SceneOfferings';
 import { SceneBooked } from './video_scenes/SceneBooked';
 import { SceneClose } from './video_scenes/SceneClose';
 
+// Durations padded ~1.6x so on-screen text is comfortably readable.
 export const SCENE_DURATIONS = {
-  hook: 3000,
-  pain: 3500,
-  reveal: 2500,
-  offerings: 5000,
-  booked: 4000,
-  close: 4500,
+  hook: 4800,
+  pain: 5600,
+  reveal: 4000,
+  offerings: 8000,
+  booked: 6400,
+  close: 7200,
 };
 
 const SCENE_COMPONENTS: Record<string, React.ComponentType> = {
