@@ -126,11 +126,7 @@ function VerticalNavbar() {
           </div>
           <div className="flex items-center gap-4">
             <a href={SIGN_IN_URL} className="text-sm font-medium text-white hover:text-accent transition-colors">Log in</a>
-            <a href={SIGN_UP_URL}>
-              <Button className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                Book a Demo
-              </Button>
-            </a>
+            <Button asChild className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]"><Link href="/book-demo">Book a Demo</Link></Button>
           </div>
         </div>
         <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -149,9 +145,7 @@ function VerticalNavbar() {
             <Link href="/ITServices" className="text-lg font-medium text-muted-foreground hover:text-white transition-colors" onClick={() => setMobileMenuOpen(false)}>IT Services</Link>
             <div className="h-px w-full bg-border my-2" />
             <a href={SIGN_IN_URL} className="text-lg font-medium text-white">Log in</a>
-            <a href={SIGN_UP_URL} className="w-full">
-              <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2">Book a Demo</Button>
-            </a>
+            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2"><Link href="/book-demo" className="w-full">Book a Demo</Link></Button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -299,11 +293,7 @@ export default function VerticalPage({ config }: { config: VerticalPageConfig })
             <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 font-display">{config.ctaHeadline}</h2>
             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">{config.ctaBody}</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href={SIGN_UP_URL}>
-                <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]">
-                  Book a Demo
-                </Button>
-              </a>
+              <Button asChild size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]"><Link href="/book-demo">Book a Demo</Link></Button>
             </div>
             <p className="mt-6 text-sm text-muted-foreground">No credit card required. See it work live on your territory.</p>
           </div>
