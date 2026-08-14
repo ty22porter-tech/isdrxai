@@ -35,3 +35,10 @@ id = "qeNekgZzbwdwmU5OLkPjD"
 uri = "file://artifacts/ai-sdr-video-it/public/audio/bg_music.mp3"
 type = "audio"
 title = "IT video background music"
+
+[[outputs]]
+id = "awh-fDDn5seEPJh1Yn0IZ"
+uri = "file://attached_assets/generated_images/linkedin_promo.png"
+type = "image"
+title = "iSDRX AI LinkedIn Promo Image"
+description = "Branded 1200×627 promo image for LinkedIn posts, linking to isdrxai.com/book-demo"
