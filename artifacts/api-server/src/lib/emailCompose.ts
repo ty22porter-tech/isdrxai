@@ -64,7 +64,7 @@ export function composeEmail(
   tracking?: TrackingOptions,
 ): ComposeResult {
   const baseUrl = getPublicAppUrl();
-  const unsubscribePageUrl = `${baseUrl}/unsubscribe/${prospect.unsubscribeToken}`;
+  const unsubscribePageUrl = `${baseUrl}/app/unsubscribe/${prospect.unsubscribeToken}`;
   const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.unsubscribeToken}`;
 
   const trackedLinks: TrackedLinkSpec[] = [];

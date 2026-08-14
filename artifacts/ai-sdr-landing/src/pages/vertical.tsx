@@ -17,8 +17,8 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
 const APP_ORIGIN = window.location.origin;
-const SIGN_IN_URL = `${APP_ORIGIN}/sign-in`;
-const SIGN_UP_URL = `${APP_ORIGIN}/sign-up`;
+const SIGN_IN_URL = `${APP_ORIGIN}/app/sign-in`;
+const SIGN_UP_URL = `${APP_ORIGIN}/app/sign-up`;
 const VIDEO_URL = `${APP_ORIGIN}/ai-sdr-video/`;
 
 export interface VerticalPageConfig {

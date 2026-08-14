@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/ai-sdr-landing/"
+previewPath = "/"
 title = "iSDRX AI – Landing Page"
 version = "1.0.0"
 id = "artifacts/ai-sdr-landing"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/ai-sdr-landing/" ]
+paths = [ "/" ]
 localPort = 18443
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "18443"
-BASE_PATH = "/ai-sdr-landing/"
+BASE_PATH = "/"

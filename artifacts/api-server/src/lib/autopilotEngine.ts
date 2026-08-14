@@ -332,7 +332,7 @@ export async function processAutopilotQueue(): Promise<void> {
       }
 
       const vc = getVerticalConfig(client.vertical);
-      const scheduleUrl = `${getPublicAppUrl()}/schedule/${prospect.scheduleToken}`;
+      const scheduleUrl = `${getPublicAppUrl()}/app/schedule/${prospect.scheduleToken}`;
       const subject = vc.offerSubject(prospect.companyName);
       const coreBody = await generateCalendlyEmail(prospect, vc);
       const trackingToken = randomUUID();

@@ -319,7 +319,7 @@ export default function Campaigns() {
   // a plain fetch — the server validates and applies it manually.
   const handleFollowUpModeChange = async (id: number, mode: string) => {
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/campaigns/${id}`, {
+      const res = await fetch(`/api/campaigns/${id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -9,13 +9,13 @@ import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalL
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(`${BASE_URL}/api${path}`, { credentials: "include", ...options });
+  const res = await fetch(`/api${path}`, { credentials: "include", ...options });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as any).error || `API error ${res.status}`);
   return data;
 }
 
-const objectUrl = (path: string) => `${BASE_URL}/api/storage${path}`;
+const objectUrl = (path: string) => `/api/storage${path}`;
 
 type Attachment = { path: string; name: string; size: number; contentType: string };
 
@@ -42,7 +42,7 @@ function SingleFileCard({
   const [err, setErr] = useState<string | null>(null);
   const pendingRef = useRef<File | null>(null);
   const { uploadFile, isUploading } = useUpload({
-    basePath: `${BASE_URL}/api/storage`,
+    basePath: `/api/storage`,
     onSuccess: (res) => {
       const f = pendingRef.current;
       onChange({ path: res.objectPath, name: f?.name ?? "file", size: f?.size ?? 0, contentType: f?.type || "application/octet-stream" });
@@ -106,7 +106,7 @@ function ImageUploadCard({
   const inputRef = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState<string | null>(null);
   const { uploadFile, isUploading } = useUpload({
-    basePath: `${BASE_URL}/api/storage`,
+    basePath: `/api/storage`,
     onSuccess: (res) => onChange(res.objectPath),
     onError: (e) => setErr(e.message),
   });
@@ -190,7 +190,7 @@ export default function SettingsPage() {
 
   const pendingFileRef = useRef<File | null>(null);
   const attachUpload = useUpload({
-    basePath: `${BASE_URL}/api/storage`,
+    basePath: `/api/storage`,
     onSuccess: (res) => {
       const f = pendingFileRef.current;
       setAttachments((prev) => [

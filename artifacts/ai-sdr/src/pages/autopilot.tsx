@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 async function apiFetch(path: string, options?: RequestInit) {
-  const res = await fetch(`${BASE_URL}/api${path}`, { credentials: "include", ...options });
+  const res = await fetch(`/api${path}`, { credentials: "include", ...options });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as any).error || `API error ${res.status}`);
   return data;

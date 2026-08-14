@@ -282,7 +282,7 @@ async function sendHotAlert(
     .where(eq(emailsTable.prospectId, prospect.id))
     .orderBy(sql`${emailsTable.sentAt} desc`)
     .limit(1);
-  const prospectUrl = `${appUrl}/prospects?prospect=${prospect.id}`;
+  const prospectUrl = `${appUrl}/app/prospects?prospect=${prospect.id}`;
   const escapeHtml = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   try {

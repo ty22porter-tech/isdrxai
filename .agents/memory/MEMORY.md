@@ -1,5 +1,7 @@
 # Memory Index
 
+- [Site URL structure](site-url-structure.md) — landing at root, app at /app, api at /api; app API calls must be root-absolute /api (not BASE_URL-prefixed); emailed frontend links need /app prefix.
+
 - [DB schema changes](db-schema-changes.md) — additive cols + type-mismatch/rename detection (exit 1, fix manually): run db lib's `ensure-columns` (schema guard; push prompts/breaks) + `cd lib/db && tsc --build --force`; guard also auto-creates whole missing tables (no FKs — warned, exit 0); FK-less guard tables need manual `ALTER TABLE ADD CONSTRAINT` using drizzle's `<t>_<col>_<ft>_id_fk` names so publish diff won't duplicate.
 - [Publish approval greyed](publish-approval-blocked-notnull.md) — NOT NULL cols with only app-level `.$defaultFn` (no DB default) make publish diff unappliable on populated prod → button greys; use `.default(sql\`gen_random_uuid()::text\`)`.
 - [Email send paths](email-send-paths.md) — never write status:"sent" without a real Resend dispatch; manual POST /api/emails once only logged. Share emailCompose.ts for CAN-SPAM.

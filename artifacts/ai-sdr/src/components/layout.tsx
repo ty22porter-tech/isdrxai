@@ -49,7 +49,7 @@ const navigation = [
 ];
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${BASE_URL}/api${path}`, { credentials: "include" });
+  const res = await fetch(`/api${path}`, { credentials: "include" });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
 }
@@ -65,11 +65,11 @@ function NotificationBell() {
   const items = data?.notifications ?? [];
 
   const markAllRead = async () => {
-    await fetch(`${BASE_URL}/api/notifications/read-all`, { method: "POST", credentials: "include" });
+    await fetch(`/api/notifications/read-all`, { method: "POST", credentials: "include" });
     queryClient.invalidateQueries({ queryKey: ["notifications"] });
   };
   const markRead = async (id: number) => {
-    await fetch(`${BASE_URL}/api/notifications/${id}/read`, { method: "POST", credentials: "include" });
+    await fetch(`/api/notifications/${id}/read`, { method: "POST", credentials: "include" });
     queryClient.invalidateQueries({ queryKey: ["notifications"] });
   };
 
@@ -128,7 +128,7 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
     setSaving(vertical);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/api/users/settings`, {
+      const res = await fetch(`/api/users/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

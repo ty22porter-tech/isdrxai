@@ -144,7 +144,7 @@ export async function processEngagementAutomation(): Promise<void> {
           scheduleToken = randomUUID();
           await db.update(prospectsTable).set({ scheduleToken }).where(eq(prospectsTable.id, prospect.id));
         }
-        ctaUrl = `${getPublicAppUrl()}/schedule/${scheduleToken}`;
+        ctaUrl = `${getPublicAppUrl()}/app/schedule/${scheduleToken}`;
         ctaLabel = "Answer a few quick questions & pick a time";
       } else {
         ctaUrl = client.calendlyUrl!.trim();

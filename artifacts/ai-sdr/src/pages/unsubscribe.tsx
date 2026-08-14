@@ -23,7 +23,7 @@ export default function Unsubscribe() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${BASE_URL}/api/unsubscribe/${token}`)
+    fetch(`/api/unsubscribe/${token}`)
       .then(async (res) => {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -42,7 +42,7 @@ export default function Unsubscribe() {
   const handleUnsubscribe = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/unsubscribe/${token}`, { method: "POST" });
+      const res = await fetch(`/api/unsubscribe/${token}`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Something went wrong. Please try again.");

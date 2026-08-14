@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}/api${path}`, { credentials: "include" });
+  const res = await fetch(`/api${path}`, { credentials: "include" });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }

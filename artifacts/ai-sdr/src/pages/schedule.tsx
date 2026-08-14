@@ -117,7 +117,7 @@ export default function Schedule() {
       setLoading(false);
       return;
     }
-    fetch(`${BASE_URL}/api/schedule/${token}`)
+    fetch(`/api/schedule/${token}`)
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error((data as any).error || "This link is no longer valid.");
@@ -196,7 +196,7 @@ export default function Schedule() {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/schedule/${token}`, {
+      const res = await fetch(`/api/schedule/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

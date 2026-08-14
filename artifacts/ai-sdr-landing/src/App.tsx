@@ -23,8 +23,8 @@ import VerticalPage, { JANITORIAL_CONFIG, IT_SERVICES_CONFIG } from "@/pages/ver
 import NotFound from "@/pages/not-found";
 
 const APP_ORIGIN = window.location.origin;
-const SIGN_IN_URL = `${APP_ORIGIN}/sign-in`;
-const SIGN_UP_URL = `${APP_ORIGIN}/sign-up`;
+const SIGN_IN_URL = `${APP_ORIGIN}/app/sign-in`;
+const SIGN_UP_URL = `${APP_ORIGIN}/app/sign-up`;
 const VIDEO_URL = `${APP_ORIGIN}/ai-sdr-video/`;
 
 const navItems = [
@@ -678,6 +678,14 @@ function VerticalChooser() {
 
 const ROUTER_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+// Old app links (schedule/unsubscribe links already emailed to prospects,
+// bookmarks) used to live at the site root before the app moved to /app.
+// Forward them so nothing already sent ever breaks.
+function RedirectToApp() {
+  window.location.replace(`/app${window.location.pathname}${window.location.search}`);
+  return null;
+}
+
 export default function App() {
   return (
     <Router base={ROUTER_BASE}>
@@ -689,6 +697,13 @@ export default function App() {
         <Route path="/ITServices">
           <VerticalPage config={IT_SERVICES_CONFIG} />
         </Route>
+        <Route path="/schedule/:token" component={RedirectToApp} />
+        <Route path="/unsubscribe/:token" component={RedirectToApp} />
+        <Route path="/prospects" component={RedirectToApp} />
+        <Route path="/prospects/:id" component={RedirectToApp} />
+        <Route path="/dashboard" component={RedirectToApp} />
+        <Route path="/sign-in" component={RedirectToApp} nest />
+        <Route path="/sign-up" component={RedirectToApp} nest />
         <Route component={NotFound} />
       </Switch>
     </Router>
