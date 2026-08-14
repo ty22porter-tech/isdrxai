@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://isdrxai.replit.app/sitemap.xml
+Sitemap: https://isdrxai.com/sitemap.xml
