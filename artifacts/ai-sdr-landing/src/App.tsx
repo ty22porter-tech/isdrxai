@@ -18,8 +18,8 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Route, Router, Switch, Link } from "wouter";
-import VerticalPage, { JANITORIAL_CONFIG, IT_SERVICES_CONFIG } from "@/pages/vertical";
+import { Route, Router, Switch, Link, Redirect } from "wouter";
+import VerticalPage, { TRADE_SERVICES_CONFIG, IT_SERVICES_CONFIG } from "@/pages/vertical";
 import NotFound from "@/pages/not-found";
 import BookDemoPage from "@/pages/book-demo";
 
@@ -138,7 +138,7 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto"
         >
-          Stop cold calling. Let AI prospect local businesses, write personalized outreach, and book walkthroughs for your janitorial business automatically.
+          Stop cold calling. Let AI prospect local businesses, write personalized outreach, and book walkthroughs for your commercial services company automatically.
         </motion.p>
 
         <motion.div 
@@ -177,9 +177,9 @@ function Logos() {
   return (
     <section className="py-10 border-y border-white/5 bg-white/[0.02]">
       <div className="max-w-7xl mx-auto px-6 text-center">
-        <p className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wider">Trusted by 500+ commercial cleaning businesses</p>
+        <p className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-wider">Trusted by 500+ commercial service & IT companies</p>
         <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale">
-          {/* Faux logos representing facility management / cleaning companies */}
+          {/* Faux logos representing facility management / commercial service companies */}
           <div className="flex items-center gap-2 font-display font-bold text-xl"><Building2 className="w-6 h-6" /> APEX FACILITY</div>
           <div className="flex items-center gap-2 font-display font-bold text-xl"><Briefcase className="w-6 h-6" /> PRO-CLEAN CORP</div>
           <div className="flex items-center gap-2 font-display font-bold text-xl"><Target className="w-6 h-6" /> VANGUARD</div>
@@ -220,7 +220,7 @@ function FeaturesGrid() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">Built for the trades, not tech companies.</h2>
           <p className="text-lg text-muted-foreground">
-            You don't need a complex CRM. You need a machine that goes out, finds buildings that need cleaning, and puts the owner on your calendar.
+            You don't need a complex CRM. You need a machine that goes out, finds businesses that need your services, and puts the owner on your calendar.
           </p>
         </div>
 
@@ -419,7 +419,7 @@ function EmailMockup() {
           Managing cleanliness across multiple locations can get complicated fast, especially with client-facing spaces.
         </p>
         <p>
-          We specialize in commercial cleaning for property management firms in the Denver metro. We currently handle
+          We specialize in commercial trade services for property management firms in the Denver metro. We currently handle
           three office complexes on the same block as your downtown location, so scheduling and access are never an issue.
         </p>
         <p>Would a 15-minute call this week make sense to see if we're a fit?</p>
@@ -599,7 +599,7 @@ function LandingPage() {
           description="Our engine analyzes the prospect's website, recent news, and business type to write a highly contextual opening that proves you aren't just spamming them."
           items={[
             { title: "Deep Research", description: "Mentions their specific services or locations." },
-            { title: "Value Prop Matching", description: "Pairs their pain points with your specific cleaning capabilities." }
+            { title: "Value Prop Matching", description: "Pairs their pain points with your specific service capabilities." }
           ]}
         />
 
@@ -611,7 +611,7 @@ function LandingPage() {
           description="It takes 7-12 touches to book a commercial contract. The AI handles the entire cadence—spacing out touches and replying appropriately when they answer."
           items={[
             { title: "Smart Sequencing", description: "Pauses automatically if they reply or book." },
-            { title: "Objection Handling", description: "AI categorizes replies ('Not right now', 'Who currently does your cleaning?') and flags them for you." }
+            { title: "Objection Handling", description: "AI categorizes replies ('Not right now', 'Who currently handles this for you?') and flags them for you." }
           ]}
         />
 
@@ -627,10 +627,10 @@ function LandingPage() {
 function VerticalChooser() {
   const verticals = [
     {
-      href: "/Janitorial",
-      title: "Commercial Cleaning",
-      description: "Book walkthroughs and win janitorial contracts with AI-powered local outreach.",
-      cta: "Explore Janitorial",
+      href: "/TradeServices",
+      title: "Commercial Trade Services",
+      description: "Book walkthroughs and win commercial service contracts with AI-powered local outreach.",
+      cta: "Explore Trade Services",
     },
     {
       href: "/ITServices",
@@ -680,8 +680,12 @@ export default function App() {
     <Router base={ROUTER_BASE}>
       <Switch>
         <Route path="/" component={LandingPage} />
+        {/* Old vertical URL — keep redirect so bookmarks and indexed links still work */}
         <Route path="/Janitorial">
-          <VerticalPage config={JANITORIAL_CONFIG} />
+          <Redirect to="/TradeServices" replace />
+        </Route>
+        <Route path="/TradeServices">
+          <VerticalPage config={TRADE_SERVICES_CONFIG} />
         </Route>
         <Route path="/ITServices">
           <VerticalPage config={IT_SERVICES_CONFIG} />

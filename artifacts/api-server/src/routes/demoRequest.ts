@@ -16,13 +16,14 @@ const DemoRequestSchema = z.object({
   company: z.string().trim().min(1).max(200).refine(noControlChars, "invalid characters"),
   email: z.string().trim().email().max(320).refine(noControlChars, "invalid characters"),
   phone: z.string().trim().max(50).optional().default(""),
-  industry: z.enum(["janitorial", "it-services", "other"]).optional().default("other"),
+  industry: z.enum(["trade-services", "janitorial", "it-services", "other"]).optional().default("other"),
   message: z.string().trim().max(2000).optional().default(""),
   // Honeypot: real users never fill this hidden field; bots do.
   website: z.string().max(500).optional().default(""),
 });
 
 const INDUSTRY_LABELS: Record<string, string> = {
+  "trade-services": "Commercial Trade Services",
   janitorial: "Janitorial / Commercial Cleaning",
   "it-services": "IT Services / MSP",
   other: "Other",

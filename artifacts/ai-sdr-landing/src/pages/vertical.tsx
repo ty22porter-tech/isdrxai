@@ -39,19 +39,19 @@ export interface VerticalPageConfig {
   ctaBody: string;
 }
 
-export const JANITORIAL_CONFIG: VerticalPageConfig = {
+export const TRADE_SERVICES_CONFIG: VerticalPageConfig = {
   videoUrl: VIDEO_URL,
-  badge: "AI outbound for commercial cleaning",
+  badge: "AI outbound for commercial trade services",
   headlineStart: "Book commercial service contracts",
   headlineAccent: "while you sleep.",
   subheadline:
-    "Stop cold calling. Let AI prospect local businesses, write personalized outreach, and book walkthroughs for your janitorial business automatically.",
+    "Stop cold calling. Let AI prospect local businesses, write personalized outreach, and book walkthroughs for your commercial services company automatically.",
   primaryCta: "Start Prospecting Now",
-  painTitle: "Winning cleaning contracts shouldn't mean endless cold calls.",
+  painTitle: "Winning commercial contracts shouldn't mean endless cold calls.",
   painIntro:
-    "Most janitorial companies grow on word-of-mouth alone — and hit a ceiling. iSDRX AI fixes the three things that keep cleaning businesses stuck:",
+    "Most commercial services companies grow on word-of-mouth alone — and hit a ceiling. iSDRX AI fixes the three things that keep trade businesses stuck:",
   painPoints: [
-    { title: "No time to prospect", description: "You're running crews and doing walkthroughs. The AI prospects for you, every day." },
+    { title: "No time to prospect", description: "You're running crews and doing site visits. The AI prospects for you, every day." },
     { title: "Generic outreach gets ignored", description: "Facility managers delete template emails. Ours reference their building, industry, and city." },
     { title: "Follow-up falls through the cracks", description: "It takes 7–12 touches to win a contract. The AI never forgets a follow-up." },
   ],
@@ -67,7 +67,7 @@ export const JANITORIAL_CONFIG: VerticalPageConfig = {
   testimonialRole: "Owner, Apex Facility Services",
   ctaHeadline: "Ready to dominate your territory?",
   ctaBody:
-    "Stop letting your competitors out-prospect you. Get an unfair advantage with the AI outreach engine built for commercial cleaners.",
+    "Stop letting your competitors out-prospect you. Get an unfair advantage with the AI outreach engine built for commercial service providers.",
 };
 
 export const IT_SERVICES_CONFIG: VerticalPageConfig = {
@@ -121,7 +121,7 @@ function VerticalNavbar() {
         </Link>
         <div className="hidden md:flex items-center gap-8">
           <div className="flex gap-6">
-            <Link href="/Janitorial" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">Janitorial</Link>
+            <Link href="/TradeServices" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">Trade Services</Link>
             <Link href="/ITServices" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">IT Services</Link>
           </div>
           <div className="flex items-center gap-4">
@@ -141,7 +141,7 @@ function VerticalNavbar() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-card border-b border-white/5 px-6 py-4 flex flex-col gap-4 overflow-hidden"
           >
-            <Link href="/Janitorial" className="text-lg font-medium text-muted-foreground hover:text-white transition-colors" onClick={() => setMobileMenuOpen(false)}>Janitorial</Link>
+            <Link href="/TradeServices" className="text-lg font-medium text-muted-foreground hover:text-white transition-colors" onClick={() => setMobileMenuOpen(false)}>Trade Services</Link>
             <Link href="/ITServices" className="text-lg font-medium text-muted-foreground hover:text-white transition-colors" onClick={() => setMobileMenuOpen(false)}>IT Services</Link>
             <div className="h-px w-full bg-border my-2" />
             <a href={SIGN_IN_URL} className="text-lg font-medium text-white">Log in</a>
@@ -308,7 +308,7 @@ export default function VerticalPage({ config }: { config: VerticalPageConfig })
             <span className="font-display font-bold text-lg tracking-tight text-white">iSDRX AI</span>
           </div>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link href="/Janitorial" className="hover:text-white transition-colors">Janitorial</Link>
+            <Link href="/TradeServices" className="hover:text-white transition-colors">Trade Services</Link>
             <Link href="/ITServices" className="hover:text-white transition-colors">IT Services</Link>
             <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Contact</a>
           </div>

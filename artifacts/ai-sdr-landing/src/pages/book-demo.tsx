@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 
 const APP_ORIGIN = window.location.origin;
 const VIDEOS = [
-  { id: "janitorial", label: "Janitorial / Commercial Cleaning", url: `${APP_ORIGIN}/ai-sdr-video/` },
+  { id: "trade-services", label: "Commercial Trade Services", url: `${APP_ORIGIN}/ai-sdr-video/` },
   { id: "it-services", label: "IT Services / MSP", url: `${APP_ORIGIN}/ai-sdr-video-it/` },
 ] as const;
 
 export default function BookDemoPage() {
   const [activeVideo, setActiveVideo] = useState<(typeof VIDEOS)[number]>(VIDEOS[0]);
-  const [form, setForm] = useState({ name: "", company: "", email: "", phone: "", industry: "janitorial", message: "", website: "" });
+  const [form, setForm] = useState({ name: "", company: "", email: "", phone: "", industry: "trade-services", message: "", website: "" });
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -121,7 +121,7 @@ export default function BookDemoPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company">Company *</Label>
-                    <Input id="company" required value={form.company} onChange={set("company")} placeholder="Acme Cleaning Co." />
+                    <Input id="company" required value={form.company} onChange={set("company")} placeholder="Acme Commercial Services" />
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -142,7 +142,7 @@ export default function BookDemoPage() {
                     onChange={set("industry")}
                     className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm"
                   >
-                    <option value="janitorial">Janitorial / Commercial Cleaning</option>
+                    <option value="trade-services">Commercial Trade Services</option>
                     <option value="it-services">IT Services / MSP</option>
                     <option value="other">Other</option>
                   </select>
