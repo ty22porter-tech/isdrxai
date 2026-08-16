@@ -21,7 +21,16 @@ export default function BookDemoPage() {
 
   const videoBoxRef = useRef<HTMLDivElement>(null);
   const goFullscreen = () => {
-    videoBoxRef.current?.requestFullscreen?.().catch(() => {});
+    const el = videoBoxRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }) | null;
+    // iOS Safari doesn't support fullscreen on non-video elements — fall back
+    // to opening the video in its own tab, which fills the screen.
+    if (el?.requestFullscreen) {
+      el.requestFullscreen().catch(() => window.open(activeVideo.url, "_blank"));
+    } else if (el?.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    } else {
+      window.open(activeVideo.url, "_blank");
+    }
   };
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
