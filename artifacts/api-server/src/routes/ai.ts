@@ -400,6 +400,17 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
   const confidence: "high" | "medium" | "low" = phone && domain ? "high" : phone || domain ? "medium" : "low";
   const industryLabel = industry && industry !== "All Industries" ? industry : "Local business";
 
+  // Fit rationale: why this company is worth pursuing, built from the real
+  // signals the search verified (not just proof the business exists).
+  const fitSignals: string[] = [];
+  if (place.formattedAddress) fitSignals.push("operates a physical facility (an ongoing need for on-site commercial services)");
+  if (domain) fitSignals.push("has an active website, so it's an established operation rather than a side gig");
+  if (phone) fitSignals.push("publishes a direct phone line for follow-up calls");
+  const fitText = fitSignals.length
+    ? ` It ${fitSignals.join(", and ")}.`
+    : "";
+  const whyTarget = `${industryLabel} companies in ${city}, ${state} are a strong fit for recurring commercial service contracts — they have facilities to maintain, budgets for outside vendors, and value a reliable local provider.${fitText}`;
+
   return {
     companyName,
     contactName: "Owner",
@@ -411,7 +422,7 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
     state,
     website: domain,
     address: place.formattedAddress,
-    whyTarget: `Real ${industryLabel.toLowerCase()} business found via Google Places${place.formattedAddress ? ` at ${place.formattedAddress}` : ""}. Contact name and email are placeholders until enrichment runs.`,
+    whyTarget,
     confidence,
     vertical,
   };
