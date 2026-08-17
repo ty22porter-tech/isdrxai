@@ -434,11 +434,17 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
 // company-specific reason it's a good outreach target, grounded ONLY in the
 // verified signals we actually have. Falls back to the signal-based template.
 
+interface ProspectInsight {
+  why: string;
+  /** 0-100 likelihood this account engages with and buys the client's service. */
+  score: number;
+}
+
 async function generateWhyTargets(
   leads: BaseLead[],
   vertical: string,
   searchIndustry: string,
-): Promise<string[] | null> {
+): Promise<ProspectInsight[] | null> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
   const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
   if (!baseURL || !apiKey || !leads.length) return null;
@@ -460,7 +466,10 @@ async function generateWhyTargets(
   const messages = [
     {
       role: "system",
-      content: `You are a B2B sales researcher for a company that sells ${sellerDesc}. For EACH business below, write a 1-2 sentence "why target this account" insight for the salesperson. Be specific to that company's industry, likely facility/operations profile, and location — e.g. what their type of business typically needs from a vendor like ours and what buying signals the data shows. Ground every claim in the provided data or in well-known traits of that industry; NEVER invent facts like employee counts, revenue, or specific equipment. No fluff like "great opportunity". Return ONLY a JSON array of strings, one per business, in the same order, no markdown.`,
+      content: `You are a B2B sales researcher for a company that sells ${sellerDesc}. For EACH business below:
+1. Write a 1-2 sentence "why target this account" insight for the salesperson. Be specific to that company's industry, likely facility/operations profile, and location — what their type of business typically needs from a vendor like ours and what buying signals the data shows.
+2. Score 0-100 how likely this account is to engage with outreach and actually buy ${sellerDesc}. Consider: how strongly their industry depends on these services, whether they look like an established operation (website, phone), and whether the business type typically outsources vs handles it in-house. Be discriminating — use the full range, don't cluster everything at 70-80.
+Ground every claim in the provided data or in well-known traits of that industry; NEVER invent facts like employee counts, revenue, or specific equipment. No fluff like "great opportunity". Return ONLY a JSON array of objects {"why": string, "score": number}, one per business, in the same order, no markdown.`,
     },
     { role: "user", content: companyLines.join("\n") },
   ];
@@ -478,8 +487,11 @@ async function generateWhyTargets(
     const jsonText = raw.trim().replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
     const parsed = JSON.parse(jsonText);
     if (!Array.isArray(parsed) || parsed.length !== leads.length) return null;
-    if (!parsed.every((s) => typeof s === "string" && s.trim().length > 20 && s.length < 600)) return null;
-    return parsed.map((s: string) => s.trim());
+    if (!parsed.every((o) =>
+      o && typeof o.why === "string" && o.why.trim().length > 20 && o.why.length < 600 &&
+      typeof o.score === "number" && o.score >= 0 && o.score <= 100
+    )) return null;
+    return parsed.map((o: any) => ({ why: o.why.trim(), score: Math.round(o.score) }));
   } catch (err: any) {
     logger.warn({ err: err?.message }, "AI why-target generation failed — using signal-based fallback");
     return null;
@@ -506,15 +518,23 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
 
     // AI research pass: company-specific "why target" insights (falls back to
     // the signal-based template already on each lead when AI is unavailable).
-    const aiWhy = await generateWhyTargets(bases, vertical, body.industry);
+    const insights = await generateWhyTargets(bases, vertical, body.industry);
 
     const leads = bases.map((base, i) => {
       const lead = vertical === "it_services"
         ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined)
         : base;
-      // AI insight wins when available; otherwise keep the vertical's own fallback.
-      return aiWhy ? { ...lead, whyTarget: aiWhy[i] } : lead;
+      if (!insights) return lead; // AI unavailable — keep signal-based why + confidence.
+      const { why, score } = insights[i];
+      // Engagement-likelihood score drives the fit label and result ordering.
+      const confidence: "high" | "medium" | "low" = score >= 70 ? "high" : score >= 45 ? "medium" : "low";
+      return { ...lead, whyTarget: why, confidence, engagementScore: score };
     });
+
+    // Likeliest-to-engage accounts first.
+    if (insights) {
+      leads.sort((a: any, b: any) => (b.engagementScore ?? 0) - (a.engagementScore ?? 0));
+    }
     return res.json(leads);
   } catch (err) {
     if (err instanceof ProspectSearchError) {
