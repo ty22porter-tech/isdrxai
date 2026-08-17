@@ -15,15 +15,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { EngagementTable } from "@/components/engagement-table";
 import { Link } from "wouter";
 
-function StatCard({ title, value, sub, icon, tooltip }: {
+function StatCard({ title, value, sub, icon, tooltip, href }: {
   title: string;
   value: number | string;
   sub?: React.ReactNode;
   icon: React.ReactNode;
   tooltip?: string;
+  href?: string;
 }) {
-  return (
-    <Card>
+  const card = (
+    <Card className={href ? "transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full" : undefined}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
         <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
           {title}
@@ -44,6 +45,14 @@ function StatCard({ title, value, sub, icon, tooltip }: {
       </CardContent>
     </Card>
   );
+  if (href) {
+    return (
+      <Link href={href} className="block h-full">
+        {card}
+      </Link>
+    );
+  }
+  return card;
 }
 
 interface EngagementSummary {
@@ -96,18 +105,20 @@ export default function Dashboard() {
           </div>
         ) : stats ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Prospects</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalProspects}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.activeProspects} active in pipeline
-                </p>
-              </CardContent>
-            </Card>
+            <Link href="/prospects" className="block">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Prospects</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalProspects}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.activeProspects} active in pipeline
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
             <Link href="/emails" className="block">
               <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -122,30 +133,34 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </Link>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Calls Made</CardTitle>
-                <PhoneCall className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.callsMade}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This month
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Appointments</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.appointmentsSet}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.appointmentsCompleted} completed
-                </p>
-              </CardContent>
-            </Card>
+            <Link href="/calls" className="block">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Calls Made</CardTitle>
+                  <PhoneCall className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.callsMade}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This month
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/appointments" className="block">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.appointmentsSet}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.appointmentsCompleted} completed
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         ) : null}
 
@@ -163,32 +178,32 @@ export default function Dashboard() {
             </div>
           ) : engagement ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <StatCard title="Emails Sent" value={engagement.emailsSent} icon={<Send className="h-4 w-4 text-blue-500" />} />
-              <StatCard title="Emails Delivered" value={engagement.emailsDelivered}
+              <StatCard title="Emails Sent" value={engagement.emailsSent} href="/emails" icon={<Send className="h-4 w-4 text-blue-500" />} />
+              <StatCard title="Emails Delivered" value={engagement.emailsDelivered} href="/emails"
                 sub={engagement.emailsBounced > 0 ? <span className="text-red-500">{engagement.emailsBounced} bounced</span> : "confirmed by provider"}
                 icon={<Mail className="h-4 w-4 text-green-500" />} />
-              <StatCard title="Prospects Who Opened" value={engagement.prospectsWhoOpened}
+              <StatCard title="Prospects Who Opened" value={engagement.prospectsWhoOpened} href="/prospects"
                 tooltip="Open tracking is an estimate — privacy protections and email scanners can hide real opens or trigger false ones."
                 icon={<Users className="h-4 w-4 text-blue-500" />} />
-              <StatCard title="Total Valid Opens" value={engagement.validOpens}
+              <StatCard title="Total Valid Opens" value={engagement.validOpens} href="/emails"
                 sub={`${engagement.totalOpens} total incl. bots`}
                 tooltip="Open tracking is an estimate — privacy protections and email scanners can hide real opens or trigger false ones. Obvious bot opens are filtered out."
                 icon={<Eye className="h-4 w-4 text-blue-500" />} />
-              <StatCard title="Repeated-Open Prospects" value={engagement.repeatedOpenProspects} sub="3+ valid opens"
+              <StatCard title="Repeated-Open Prospects" value={engagement.repeatedOpenProspects} sub="3+ valid opens" href="/prospects"
                 icon={<AlertTriangle className="h-4 w-4 text-orange-500" />} />
-              <StatCard title="Attachments Viewed" value={engagement.attachmentsViewed}
+              <StatCard title="Attachments Viewed" value={engagement.attachmentsViewed} href="/emails"
                 sub={`${engagement.attachmentDownloads} downloaded`}
                 icon={<Paperclip className="h-4 w-4 text-purple-500" />} />
-              <StatCard title="Links Clicked" value={engagement.linksClicked} icon={<MousePointerClick className="h-4 w-4 text-green-500" />} />
+              <StatCard title="Links Clicked" value={engagement.linksClicked} href="/emails" icon={<MousePointerClick className="h-4 w-4 text-green-500" />} />
               <StatCard title="Hot / Medium / Low"
                 value={`${engagement.hotProspects} / ${engagement.mediumProspects} / ${engagement.lowProspects}`}
-                sub="prospects by interest level"
+                sub="prospects by interest level" href="/prospects"
                 icon={<Flame className="h-4 w-4 text-orange-500" />} />
               <StatCard title="Automated Meeting Requests Sent" value={engagement.meetingRequestsSent}
-                sub="triggered by repeated opens"
+                sub="triggered by repeated opens" href="/emails"
                 icon={<Send className="h-4 w-4 text-primary" />} />
-              <StatCard title="Calendly Links Clicked" value={engagement.calendlyClicks} icon={<MousePointerClick className="h-4 w-4 text-primary" />} />
-              <StatCard title="Meetings Scheduled" value={engagement.meetingsScheduled} icon={<CalendarCheck className="h-4 w-4 text-emerald-500" />} />
+              <StatCard title="Calendly Links Clicked" value={engagement.calendlyClicks} href="/appointments" icon={<MousePointerClick className="h-4 w-4 text-primary" />} />
+              <StatCard title="Meetings Scheduled" value={engagement.meetingsScheduled} href="/appointments" icon={<CalendarCheck className="h-4 w-4 text-emerald-500" />} />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No engagement data yet — stats appear once emails are sent.</p>
