@@ -213,7 +213,7 @@ async function searchDecisionMaker(apiKey: string, input: {
 
   let res: Response;
   try {
-    res = await fetch("https://api.apollo.io/api/v1/mixed_people/search", {
+    res = await fetch("https://api.apollo.io/api/v1/mixed_people/api_search", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
       body: JSON.stringify(body),
@@ -238,7 +238,31 @@ async function searchDecisionMaker(apiKey: string, input: {
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
   });
 
-  return { ok: true, person: extractPersonFromApolloData(sorted[0]) };
+  // api_search returns obfuscated results (no email, partial name) — enrich
+  // the chosen person via /people/match using their Apollo id to reveal details.
+  const chosen = sorted[0];
+  if (!chosen?.id) return { ok: true, person: null };
+
+  let matchRes: Response;
+  try {
+    matchRes = await fetch("https://api.apollo.io/api/v1/people/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+      body: JSON.stringify({ id: chosen.id, reveal_personal_emails: false }),
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (err: any) {
+    return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+  }
+
+  const matchErr = await handleApolloError(matchRes);
+  if (matchErr) return matchErr;
+
+  const matchData: any = await matchRes.json().catch(() => null);
+  const person = matchData?.person;
+  if (!person) return { ok: true, person: null };
+
+  return { ok: true, person: extractPersonFromApolloData(person) };
 }
 
 export async function enrichPerson(input: {
