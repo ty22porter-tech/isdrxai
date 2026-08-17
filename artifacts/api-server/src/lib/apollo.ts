@@ -78,6 +78,101 @@ const DECISION_MAKER_TITLES: Record<string, string[]> = {
   ],
 };
 
+/** Generic corporate words that don't identify a specific company. */
+const GENERIC_NAME_TOKENS = new Set([
+  "inc", "llc", "ltd", "corp", "corporation", "co", "company", "group",
+  "the", "and", "of", "for", "a", "an", "services", "service", "solutions",
+  "enterprises", "holdings", "international", "usa", "us", "america",
+]);
+
+function significantNameTokens(name: string): string[] {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 1 && !GENERIC_NAME_TOKENS.has(t));
+}
+
+function domainOf(url: unknown): string | null {
+  if (typeof url !== "string" || !url) return null;
+  try {
+    const withProto = url.startsWith("http") ? url : `https://${url}`;
+    return new URL(withProto).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** Reduce a hostname to its registrable domain (rough heuristic: last two labels,
+ * three for common two-part public suffixes like co.uk). */
+function registrableDomain(host: string | null): string | null {
+  if (!host) return null;
+  const labels = host.split(".").filter(Boolean);
+  if (labels.length <= 2) return host;
+  const twoPartSuffixes = new Set(["co", "com", "org", "net", "gov", "ac", "edu"]);
+  const takeThree = twoPartSuffixes.has(labels[labels.length - 2]) && labels[labels.length - 1].length === 2;
+  return labels.slice(takeThree ? -3 : -2).join(".");
+}
+
+/** Company name squashed to letters/digits only, for variant-tolerant comparison
+ * ("McDonald's" vs "McDonalds", "Mockingbird Food" vs "MockingbirdFood"). */
+function squashedName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter((t) => !GENERIC_NAME_TOKENS.has(t))
+    .join("");
+}
+
+/**
+ * Sanity check: does the person Apollo returned actually belong to the company
+ * we asked about? Apollo's name search is fuzzy and can return someone from an
+ * unrelated company (e.g. a Swedish firm for a Dallas manufacturer). A wrong
+ * contact is worse than no contact, so reject implausible matches.
+ */
+export function isPlausibleCompanyMatch(rawPerson: any, target: {
+  companyName: string;
+  domain?: string | null;
+}): boolean {
+  const org = rawPerson?.organization ?? {};
+  const orgName: string = org.name ?? "";
+  const orgDomain = domainOf(org.website_url) ?? (typeof org.primary_domain === "string" ? org.primary_domain.toLowerCase() : null);
+  const emailDomain = typeof rawPerson?.email === "string" && rawPerson.email.includes("@")
+    ? rawPerson.email.split("@")[1].toLowerCase()
+    : null;
+
+  const reject = (reason: string) => {
+    logger.warn(
+      { reason, targetCompany: target.companyName, targetDomain: target.domain ?? null, apolloOrg: orgName || null, apolloOrgDomain: orgDomain, apolloEmailDomain: emailDomain },
+      "Apollo match rejected as implausible",
+    );
+    return false;
+  };
+
+  if (target.domain) {
+    const t = registrableDomain(target.domain.toLowerCase());
+    // Strongest signal: org or email domain matches the company's website.
+    if (registrableDomain(orgDomain) === t || registrableDomain(emailDomain) === t) return true;
+    // Explicit conflict: Apollo names a *different* company domain. A name
+    // resemblance can't rescue this — "Acme Dental" is not "Acme Manufacturing".
+    if (orgDomain) return reject("org domain conflicts with company website");
+  }
+
+  // Name evidence (used when there is no reliable conflicting domain):
+  // distinctive token overlap, or squashed-name containment for punctuation/
+  // concatenation variants ("McDonald's" ⊂ "McDonalds Corporation").
+  const targetTokens = significantNameTokens(target.companyName);
+  const orgTokens = new Set(significantNameTokens(orgName));
+  if (targetTokens.some((t) => orgTokens.has(t))) return true;
+
+  const sq1 = squashedName(target.companyName);
+  const sq2 = squashedName(orgName);
+  if (sq1.length >= 4 && sq2.length >= 4 && (sq1.includes(sq2) || sq2.includes(sq1))) return true;
+
+  return reject("no domain or name evidence linking person to company");
+}
+
 function extractPersonFromApolloData(p: any): ApolloEnrichment {
   const org = p.organization ?? {};
 
@@ -238,31 +333,41 @@ async function searchDecisionMaker(apiKey: string, input: {
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
   });
 
-  // api_search returns obfuscated results (no email, partial name) — enrich
-  // the chosen person via /people/match using their Apollo id to reveal details.
-  const chosen = sorted[0];
-  if (!chosen?.id) return { ok: true, person: null };
+  // Reject candidates that don't plausibly belong to the target company —
+  // Apollo's fuzzy name search can return people from unrelated companies.
+  const target = { companyName: input.companyName, domain };
+  const plausible = sorted.filter((p) => p?.id && isPlausibleCompanyMatch(p, target));
+  if (!plausible.length) return { ok: true, person: null };
 
-  let matchRes: Response;
-  try {
-    matchRes = await fetch("https://api.apollo.io/api/v1/people/match", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
-      body: JSON.stringify({ id: chosen.id, reveal_personal_emails: false }),
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch (err: any) {
-    return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+  // api_search returns obfuscated results (no email, partial name) — enrich
+  // via /people/match by Apollo id to reveal details, then re-verify with the
+  // revealed data. If a reveal fails validation, try the next candidate.
+  for (const chosen of plausible.slice(0, 3)) {
+    let matchRes: Response;
+    try {
+      matchRes = await fetch("https://api.apollo.io/api/v1/people/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+        body: JSON.stringify({ id: chosen.id, reveal_personal_emails: false }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (err: any) {
+      return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+    }
+
+    const matchErr = await handleApolloError(matchRes);
+    if (matchErr) return matchErr;
+
+    const matchData: any = await matchRes.json().catch(() => null);
+    const person = matchData?.person;
+    if (!person) continue;
+
+    if (!isPlausibleCompanyMatch(person, target)) continue;
+
+    return { ok: true, person: extractPersonFromApolloData(person) };
   }
 
-  const matchErr = await handleApolloError(matchRes);
-  if (matchErr) return matchErr;
-
-  const matchData: any = await matchRes.json().catch(() => null);
-  const person = matchData?.person;
-  if (!person) return { ok: true, person: null };
-
-  return { ok: true, person: extractPersonFromApolloData(person) };
+  return { ok: true, person: null };
 }
 
 export async function enrichPerson(input: {

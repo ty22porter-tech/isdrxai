@@ -6,6 +6,7 @@ import { GenerateEmailBody, GenerateCallScriptBody, ProspectSearchBody, EnrichLe
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
 import { enrichPerson } from "../lib/apollo";
+import { logger } from "../lib/logger";
 
 const router = Router();
 router.use(requireAuth);
@@ -409,7 +410,7 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
   const fitText = fitSignals.length
     ? ` It ${fitSignals.join(", and ")}.`
     : "";
-  const whyTarget = `${industryLabel} companies in ${city}, ${state} are a strong fit for recurring commercial service contracts — they have facilities to maintain, budgets for outside vendors, and value a reliable local provider.${fitText}`;
+  const whyTarget = `${industryLabel} companies in ${city}, ${state} are a strong fit for recurring commercial service contracts — they have facilities to maintain and typically rely on outside vendors for upkeep.${fitText}`;
 
   return {
     companyName,
@@ -428,6 +429,63 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
   };
 }
 
+// ─── AI-written "Why target" insights ─────────────────────────────────────────
+// One batched LLM call per search: for each found business, write a short,
+// company-specific reason it's a good outreach target, grounded ONLY in the
+// verified signals we actually have. Falls back to the signal-based template.
+
+async function generateWhyTargets(
+  leads: BaseLead[],
+  vertical: string,
+  searchIndustry: string,
+): Promise<string[] | null> {
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
+  if (!baseURL || !apiKey || !leads.length) return null;
+
+  const sellerDesc = vertical === "it_services"
+    ? "managed IT services, cybersecurity, and IT support"
+    : "recurring commercial trade services (cleaning, maintenance, facility upkeep)";
+
+  const companyLines = leads.map((l, i) => JSON.stringify({
+    i,
+    name: l.companyName,
+    industry: l.industry,
+    location: `${l.city}, ${l.state}`,
+    address: l.address ?? null,
+    website: l.website ?? null,
+    hasPhone: Boolean(l.phone),
+  }));
+
+  const messages = [
+    {
+      role: "system",
+      content: `You are a B2B sales researcher for a company that sells ${sellerDesc}. For EACH business below, write a 1-2 sentence "why target this account" insight for the salesperson. Be specific to that company's industry, likely facility/operations profile, and location — e.g. what their type of business typically needs from a vendor like ours and what buying signals the data shows. Ground every claim in the provided data or in well-known traits of that industry; NEVER invent facts like employee counts, revenue, or specific equipment. No fluff like "great opportunity". Return ONLY a JSON array of strings, one per business, in the same order, no markdown.`,
+    },
+    { role: "user", content: companyLines.join("\n") },
+  ];
+
+  try {
+    const resp = await fetch(`${baseURL}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: "gpt-5.4", max_completion_tokens: 2500, messages }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!resp.ok) throw new Error(`LLM ${resp.status}`);
+    const data = await resp.json() as any;
+    const raw: string = data.choices?.[0]?.message?.content ?? "";
+    const jsonText = raw.trim().replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
+    const parsed = JSON.parse(jsonText);
+    if (!Array.isArray(parsed) || parsed.length !== leads.length) return null;
+    if (!parsed.every((s) => typeof s === "string" && s.trim().length > 20 && s.length < 600)) return null;
+    return parsed.map((s: string) => s.trim());
+  } catch (err: any) {
+    logger.warn({ err: err?.message }, "AI why-target generation failed — using signal-based fallback");
+    return null;
+  }
+}
+
 router.post("/prospect-search", requireEntitlement, async (req, res) => {
   const body = ProspectSearchBody.parse(req.body);
   const count = Math.min(body.count, 20);
@@ -444,11 +502,18 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
 
   try {
     const places = await searchRealBusinesses(apiKey, body.city.trim(), body.state, body.industry, count);
-    const leads = places.slice(0, count).map((p) => {
-      const base = placeToLeadBase(p, body.city.trim(), body.state, body.industry, vertical);
-      return vertical === "it_services"
+    const bases = places.slice(0, count).map((p) => placeToLeadBase(p, body.city.trim(), body.state, body.industry, vertical));
+
+    // AI research pass: company-specific "why target" insights (falls back to
+    // the signal-based template already on each lead when AI is unavailable).
+    const aiWhy = await generateWhyTargets(bases, vertical, body.industry);
+
+    const leads = bases.map((base, i) => {
+      const lead = vertical === "it_services"
         ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined)
         : base;
+      // AI insight wins when available; otherwise keep the vertical's own fallback.
+      return aiWhy ? { ...lead, whyTarget: aiWhy[i] } : lead;
     });
     return res.json(leads);
   } catch (err) {
