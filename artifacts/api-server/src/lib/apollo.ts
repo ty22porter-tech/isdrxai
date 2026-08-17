@@ -300,9 +300,11 @@ async function searchDecisionMaker(apiKey: string, input: {
     page: 1,
     per_page: 5,
     person_titles: titles,
-    // Apollo accepts either organization domain or name.
+    // NOTE: api_search silently ignores unknown filters (e.g. "organization_domains"),
+    // returning people from random companies — the correct param is
+    // q_organization_domains_list. Verified against the live API.
     ...(domain
-      ? { organization_domains: [domain] }
+      ? { q_organization_domains_list: [domain] }
       : { q_organization_name: input.companyName }),
   };
 
