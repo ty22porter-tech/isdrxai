@@ -623,6 +623,10 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
   }));
 
   results.sort((a, b) => a.index - b.index);
+  // Outcome summary — the one line that tells us in production logs whether
+  // Apollo enrichment is actually finding contacts (or why not).
+  const counts = results.reduce<Record<string, number>>((acc, r) => { acc[r.status] = (acc[r.status] ?? 0) + 1; return acc; }, {});
+  logger.info({ leads: leads.length, ...counts, planBlocked, ...(runError ? { error: runError } : {}) }, "Apollo enrichment run complete");
   return res.json({ results, planBlocked, ...(runError ? { error: runError } : {}) });
 });
 

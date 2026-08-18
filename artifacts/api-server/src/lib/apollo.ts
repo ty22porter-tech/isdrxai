@@ -296,36 +296,45 @@ async function searchDecisionMaker(apiKey: string, input: {
     } catch { /* ignore */ }
   }
 
-  const body: Record<string, unknown> = {
-    page: 1,
-    per_page: 5,
-    person_titles: titles,
-    // NOTE: api_search silently ignores unknown filters (e.g. "organization_domains"),
-    // returning people from random companies — the correct param is
-    // q_organization_domains_list. Verified against the live API.
-    ...(domain
-      ? { q_organization_domains_list: [domain] }
-      : { q_organization_name: input.companyName }),
+  // NOTE: api_search silently ignores unknown filters (e.g. "organization_domains"),
+  // returning people from random companies — the correct param is
+  // q_organization_domains_list. Verified against the live API.
+  const companyFilter = domain
+    ? { q_organization_domains_list: [domain] }
+    : { q_organization_name: input.companyName };
+
+  const runSearch = async (withTitles: boolean): Promise<{ people: any[] } | ApolloResult> => {
+    let res: Response;
+    try {
+      res = await fetch("https://api.apollo.io/api/v1/mixed_people/api_search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+        body: JSON.stringify({ page: 1, per_page: 5, ...(withTitles ? { person_titles: titles } : {}), ...companyFilter }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (err: any) {
+      return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+    }
+    const errResult = await handleApolloError(res);
+    if (errResult) return errResult;
+    const data: any = await res.json().catch(() => null);
+    return { people: data?.people ?? [] };
   };
 
-  let res: Response;
-  try {
-    res = await fetch("https://api.apollo.io/api/v1/mixed_people/api_search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch (err: any) {
-    return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+  // First pass: decision-maker titles only. If nobody at the company carries
+  // one of those titles, retry without the title filter — for small businesses
+  // any listed person (often the owner under an unusual title) beats "not found".
+  let search = await runSearch(true);
+  if ("ok" in search) return search;
+  if (!search.people.length) {
+    search = await runSearch(false);
+    if ("ok" in search) return search;
   }
-
-  const errResult = await handleApolloError(res);
-  if (errResult) return errResult;
-
-  const data: any = await res.json().catch(() => null);
-  const people: any[] = data?.people ?? [];
-  if (!people.length) return { ok: true, person: null };
+  const people: any[] = search.people;
+  if (!people.length) {
+    logger.info({ company: input.companyName, domain: domain ?? null }, "Apollo has no people listed for this company");
+    return { ok: true, person: null };
+  }
 
   // Prefer the highest-priority title match.
   const lowerTitles = titles.map((t) => t.toLowerCase());
