@@ -418,19 +418,22 @@ export async function processAutopilotQueue(): Promise<void> {
   }
 }
 
-export function startAutopilotEngine(logger: { info: (msg: string) => void; error: (msg: string, data?: any) => void }): void {
+export function startAutopilotEngine(logger: {
+  info: (msg: string) => void;
+  error: (data: Record<string, unknown>, msg: string) => void;
+}): void {
   const INTERVAL_MS = 5 * 60 * 1000;
 
   const run = async () => {
     try {
       await processAutopilotQueue();
     } catch (err: any) {
-      logger.error("Autopilot engine error", { err: err.message });
+      logger.error({ err }, "Autopilot engine error");
     }
     try {
       await processEngagementAutomation();
     } catch (err: any) {
-      logger.error("Engagement automation error", { err: err.message });
+      logger.error({ err }, "Engagement automation error");
     }
   };
 

@@ -1,6 +1,6 @@
 ---
-name: Reply-To and legacy inbound reply detection
-description: Current direct-to-user Reply-To policy plus the legacy Resend inbound routing constraints for previously delivered email.
+name: Inbound reply detection (Option B)
+description: How prospect replies are auto-detected via Resend inbound webhook, and the non-obvious Resend constraints around it.
 ---
 
 # Inbound reply detection ("Option B")
@@ -19,24 +19,23 @@ fallback) and pass them as `{ id, timestamp, signature }`.
 `standardwebhooks`, POST to the live `/api/resend/webhook` with `svix-*` headers → expect
 200 for a valid sig, 400 for a bad one.
 
-## CURRENT DECISION: new replies go directly to the user's outreach inbox
-New outbound prospect emails use the client's `outreachEmail` as Reply-To, even when
-`INBOUND_REPLY_DOMAIN` and a reply token are present. The user explicitly prefers a
-recognizable personal/company reply address over the tokenized routing address.
+## DECISION: tokenized Reply-To keeps reply-to-meeting automation working
+When `INBOUND_REPLY_DOMAIN` and a prospect reply token are available, outgoing prospect
+email uses `reply-<token>@<inbound-domain>` as Reply-To. An incoming verified positive
+reply is then matched to its prospect, awarded engagement points, and triggers the
+automated meeting-request email.
 
-**Why:** recipients could see the long tokenized Reply-To and the user asked that replies
-go to each user's own email address instead.
+**Why:** the user explicitly confirmed that automatic positive-reply detection and
+meeting requests are essential to the app's success; routing replies directly to the
+user inbox bypasses the webhook and breaks that automation.
 
-**How to apply:** keep direct Reply-To consistent across manual outreach, autopilot
-sequence emails, hot-prospect scheduling emails, and positive-reply scheduling emails.
-Do not restore tokenized Reply-To unless the user accepts that automatic reply detection
-requires it. Direct Reply-To means the app cannot observe new replies, classify their
-tone, add positive-reply engagement points, or trigger reply-driven scheduling
-automatically. The webhook/routing code remains useful for replies to previously
-delivered tokenized emails.
+**How to apply:** preserve tokenized Reply-To for manual outreach, autopilot sequences,
+hot-prospect scheduling emails, and positive-reply scheduling emails. Keep raw tracking
+URLs out of visible email body text, but do not replace Reply-To routing unless the user
+accepts losing reply-driven automation.
 
-## LEGACY: tokenized inbound reply flow
-The prior flow was: enrolled prospect replies positively → engine auto-sends the
+## Tokenized inbound reply flow
+The flow is: enrolled prospect replies positively → engine auto-sends the
 "Let's schedule a walkthrough" email → prospect fills the `/schedule/<token>`
 questionnaire → rep is emailed the answers (+floor plans) and prospect books via Calendly.
 **Reliability caveat (state clearly, do NOT silently "fix"):** auto reply-detection only

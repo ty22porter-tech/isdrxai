@@ -25,16 +25,22 @@ export function getInboundReplyDomain(): string | null {
 }
 
 /**
- * Resolve the Reply-To address for an outgoing prospect email.
+ * Resolve the Reply-To address for an outgoing prospect email. When inbound
+ * routing is configured and the prospect has a replyToken, replies are routed
+ * through the platform (reply-<replyToken>@<domain>); otherwise they go
+ * straight to the client's own outreach inbox.
  *
- * Replies now go directly to the user's outreach inbox so recipients see a
- * familiar address rather than a tokenized routing address. Keep the token
- * argument for compatibility with existing callers and already-delivered mail.
+ * Uses replyToken (not scheduleToken) so that learning the reply-to address
+ * does not also grant access to the scheduling questionnaire.
  */
 export function resolveReplyTo(
   outreachEmail: string,
-  _replyToken: string | null | undefined,
+  replyToken: string | null | undefined,
 ): string {
+  const domain = getInboundReplyDomain();
+  if (domain && replyToken) {
+    return `${REPLY_PREFIX}${replyToken}@${domain}`;
+  }
   return outreachEmail;
 }
 

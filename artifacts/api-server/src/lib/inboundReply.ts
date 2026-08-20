@@ -271,7 +271,9 @@ export async function handleResendWebhookEvent(event: {
     });
 
     // Trigger the queue so a positive reply fires the scheduling email within minutes.
-    processAutopilotQueue().catch(() => {});
+    processAutopilotQueue().catch((err) => {
+      logger.error({ err, prospectId: prospect.id }, "Positive-reply scheduling queue failed");
+    });
 
     logger.info(
       { prospectId: prospect.id, enrollmentId: enrollment?.id, tone },

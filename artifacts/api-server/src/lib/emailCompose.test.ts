@@ -32,7 +32,21 @@ describe("composeEmail clean tracked-link display", () => {
 });
 
 describe("outbound Reply-To", () => {
-  it("uses the user's outreach email instead of a tokenized routing address", () => {
-    expect(resolveReplyTo("rep@company.com", "reply-token")).toBe("rep@company.com");
+  it("uses the user's address when inbound routing is unavailable", () => {
+    const originalDomain = process.env.INBOUND_REPLY_DOMAIN;
+    delete process.env.INBOUND_REPLY_DOMAIN;
+    expect(resolveReplyTo("rep@company.com", null)).toBe("rep@company.com");
+    if (originalDomain === undefined) delete process.env.INBOUND_REPLY_DOMAIN;
+    else process.env.INBOUND_REPLY_DOMAIN = originalDomain;
+  });
+
+  it("uses a tokenized address when inbound routing is configured", () => {
+    const originalDomain = process.env.INBOUND_REPLY_DOMAIN;
+    process.env.INBOUND_REPLY_DOMAIN = "reply.example.com";
+    expect(resolveReplyTo("rep@company.com", "reply-token")).toBe(
+      "reply-reply-token@reply.example.com",
+    );
+    if (originalDomain === undefined) delete process.env.INBOUND_REPLY_DOMAIN;
+    else process.env.INBOUND_REPLY_DOMAIN = originalDomain;
   });
 });
