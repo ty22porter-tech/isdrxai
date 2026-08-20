@@ -78,7 +78,10 @@ export function composeEmail(
     trackedLinks.push({ kind: "website", slug: "website", name: websiteTrim, destination: websiteHref });
     websiteHref = trackedUrl("website");
   }
-  const websiteTextDisplay = (raw: string) => (tracking && websiteHref ? `${raw} (${websiteHref})` : raw);
+  // Keep tracking destinations out of visible plain-text content. HTML email
+  // recipients still get a clickable tracked link, while the fallback text
+  // shows the user's clean website value instead of /api/t/l/... URLs.
+  const websiteTextDisplay = (raw: string) => raw;
 
   const business = client.businessName?.trim() || "Our Company";
   const signatureLines = [
@@ -114,7 +117,9 @@ export function composeEmail(
     ? `\n\n${linkedFiles.map((f, i) => `View: ${f.name} — ${trackedUrl(`att${i}`)}\nDownload: ${trackedUrl(`att${i}`)}?dl=1`).join("\n")}`
     : "";
 
-  const ctaText = cta ? `\n\n${cta.label}: ${ctaHref}` : "";
+  // The HTML part carries the clickable anchor below. Do not expose the long
+  // tracked redirect in the plain-text alternative or saved email preview.
+  const ctaText = cta ? `\n\n${cta.label}` : "";
   const text =
     `${coreBody.trim()}${ctaText}${linkedFilesText}\n\n` +
     `${signatureLines.join("\n")}\n\n` +

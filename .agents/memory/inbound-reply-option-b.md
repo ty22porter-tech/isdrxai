@@ -1,6 +1,6 @@
 ---
-name: Inbound reply detection (Option B)
-description: How prospect replies are auto-detected via Resend inbound webhook, and the non-obvious Resend constraints around it.
+name: Reply-To and legacy inbound reply detection
+description: Current direct-to-user Reply-To policy plus the legacy Resend inbound routing constraints for previously delivered email.
 ---
 
 # Inbound reply detection ("Option B")
@@ -19,12 +19,26 @@ fallback) and pass them as `{ id, timestamp, signature }`.
 `standardwebhooks`, POST to the live `/api/resend/webhook` with `svix-*` headers → expect
 200 for a valid sig, 400 for a bad one.
 
-## DECISION: Option B is the client's PREFERRED flow — keep it ON in dev
-`INBOUND_REPLY_DOMAIN=sdrai.xyz` is set in **development** (only). The client wants the
-autopilot flow: enrolled prospect replies positively → engine auto-sends the
+## CURRENT DECISION: new replies go directly to the user's outreach inbox
+New outbound prospect emails use the client's `outreachEmail` as Reply-To, even when
+`INBOUND_REPLY_DOMAIN` and a reply token are present. The user explicitly prefers a
+recognizable personal/company reply address over the tokenized routing address.
+
+**Why:** recipients could see the long tokenized Reply-To and the user asked that replies
+go to each user's own email address instead.
+
+**How to apply:** keep direct Reply-To consistent across manual outreach, autopilot
+sequence emails, hot-prospect scheduling emails, and positive-reply scheduling emails.
+Do not restore tokenized Reply-To unless the user accepts that automatic reply detection
+requires it. Direct Reply-To means the app cannot observe new replies, classify their
+tone, add positive-reply engagement points, or trigger reply-driven scheduling
+automatically. The webhook/routing code remains useful for replies to previously
+delivered tokenized emails.
+
+## LEGACY: tokenized inbound reply flow
+The prior flow was: enrolled prospect replies positively → engine auto-sends the
 "Let's schedule a walkthrough" email → prospect fills the `/schedule/<token>`
 questionnaire → rep is emailed the answers (+floor plans) and prospect books via Calendly.
-This was briefly disabled (routed to client inbox) then re-enabled at the client's request.
 **Reliability caveat (state clearly, do NOT silently "fix"):** auto reply-detection only
 fires while the app is running when the reply arrives. Real data lives in the DEV DB and
 the dev webhook points at the ephemeral preview URL — so replies that land while the

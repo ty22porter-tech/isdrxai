@@ -145,10 +145,10 @@ export async function processEngagementAutomation(): Promise<void> {
           await db.update(prospectsTable).set({ scheduleToken }).where(eq(prospectsTable.id, prospect.id));
         }
         ctaUrl = `${getPublicAppUrl()}/app/schedule/${scheduleToken}`;
-        ctaLabel = "Answer a few quick questions & pick a time";
+        ctaLabel = "Click here to schedule appointment";
       } else {
         ctaUrl = client.calendlyUrl!.trim();
-        ctaLabel = "Pick a time for a quick 15-minute call";
+        ctaLabel = "Click here to schedule appointment";
       }
 
       const trackingToken = randomUUID();
