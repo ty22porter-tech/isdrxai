@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
-import { prospectsTable, activityTable, usersTable } from "@workspace/db";
-import { eq, ilike, and, sql, inArray } from "drizzle-orm";
+import { prospectsTable, activityTable, usersTable, emailsTable } from "@workspace/db";
+import { eq, ilike, and, sql, inArray, exists, gte, lt } from "drizzle-orm";
 import {
   ListProspectsQueryParams,
   CreateProspectBody,
@@ -29,11 +29,65 @@ async function currentVertical(clientId: string): Promise<string> {
   return client?.vertical === "it_services" ? "it_services" : "janitorial";
 }
 
+function parseUtcCalendarDate(value: string): Date | null {
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return parsed;
+}
+
 router.get("/", async (req, res) => {
-  const query = ListProspectsQueryParams.parse(req.query);
+  const parsedQuery = ListProspectsQueryParams.safeParse(req.query);
+  if (!parsedQuery.success) {
+    res.status(400).json({ error: "Prospect filters are invalid." });
+    return;
+  }
+  const query = parsedQuery.data;
   const conditions: any[] = [eq(prospectsTable.clientId, req.clientId)];
   if (query.status) conditions.push(eq(prospectsTable.status, query.status));
   if (query.search) conditions.push(ilike(prospectsTable.companyName, `%${query.search}%`));
+
+  const sentFrom = query.sentFrom ? parseUtcCalendarDate(query.sentFrom) : null;
+  const sentTo = query.sentTo ? parseUtcCalendarDate(query.sentTo) : null;
+  if ((query.sentFrom && !sentFrom) || (query.sentTo && !sentTo)) {
+    res.status(400).json({ error: "Sent dates must be valid calendar dates." });
+    return;
+  }
+  if (sentFrom && sentTo && sentFrom > sentTo) {
+    res.status(400).json({ error: "The sent-from date cannot be after the sent-to date." });
+    return;
+  }
+
+  const hasSentEmailFilter = query.campaignId != null || sentFrom != null || sentTo != null;
+  if (hasSentEmailFilter) {
+    const matchingEmailConditions = [
+      eq(emailsTable.prospectId, prospectsTable.id),
+      eq(emailsTable.clientId, req.clientId),
+    ];
+    if (query.campaignId != null) {
+      matchingEmailConditions.push(eq(emailsTable.campaignId, query.campaignId));
+    }
+    if (sentFrom) {
+      matchingEmailConditions.push(gte(emailsTable.sentAt, sentFrom));
+    }
+    if (sentTo) {
+      const dayAfterSentTo = new Date(sentTo);
+      dayAfterSentTo.setUTCDate(dayAfterSentTo.getUTCDate() + 1);
+      matchingEmailConditions.push(lt(emailsTable.sentAt, dayAfterSentTo));
+    }
+    conditions.push(exists(
+      db.select({ id: emailsTable.id })
+        .from(emailsTable)
+        .where(and(...matchingEmailConditions)),
+    ));
+  }
+
   const prospects = await db.select().from(prospectsTable).where(and(...conditions)).orderBy(sql`${prospectsTable.createdAt} desc`);
   res.json(prospects.map(p => ({
     ...p,

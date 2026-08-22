@@ -22,3 +22,4 @@
 - [Calendly webhook bookings](calendly-webhook.md) — public raw-body endpoint, email→prospect match, invitee-URI idempotency; drizzle onConflict target can't use partial unique indexes.
 - [PUBLIC_APP_URL → prod links](public-app-url.md) — shared env var forces all emailed links (alerts, tracking, /schedule) to the published app; dev-sent tracking links won't register in dev DB.
 - [Stale lib dist after codegen](stale-lib-dist-after-codegen.md) — orval regen can leave lib dist/*.d.ts stale (tsbuildinfo skips rebuild); artifact typechecks fail on "missing" fields → `tsc --build --force` the lib.
+- [Date query parameters](date-query-parameters.md) — define OpenAPI date-only query params as patterned strings, not format:date; debounce native date inputs and validate again on the server.

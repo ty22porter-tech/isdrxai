@@ -1,4 +1,4 @@
-import { useState, useRef, Fragment } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useListProspects, useCreateProspect, useBulkCreateProspects, useBulkDeleteProspects, useBulkEnrichProspects, useListCampaigns, useCreateEmail } from "@workspace/api-client-react";
 
@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download, Flame, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Linkedin } from "lucide-react";
+import { Search, Plus, Building2, MapPin, Phone, Mail, Send, X, Eye, Upload, FileText, AlertCircle, CheckCircle2, Download, Flame, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Linkedin, CalendarRange, ListFilter } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
@@ -43,6 +43,16 @@ function fallbackBody(p: any, vertical: string = "janitorial") {
   return vertical === "it_services"
     ? `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule a free IT assessment for ${p.companyName}.`
     : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
+}
+
+function isCompleteFilterDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 2000 || year > 2100) return false;
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
 }
 
 // ─── CSV parsing ──────────────────────────────────────────────────────────────
@@ -897,7 +907,22 @@ function CSVImportDialog({ onImported }: { onImported: () => void }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Prospects() {
   const [search, setSearch] = useState("");
-  const { data: prospects, isLoading, refetch } = useListProspects({ search });
+  const [sentCampaignId, setSentCampaignId] = useState("all");
+  const [sentFrom, setSentFrom] = useState("");
+  const [sentTo, setSentTo] = useState("");
+  const [appliedSentFrom, setAppliedSentFrom] = useState("");
+  const [appliedSentTo, setAppliedSentTo] = useState("");
+  const campaignIdFilter = sentCampaignId === "all" ? undefined : Number(sentCampaignId);
+  const sentFromIsValid = !sentFrom || isCompleteFilterDate(sentFrom);
+  const sentToIsValid = !sentTo || isCompleteFilterDate(sentTo);
+  const dateRangeIsValid = !sentFrom || !sentTo || sentFrom <= sentTo;
+  const dateFilterIsValid = sentFromIsValid && sentToIsValid && dateRangeIsValid;
+  const { data: prospects, isLoading, isError, refetch } = useListProspects({
+    search: search.trim() || undefined,
+    campaignId: campaignIdFilter,
+    sentFrom: appliedSentFrom || undefined,
+    sentTo: appliedSentTo || undefined,
+  });
   const { data: campaigns } = useListCampaigns();
   const createProspect = useCreateProspect();
   const createEmail = useCreateEmail();
@@ -970,6 +995,33 @@ export default function Prospects() {
   const allIds = (prospects ?? []).map(p => p.id);
   const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id));
   const someSelected = selected.size > 0;
+  const hasSentFilters = sentCampaignId !== "all" || !!sentFrom || !!sentTo;
+  const hasAnyFilters = !!search.trim() || hasSentFilters;
+  const filteredCampaign = (campaigns ?? []).find(c => c.id === campaignIdFilter);
+  const dateFilterIsPending = dateFilterIsValid
+    && (sentFrom !== appliedSentFrom || sentTo !== appliedSentTo);
+
+  useEffect(() => {
+    if (!dateFilterIsValid) return;
+    const timeout = window.setTimeout(() => {
+      setAppliedSentFrom(sentFrom);
+      setAppliedSentTo(sentTo);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [sentFrom, sentTo, dateFilterIsValid]);
+
+  useEffect(() => {
+    setSelected(new Set());
+  }, [search, sentCampaignId, sentFrom, sentTo]);
+
+  useEffect(() => {
+    if (!prospects) return;
+    const visibleIds = new Set(prospects.map(p => p.id));
+    setSelected(previous => {
+      const next = new Set(Array.from(previous).filter(id => visibleIds.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [prospects]);
 
   const toggleOne = (id: number) => {
     setSelected(prev => {
@@ -979,6 +1031,15 @@ export default function Prospects() {
     });
   };
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
+  const clearFilters = () => {
+    setSearch("");
+    setSentCampaignId("all");
+    setSentFrom("");
+    setSentTo("");
+    setAppliedSentFrom("");
+    setAppliedSentTo("");
+    setSelected(new Set());
+  };
 
   // bulk enrich (Apollo)
   const bulkEnrichProspects = useBulkEnrichProspects();
@@ -1158,125 +1219,220 @@ export default function Prospects() {
 
         {/* Bulk action bar */}
         {someSelected && (
-          <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
+          <div className="flex flex-col gap-3 bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 sm:flex-row sm:items-center">
             <span className="text-sm font-medium text-primary">
               {selected.size} prospect{selected.size !== 1 ? "s" : ""} selected
             </span>
             <div className="flex-1" />
-            <Dialog open={sendOpen} onOpenChange={setSendOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" disabled={activeCampaigns.length === 0}>
-                  <Send className="mr-2 h-4 w-4" />
-                  {activeCampaigns.length === 0 ? "No active campaigns" : "Send Campaign Email"}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Send Campaign Email</DialogTitle>
-                  <DialogDescription>
-                    Choose an active campaign. Each prospect will receive a personalized version of the email template.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-5 pt-2">
-                  <div className="space-y-2">
-                    <Label>Campaign</Label>
-                    <Select value={selectedCampaignId} onValueChange={v => { setSelectedCampaignId(v); setPreviewProspect(null); }}>
-                      <SelectTrigger><SelectValue placeholder="Select an active campaign…" /></SelectTrigger>
-                      <SelectContent>
-                        {activeCampaigns.map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name} · {c.targetIndustry}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Recipients ({selected.size})</Label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedProspects.map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() => setPreviewProspect(p)}
-                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                            preview?.id === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          <Eye className="h-3 w-3" />{p.companyName}
-                        </button>
-                      ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" disabled={activeCampaigns.length === 0}>
+                    <Send className="mr-2 h-4 w-4" />
+                    {activeCampaigns.length === 0 ? "No active campaigns" : "Send Campaign Email"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Send Campaign Email</DialogTitle>
+                    <DialogDescription>
+                      Choose an active campaign. Each prospect will receive a personalized version of the email template.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-5 pt-2">
+                    <div className="space-y-2">
+                      <Label>Campaign</Label>
+                      <Select value={selectedCampaignId} onValueChange={v => { setSelectedCampaignId(v); setPreviewProspect(null); }}>
+                        <SelectTrigger><SelectValue placeholder="Select an active campaign…" /></SelectTrigger>
+                        <SelectContent>
+                          {activeCampaigns.map(c => (
+                            <SelectItem key={c.id} value={String(c.id)}>{c.name} · {c.targetIndustry}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <p className="text-xs text-muted-foreground">Click a company to preview their personalized email.</p>
-                  </div>
-                  {selectedCampaign && preview && (
-                    <div className="space-y-3">
-                      <Separator />
-                      <div className="space-y-1">
-                        <Label className="text-xs uppercase tracking-wide text-muted-foreground">Preview — {preview.companyName}</Label>
-                        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                          <div><p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Subject</p><p className="text-sm font-medium">{previewSubject}</p></div>
-                          <Separator />
-                          <div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Body</p>
-                            <Textarea readOnly value={previewBody || `${fallbackBody(preview, vertical)}\n\nBest,\nYour SDR Team`} className="min-h-[160px] font-mono text-xs bg-background resize-none mt-1" />
+                    <div className="space-y-2">
+                      <Label>Recipients ({selected.size})</Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedProspects.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => setPreviewProspect(p)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                              preview?.id === p.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                            }`}
+                          >
+                            <Eye className="h-3 w-3" />{p.companyName}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Click a company to preview their personalized email.</p>
+                    </div>
+                    {selectedCampaign && preview && (
+                      <div className="space-y-3">
+                        <Separator />
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Preview — {preview.companyName}</Label>
+                          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                            <div><p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Subject</p><p className="text-sm font-medium">{previewSubject}</p></div>
+                            <Separator />
+                            <div>
+                              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Body</p>
+                              <Textarea readOnly value={previewBody || `${fallbackBody(preview, vertical)}\n\nBest,\nYour SDR Team`} className="min-h-[160px] font-mono text-xs bg-background resize-none mt-1" />
+                            </div>
                           </div>
                         </div>
                       </div>
+                    )}
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setSendOpen(false)}>Cancel</Button>
+                      <Button onClick={handleSend} disabled={!selectedCampaign || sending}>
+                        <Send className="mr-2 h-4 w-4" />
+                        {sending ? "Sending…" : `Send to ${selected.size} Prospect${selected.size !== 1 ? "s" : ""}`}
+                      </Button>
                     </div>
-                  )}
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => setSendOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSend} disabled={!selectedCampaign || sending}>
-                      <Send className="mr-2 h-4 w-4" />
-                      {sending ? "Sending…" : `Send to ${selected.size} Prospect${selected.size !== 1 ? "s" : ""}`}
-                    </Button>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Button size="sm" variant="outline" onClick={handleBulkEnrich} disabled={bulkEnrichProspects.isPending}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              {bulkEnrichProspects.isPending ? "Enriching…" : "Enrich with Apollo"}
-            </Button>
-            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Selected
+                </DialogContent>
+              </Dialog>
+              <Button size="sm" variant="outline" onClick={handleBulkEnrich} disabled={bulkEnrichProspects.isPending}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                {bulkEnrichProspects.isPending ? "Enriching…" : "Enrich with Apollo"}
               </Button>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete {selected.size} prospect{selected.size !== 1 ? "s" : ""}?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently removes the selected prospect{selected.size !== 1 ? "s" : ""} and cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={bulkDeleteProspects.isPending}
-                    onClick={e => { e.preventDefault(); handleBulkDelete(); }}
-                  >
-                    {bulkDeleteProspects.isPending ? "Deleting…" : "Delete"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}><X className="h-4 w-4" /></Button>
+              <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Selected
+                </Button>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {selected.size} prospect{selected.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This permanently removes the selected prospect{selected.size !== 1 ? "s" : ""} and cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={bulkDeleteProspects.isPending}
+                      onClick={e => { e.preventDefault(); handleBulkDelete(); }}
+                    >
+                      {bulkDeleteProspects.isPending ? "Deleting…" : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} aria-label="Clear selection"><X className="h-4 w-4" /></Button>
+            </div>
           </div>
         )}
 
         <Card>
-          <CardHeader className="py-4">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search prospects..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+          <CardHeader className="space-y-4 py-4">
+            <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_minmax(200px,1fr)_minmax(150px,.7fr)_minmax(150px,.7fr)]">
+              <div className="space-y-1.5">
+                <Label htmlFor="prospect-search">Search prospects</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input id="prospect-search" placeholder="Company name..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Sent campaign</Label>
+                <Select value={sentCampaignId} onValueChange={setSentCampaignId}>
+                  <SelectTrigger aria-label="Filter by sent campaign">
+                    <ListFilter className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="Any campaign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any campaign</SelectItem>
+                    {(campaigns ?? []).map(campaign => (
+                      <SelectItem key={campaign.id} value={String(campaign.id)}>
+                        {campaign.name}{campaign.status !== "active" ? ` · ${campaign.status}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sent-from">Sent from</Label>
+                <Input
+                  id="sent-from"
+                  type="date"
+                  value={sentFrom}
+                  max={sentTo || undefined}
+                  onChange={e => setSentFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sent-to">Sent to</Label>
+                <Input
+                  id="sent-to"
+                  type="date"
+                  value={sentTo}
+                  min={sentFrom || undefined}
+                  onChange={e => setSentTo(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className={`flex items-start gap-2 text-sm ${dateFilterIsValid ? "text-muted-foreground" : "text-destructive"}`}
+                role="status"
+                aria-live="polite"
+              >
+                <CalendarRange className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {!dateFilterIsValid
+                    ? !dateRangeIsValid
+                      ? "Sent from must be on or before Sent to."
+                      : "Enter a complete date between 2000 and 2100."
+                    : dateFilterIsPending || isLoading
+                      ? "Updating prospect list…"
+                      : `${prospects?.length ?? 0} prospect${(prospects?.length ?? 0) === 1 ? "" : "s"} shown`}
+                  {dateFilterIsValid && !dateFilterIsPending && hasSentFilters && (
+                    <>
+                      {" "}from sent email history
+                      {filteredCampaign ? ` for “${filteredCampaign.name}”` : ""}
+                      {appliedSentFrom ? ` from ${new Date(`${appliedSentFrom}T00:00:00`).toLocaleDateString()}` : ""}
+                      {appliedSentTo ? ` through ${new Date(`${appliedSentTo}T00:00:00`).toLocaleDateString()}` : ""}
+                    </>
+                  )}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={toggleAll}
+                  disabled={!dateFilterIsValid || dateFilterIsPending || isLoading || allIds.length === 0}
+                >
+                  {allSelected
+                    ? "Clear selected"
+                    : hasAnyFilters
+                      ? `Select all filtered (${allIds.length})`
+                      : `Select all prospects (${allIds.length})`}
+                </Button>
+                {hasAnyFilters && (
+                  <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
+                    <X className="mr-1.5 h-4 w-4" />
+                    Clear filters
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10 pl-4">
-                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+                    <Checkbox
+                      checked={allSelected ? true : selected.size > 0 ? "indeterminate" : false}
+                      onCheckedChange={toggleAll}
+                      aria-label={hasAnyFilters ? "Select all filtered prospects" : "Select all prospects"}
+                    />
                   </TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("company")}>Company<SortIcon column="company" /></TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("contact")}>Contact<SortIcon column="contact" /></TableHead>
@@ -1289,8 +1445,25 @@ export default function Prospects() {
               <TableBody>
                 {isLoading ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center">
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium">Prospects could not be loaded.</p>
+                        <Button type="button" size="sm" variant="outline" onClick={() => refetch()}>Try again</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : prospects?.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No prospects found.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                      {hasSentFilters
+                        ? "No prospects match the selected sent campaign and date range."
+                        : search.trim()
+                          ? "No prospects match your search."
+                          : "No prospects found."}
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   sortedProspects.map(prospect => (
                     <TableRow

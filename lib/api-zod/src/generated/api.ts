@@ -28,10 +28,16 @@ export const DeepHealthCheckResponse = zod.object({
 /**
  * @summary List all prospects
  */
+export const listProspectsQuerySentFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const listProspectsQuerySentToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
 export const ListProspectsQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
   "search": zod.coerce.string().optional(),
-  "campaignId": zod.coerce.number().nullish()
+  "campaignId": zod.coerce.number().nullish(),
+  "sentFrom": zod.coerce.string().regex(listProspectsQuerySentFromRegExp).optional().describe('Include prospects emailed on or after this UTC calendar date (YYYY-MM-DD)'),
+  "sentTo": zod.coerce.string().regex(listProspectsQuerySentToRegExp).optional().describe('Include prospects emailed on or before this UTC calendar date (YYYY-MM-DD)')
 })
 
 export const ListProspectsResponseItem = zod.object({

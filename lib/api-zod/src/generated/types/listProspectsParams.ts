@@ -13,4 +13,14 @@ search?: string;
  * @nullable
  */
 campaignId?: number | null;
+/**
+ * Include prospects emailed on or after this UTC calendar date (YYYY-MM-DD)
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+sentFrom?: string;
+/**
+ * Include prospects emailed on or before this UTC calendar date (YYYY-MM-DD)
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+sentTo?: string;
 };
