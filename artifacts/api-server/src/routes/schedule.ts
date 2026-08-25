@@ -107,9 +107,6 @@ router.get("/:token", async (req, res) => {
       .from(usersTable)
       .where(eq(usersTable.id, prospect.clientId));
 
-    // Interest scoring: questionnaire opened (scored once per prospect).
-    recordEngagementEvent(prospect.id, "questionnaire_opened").catch(() => {});
-
     return res.json({
       companyName: prospect.companyName,
       contactName: prospect.contactName,
@@ -121,6 +118,29 @@ router.get("/:token", async (req, res) => {
     });
   } catch (err: any) {
     console.error("schedule GET error:", err?.message);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+// Public: record that the prospect deliberately chose to open the questionnaire.
+// Loading the scheduling choice page alone must not create questionnaire activity,
+// because the prospect may bypass it and book directly through Calendly.
+router.post("/:token/questionnaire-opened", async (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token) return res.status(400).json({ error: "Missing token" });
+
+    const [prospect] = await db
+      .select()
+      .from(prospectsTable)
+      .where(eq(prospectsTable.scheduleToken, token));
+
+    if (!prospect) return res.status(404).json({ error: "Invalid or expired link" });
+
+    await recordEngagementEvent(prospect.id, "questionnaire_opened");
+    return res.status(204).send();
+  } catch (err: any) {
+    console.error("schedule questionnaire-opened error:", err?.message);
     return res.status(500).json({ error: "Something went wrong" });
   }
 });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRoute } from "wouter";
-import { Loader2, CheckCircle2, Upload, X, Building2, CalendarDays } from "lucide-react";
+import { Loader2, CheckCircle2, Upload, X, Building2, CalendarDays, ArrowLeft, FileText, ExternalLink } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -85,6 +85,63 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
+function CalendlyEmbed({ url }: { url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canEmbed, setCanEmbed] = useState(() => window.matchMedia("(min-width: 380px)").matches);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 380px)");
+    const update = () => setCanEmbed(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!canEmbed) return;
+    const initialize = () => {
+      const calendly = (window as any).Calendly;
+      if (!containerRef.current || !calendly?.initInlineWidget) return;
+      containerRef.current.replaceChildren();
+      calendly.initInlineWidget({ url, parentElement: containerRef.current });
+    };
+
+    const src = "https://assets.calendly.com/assets/external/widget.js";
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+    if (existing) {
+      if ((window as any).Calendly?.initInlineWidget) initialize();
+      else existing.addEventListener("load", initialize, { once: true });
+      return () => existing.removeEventListener("load", initialize);
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.addEventListener("load", initialize, { once: true });
+    document.body.appendChild(script);
+    return () => script.removeEventListener("load", initialize);
+  }, [url, canEmbed]);
+
+  if (!canEmbed) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-sm leading-6 text-slate-400">
+          Calendly opens in its mobile booking page so every available time is easy to view.
+        </p>
+        <a
+          href={url}
+          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-white transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        >
+          Open Calendly
+          <ExternalLink className="h-4 w-4" />
+        </a>
+      </div>
+    );
+  }
+
+  return <div ref={containerRef} className="min-w-[320px]" style={{ height: "660px" }} />;
+}
+
 export default function Schedule() {
   const [, params] = useRoute("/schedule/:token");
   const token = params?.token ?? "";
@@ -109,7 +166,7 @@ export default function Schedule() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [calendlyUrl, setCalendlyUrl] = useState<string | null>(null);
-  const calendlyRef = useRef<HTMLDivElement>(null);
+  const [path, setPath] = useState<"choice" | "questionnaire" | "calendly">("choice");
 
   useEffect(() => {
     if (!token) {
@@ -144,18 +201,6 @@ export default function Schedule() {
     });
   }, [visibleLocations]);
 
-  // Load Calendly widget script once we have a URL and the form is submitted.
-  useEffect(() => {
-    if (!submitted || !calendlyUrl) return;
-    const existing = document.querySelector<HTMLScriptElement>('script[src="https://assets.calendly.com/assets/external/widget.js"]');
-    if (!existing) {
-      const script = document.createElement("script");
-      script.src = "https://assets.calendly.com/assets/external/widget.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, [submitted, calendlyUrl]);
-
   function toggleServiceTime(opt: string) {
     setServiceTimes((prev) => (prev.includes(opt) ? prev.filter((t) => t !== opt) : [...prev, opt]));
   }
@@ -189,6 +234,13 @@ export default function Schedule() {
 
   function removeFile(idx: number) {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function chooseQuestionnaire() {
+    setPath("questionnaire");
+    fetch(`/api/schedule/${token}/questionnaire-opened`, { method: "POST" }).catch(() => {
+      // Engagement tracking must never block the prospect from continuing.
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -259,11 +311,70 @@ export default function Schedule() {
           </div>
           <h1 className="text-3xl font-bold text-white">{copy.headline}</h1>
           <p className="mt-2 text-slate-400">
-            {copy.intro(info.businessName, info.companyName)}
+            {path === "choice"
+              ? `Choose the next step that works best for you and ${info.companyName}.`
+              : path === "calendly"
+                ? `Pick a time below for your ${copy.offerNoun} with ${info.businessName}.`
+                : copy.intro(info.businessName, info.companyName)}
           </p>
         </div>
 
-        {submitted ? (
+        {path === "choice" ? (
+          <div className="grid gap-4 sm:grid-cols-2" role="group" aria-label="Choose how to schedule">
+            <button
+              type="button"
+              onClick={chooseQuestionnaire}
+              className="group rounded-2xl border border-slate-700/60 bg-slate-900 p-6 text-left shadow-xl transition hover:border-sky-500/70 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/30">
+                <FileText className="h-5 w-5" />
+              </span>
+              <span className="block text-lg font-semibold text-white">Fill out the questionnaire</span>
+              <span className="mt-2 block text-sm leading-6 text-slate-400">
+                Share a few details first so {info.businessName} can prepare for your {copy.offerNoun}.
+              </span>
+              <span className="mt-5 block text-sm font-semibold text-sky-400 group-hover:text-sky-300">
+                Answer questions, then choose a time
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => calendlyUrl && setPath("calendly")}
+              disabled={!calendlyUrl}
+              className="group rounded-2xl border border-slate-700/60 bg-slate-900 p-6 text-left shadow-xl transition hover:border-emerald-500/70 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-700/60 disabled:hover:bg-slate-900"
+            >
+              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30">
+                <CalendarDays className="h-5 w-5" />
+              </span>
+              <span className="block text-lg font-semibold text-white">Schedule a meeting now</span>
+              <span className="mt-2 block text-sm leading-6 text-slate-400">
+                Skip the questionnaire and choose an available meeting time immediately.
+              </span>
+              <span className="mt-5 block text-sm font-semibold text-emerald-400 group-hover:text-emerald-300">
+                {calendlyUrl ? "Choose a time now" : "Online booking is not available"}
+              </span>
+            </button>
+          </div>
+        ) : path === "calendly" && calendlyUrl ? (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setPath("choice")}
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to scheduling options
+            </button>
+            <div className="overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 p-2">
+              <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-slate-200">
+                <CalendarDays className="h-5 w-5 text-emerald-400" />
+                <span className="font-semibold">Choose a time</span>
+              </div>
+              <CalendlyEmbed url={calendlyUrl} />
+            </div>
+          </div>
+        ) : submitted ? (
           <div className="space-y-6">
             <div className="flex items-start gap-3 rounded-xl border border-emerald-700/40 bg-emerald-900/20 p-4">
               <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-400" />
@@ -283,17 +394,21 @@ export default function Schedule() {
                   <CalendarDays className="h-5 w-5 text-sky-400" />
                   <span className="font-semibold">Choose a time</span>
                 </div>
-                <div
-                  ref={calendlyRef}
-                  className="calendly-inline-widget"
-                  data-url={calendlyUrl}
-                  style={{ minWidth: "320px", height: "660px" }}
-                />
+                <CalendlyEmbed url={calendlyUrl} />
               </div>
             )}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-700/50 bg-slate-900 p-6 shadow-2xl">
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setPath("choice")}
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to scheduling options
+            </button>
+            <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-700/50 bg-slate-900 p-6 shadow-2xl">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>Your name</label>
@@ -481,7 +596,8 @@ export default function Schedule() {
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               {submitting ? "Submitting…" : "Submit & pick a time"}
             </button>
-          </form>
+            </form>
+          </div>
         )}
       </div>
     </div>

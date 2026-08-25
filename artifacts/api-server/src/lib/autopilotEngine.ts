@@ -61,7 +61,7 @@ async function generateCalendlyEmail(
   const firstName = prospect.contactName.split(" ")[0];
   const nextStepNoun = vc.key === "it_services" ? "their IT environment" : "their facility";
   return aiGenerate(
-    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Tell them the next step is simple: answer a few quick questions about ${nextStepNoun} and pick a time for a ${vc.offerName}, all on one page. Refer to the "Click here to schedule appointment" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 80 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
+    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Tell them the next step is simple: on one page they can either answer a few quick questions about ${nextStepNoun} before booking or skip the questions and pick a time immediately for a ${vc.offerName}. Refer to the "Click here to schedule appointment" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 80 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
   );
 }
 

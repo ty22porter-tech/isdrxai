@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import type { Request, Response } from "express";
-import { db, appointmentsTable, prospectsTable, activityTable, scoreEventsTable } from "@workspace/db";
+import { db, appointmentsTable, prospectsTable, activityTable, scoreEventsTable, automationRunsTable } from "@workspace/db";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { recordEngagementEvent, cancelPendingAutomation } from "../lib/engagementScoring";
 import { logger } from "../lib/logger";
@@ -202,45 +202,79 @@ export async function handleCalendlyWebhook(req: Request, res: Response): Promis
       })[0];
     }
 
-    // Idempotent insert: the unique index on calendly_invitee_uri drops retries.
-    const inserted = await db
-      .insert(appointmentsTable)
-      .values({
+    // Serialize retries by invitee URI, then check before inserting. This stays
+    // idempotent even in an environment where the schema's unique index has not
+    // yet been applied; the advisory lock also closes the concurrent-retry race.
+    const booking = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${inviteeUri}))`);
+      const [existing] = await tx
+        .select()
+        .from(appointmentsTable)
+        .where(eq(appointmentsTable.calendlyInviteeUri, inviteeUri))
+        .limit(1);
+      if (existing) return { appointment: existing, inserted: false };
+
+      const [appointment] = await tx
+        .insert(appointmentsTable)
+        .values({
+          clientId: prospect.clientId,
+          prospectId: prospect.id,
+          type: "calendly_booking",
+          scheduledAt: new Date(startTime),
+          status: "scheduled",
+          location,
+          notes: [eventName ? `Calendly: ${eventName}` : "Booked via Calendly", inviteeName ? `Invitee: ${inviteeName}` : null]
+            .filter(Boolean)
+            .join(" — "),
+          calendlyInviteeUri: inviteeUri,
+        })
+        .returning();
+
+      await tx.insert(activityTable).values({
         clientId: prospect.clientId,
+        type: "appointment_set",
+        description: `Calendly booking confirmed with ${prospect.companyName}`,
         prospectId: prospect.id,
-        type: "calendly_booking",
-        scheduledAt: new Date(startTime),
-        status: "scheduled",
-        location,
-        notes: [eventName ? `Calendly: ${eventName}` : "Booked via Calendly", inviteeName ? `Invitee: ${inviteeName}` : null]
-          .filter(Boolean)
-          .join(" — "),
-        calendlyInviteeUri: inviteeUri,
-      })
-      .onConflictDoNothing({ target: appointmentsTable.calendlyInviteeUri })
-      .returning();
+        prospectName: prospect.contactName ?? null,
+      });
+      await tx
+        .update(prospectsTable)
+        .set({ status: "appointment_set" })
+        .where(and(eq(prospectsTable.id, prospect.id), eq(prospectsTable.clientId, prospect.clientId)));
 
-    if (inserted.length === 0) {
-      // Retry of an event we already processed.
-      return res.status(200).json({ received: true, duplicate: true });
-    }
-
-    await db.insert(activityTable).values({
-      clientId: prospect.clientId,
-      type: "appointment_set",
-      description: `Calendly booking confirmed with ${prospect.companyName}`,
-      prospectId: prospect.id,
-      prospectName: prospect.contactName ?? null,
+      return { appointment, inserted: true };
     });
-    await db
-      .update(prospectsTable)
-      .set({ status: "appointment_set" })
-      .where(and(eq(prospectsTable.id, prospect.id), eq(prospectsTable.clientId, prospect.clientId)));
 
     // meeting_scheduled is once-per-prospect inside recordEngagementEvent, and
-    // any pending repeated-open follow-up is now moot.
+    // cancelPendingAutomation is idempotent. Run both for retries too, so a
+    // prior delivery that committed the appointment but stopped afterward can
+    // safely repair these downstream effects.
     await recordEngagementEvent(prospect.id, "meeting_scheduled", { detail: "Booked via Calendly" });
     await cancelPendingAutomation(prospect.id, "Meeting booked via Calendly");
+
+    const [meetingRecorded] = await db
+      .select({ id: scoreEventsTable.id })
+      .from(scoreEventsTable)
+      .where(and(
+        eq(scoreEventsTable.prospectId, prospect.id),
+        eq(scoreEventsTable.eventType, "meeting_scheduled"),
+      ))
+      .limit(1);
+    const [pendingAutomation] = await db
+      .select({ id: automationRunsTable.id })
+      .from(automationRunsTable)
+      .where(and(
+        eq(automationRunsTable.prospectId, prospect.id),
+        eq(automationRunsTable.status, "pending"),
+      ))
+      .limit(1);
+    if (!meetingRecorded || pendingAutomation) {
+      throw new Error("Calendly booking follow-up state is incomplete; retry required");
+    }
+
+    if (!booking.inserted) {
+      return res.status(200).json({ received: true, duplicate: true });
+    }
 
     logger.info({ prospectId: prospect.id, clientId: prospect.clientId }, "Calendly booking recorded");
     return res.status(200).json({ received: true, matched: true });
