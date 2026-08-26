@@ -14,6 +14,7 @@ import {
 import { eq, and, sql, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { recommendedNextAction } from "../lib/nextAction";
+import { matchesEngagementSearch } from "../lib/engagementSearch";
 
 /**
  * Engagement summary APIs (authenticated, tenant-scoped). Consumed by the
@@ -299,11 +300,10 @@ router.get("/table", async (req, res) => {
   if (q.meetingRequest === "sent") rows = rows.filter(r => r.meetingRequestSent);
   if (q.meetingRequest === "not_sent") rows = rows.filter(r => !r.meetingRequestSent);
   if (q.search) {
-    const s = q.search.toLowerCase();
-    rows = rows.filter(r =>
-      r.companyName.toLowerCase().includes(s) ||
-      r.contactName.toLowerCase().includes(s) ||
-      r.email.toLowerCase().includes(s));
+    rows = rows.filter(r => matchesEngagementSearch(
+      [r.companyName, r.contactName, r.email],
+      q.search ?? "",
+    ));
   }
 
   // Sort

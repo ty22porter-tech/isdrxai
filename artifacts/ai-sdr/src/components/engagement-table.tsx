@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { INTEREST_STYLES, INTEREST_LABELS } from "@/components/interest-badge";
-import { Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Info, Flame } from "lucide-react";
+import { Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Info, Flame, RotateCcw } from "lucide-react";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const ENGAGEMENT_API = "/api/engagement/table";
 
 export interface EngagementRow {
   prospectId: number;
@@ -53,6 +53,13 @@ interface TableResponse {
 }
 
 const PAGE_SIZE = 25;
+const DEFAULT_FILTERS = {
+  search: "",
+  interest: "all",
+  campaignId: "all",
+  attachment: "all",
+  meetingRequest: "all",
+};
 
 // Human-readable labels for the bot-filter reason codes recorded by tracking.
 const BOT_REASON_LABELS: Record<string, string> = {
@@ -91,22 +98,19 @@ function buildParams(state: Record<string, string>, extra: Record<string, string
 
 export function EngagementTable() {
   useQueryClient();
-  const [search, setSearch] = useState("");
-  const [interest, setInterest] = useState("all");
-  const [campaignId, setCampaignId] = useState("all");
-  const [attachment, setAttachment] = useState("all");
-  const [meetingRequest, setMeetingRequest] = useState("all");
+  const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
   const [sort, setSort] = useState("interestScore");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
 
-  const filterState = { search, interest, campaignId, attachment, meetingRequest, sort, dir };
+  const filterState = { ...appliedFilters, sort, dir };
   const qs = buildParams(filterState, { page: String(page), pageSize: String(PAGE_SIZE) });
 
   const { data, isLoading } = useQuery<TableResponse>({
     queryKey: ["engagement-table", qs],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/engagement/table?${qs}`, { credentials: "include" });
+      const res = await fetch(`${ENGAGEMENT_API}?${qs}`, { credentials: "include" });
       if (!res.ok) throw new Error(`${res.status}`);
       return res.json();
     },
@@ -119,11 +123,27 @@ export function EngagementTable() {
     setPage(1);
   };
 
+  const updateDraft = (key: keyof typeof DEFAULT_FILTERS, value: string) => {
+    setDraftFilters(current => ({ ...current, [key]: value }));
+  };
+
+  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAppliedFilters(draftFilters);
+    setPage(1);
+  };
+
+  const clearSearch = () => {
+    setDraftFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
+    setPage(1);
+  };
+
   const sortIcon = (key: string) =>
     sort !== key ? <ArrowUpDown className="h-3 w-3 opacity-50" /> : dir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />;
 
   const exportCsv = async () => {
-    const res = await fetch(`${BASE}/api/engagement/table?${buildParams(filterState, { format: "csv" })}`, { credentials: "include" });
+    const res = await fetch(`${ENGAGEMENT_API}?${buildParams(filterState, { format: "csv" })}`, { credentials: "include" });
     if (!res.ok) return;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -158,17 +178,18 @@ export function EngagementTable() {
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 pt-2">
+        <form className="flex flex-wrap gap-2 pt-2" onSubmit={submitSearch}>
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               className="pl-8 h-9"
-              placeholder="Search company, contact, email…"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Company, contact, email, or % for all"
+              aria-label="Search company, contact, or email. Use percent as a wildcard."
+              value={draftFilters.search}
+              onChange={e => updateDraft("search", e.target.value)}
             />
           </div>
-          <Select value={interest} onValueChange={v => { setInterest(v); setPage(1); }}>
+          <Select value={draftFilters.interest} onValueChange={v => updateDraft("interest", v)}>
             <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Interest</SelectItem>
@@ -177,14 +198,14 @@ export function EngagementTable() {
               <SelectItem value="low">Low Interest</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={campaignId} onValueChange={v => { setCampaignId(v); setPage(1); }}>
+          <Select value={draftFilters.campaignId} onValueChange={v => updateDraft("campaignId", v)}>
             <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Campaigns</SelectItem>
               {data?.campaigns.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={attachment} onValueChange={v => { setAttachment(v); setPage(1); }}>
+          <Select value={draftFilters.attachment} onValueChange={v => updateDraft("attachment", v)}>
             <SelectTrigger className="h-9 w-[170px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Attachment: Any</SelectItem>
@@ -192,7 +213,7 @@ export function EngagementTable() {
               <SelectItem value="not_viewed">Attachment Not Viewed</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={meetingRequest} onValueChange={v => { setMeetingRequest(v); setPage(1); }}>
+          <Select value={draftFilters.meetingRequest} onValueChange={v => updateDraft("meetingRequest", v)}>
             <SelectTrigger className="h-9 w-[190px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Meeting Request: Any</SelectItem>
@@ -200,7 +221,15 @@ export function EngagementTable() {
               <SelectItem value="not_sent">Meeting Request Not Sent</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+          <Button type="submit" size="sm" className="h-9">
+            <Search className="mr-2 h-4 w-4" />
+            Search
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="h-9" onClick={clearSearch}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Clear
+          </Button>
+        </form>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
