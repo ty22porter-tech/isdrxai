@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +98,9 @@ function buildParams(state: Record<string, string>, extra: Record<string, string
 
 export function EngagementTable() {
   useQueryClient();
+  const topScrollbarRef = useRef<HTMLDivElement>(null);
+  const topScrollbarContentRef = useRef<HTMLDivElement>(null);
+  const tableViewportRef = useRef<HTMLDivElement>(null);
   const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
   const [sort, setSort] = useState("interestScore");
@@ -157,6 +160,39 @@ export function EngagementTable() {
   };
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
+  useEffect(() => {
+    const viewport = tableViewportRef.current;
+    const spacer = topScrollbarContentRef.current;
+    if (!viewport || !spacer) return;
+
+    const updateWidth = () => {
+      spacer.style.width = `${viewport.scrollWidth}px`;
+    };
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(viewport);
+    const table = viewport.querySelector("table");
+    if (table) observer.observe(table);
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, [data?.rows.length]);
+
+  const syncFromTop = () => {
+    if (topScrollbarRef.current && tableViewportRef.current) {
+      tableViewportRef.current.scrollLeft = topScrollbarRef.current.scrollLeft;
+    }
+  };
+
+  const syncFromTable = () => {
+    if (topScrollbarRef.current && tableViewportRef.current) {
+      topScrollbarRef.current.scrollLeft = tableViewportRef.current.scrollLeft;
+    }
+  };
 
   const SortableHead = ({ k, children }: { k: string; children: React.ReactNode }) => (
     <TableHead>
@@ -236,7 +272,23 @@ export function EngagementTable() {
           <div className="p-6 space-y-3">{[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-10" />)}</div>
         ) : data?.rows.length ? (
           <>
-            <Table>
+            <div
+              ref={topScrollbarRef}
+              className="h-4 overflow-x-auto overflow-y-hidden border-y bg-muted/30"
+              onScroll={syncFromTop}
+              aria-label="Top horizontal scrollbar for prospect engagement results"
+            >
+              <div ref={topScrollbarContentRef} className="h-px" />
+            </div>
+            <div
+              ref={tableViewportRef}
+              className="max-h-[65vh] overflow-x-auto overflow-y-scroll overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+              onScroll={syncFromTable}
+              tabIndex={0}
+              role="region"
+              aria-label="Scrollable prospect engagement results"
+            >
+              <table className="w-max min-w-full caption-bottom text-sm">
               <TableHeader>
                 <TableRow>
                   <SortableHead k="companyName">Prospect</SortableHead>
@@ -341,7 +393,11 @@ export function EngagementTable() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </table>
+            </div>
+            <p className="border-t px-4 py-2 text-xs text-muted-foreground">
+              Scroll inside the results with your mouse. Use the top or bottom scrollbar to view every column.
+            </p>
             <div className="flex items-center justify-between p-4 border-t text-sm">
               <span className="text-muted-foreground">
                 {data.total} prospect{data.total === 1 ? "" : "s"} · page {data.page} of {totalPages}
