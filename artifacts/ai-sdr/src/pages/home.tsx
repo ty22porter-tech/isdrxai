@@ -3,42 +3,43 @@ import { Bot, Zap, BarChart3, Users } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-[100dvh] bg-[#f7f3e9] flex flex-col items-center justify-center px-5 py-10 text-center text-[#172b3a]">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#050f1e] flex flex-col items-center justify-center px-5 py-10 text-center text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(42,91,133,.38),transparent_42%)]" />
       <div className="max-w-3xl mx-auto space-y-9">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-[#234d73] rounded-[18px] flex items-center justify-center shadow-[0_10px_22px_rgba(35,77,115,.18)]">
-            <Bot className="w-9 h-9 text-[#fffdfa]" />
+          <div className="relative w-16 h-16 bg-[#275b85] border border-[#71a7ce]/25 rounded-[18px] flex items-center justify-center shadow-[0_12px_30px_rgba(0,0,0,.34)]">
+            <Bot className="w-9 h-9 text-white" />
           </div>
         </div>
 
-        <div className="space-y-4">
-          <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[.2em] text-[#315f86]">A quieter way to grow</p>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-[-.04em]">
-            iSDRX AI for <span className="text-[#234d73]">Janitorial Companies</span>
+        <div className="relative space-y-4">
+          <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[.2em] text-[#80b2d7]">A quieter way to grow</p>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-[-.04em] text-white">
+            iSDRX AI to Build Pipeline for <span className="text-[#7eb4dc]">Commercial Companies</span>
           </h1>
-          <p className="text-[#65727a] text-lg max-w-xl mx-auto leading-8">
+          <p className="text-[#a9bbca] text-lg max-w-xl mx-auto leading-8">
             Automate your outreach, manage prospects, and book more appointments — powered by AI.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           {[
             { icon: Zap, label: "AI-Generated Emails" },
             { icon: Users, label: "Prospect Management" },
             { icon: BarChart3, label: "Real-Time Analytics" },
           ].map(({ icon: Icon, label }) => (
-            <div key={label} className="bg-[#fffdfa] border border-[#d8d6cf] rounded-[14px] p-4 flex flex-col items-center gap-2 shadow-[0_8px_24px_rgba(30,45,53,.035)]">
-              <Icon className="w-5 h-5 text-[#315f86]" />
-              <span className="text-[#43545e] font-medium">{label}</span>
+            <div key={label} className="bg-[#0d1d31]/90 border border-white/10 rounded-[14px] p-4 flex flex-col items-center gap-2 shadow-[0_10px_28px_rgba(0,0,0,.2)]">
+              <Icon className="w-5 h-5 text-[#7eb4dc]" />
+              <span className="text-[#d5e0e9] font-medium">{label}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/sign-up" className="px-8 py-3 bg-[#234d73] hover:bg-[#183b59] text-white font-semibold rounded-lg transition-colors shadow-[0_4px_12px_rgba(35,77,115,.18)]">
+        <div className="relative flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/sign-up" className="px-8 py-3 bg-[#2d6a9b] hover:bg-[#377caf] text-white font-semibold rounded-lg transition-colors shadow-[0_6px_18px_rgba(0,0,0,.28)]">
             Get Started Free
           </Link>
-          <Link href="/sign-in" className="px-8 py-3 border border-[#c9c7bf] text-[#43545e] hover:border-[#234d73] hover:text-[#172b3a] font-semibold rounded-lg transition-colors">
+          <Link href="/sign-in" className="px-8 py-3 border border-white/25 bg-white/[.03] text-[#d5e0e9] hover:border-[#7eb4dc] hover:bg-white/[.07] hover:text-white font-semibold rounded-lg transition-colors">
             Sign In
           </Link>
         </div>
