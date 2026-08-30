@@ -104,43 +104,43 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 210 24% 97%;
-  --foreground: 210 28% 17%;
-  --border: 210 18% 88%;
-  --card: 0 0% 100%;
-  --card-foreground: 210 28% 17%;
-  --card-border: 210 18% 88%;
+  --background: 42 24% 95%;
+  --foreground: 208 32% 15%;
+  --border: 40 15% 86%;
+  --card: 42 33% 99%;
+  --card-foreground: 208 32% 15%;
+  --card-border: 40 15% 86%;
   
-  --sidebar: 210 22% 99%;
-  --sidebar-foreground: 210 28% 17%;
-  --sidebar-border: 210 18% 89%;
-  --sidebar-primary: 187 62% 34%;
+  --sidebar: 42 24% 97%;
+  --sidebar-foreground: 208 32% 15%;
+  --sidebar-border: 40 15% 87%;
+  --sidebar-primary: 183 49% 35%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 187 38% 94%;
-  --sidebar-accent-foreground: 187 62% 27%;
-  --sidebar-ring: 187 62% 34%;
+  --sidebar-accent: 180 30% 91%;
+  --sidebar-accent-foreground: 183 49% 27%;
+  --sidebar-ring: 183 49% 35%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 40% 10%;
-  --popover-border: 220 20% 90%;
+  --popover: 42 33% 99%;
+  --popover-foreground: 208 32% 15%;
+  --popover-border: 40 15% 86%;
 
-  --primary: 187 62% 34%;
+  --primary: 183 49% 35%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 20% 94%;
-  --secondary-foreground: 210 28% 17%;
+  --secondary: 42 18% 91%;
+  --secondary-foreground: 208 32% 15%;
 
-  --muted: 210 20% 94%;
-  --muted-foreground: 210 12% 44%;
+  --muted: 40 15% 91%;
+  --muted-foreground: 208 10% 43%;
 
-  --accent: 187 38% 94%;
-  --accent-foreground: 187 62% 27%;
+  --accent: 180 30% 91%;
+  --accent-foreground: 183 49% 27%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 210 18% 86%;
-  --ring: 187 62% 34%;
+  --input: 40 15% 83%;
+  --ring: 183 49% 35%;
 
   --chart-1: 187 62% 34%;
   --chart-2: 205 62% 48%;
@@ -148,9 +148,9 @@
   --chart-4: 35 72% 51%;
   --chart-5: 8 62% 52%;
 
-  --app-font-sans: 'Outfit', sans-serif;
+  --app-font-sans: 'DM Sans', sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'Space Mono', monospace;
+  --app-font-mono: 'IBM Plex Mono', monospace;
   
   --radius: 0.5rem;
   
@@ -312,6 +312,26 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'DM Sans', 'Outfit', sans-serif;
+    letter-spacing: -0.006em;
+  }
+  button, input, textarea, select { font-family: inherit; }
+  ::selection { background: hsl(183 49% 35% / .18); color: hsl(208 32% 15%); }
+}
+
+@layer utilities {
+  .app-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: hsl(var(--primary));
+  }
+  .app-surface {
+    border: 1px solid hsl(var(--card-border));
+    background: hsl(var(--card));
+    box-shadow: 0 8px 24px hsl(208 32% 15% / .035);
   }
 }
 

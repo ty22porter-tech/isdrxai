@@ -3,19 +3,20 @@ import { Bot, Zap, BarChart3, Users } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-[100dvh] bg-slate-950 flex flex-col items-center justify-center px-4 text-center">
-      <div className="max-w-2xl mx-auto space-y-8">
+    <div className="min-h-[100dvh] bg-[#f7f3e9] flex flex-col items-center justify-center px-5 py-10 text-center text-[#172b3a]">
+      <div className="max-w-3xl mx-auto space-y-9">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/30">
-            <Bot className="w-9 h-9 text-white" />
+          <div className="w-16 h-16 bg-[#287f7a] rounded-[18px] flex items-center justify-center shadow-[0_10px_22px_rgba(40,127,122,.18)]">
+            <Bot className="w-9 h-9 text-[#fffdfa]" />
           </div>
         </div>
 
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-white">
-            iSDRX AI for <span className="text-sky-400">Janitorial Companies</span>
+          <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[.2em] text-[#287f7a]">A quieter way to grow</p>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-[-.04em]">
+            iSDRX AI for <span className="text-[#287f7a]">Janitorial Companies</span>
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+          <p className="text-[#65727a] text-lg max-w-xl mx-auto leading-8">
             Automate your outreach, manage prospects, and book more appointments — powered by AI.
           </p>
         </div>
@@ -26,18 +27,18 @@ export default function Home() {
             { icon: Users, label: "Prospect Management" },
             { icon: BarChart3, label: "Real-Time Analytics" },
           ].map(({ icon: Icon, label }) => (
-            <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex flex-col items-center gap-2">
-              <Icon className="w-5 h-5 text-sky-400" />
-              <span className="text-slate-300 font-medium">{label}</span>
+            <div key={label} className="bg-[#fffdfa] border border-[#d8d6cf] rounded-[14px] p-4 flex flex-col items-center gap-2 shadow-[0_8px_24px_rgba(30,45,53,.035)]">
+              <Icon className="w-5 h-5 text-[#287f7a]" />
+              <span className="text-[#43545e] font-medium">{label}</span>
             </div>
           ))}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/sign-up" className="px-8 py-3 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-sky-500/20">
+          <Link href="/sign-up" className="px-8 py-3 bg-[#287f7a] hover:bg-[#1f6662] text-white font-semibold rounded-lg transition-colors shadow-[0_4px_12px_rgba(40,127,122,.18)]">
             Get Started Free
           </Link>
-          <Link href="/sign-in" className="px-8 py-3 border border-slate-600 text-slate-200 hover:border-slate-400 hover:text-white font-semibold rounded-xl transition-colors">
+          <Link href="/sign-in" className="px-8 py-3 border border-[#c9c7bf] text-[#43545e] hover:border-[#287f7a] hover:text-[#172b3a] font-semibold rounded-lg transition-colors">
             Sign In
           </Link>
         </div>

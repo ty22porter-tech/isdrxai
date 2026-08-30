@@ -262,7 +262,7 @@ export default function Sequences() {
     7: "Breakup Email",
   };
   const STEP_COLORS: Record<number, string> = {
-    2: "bg-blue-100 text-blue-800 border-blue-200",
+    2: "bg-accent text-accent-foreground border-accent",
     3: "bg-indigo-100 text-indigo-800 border-indigo-200",
     4: "bg-violet-100 text-violet-800 border-violet-200",
     5: "bg-amber-100 text-amber-800 border-amber-200",
@@ -283,16 +283,16 @@ export default function Sequences() {
         </div>
 
         {/* How it works */}
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Mail className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <Mail className="h-5 w-5 text-primary mt-0.5 shrink-0" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-blue-900">How sequences work</p>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm font-semibold text-foreground">How sequences work</p>
+                <p className="text-sm text-muted-foreground">
                   Each active campaign has a 7-step email sequence. When a prospect doesn't reply within the configured days, they appear here for the next step. Use the Campaigns page to edit each step's script and timing.
                 </p>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-blue-700 font-medium">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-primary font-medium">
                   <span>Step 1: Intro</span><span>→</span>
                   <span>Step 2: Follow-up</span><span>→</span>
                   <span>Step 3: Value Add</span><span>→</span>

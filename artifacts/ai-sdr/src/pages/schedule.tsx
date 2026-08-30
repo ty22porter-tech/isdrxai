@@ -125,12 +125,12 @@ function CalendlyEmbed({ url }: { url: string }) {
   if (!canEmbed) {
     return (
       <div className="p-6 text-center">
-        <p className="text-sm leading-6 text-slate-400">
+        <p className="text-sm leading-6 text-[#65727a]">
           Calendly opens in its mobile booking page so every available time is easy to view.
         </p>
         <a
           href={url}
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-white transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#287f7a] px-4 py-3 font-semibold text-white transition hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a]"
         >
           Open Calendly
           <ExternalLink className="h-4 w-4" />
@@ -278,18 +278,18 @@ export default function Schedule() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f3e9]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#287f7a]" />
       </div>
     );
   }
 
   if (loadError || !info) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-slate-950 px-4">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f3e9] px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold text-white">Link unavailable</h1>
-          <p className="mt-2 text-slate-400">{loadError ?? "This scheduling link is no longer valid."}</p>
+          <h1 className="text-2xl font-bold text-[#172b3a]">Link unavailable</h1>
+          <p className="mt-2 text-[#65727a]">{loadError ?? "This scheduling link is no longer valid."}</p>
         </div>
       </div>
     );
@@ -299,18 +299,18 @@ export default function Schedule() {
   const copy = isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
 
   const inputClass =
-    "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
-  const labelClass = "block text-sm font-medium text-slate-300 mb-1.5";
+    "w-full rounded-lg border border-[#d8d6cf] bg-[#fffdfa] px-3 py-2 text-[#172b3a] placeholder-[#8a9295] focus:border-[#287f7a] focus:outline-none focus:ring-2 focus:ring-[#287f7a]/30";
+  const labelClass = "block text-sm font-medium text-[#43545e] mb-1.5";
 
   return (
-    <div className="min-h-[100dvh] bg-slate-950 py-10 px-4">
+    <div className="min-h-[100dvh] bg-[#f7f3e9] py-10 px-4">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/10 ring-1 ring-sky-500/30">
-            <Building2 className="h-6 w-6 text-sky-400" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#287f7a]/10 ring-1 ring-[#287f7a]/30">
+            <Building2 className="h-6 w-6 text-[#287f7a]" />
           </div>
-          <h1 className="text-3xl font-bold text-white">{copy.headline}</h1>
-          <p className="mt-2 text-slate-400">
+          <h1 className="text-3xl font-bold tracking-[-.03em] text-[#172b3a]">{copy.headline}</h1>
+          <p className="mt-2 text-[#65727a]">
             {path === "choice"
               ? `Choose the next step that works best for you and ${info.companyName}.`
               : path === "calendly"
@@ -324,16 +324,16 @@ export default function Schedule() {
             <button
               type="button"
               onClick={chooseQuestionnaire}
-              className="group rounded-2xl border border-slate-700/60 bg-slate-900 p-6 text-left shadow-xl transition hover:border-sky-500/70 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#287f7a]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#287f7a]"
             >
-              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/30">
+              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#287f7a]/10 text-[#287f7a] ring-1 ring-[#287f7a]/30">
                 <FileText className="h-5 w-5" />
               </span>
-              <span className="block text-lg font-semibold text-white">Fill out the questionnaire</span>
-              <span className="mt-2 block text-sm leading-6 text-slate-400">
+              <span className="block text-lg font-semibold text-[#172b3a]">Fill out the questionnaire</span>
+              <span className="mt-2 block text-sm leading-6 text-[#65727a]">
                 Share a few details first so {info.businessName} can prepare for your {copy.offerNoun}.
               </span>
-              <span className="mt-5 block text-sm font-semibold text-sky-400 group-hover:text-sky-300">
+              <span className="mt-5 block text-sm font-semibold text-[#287f7a] group-hover:text-[#1f6662]">
                 Answer questions, then choose a time
               </span>
             </button>
@@ -342,16 +342,16 @@ export default function Schedule() {
               type="button"
               onClick={() => calendlyUrl && setPath("calendly")}
               disabled={!calendlyUrl}
-              className="group rounded-2xl border border-slate-700/60 bg-slate-900 p-6 text-left shadow-xl transition hover:border-emerald-500/70 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-700/60 disabled:hover:bg-slate-900"
+              className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#27876f]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#27876f] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30">
+              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#27876f]/10 text-[#27876f] ring-1 ring-[#27876f]/30">
                 <CalendarDays className="h-5 w-5" />
               </span>
-              <span className="block text-lg font-semibold text-white">Schedule a meeting now</span>
-              <span className="mt-2 block text-sm leading-6 text-slate-400">
+              <span className="block text-lg font-semibold text-[#172b3a]">Schedule a meeting now</span>
+              <span className="mt-2 block text-sm leading-6 text-[#65727a]">
                 Skip the questionnaire and choose an available meeting time immediately.
               </span>
-              <span className="mt-5 block text-sm font-semibold text-emerald-400 group-hover:text-emerald-300">
+              <span className="mt-5 block text-sm font-semibold text-[#27876f] group-hover:text-[#1f6662]">
                 {calendlyUrl ? "Choose a time now" : "Online booking is not available"}
               </span>
             </button>
@@ -361,14 +361,14 @@ export default function Schedule() {
             <button
               type="button"
               onClick={() => setPath("choice")}
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#65727a] transition hover:text-[#172b3a] focus:outline-none focus:ring-2 focus:ring-[#287f7a]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to scheduling options
             </button>
-            <div className="overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900 p-2">
-              <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-slate-200">
-                <CalendarDays className="h-5 w-5 text-emerald-400" />
+            <div className="overflow-hidden rounded-xl border border-[#d8d6cf] bg-[#fffdfa] p-2 shadow-[0_10px_30px_rgba(30,45,53,.05)]">
+              <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-[#43545e]">
+                <CalendarDays className="h-5 w-5 text-[#27876f]" />
                 <span className="font-semibold">Choose a time</span>
               </div>
               <CalendlyEmbed url={calendlyUrl} />
@@ -376,11 +376,11 @@ export default function Schedule() {
           </div>
         ) : submitted ? (
           <div className="space-y-6">
-            <div className="flex items-start gap-3 rounded-xl border border-emerald-700/40 bg-emerald-900/20 p-4">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-400" />
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-700/30 bg-emerald-50 p-4">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
               <div>
-                <p className="font-semibold text-emerald-300">Thanks! Your details were sent.</p>
-                <p className="text-sm text-emerald-200/80">
+                <p className="font-semibold text-emerald-800">Thanks! Your details were sent.</p>
+                <p className="text-sm text-emerald-800/80">
                   {calendlyUrl
                     ? `Pick a time below to lock in your ${copy.offerNoun}.`
                     : `${info.businessName} will reach out shortly to confirm your ${copy.offerNoun}.`}
@@ -389,9 +389,9 @@ export default function Schedule() {
             </div>
 
             {calendlyUrl && (
-              <div className="rounded-xl border border-slate-700/50 bg-slate-900 p-2">
-                <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-slate-200">
-                  <CalendarDays className="h-5 w-5 text-sky-400" />
+              <div className="rounded-xl border border-[#d8d6cf] bg-[#fffdfa] p-2 shadow-[0_10px_30px_rgba(30,45,53,.05)]">
+                <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-[#43545e]">
+                  <CalendarDays className="h-5 w-5 text-[#287f7a]" />
                   <span className="font-semibold">Choose a time</span>
                 </div>
                 <CalendlyEmbed url={calendlyUrl} />
@@ -408,7 +408,7 @@ export default function Schedule() {
               <ArrowLeft className="h-4 w-4" />
               Back to scheduling options
             </button>
-            <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-700/50 bg-slate-900 p-6 shadow-2xl">
+            <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 shadow-[0_10px_30px_rgba(30,45,53,.05)]">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>Your name</label>
@@ -453,8 +453,8 @@ export default function Schedule() {
                         aria-pressed={active}
                         className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                           active
-                            ? "bg-sky-500 text-white"
-                            : "border border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-500"
+                            ? "bg-[#287f7a] text-white"
+                            : "border border-[#d8d6cf] bg-[#f7f3e9] text-[#43545e] hover:border-[#287f7a]"
                         }`}
                       >
                         {opt}
@@ -490,8 +490,8 @@ export default function Schedule() {
                         onClick={() => toggleServiceTime(opt)}
                         className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                           active
-                            ? "bg-sky-500 text-white"
-                            : "border border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-500"
+                            ? "bg-[#287f7a] text-white"
+                            : "border border-[#d8d6cf] bg-[#f7f3e9] text-[#43545e] hover:border-[#287f7a]"
                         }`}
                       >
                         {opt}
@@ -535,7 +535,7 @@ export default function Schedule() {
                   </div>
                 ))}
                 {(parseInt(locationCount, 10) || 1) > 3 && (
-                  <p className="text-sm text-amber-300/90">
+                    <p className="text-sm text-amber-700">
                     You have more than 3 locations — list your first 3 here and we'll call to discuss the
                     rest.
                   </p>
@@ -545,7 +545,7 @@ export default function Schedule() {
 
             <div>
               <label className={labelClass}>{copy.uploadLabel}</label>
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-600 bg-slate-800/50 px-4 py-6 text-slate-400 hover:border-sky-500/60 hover:text-slate-300">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#c9c7bf] bg-[#f7f3e9] px-4 py-6 text-[#65727a] hover:border-[#287f7a]/60 hover:text-[#43545e]">
                 <Upload className="h-5 w-5" />
                 <span>Click to upload (PDF or images, 25MB total)</span>
                 <input
@@ -561,10 +561,10 @@ export default function Schedule() {
                   {files.map((f, idx) => (
                     <li
                       key={idx}
-                      className="flex items-center justify-between rounded-md bg-slate-800 px-3 py-1.5 text-sm text-slate-300"
+                      className="flex items-center justify-between rounded-md bg-[#eef2f3] px-3 py-1.5 text-sm text-[#43545e]"
                     >
                       <span className="truncate">{f.filename}</span>
-                      <button type="button" onClick={() => removeFile(idx)} className="text-slate-500 hover:text-red-400">
+                      <button type="button" onClick={() => removeFile(idx)} className="text-[#748087] hover:text-red-500" aria-label={`Remove ${f.filename}`}>
                         <X className="h-4 w-4" />
                       </button>
                     </li>
@@ -583,7 +583,7 @@ export default function Schedule() {
             </div>
 
             {submitError && (
-              <p className="rounded-lg border border-red-700/50 bg-red-900/30 px-3 py-2 text-sm text-red-300">
+              <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {submitError}
               </p>
             )}
@@ -591,7 +591,7 @@ export default function Schedule() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-3 font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#287f7a] px-4 py-3 font-semibold text-white transition hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a] focus:ring-offset-2 disabled:opacity-60"
             >
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               {submitting ? "Submitting…" : "Submit & pick a time"}

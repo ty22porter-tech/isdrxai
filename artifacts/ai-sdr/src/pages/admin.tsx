@@ -34,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function EventBadge({ event }: { event: string }) {
-  if (event === "loaded") return <span className="text-xs text-sky-400 font-medium">👁 Opened</span>;
+  if (event === "loaded") return <span className="text-xs text-primary font-medium">Opened</span>;
   if (event === "25") return <span className="text-xs text-yellow-400 font-medium">▶ 25%</span>;
   if (event === "50") return <span className="text-xs text-orange-400 font-medium">▶ 50%</span>;
   if (event === "75") return <span className="text-xs text-emerald-400 font-medium">▶ 75%</span>;

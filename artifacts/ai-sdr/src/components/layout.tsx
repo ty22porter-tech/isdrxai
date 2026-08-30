@@ -218,10 +218,10 @@ export function Layout({ children }: LayoutProps) {
           <Link key={item.name} href={item.href} className="block" onClick={() => setMobileNavOpen(false)}>
             <span
               className={cn(
-                "flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
+                "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-[background-color,color] duration-200",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                   ? "bg-primary/10 text-primary shadow-[inset_3px_0_0_hsl(var(--primary))]"
+                   : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
               )}
             >
               <item.icon
@@ -273,16 +273,16 @@ export function Layout({ children }: LayoutProps) {
   );
 
   return (
-      <div className={cn("min-h-[100dvh] bg-background flex flex-col md:flex-row", location === "/dashboard" && "dashboard-theme")}>
+      <div className="dashboard-theme min-h-[100dvh] bg-background flex flex-col md:flex-row">
       <VerticalOnboardingDialog open={needsVerticalChoice} />
 
       {/* Desktop sidebar */}
-      <div className="hidden md:flex w-[218px] border-r border-sidebar-border bg-sidebar flex-col h-screen sticky top-0">
+      <div className="hidden md:flex w-[228px] border-r border-sidebar-border bg-sidebar flex-col min-h-[100dvh] sticky top-0">
         <div className="h-[68px] flex items-center px-5 border-b border-sidebar-border">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center mr-3">
+          <div className="h-8 w-8 rounded-[9px] bg-primary flex items-center justify-center mr-3 shadow-[0_3px_8px_hsl(183_49%_35%_/_0.2)]">
             <Building2 className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-[15px] tracking-tight">iSDRX <span className="text-primary">AI</span></span>
+          <span className="font-semibold text-[15px] tracking-tight">iSDRX <span className="text-primary">AI</span><span className="ml-2 font-mono text-[9px] uppercase tracking-[.14em] text-muted-foreground">workspace</span></span>
         </div>
         <div className="flex-1 overflow-y-auto py-4">
           {navLinks}

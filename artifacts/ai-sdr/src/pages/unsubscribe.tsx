@@ -56,41 +56,41 @@ export default function Unsubscribe() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#f7f3e9] px-4">
+      <div className="w-full max-w-md bg-[#fffdfa] rounded-2xl shadow-[0_10px_30px_rgba(30,45,53,.05)] border border-[#d8d6cf] p-8">
         {loading ? (
-          <div className="flex flex-col items-center gap-3 py-8 text-slate-500">
+          <div className="flex flex-col items-center gap-3 py-8 text-[#65727a]">
             <Loader2 className="w-6 h-6 animate-spin" />
             <p>Loading…</p>
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center gap-3 text-center py-4">
-            <MailX className="w-10 h-10 text-slate-400" />
-            <h1 className="text-lg font-semibold text-slate-900">Link not found</h1>
-            <p className="text-sm text-slate-500">{loadError}</p>
+            <MailX className="w-10 h-10 text-[#748087]" />
+            <h1 className="text-lg font-semibold text-[#172b3a]">Link not found</h1>
+            <p className="text-sm text-[#65727a]">{loadError}</p>
           </div>
         ) : done ? (
           <div className="flex flex-col items-center gap-3 text-center py-4">
             <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-            <h1 className="text-lg font-semibold text-slate-900">You're unsubscribed</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-lg font-semibold text-[#172b3a]">You're unsubscribed</h1>
+            <p className="text-sm text-[#65727a]">
               {info?.email} will no longer receive outreach emails
               {info?.businessName ? ` from ${info.businessName}` : ""}.
             </p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center">
-            <MailX className="w-10 h-10 text-slate-400" />
-            <h1 className="text-lg font-semibold text-slate-900">Unsubscribe from emails</h1>
-            <p className="text-sm text-slate-500">
-              You're about to unsubscribe <span className="font-medium text-slate-700">{info?.email}</span>
-              {info?.businessName ? <> from emails sent by <span className="font-medium text-slate-700">{info.businessName}</span></> : null}.
+            <MailX className="w-10 h-10 text-[#748087]" />
+            <h1 className="text-lg font-semibold text-[#172b3a]">Unsubscribe from emails</h1>
+            <p className="text-sm text-[#65727a]">
+              You're about to unsubscribe <span className="font-medium text-[#43545e]">{info?.email}</span>
+              {info?.businessName ? <> from emails sent by <span className="font-medium text-[#43545e]">{info.businessName}</span></> : null}.
               You won't receive any further outreach.
             </p>
             <button
               onClick={handleUnsubscribe}
               disabled={submitting}
-              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#287f7a] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a] focus:ring-offset-2 disabled:opacity-60"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Unsubscribe me

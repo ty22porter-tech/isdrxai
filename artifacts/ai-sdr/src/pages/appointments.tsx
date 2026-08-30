@@ -45,7 +45,7 @@ import {
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show" | "rescheduled";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  scheduled:   { label: "Scheduled",   color: "bg-blue-100 text-blue-800 border-blue-200" },
+  scheduled:   { label: "Scheduled",   color: "bg-accent text-accent-foreground border-accent" },
   completed:   { label: "Completed",   color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   cancelled:   { label: "Cancelled",   color: "bg-red-100 text-red-800 border-red-200" },
   no_show:     { label: "No Show",     color: "bg-orange-100 text-orange-800 border-orange-200" },
@@ -227,7 +227,7 @@ export default function Appointments() {
                       Mark as Completed
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => openReschedule(apt)}>
-                      <RefreshCw className="mr-2 h-4 w-4 text-blue-600" />
+                      <RefreshCw className="mr-2 h-4 w-4 text-primary" />
                       Reschedule
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleStatusUpdate(apt.id, "no_show")}>
@@ -243,7 +243,7 @@ export default function Appointments() {
                 )}
                 {apt.status !== "scheduled" && (
                   <DropdownMenuItem onClick={() => openReschedule(apt)}>
-                    <RefreshCw className="mr-2 h-4 w-4 text-blue-600" />
+                    <RefreshCw className="mr-2 h-4 w-4 text-primary" />
                     Reschedule
                   </DropdownMenuItem>
                 )}

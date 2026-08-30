@@ -712,8 +712,8 @@ export default function SettingsPage() {
               <label className="text-sm font-medium flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" /> Email Signature Preview
               </label>
-              <div className="rounded-lg border border-border bg-white text-gray-900 p-4" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
-                <p className="text-[15px] mb-3 text-gray-500 italic">…end of your email message…</p>
+              <div className="rounded-lg border border-border bg-card text-foreground p-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                <p className="text-[15px] mb-3 text-muted-foreground italic">…end of your email message…</p>
                 <p className="text-[15px] mb-4">Best,</p>
                 {(() => {
                   const raw = (senderName || businessName || "Your Name").trim();
@@ -733,7 +733,7 @@ export default function SettingsPage() {
                         <div className="text-lg font-bold leading-snug">{name}</div>
                         {title && <div className="text-base leading-snug">{title}</div>}
                         {businessName && (
-                          <div className="text-sm font-semibold tracking-wide text-blue-600 uppercase mt-0.5">{businessName}</div>
+                          <div className="text-sm font-semibold tracking-wide text-primary uppercase mt-0.5">{businessName}</div>
                         )}
                         <div className="border-t border-red-600 w-64 max-w-full my-3.5" />
                         {phone && <div className="text-[13px] mb-1"><span className="font-bold">Office Phone:</span> <span className="underline">{phone}</span></div>}

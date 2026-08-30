@@ -17,12 +17,12 @@ async function apiFetch(path: string, options?: RequestInit) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  active:        { label: "Sending",        color: "text-sky-400 bg-sky-500/10 border-sky-500/30",    icon: Play },
+  active:        { label: "Sending",        color: "text-primary bg-primary/10 border-primary/30",    icon: Play },
   paused:        { label: "Paused",         color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30", icon: Pause },
-  replied:       { label: "Replied",        color: "text-purple-400 bg-purple-500/10 border-purple-500/30", icon: MessageSquare },
+  replied:       { label: "Replied",        color: "text-[#6b5f88] bg-[#e9e2f0] border-[#d8cce5]", icon: MessageSquare },
   calendly_sent: { label: "Calendly Sent", color: "text-orange-400 bg-orange-500/10 border-orange-500/30", icon: Calendar },
   booked:        { label: "Booked!",        color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30", icon: CheckCircle2 },
-  completed:     { label: "Done",           color: "text-slate-400 bg-slate-500/10 border-slate-500/30", icon: CheckCircle2 },
+  completed:     { label: "Done",           color: "text-muted-foreground bg-muted border-border", icon: CheckCircle2 },
   unsubscribed:  { label: "Opted Out",      color: "text-red-400 bg-red-500/10 border-red-500/30", icon: X },
 };
 
@@ -188,9 +188,9 @@ export default function AutopilotPage() {
 
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "Active", value: active, icon: Play, color: "text-sky-400" },
-            { label: "Emails Sent", value: emailsSent, icon: Mail, color: "text-blue-400" },
-            { label: "Replied", value: replied, icon: MessageSquare, color: "text-purple-400" },
+            { label: "Active", value: active, icon: Play, color: "text-primary" },
+            { label: "Emails Sent", value: emailsSent, icon: Mail, color: "text-[#4f8e89]" },
+            { label: "Replied", value: replied, icon: MessageSquare, color: "text-[#6b5f88]" },
             { label: "Booked", value: booked, icon: CheckCircle2, color: "text-emerald-400" },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="rounded-xl border bg-card p-5">
@@ -246,13 +246,13 @@ export default function AutopilotPage() {
                     </Button>
                   )}
                   {e.status === "paused" && (
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-sky-400 hover:text-sky-300"
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-primary hover:text-primary"
                       onClick={() => pauseMutation.mutate({ id: e.id, status: "active" })}>
                       Resume
                     </Button>
                   )}
                   {["active", "paused", "completed"].includes(e.status) && (
-                    <Button size="sm" variant="ghost" className="h-7 text-xs text-purple-400 hover:text-purple-300"
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-[#6b5f88] hover:text-[#51456d]"
                       onClick={() => { setReplyModal({ id: e.id, name: e.prospect?.companyName ?? "Prospect" }); setReplyText(""); }}>
                       Log Reply
                     </Button>
@@ -278,8 +278,8 @@ export default function AutopilotPage() {
           <h3 className="font-semibold mb-4">How Autopilot Works</h3>
           <div className="flex items-start gap-0">
             {[
-              { day: "Day 0", label: "Cold Email", desc: "AI writes a personalized intro email and sends it immediately", icon: Mail, color: "text-sky-400" },
-              { day: "Day 3", label: "Follow-up", desc: "If no reply, AI sends a short friendly follow-up", icon: Mail, color: "text-blue-400" },
+              { day: "Day 0", label: "Cold Email", desc: "AI writes a personalized intro email and sends it immediately", icon: Mail, color: "text-primary" },
+              { day: "Day 3", label: "Follow-up", desc: "If no reply, AI sends a short friendly follow-up", icon: Mail, color: "text-[#4f8e89]" },
               { day: "Day 7", label: "Final Touch", desc: "One last outreach — direct and respectful", icon: Mail, color: "text-indigo-400" },
               { day: "On Reply", label: "Calendly Link", desc: "AI detects interest, auto-sends your booking link", icon: Calendar, color: "text-emerald-400" },
             ].map((step, i, arr) => (
