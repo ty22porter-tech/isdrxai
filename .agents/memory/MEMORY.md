@@ -23,3 +23,4 @@
 - [PUBLIC_APP_URL → prod links](public-app-url.md) — shared env var forces all emailed links (alerts, tracking, /schedule) to the published app; dev-sent tracking links won't register in dev DB.
 - [Stale lib dist after codegen](stale-lib-dist-after-codegen.md) — orval regen can leave lib dist/*.d.ts stale (tsbuildinfo skips rebuild); artifact typechecks fail on "missing" fields → `tsc --build --force` the lib.
 - [Date query parameters](date-query-parameters.md) — define OpenAPI date-only query params as patterned strings, not format:date; debounce native date inputs and validate again on the server.
+- [Visual brand palette](visual-brand-palette.md) — iSDRX AI’s brand accent is navy blue, never teal/green; reserve green only for explicit success states.

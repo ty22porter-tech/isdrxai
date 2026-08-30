@@ -15,7 +15,7 @@ export default function NotFound() {
           <p className="mt-4 text-sm text-[#65727a]">
             This page has moved or is no longer available.
           </p>
-          <Link href="/" className="mt-6 inline-flex rounded-lg bg-[#287f7a] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a] focus:ring-offset-2">Return home</Link>
+          <Link href="/" className="mt-6 inline-flex rounded-lg bg-[#234d73] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#183b59] focus:outline-none focus:ring-2 focus:ring-[#234d73] focus:ring-offset-2">Return home</Link>
         </CardContent>
       </Card>
     </div>

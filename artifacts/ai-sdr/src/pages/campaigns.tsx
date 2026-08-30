@@ -81,14 +81,14 @@ const INDUSTRIES = [
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:     { label: "Draft",     color: "bg-muted text-muted-foreground border-border" },
-  active:    { label: "Active",    color: "bg-green-100 text-green-800 border-green-200" },
+  active:    { label: "Active",    color: "bg-blue-100 text-blue-800 border-blue-200" },
   paused:    { label: "Paused",    color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
   completed: { label: "Completed", color: "bg-accent text-accent-foreground border-accent" },
 };
 
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   email: { label: "Email Sequence", icon: Mail,     color: "text-primary" },
-  call:  { label: "Call Blitz",     icon: PhoneCall, color: "text-green-600" },
+  call:  { label: "Call Blitz",     icon: PhoneCall, color: "text-primary" },
   mixed: { label: "Mixed Touches",  icon: Send,      color: "text-primary" },
 };
 
@@ -221,8 +221,8 @@ function buildCallScript(form: CampaignForm): string {
 const STEP_META = [
   { num: 1, label: "Step 1 — Intro Email", sublabel: "sent immediately", color: "bg-primary text-primary-foreground" },
   { num: 2, label: "Step 2 — First Follow-up",  sublabel: "if no reply", color: "bg-primary text-primary-foreground" },
-  { num: 3, label: "Step 3 — Value Add",         sublabel: "if no reply", color: "bg-[#4f8e89] text-white" },
-  { num: 4, label: "Step 4 — Case Study",        sublabel: "if no reply", color: "bg-[#6f9b8d] text-white" },
+  { num: 3, label: "Step 3 — Value Add",         sublabel: "if no reply", color: "bg-[#315f86] text-white" },
+  { num: 4, label: "Step 4 — Case Study",        sublabel: "if no reply", color: "bg-[#4f7395] text-white" },
   { num: 5, label: "Step 5 — New Angle",         sublabel: "if no reply", color: "bg-amber-500 text-white" },
   { num: 6, label: "Step 6 — Last Attempt",      sublabel: "if no reply", color: "bg-orange-500 text-white" },
   { num: 7, label: "Step 7 — Breakup Email",     sublabel: "final touch", color: "bg-red-500 text-white" },
@@ -439,7 +439,7 @@ export default function Campaigns() {
                 )}
                 {c.status === "paused" && (
                   <DropdownMenuItem onClick={() => handleStatusChange(c.id, "active")}>
-                    <Play className="mr-2 h-4 w-4 text-green-600" /> Resume
+                    <Play className="mr-2 h-4 w-4 text-primary" /> Resume
                   </DropdownMenuItem>
                 )}
                 {(c.status === "active" || c.status === "paused") && (

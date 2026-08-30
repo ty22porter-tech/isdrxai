@@ -90,7 +90,7 @@ export default function Unsubscribe() {
             <button
               onClick={handleUnsubscribe}
               disabled={submitting}
-              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#287f7a] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a] focus:ring-offset-2 disabled:opacity-60"
+              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#234d73] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#183b59] focus:outline-none focus:ring-2 focus:ring-[#234d73] focus:ring-offset-2 disabled:opacity-60"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Unsubscribe me

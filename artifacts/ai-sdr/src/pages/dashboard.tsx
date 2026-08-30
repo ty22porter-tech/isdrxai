@@ -188,7 +188,7 @@ export default function Dashboard() {
               <StatCard title="Emails Sent" value={engagement.emailsSent} href="/emails" icon={<Send className="h-4 w-4 text-blue-500" />} />
               <StatCard title="Emails Delivered" value={engagement.emailsDelivered} href="/emails"
                 sub={engagement.emailsBounced > 0 ? <span className="text-red-500">{engagement.emailsBounced} bounced</span> : "confirmed by provider"}
-                icon={<Mail className="h-4 w-4 text-green-500" />} />
+                icon={<Mail className="h-4 w-4 text-primary" />} />
               <StatCard title="Prospects Who Opened" value={engagement.prospectsWhoOpened} href="/prospects"
                 tooltip="Open tracking is an estimate — privacy protections and email scanners can hide real opens or trigger false ones."
                 icon={<Users className="h-4 w-4 text-blue-500" />} />
@@ -201,7 +201,7 @@ export default function Dashboard() {
               <StatCard title="Attachments Viewed" value={engagement.attachmentsViewed} href="/emails"
                 sub={`${engagement.attachmentDownloads} downloaded`}
                 icon={<Paperclip className="h-4 w-4 text-purple-500" />} />
-              <StatCard title="Links Clicked" value={engagement.linksClicked} href="/emails" icon={<MousePointerClick className="h-4 w-4 text-green-500" />} />
+              <StatCard title="Links Clicked" value={engagement.linksClicked} href="/emails" icon={<MousePointerClick className="h-4 w-4 text-primary" />} />
               <StatCard title="Hot / Medium / Low"
                 value={`${engagement.hotProspects} / ${engagement.mediumProspects} / ${engagement.lowProspects}`}
                 sub="prospects by interest level" href="/prospects"
@@ -284,7 +284,7 @@ export default function Dashboard() {
                     <div key={item.id} className="flex gap-4">
                       <div className="mt-0.5">
                         {item.type === 'email_sent' && <Mail className="h-4 w-4 text-blue-500" />}
-                        {item.type === 'call_made' && <PhoneCall className="h-4 w-4 text-green-500" />}
+                        {item.type === 'call_made' && <PhoneCall className="h-4 w-4 text-primary" />}
                         {item.type === 'appointment_set' && <Calendar className="h-4 w-4 text-purple-500" />}
                         {item.type === 'status_changed' && <ArrowUpRight className="h-4 w-4 text-orange-500" />}
                         {item.type === 'prospect_added' && <Users className="h-4 w-4 text-primary" />}

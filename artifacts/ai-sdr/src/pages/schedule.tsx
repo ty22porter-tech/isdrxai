@@ -130,7 +130,7 @@ function CalendlyEmbed({ url }: { url: string }) {
         </p>
         <a
           href={url}
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#287f7a] px-4 py-3 font-semibold text-white transition hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a]"
+          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#234d73] px-4 py-3 font-semibold text-white transition hover:bg-[#183b59] focus:outline-none focus:ring-2 focus:ring-[#234d73]"
         >
           Open Calendly
           <ExternalLink className="h-4 w-4" />
@@ -279,7 +279,7 @@ export default function Schedule() {
   if (loading) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-[#f7f3e9]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#287f7a]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#234d73]" />
       </div>
     );
   }
@@ -299,15 +299,15 @@ export default function Schedule() {
   const copy = isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
 
   const inputClass =
-    "w-full rounded-lg border border-[#d8d6cf] bg-[#fffdfa] px-3 py-2 text-[#172b3a] placeholder-[#8a9295] focus:border-[#287f7a] focus:outline-none focus:ring-2 focus:ring-[#287f7a]/30";
+    "w-full rounded-lg border border-[#d8d6cf] bg-[#fffdfa] px-3 py-2 text-[#172b3a] placeholder-[#8a9295] focus:border-[#234d73] focus:outline-none focus:ring-2 focus:ring-[#234d73]/30";
   const labelClass = "block text-sm font-medium text-[#43545e] mb-1.5";
 
   return (
     <div className="min-h-[100dvh] bg-[#f7f3e9] py-10 px-4">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#287f7a]/10 ring-1 ring-[#287f7a]/30">
-            <Building2 className="h-6 w-6 text-[#287f7a]" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#234d73]/10 ring-1 ring-[#234d73]/30">
+            <Building2 className="h-6 w-6 text-[#234d73]" />
           </div>
           <h1 className="text-3xl font-bold tracking-[-.03em] text-[#172b3a]">{copy.headline}</h1>
           <p className="mt-2 text-[#65727a]">
@@ -324,16 +324,16 @@ export default function Schedule() {
             <button
               type="button"
               onClick={chooseQuestionnaire}
-              className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#287f7a]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#287f7a]"
+              className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#234d73]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#234d73]"
             >
-              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#287f7a]/10 text-[#287f7a] ring-1 ring-[#287f7a]/30">
+              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#234d73]/10 text-[#234d73] ring-1 ring-[#234d73]/30">
                 <FileText className="h-5 w-5" />
               </span>
               <span className="block text-lg font-semibold text-[#172b3a]">Fill out the questionnaire</span>
               <span className="mt-2 block text-sm leading-6 text-[#65727a]">
                 Share a few details first so {info.businessName} can prepare for your {copy.offerNoun}.
               </span>
-              <span className="mt-5 block text-sm font-semibold text-[#287f7a] group-hover:text-[#1f6662]">
+              <span className="mt-5 block text-sm font-semibold text-[#234d73] group-hover:text-[#183b59]">
                 Answer questions, then choose a time
               </span>
             </button>
@@ -342,16 +342,16 @@ export default function Schedule() {
               type="button"
               onClick={() => calendlyUrl && setPath("calendly")}
               disabled={!calendlyUrl}
-              className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#27876f]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#27876f] disabled:cursor-not-allowed disabled:opacity-50"
+              className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#315f86]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#315f86] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#27876f]/10 text-[#27876f] ring-1 ring-[#27876f]/30">
+              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#315f86]/10 text-[#315f86] ring-1 ring-[#315f86]/30">
                 <CalendarDays className="h-5 w-5" />
               </span>
               <span className="block text-lg font-semibold text-[#172b3a]">Schedule a meeting now</span>
               <span className="mt-2 block text-sm leading-6 text-[#65727a]">
                 Skip the questionnaire and choose an available meeting time immediately.
               </span>
-              <span className="mt-5 block text-sm font-semibold text-[#27876f] group-hover:text-[#1f6662]">
+              <span className="mt-5 block text-sm font-semibold text-[#315f86] group-hover:text-[#183b59]">
                 {calendlyUrl ? "Choose a time now" : "Online booking is not available"}
               </span>
             </button>
@@ -361,14 +361,14 @@ export default function Schedule() {
             <button
               type="button"
               onClick={() => setPath("choice")}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#65727a] transition hover:text-[#172b3a] focus:outline-none focus:ring-2 focus:ring-[#287f7a]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#65727a] transition hover:text-[#172b3a] focus:outline-none focus:ring-2 focus:ring-[#234d73]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to scheduling options
             </button>
             <div className="overflow-hidden rounded-xl border border-[#d8d6cf] bg-[#fffdfa] p-2 shadow-[0_10px_30px_rgba(30,45,53,.05)]">
               <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-[#43545e]">
-                <CalendarDays className="h-5 w-5 text-[#27876f]" />
+                <CalendarDays className="h-5 w-5 text-[#315f86]" />
                 <span className="font-semibold">Choose a time</span>
               </div>
               <CalendlyEmbed url={calendlyUrl} />
@@ -391,7 +391,7 @@ export default function Schedule() {
             {calendlyUrl && (
               <div className="rounded-xl border border-[#d8d6cf] bg-[#fffdfa] p-2 shadow-[0_10px_30px_rgba(30,45,53,.05)]">
                 <div className="mb-2 flex items-center gap-2 px-3 pt-3 text-[#43545e]">
-                  <CalendarDays className="h-5 w-5 text-[#287f7a]" />
+                  <CalendarDays className="h-5 w-5 text-[#234d73]" />
                   <span className="font-semibold">Choose a time</span>
                 </div>
                 <CalendlyEmbed url={calendlyUrl} />
@@ -453,8 +453,8 @@ export default function Schedule() {
                         aria-pressed={active}
                         className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                           active
-                            ? "bg-[#287f7a] text-white"
-                            : "border border-[#d8d6cf] bg-[#f7f3e9] text-[#43545e] hover:border-[#287f7a]"
+                            ? "bg-[#234d73] text-white"
+                            : "border border-[#d8d6cf] bg-[#f7f3e9] text-[#43545e] hover:border-[#234d73]"
                         }`}
                       >
                         {opt}
@@ -490,8 +490,8 @@ export default function Schedule() {
                         onClick={() => toggleServiceTime(opt)}
                         className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                           active
-                            ? "bg-[#287f7a] text-white"
-                            : "border border-[#d8d6cf] bg-[#f7f3e9] text-[#43545e] hover:border-[#287f7a]"
+                            ? "bg-[#234d73] text-white"
+                            : "border border-[#d8d6cf] bg-[#f7f3e9] text-[#43545e] hover:border-[#234d73]"
                         }`}
                       >
                         {opt}
@@ -545,7 +545,7 @@ export default function Schedule() {
 
             <div>
               <label className={labelClass}>{copy.uploadLabel}</label>
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#c9c7bf] bg-[#f7f3e9] px-4 py-6 text-[#65727a] hover:border-[#287f7a]/60 hover:text-[#43545e]">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#c9c7bf] bg-[#f7f3e9] px-4 py-6 text-[#65727a] hover:border-[#234d73]/60 hover:text-[#43545e]">
                 <Upload className="h-5 w-5" />
                 <span>Click to upload (PDF or images, 25MB total)</span>
                 <input
@@ -591,7 +591,7 @@ export default function Schedule() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#287f7a] px-4 py-3 font-semibold text-white transition hover:bg-[#1f6662] focus:outline-none focus:ring-2 focus:ring-[#287f7a] focus:ring-offset-2 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#234d73] px-4 py-3 font-semibold text-white transition hover:bg-[#183b59] focus:outline-none focus:ring-2 focus:ring-[#234d73] focus:ring-offset-2 disabled:opacity-60"
             >
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               {submitting ? "Submitting…" : "Submit & pick a time"}

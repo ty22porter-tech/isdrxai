@@ -279,7 +279,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Desktop sidebar */}
       <div className="hidden md:flex w-[228px] border-r border-sidebar-border bg-sidebar flex-col min-h-[100dvh] sticky top-0">
         <div className="h-[68px] flex items-center px-5 border-b border-sidebar-border">
-          <div className="h-8 w-8 rounded-[9px] bg-primary flex items-center justify-center mr-3 shadow-[0_3px_8px_hsl(183_49%_35%_/_0.2)]">
+          <div className="h-8 w-8 rounded-[9px] bg-primary flex items-center justify-center mr-3 shadow-[0_3px_8px_hsl(210_52%_32%_/_0.2)]">
             <Building2 className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-semibold text-[15px] tracking-tight">iSDRX <span className="text-primary">AI</span><span className="ml-2 font-mono text-[9px] uppercase tracking-[.14em] text-muted-foreground">workspace</span></span>

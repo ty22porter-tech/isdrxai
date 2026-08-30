@@ -114,17 +114,17 @@
   --sidebar: 42 24% 97%;
   --sidebar-foreground: 208 32% 15%;
   --sidebar-border: 40 15% 87%;
-  --sidebar-primary: 183 49% 35%;
+  --sidebar-primary: 210 52% 32%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 180 30% 91%;
-  --sidebar-accent-foreground: 183 49% 27%;
-  --sidebar-ring: 183 49% 35%;
+  --sidebar-accent: 210 28% 92%;
+  --sidebar-accent-foreground: 210 52% 27%;
+  --sidebar-ring: 210 52% 32%;
 
   --popover: 42 33% 99%;
   --popover-foreground: 208 32% 15%;
   --popover-border: 40 15% 86%;
 
-  --primary: 183 49% 35%;
+  --primary: 210 52% 32%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 42 18% 91%;
@@ -133,18 +133,18 @@
   --muted: 40 15% 91%;
   --muted-foreground: 208 10% 43%;
 
-  --accent: 180 30% 91%;
-  --accent-foreground: 183 49% 27%;
+  --accent: 210 28% 92%;
+  --accent-foreground: 210 52% 27%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --input: 40 15% 83%;
-  --ring: 183 49% 35%;
+  --ring: 210 52% 32%;
 
-  --chart-1: 187 62% 34%;
-  --chart-2: 205 62% 48%;
-  --chart-3: 156 42% 42%;
+  --chart-1: 210 52% 32%;
+  --chart-2: 200 56% 45%;
+  --chart-3: 221 34% 46%;
   --chart-4: 35 72% 51%;
   --chart-5: 8 62% 52%;
 
@@ -189,30 +189,30 @@
   --sidebar: 42 24% 97%;
   --sidebar-foreground: 208 32% 15%;
   --sidebar-border: 40 15% 87%;
-  --sidebar-primary: 183 49% 35%;
+  --sidebar-primary: 210 52% 32%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 180 30% 91%;
-  --sidebar-accent-foreground: 183 49% 27%;
-  --sidebar-ring: 183 49% 35%;
+  --sidebar-accent: 210 28% 92%;
+  --sidebar-accent-foreground: 210 52% 27%;
+  --sidebar-ring: 210 52% 32%;
 
   --popover: 42 33% 99%;
   --popover-foreground: 208 32% 15%;
   --popover-border: 40 15% 86%;
 
-  --primary: 183 49% 35%;
+  --primary: 210 52% 32%;
   --primary-foreground: 0 0% 100%;
   --secondary: 42 18% 91%;
   --secondary-foreground: 208 32% 15%;
   --muted: 40 15% 91%;
   --muted-foreground: 208 10% 43%;
-  --accent: 180 30% 91%;
-  --accent-foreground: 183 49% 27%;
+  --accent: 210 28% 92%;
+  --accent-foreground: 210 52% 27%;
   --input: 40 15% 83%;
-  --ring: 183 49% 35%;
+  --ring: 210 52% 32%;
 
-  --chart-1: 183 49% 35%;
-  --chart-2: 198 43% 43%;
-  --chart-3: 160 35% 40%;
+  --chart-1: 210 52% 32%;
+  --chart-2: 200 56% 45%;
+  --chart-3: 221 34% 46%;
   --chart-4: 36 63% 49%;
   --chart-5: 8 58% 51%;
 
@@ -225,30 +225,30 @@
   --color-foreground: hsl(208 32% 15%);
   --color-border: hsl(40 15% 86%);
   --color-input: hsl(40 15% 83%);
-  --color-ring: hsl(183 49% 35%);
+  --color-ring: hsl(210 52% 32%);
   --color-card: hsl(42 33% 99%);
   --color-card-foreground: hsl(208 32% 15%);
   --color-card-border: hsl(40 15% 86%);
   --color-popover: hsl(42 33% 99%);
   --color-popover-foreground: hsl(208 32% 15%);
   --color-popover-border: hsl(40 15% 86%);
-  --color-primary: hsl(183 49% 35%);
+  --color-primary: hsl(210 52% 32%);
   --color-primary-foreground: hsl(0 0% 100%);
   --color-secondary: hsl(42 18% 91%);
   --color-secondary-foreground: hsl(208 32% 15%);
   --color-muted: hsl(40 15% 91%);
   --color-muted-foreground: hsl(208 10% 43%);
-  --color-accent: hsl(180 30% 91%);
-  --color-accent-foreground: hsl(183 49% 27%);
+  --color-accent: hsl(210 28% 92%);
+  --color-accent-foreground: hsl(210 52% 27%);
   --color-destructive: hsl(0 84% 60%);
   --color-destructive-foreground: hsl(0 0% 100%);
   --color-sidebar: hsl(42 24% 97%);
   --color-sidebar-foreground: hsl(208 32% 15%);
   --color-sidebar-border: hsl(40 15% 87%);
-  --color-sidebar-primary: hsl(183 49% 35%);
+  --color-sidebar-primary: hsl(210 52% 32%);
   --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(180 30% 91%);
-  --color-sidebar-accent-foreground: hsl(183 49% 27%);
+  --color-sidebar-accent: hsl(210 28% 92%);
+  --color-sidebar-accent-foreground: hsl(210 52% 27%);
 }
 
 .dark {
@@ -316,7 +316,7 @@
     letter-spacing: -0.006em;
   }
   button, input, textarea, select { font-family: inherit; }
-  ::selection { background: hsl(183 49% 35% / .18); color: hsl(208 32% 15%); }
+  ::selection { background: hsl(210 52% 32% / .18); color: hsl(208 32% 15%); }
 }
 
 @layer utilities {

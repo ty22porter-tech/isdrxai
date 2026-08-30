@@ -189,7 +189,7 @@ export default function AutopilotPage() {
         <div className="grid grid-cols-4 gap-4">
           {[
             { label: "Active", value: active, icon: Play, color: "text-primary" },
-            { label: "Emails Sent", value: emailsSent, icon: Mail, color: "text-[#4f8e89]" },
+            { label: "Emails Sent", value: emailsSent, icon: Mail, color: "text-[#315f86]" },
             { label: "Replied", value: replied, icon: MessageSquare, color: "text-[#6b5f88]" },
             { label: "Booked", value: booked, icon: CheckCircle2, color: "text-emerald-400" },
           ].map(({ label, value, icon: Icon, color }) => (
@@ -279,7 +279,7 @@ export default function AutopilotPage() {
           <div className="flex items-start gap-0">
             {[
               { day: "Day 0", label: "Cold Email", desc: "AI writes a personalized intro email and sends it immediately", icon: Mail, color: "text-primary" },
-              { day: "Day 3", label: "Follow-up", desc: "If no reply, AI sends a short friendly follow-up", icon: Mail, color: "text-[#4f8e89]" },
+              { day: "Day 3", label: "Follow-up", desc: "If no reply, AI sends a short friendly follow-up", icon: Mail, color: "text-[#315f86]" },
               { day: "Day 7", label: "Final Touch", desc: "One last outreach — direct and respectful", icon: Mail, color: "text-indigo-400" },
               { day: "On Reply", label: "Calendly Link", desc: "AI detects interest, auto-sends your booking link", icon: Calendar, color: "text-emerald-400" },
             ].map((step, i, arr) => (

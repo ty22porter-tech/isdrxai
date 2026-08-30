@@ -59,14 +59,14 @@ export function EmailPreview({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <p
-            className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#278d87]"
+            className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#315f86]"
             style={{ fontFamily: "'IBM Plex Mono', 'Space Mono', monospace" }}
           >
             {eyebrow}
           </p>
           <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em]">{title}</h3>
         </div>
-        <span className="rounded-full bg-[#d7e6e2] px-4 py-1.5 text-sm font-semibold text-[#27876f]">
+        <span className="rounded-full bg-[#e1e9f0] px-4 py-1.5 text-sm font-semibold text-[#2d587f]">
           {statusLabel}
         </span>
       </div>
@@ -91,7 +91,7 @@ export function EmailPreview({
           <div className="whitespace-pre-wrap text-[14px] leading-[1.65] text-[#243540]">
             {displayBody}
           </div>
-          <div className="mt-6 border-l-[3px] border-[#24aaa0] pl-4">
+          <div className="mt-6 border-l-[3px] border-[#3c6689] pl-4">
             <p className="text-sm text-[#43545e]">Best regards,</p>
             <p className="mt-2 text-[15px] font-semibold text-[#172b3a]">{displaySender}</p>
             <p className="mt-0.5 text-xs text-[#69767d]">{displayCompany}</p>
