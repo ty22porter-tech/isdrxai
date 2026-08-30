@@ -24,9 +24,9 @@ function StatCard({ title, value, sub, icon, tooltip, href }: {
   href?: string;
 }) {
   const card = (
-    <Card className={href ? "transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full" : undefined}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-        <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+    <Card className={href ? "transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full shadow-none" : "shadow-none"}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3.5 px-4">
+        <CardTitle className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
           {title}
           {tooltip && (
             <Tooltip>
@@ -40,7 +40,7 @@ function StatCard({ title, value, sub, icon, tooltip, href }: {
         {icon}
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-[22px] font-semibold tracking-tight">{value}</div>
         {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </CardContent>
     </Card>
@@ -91,28 +91,35 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Overview</h2>
-          <p className="text-muted-foreground mt-1">
+      <div className="space-y-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary mb-2">Workspace / Overview</p>
+          <h2 className="text-[26px] font-semibold tracking-tight">Good morning, here’s the pulse.</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Here's what's happening with your outreach pipeline today.
           </p>
+          </div>
+          <div className="hidden sm:block text-right text-xs text-muted-foreground">
+            <div className="font-medium text-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</div>
+            <div className="mt-1">Live pipeline view</div>
+          </div>
         </div>
 
         {statsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32" />)}
           </div>
         ) : stats ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <Link href="/prospects" className="block">
-              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Prospects</CardTitle>
+                  <CardTitle className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Total Prospects</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalProspects}</div>
+                   <div className="text-[25px] font-semibold tracking-tight">{stats.totalProspects}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {stats.activeProspects} active in pipeline
                   </p>
@@ -120,13 +127,13 @@ export default function Dashboard() {
               </Card>
             </Link>
             <Link href="/emails" className="block">
-              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
+                  <CardTitle className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Emails Sent</CardTitle>
                   <Mail className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.emailsSent}</div>
+                   <div className="text-[25px] font-semibold tracking-tight">{stats.emailsSent}</div>
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     This month <ArrowUpRight className="h-3 w-3" />
                   </p>
@@ -134,13 +141,13 @@ export default function Dashboard() {
               </Card>
             </Link>
             <Link href="/calls" className="block">
-              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Calls Made</CardTitle>
+                  <CardTitle className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Calls Made</CardTitle>
                   <PhoneCall className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.callsMade}</div>
+                   <div className="text-[25px] font-semibold tracking-tight">{stats.callsMade}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     This month
                   </p>
@@ -148,13 +155,13 @@ export default function Dashboard() {
               </Card>
             </Link>
             <Link href="/appointments" className="block">
-              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full">
+              <Card className="transition-colors hover:border-primary/50 hover:bg-accent/40 cursor-pointer h-full shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+                  <CardTitle className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Appointments</CardTitle>
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.appointmentsSet}</div>
+                   <div className="text-[25px] font-semibold tracking-tight">{stats.appointmentsSet}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {stats.appointmentsCompleted} completed
                   </p>
@@ -165,19 +172,19 @@ export default function Dashboard() {
         ) : null}
 
         {/* Prospect Engagement and Buying Intent */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <h3 className="text-lg font-semibold">Prospect Engagement and Buying Intent</h3>
+            <h3 className="text-[17px] font-semibold tracking-tight">Prospect engagement &amp; buying intent</h3>
             <p className="text-sm text-muted-foreground">
               Who's opening, clicking, and ready to talk — across all your outreach.
             </p>
           </div>
           {engagementLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-24" />)}
             </div>
           ) : engagement ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <StatCard title="Emails Sent" value={engagement.emailsSent} href="/emails" icon={<Send className="h-4 w-4 text-blue-500" />} />
               <StatCard title="Emails Delivered" value={engagement.emailsDelivered} href="/emails"
                 sub={engagement.emailsBounced > 0 ? <span className="text-red-500">{engagement.emailsBounced} bounced</span> : "confirmed by provider"}
@@ -230,12 +237,12 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Pipeline Status</CardTitle>
+          <Card className="lg:col-span-2 shadow-none">
+            <CardHeader className="px-5 py-4">
+              <CardTitle className="text-[15px]">Pipeline status</CardTitle>
               <CardDescription>Current prospect distribution</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-5 pb-5">
               {statsLoading ? (
                 <Skeleton className="h-64" />
               ) : stats?.prospectsByStatus ? (
@@ -261,12 +268,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+          <Card className="shadow-none">
+            <CardHeader className="px-5 py-4">
+              <CardTitle className="text-[15px]">Recent activity</CardTitle>
               <CardDescription>Latest actions taken</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-5 pb-5">
               {activityLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12" />)}

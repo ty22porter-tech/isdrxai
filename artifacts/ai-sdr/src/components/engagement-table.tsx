@@ -203,14 +203,14 @@ export function EngagementTable() {
   );
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
+    <Card className="shadow-none">
+      <CardHeader className="pb-4 px-5 pt-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
           <div>
-            <CardTitle className="text-base">Prospect Engagement</CardTitle>
+           <CardTitle className="text-[15px]">Prospect engagement</CardTitle>
             <CardDescription>Sortable, filterable engagement detail per prospect</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCsv}>
+               <Button variant="outline" size="sm" className="rounded-lg" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
         </div>
@@ -274,7 +274,7 @@ export function EngagementTable() {
           <>
             <div
               ref={topScrollbarRef}
-              className="h-4 overflow-x-auto overflow-y-hidden border-y bg-muted/30"
+             className="h-3 overflow-x-auto overflow-y-hidden border-y bg-muted/40"
               onScroll={syncFromTop}
               aria-label="Top horizontal scrollbar for prospect engagement results"
             >
@@ -288,7 +288,7 @@ export function EngagementTable() {
               role="region"
               aria-label="Scrollable prospect engagement results"
             >
-              <table className="w-max min-w-full caption-bottom text-sm">
+               <table className="w-max min-w-full caption-bottom text-[12px]">
               <TableHeader>
                 <TableRow>
                   <SortableHead k="companyName">Prospect</SortableHead>

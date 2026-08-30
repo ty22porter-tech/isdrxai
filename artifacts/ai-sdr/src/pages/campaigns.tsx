@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { EmailPreview } from "@/components/email-preview";
 import {
   Plus,
   MoreVertical,
@@ -70,6 +71,7 @@ import {
   Pencil,
   Trash2,
   Wand2,
+  Eye,
 } from "lucide-react";
 
 const INDUSTRIES = [
@@ -228,6 +230,27 @@ const STEP_META = [
 
 const FOLLOW_UP_KEYS = ["followUp1", "followUp2", "followUp3", "followUp4", "followUp5", "followUp6"] as const;
 
+const CAMPAIGN_PREVIEW_PROSPECT = {
+  contactName: "Angela Morris",
+  companyName: "Lone Star Facility Solutions",
+  city: "Dallas",
+  state: "TX",
+};
+
+function mergePreviewTemplate(template: string, industry: string): string {
+  return template
+    .replace(/\{\{contactName\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.contactName)
+    .replace(/\{\{companyName\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.companyName)
+    .replace(/\{\{city\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.city)
+    .replace(/\{\{state\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.state)
+    .replace(/\{\{industry\}\}/g, industry || "your industry");
+}
+
+function introPreviewSubject(campaignName: string, vertical: ClientVertical): string {
+  const prefix = vertical === "it_services" ? "Managed IT Services" : "Janitorial Services";
+  return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
+}
+
 export default function Campaigns() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -250,6 +273,8 @@ export default function Campaigns() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editCampaign, setEditCampaign] = useState<any>(null);
   const [form, setForm] = useState(BLANK_FORM);
+  const [launchPreviewCampaign, setLaunchPreviewCampaign] = useState<any>(null);
+  const [launchPreviewStep, setLaunchPreviewStep] = useState(1);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
@@ -351,6 +376,11 @@ export default function Campaigns() {
     setEditCampaign(c);
   };
 
+  const openLaunchPreview = (campaign: any) => {
+    setLaunchPreviewCampaign(campaign);
+    setLaunchPreviewStep(1);
+  };
+
   const grouped = {
     active:    (campaigns ?? []).filter(c => c.status === "active"),
     draft:     (campaigns ?? []).filter(c => c.status === "draft"),
@@ -398,8 +428,8 @@ export default function Campaigns() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {c.status === "draft" && (
-                  <DropdownMenuItem onClick={() => handleStatusChange(c.id, "active")}>
-                    <Play className="mr-2 h-4 w-4 text-green-600" /> Activate
+                  <DropdownMenuItem onClick={() => openLaunchPreview(c)}>
+                    <Eye className="mr-2 h-4 w-4 text-primary" /> Preview &amp; launch
                   </DropdownMenuItem>
                 )}
                 {c.status === "active" && (
@@ -470,10 +500,10 @@ export default function Campaigns() {
             <Button
               className="w-full mt-4"
               size="sm"
-              onClick={() => handleStatusChange(c.id, "active")}
+              onClick={() => openLaunchPreview(c)}
               disabled={updateCampaign.isPending}
             >
-              <Play className="mr-2 h-3.5 w-3.5" /> Launch Campaign
+              <Eye className="mr-2 h-3.5 w-3.5" /> Preview &amp; Launch
             </Button>
           )}
           {c.status === "active" && (
@@ -549,6 +579,26 @@ export default function Campaigns() {
   };
 
   const showEmailSteps = form.type === "email" || form.type === "mixed";
+  const launchPreviewForm = launchPreviewCampaign ? parseFormFromCampaign(launchPreviewCampaign) : null;
+  const launchStep = launchPreviewStep === 1
+    ? {
+        subject: launchPreviewCampaign ? introPreviewSubject(launchPreviewCampaign.name, vertical) : "",
+        body: launchPreviewForm?.emailTemplate ?? "",
+      }
+    : (() => {
+        const key = FOLLOW_UP_KEYS[launchPreviewStep - 2];
+        return key && launchPreviewForm
+          ? launchPreviewForm[key]
+          : { subject: "", body: "" };
+      })();
+  const launchPreviewSubject = mergePreviewTemplate(
+    "subject" in launchStep ? launchStep.subject : "",
+    launchPreviewCampaign?.targetIndustry ?? "",
+  );
+  const launchPreviewBody = mergePreviewTemplate(
+    "body" in launchStep ? launchStep.body : "",
+    launchPreviewCampaign?.targetIndustry ?? "",
+  );
 
   const renderStepEditor = (
     stepMeta: typeof STEP_META[number],
@@ -790,6 +840,75 @@ export default function Campaigns() {
             <DialogDescription>Update your sequence steps and templates.</DialogDescription>
           </DialogHeader>
           {renderCampaignForm(handleEdit, updateCampaign.isPending)}
+        </DialogContent>
+      </Dialog>
+
+      {/* Campaign launch preview */}
+      <Dialog
+        open={!!launchPreviewCampaign}
+        onOpenChange={open => { if (!open) setLaunchPreviewCampaign(null); }}
+      >
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[900px]">
+          <DialogHeader>
+            <DialogTitle>Preview campaign before launch</DialogTitle>
+            <DialogDescription>
+              Review each personalized email as a prospect will see it. Nothing is sent from this preview.
+            </DialogDescription>
+          </DialogHeader>
+
+          {launchPreviewCampaign && (
+            <div className="space-y-5">
+              <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Campaign email steps">
+                {STEP_META.map(step => (
+                  <Button
+                    key={step.num}
+                    type="button"
+                    size="sm"
+                    variant={launchPreviewStep === step.num ? "default" : "outline"}
+                    className="shrink-0 rounded-full"
+                    onClick={() => setLaunchPreviewStep(step.num)}
+                  >
+                    Email {step.num}
+                  </Button>
+                ))}
+              </div>
+
+              <EmailPreview
+                subject={launchPreviewSubject}
+                body={launchPreviewBody}
+                recipientName={CAMPAIGN_PREVIEW_PROSPECT.contactName}
+                recipientCompany={CAMPAIGN_PREVIEW_PROSPECT.companyName}
+                senderName={me?.senderName}
+                senderCompany={me?.businessName}
+                senderWebsite={me?.website}
+                senderPhone={me?.phone}
+                senderMobilePhone={me?.mobilePhone}
+                senderEmail={me?.outreachEmail}
+                statusLabel="Draft"
+                eyebrow={`Email preview · Step ${launchPreviewStep} of 7`}
+              />
+
+              <p className="text-xs text-muted-foreground">
+                Sample merge data is shown for preview. Each real recipient will receive their own company, contact, city, and industry details.
+              </p>
+
+              <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+                <Button variant="outline" onClick={() => setLaunchPreviewCampaign(null)}>
+                  Keep as Draft
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleStatusChange(launchPreviewCampaign.id, "active");
+                    setLaunchPreviewCampaign(null);
+                  }}
+                  disabled={updateCampaign.isPending}
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  {updateCampaign.isPending ? "Launching…" : "Launch Campaign"}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </Layout>

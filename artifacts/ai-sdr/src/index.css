@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -104,49 +104,49 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 220 20% 97%;
-  --foreground: 220 40% 10%;
-  --border: 220 20% 90%;
+  --background: 210 24% 97%;
+  --foreground: 210 28% 17%;
+  --border: 210 18% 88%;
   --card: 0 0% 100%;
-  --card-foreground: 220 40% 10%;
-  --card-border: 220 20% 90%;
+  --card-foreground: 210 28% 17%;
+  --card-border: 210 18% 88%;
   
-  --sidebar: 0 0% 100%;
-  --sidebar-foreground: 220 40% 10%;
-  --sidebar-border: 220 20% 90%;
-  --sidebar-primary: 230 90% 55%;
+  --sidebar: 210 22% 99%;
+  --sidebar-foreground: 210 28% 17%;
+  --sidebar-border: 210 18% 89%;
+  --sidebar-primary: 187 62% 34%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 220 20% 94%;
-  --sidebar-accent-foreground: 220 40% 10%;
-  --sidebar-ring: 230 90% 55%;
+  --sidebar-accent: 187 38% 94%;
+  --sidebar-accent-foreground: 187 62% 27%;
+  --sidebar-ring: 187 62% 34%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 220 40% 10%;
   --popover-border: 220 20% 90%;
 
-  --primary: 230 90% 55%;
+  --primary: 187 62% 34%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 20% 94%;
-  --secondary-foreground: 220 40% 10%;
+  --secondary: 210 20% 94%;
+  --secondary-foreground: 210 28% 17%;
 
-  --muted: 220 20% 94%;
-  --muted-foreground: 220 20% 40%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 210 12% 44%;
 
-  --accent: 220 20% 94%;
-  --accent-foreground: 220 40% 10%;
+  --accent: 187 38% 94%;
+  --accent-foreground: 187 62% 27%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 220 20% 88%;
-  --ring: 230 90% 55%;
+  --input: 210 18% 86%;
+  --ring: 187 62% 34%;
 
-  --chart-1: 230 90% 55%;
-  --chart-2: 280 80% 60%;
-  --chart-3: 160 80% 40%;
-  --chart-4: 40 90% 50%;
-  --chart-5: 0 80% 60%;
+  --chart-1: 187 62% 34%;
+  --chart-2: 205 62% 48%;
+  --chart-3: 156 42% 42%;
+  --chart-4: 35 72% 51%;
+  --chart-5: 8 62% 52%;
 
   --app-font-sans: 'Outfit', sans-serif;
   --app-font-serif: Georgia, serif;
@@ -172,6 +172,83 @@
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dashboard-theme {
+  font-family: 'DM Sans', 'Outfit', sans-serif;
+  --font-sans: 'DM Sans', 'Outfit', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Space Mono', monospace;
+
+  --background: 42 24% 95%;
+  --foreground: 208 32% 15%;
+  --border: 40 15% 86%;
+  --card: 42 33% 99%;
+  --card-foreground: 208 32% 15%;
+  --card-border: 40 15% 86%;
+
+  --sidebar: 42 24% 97%;
+  --sidebar-foreground: 208 32% 15%;
+  --sidebar-border: 40 15% 87%;
+  --sidebar-primary: 183 49% 35%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 180 30% 91%;
+  --sidebar-accent-foreground: 183 49% 27%;
+  --sidebar-ring: 183 49% 35%;
+
+  --popover: 42 33% 99%;
+  --popover-foreground: 208 32% 15%;
+  --popover-border: 40 15% 86%;
+
+  --primary: 183 49% 35%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 42 18% 91%;
+  --secondary-foreground: 208 32% 15%;
+  --muted: 40 15% 91%;
+  --muted-foreground: 208 10% 43%;
+  --accent: 180 30% 91%;
+  --accent-foreground: 183 49% 27%;
+  --input: 40 15% 83%;
+  --ring: 183 49% 35%;
+
+  --chart-1: 183 49% 35%;
+  --chart-2: 198 43% 43%;
+  --chart-3: 160 35% 40%;
+  --chart-4: 36 63% 49%;
+  --chart-5: 8 58% 51%;
+
+  --app-font-sans: 'DM Sans', 'Outfit', sans-serif;
+  --app-font-mono: 'IBM Plex Mono', 'Space Mono', monospace;
+
+  /* Tailwind's inline theme tokens are computed at :root, so override the
+     resolved color values here as well as the source HSL channels above. */
+  --color-background: hsl(42 24% 95%);
+  --color-foreground: hsl(208 32% 15%);
+  --color-border: hsl(40 15% 86%);
+  --color-input: hsl(40 15% 83%);
+  --color-ring: hsl(183 49% 35%);
+  --color-card: hsl(42 33% 99%);
+  --color-card-foreground: hsl(208 32% 15%);
+  --color-card-border: hsl(40 15% 86%);
+  --color-popover: hsl(42 33% 99%);
+  --color-popover-foreground: hsl(208 32% 15%);
+  --color-popover-border: hsl(40 15% 86%);
+  --color-primary: hsl(183 49% 35%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(42 18% 91%);
+  --color-secondary-foreground: hsl(208 32% 15%);
+  --color-muted: hsl(40 15% 91%);
+  --color-muted-foreground: hsl(208 10% 43%);
+  --color-accent: hsl(180 30% 91%);
+  --color-accent-foreground: hsl(183 49% 27%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-sidebar: hsl(42 24% 97%);
+  --color-sidebar-foreground: hsl(208 32% 15%);
+  --color-sidebar-border: hsl(40 15% 87%);
+  --color-sidebar-primary: hsl(183 49% 35%);
+  --color-sidebar-primary-foreground: hsl(0 0% 100%);
+  --color-sidebar-accent: hsl(180 30% 91%);
+  --color-sidebar-accent-foreground: hsl(183 49% 27%);
 }
 
 .dark {

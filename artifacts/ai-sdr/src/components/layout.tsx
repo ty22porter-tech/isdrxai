@@ -273,14 +273,16 @@ export function Layout({ children }: LayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      <div className={cn("min-h-[100dvh] bg-background flex flex-col md:flex-row", location === "/dashboard" && "dashboard-theme")}>
       <VerticalOnboardingDialog open={needsVerticalChoice} />
 
       {/* Desktop sidebar */}
-      <div className="hidden md:flex w-64 border-r bg-card flex-col h-screen sticky top-0">
-        <div className="h-16 flex items-center px-6 border-b">
-          <Building2 className="h-6 w-6 text-primary mr-3" />
-          <span className="font-semibold text-lg tracking-tight">iSDRX AI</span>
+      <div className="hidden md:flex w-[218px] border-r border-sidebar-border bg-sidebar flex-col h-screen sticky top-0">
+        <div className="h-[68px] flex items-center px-5 border-b border-sidebar-border">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center mr-3">
+            <Building2 className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="font-semibold text-[15px] tracking-tight">iSDRX <span className="text-primary">AI</span></span>
         </div>
         <div className="flex-1 overflow-y-auto py-4">
           {navLinks}
@@ -289,7 +291,7 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-30 h-14 border-b bg-card flex items-center justify-between px-4">
+      <div className="md:hidden sticky top-0 z-30 h-14 border-b bg-sidebar flex items-center justify-between px-4">
         <div className="flex items-center">
           <Building2 className="h-5 w-5 text-primary mr-2" />
           <span className="font-semibold tracking-tight">iSDRX AI</span>
@@ -319,15 +321,15 @@ export function Layout({ children }: LayoutProps) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="hidden md:flex h-16 border-b bg-card items-center justify-between px-8 sticky top-0 z-10">
-          <h1 className="text-lg font-semibold">
+        <header className="hidden md:flex h-[68px] border-b bg-sidebar items-center justify-between px-8 sticky top-0 z-10">
+          <h1 className="text-[15px] font-semibold tracking-tight">
             {currentPage?.name ?? "iSDRX AI"}
           </h1>
           <NotificationBell />
         </header>
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-background">
-          <div className="max-w-6xl mx-auto">
+        <main className="flex-1 p-4 md:px-8 md:py-7 overflow-y-auto bg-background">
+          <div className="max-w-[1380px] mx-auto">
             {children}
           </div>
         </main>

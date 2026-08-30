@@ -31,6 +31,7 @@ import {
   CalendarCheck, MessageSquare, Lightbulb, FileQuestion
 } from "lucide-react";
 import { InterestBadge } from "@/components/interest-badge";
+import { EmailPreview } from "@/components/email-preview";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -108,6 +109,14 @@ export default function ProspectDetail() {
   const { data: emails } = useListEmails({ prospectId });
   const { data: calls } = useListCalls({ prospectId });
   const { data: appointments } = useListAppointments({ status: "scheduled" });
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/users/me`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load profile");
+      return res.json();
+    },
+  });
 
   const updateProspect = useUpdateProspect();
   const generateEmail = useGenerateEmail();
@@ -305,7 +314,7 @@ export default function ProspectDetail() {
               <DialogTrigger asChild>
                 <Button className="w-full" onClick={() => {if (!emailSubject) handleGenerateEmail()}}><Sparkles className="mr-2 h-4 w-4" /> Generate AI Email</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
+              <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[980px]">
                 <DialogHeader>
                   <DialogTitle>AI Email Generator</DialogTitle>
                   <DialogDescription>Personalized outreach for {prospect.companyName}</DialogDescription>
@@ -315,13 +324,30 @@ export default function ProspectDetail() {
                     <div className="py-8 text-center text-muted-foreground animate-pulse">Analyzing prospect data & generating email...</div>
                   ) : (
                     <>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Subject Line</label>
-                        <Input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Email Body</label>
-                        <Textarea className="min-h-[250px] font-mono text-sm" value={emailBody} onChange={e => setEmailBody(e.target.value)} />
+                      <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Subject Line</label>
+                            <Input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Email Body</label>
+                            <Textarea className="min-h-[300px] text-sm leading-relaxed" value={emailBody} onChange={e => setEmailBody(e.target.value)} />
+                          </div>
+                        </div>
+                        <EmailPreview
+                          subject={emailSubject}
+                          body={emailBody}
+                          recipientName={prospect.contactName}
+                          recipientCompany={prospect.companyName}
+                          recipientEmail={prospect.email}
+                          senderName={me?.senderName}
+                          senderCompany={me?.businessName}
+                          senderWebsite={me?.website}
+                          senderPhone={me?.phone}
+                          senderMobilePhone={me?.mobilePhone}
+                          senderEmail={me?.outreachEmail}
+                        />
                       </div>
                       <div className="flex justify-end gap-2 pt-4">
                         <Button variant="outline" onClick={handleGenerateEmail}><Sparkles className="mr-2 h-4 w-4" /> Regenerate</Button>

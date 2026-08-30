@@ -24,6 +24,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 import { InterestBadge } from "@/components/interest-badge";
+import { EmailPreview } from "@/components/email-preview";
 
 // ─── Merge template ───────────────────────────────────────────────────────────
 function mergeTpl(tpl: string, prospect: any): string {
@@ -1271,17 +1272,19 @@ export default function Prospects() {
                     {selectedCampaign && preview && (
                       <div className="space-y-3">
                         <Separator />
-                        <div className="space-y-1">
-                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Preview — {preview.companyName}</Label>
-                          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                            <div><p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Subject</p><p className="text-sm font-medium">{previewSubject}</p></div>
-                            <Separator />
-                            <div>
-                              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Body</p>
-                              <Textarea readOnly value={previewBody || `${fallbackBody(preview, vertical)}\n\nBest,\nYour SDR Team`} className="min-h-[160px] font-mono text-xs bg-background resize-none mt-1" />
-                            </div>
-                          </div>
-                        </div>
+                        <EmailPreview
+                          subject={previewSubject}
+                          body={previewBody || fallbackBody(preview, vertical)}
+                          recipientName={preview.contactName}
+                          recipientCompany={preview.companyName}
+                          recipientEmail={preview.email}
+                          senderName={me?.senderName}
+                          senderCompany={me?.businessName}
+                          senderWebsite={me?.website}
+                          senderPhone={me?.phone}
+                          senderMobilePhone={me?.mobilePhone}
+                          senderEmail={me?.outreachEmail}
+                        />
                       </div>
                     )}
                     <div className="flex justify-end gap-2 pt-2">
