@@ -951,6 +951,10 @@ export default function Prospects() {
   type SortKey = "company" | "contact" | "location" | "status" | "interest" | "lastContacted";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [pageSize, setPageSize] = useState<"50" | "100" | "all">("50");
+  const [currentPage, setCurrentPage] = useState(1);
+  const topTableScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -986,6 +990,14 @@ export default function Prospects() {
     });
     return list;
   })();
+  const numericPageSize = pageSize === "all" ? Math.max(sortedProspects.length, 1) : Number(pageSize);
+  const totalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(sortedProspects.length / numericPageSize));
+  const pageStart = pageSize === "all" ? 0 : (currentPage - 1) * numericPageSize;
+  const visibleProspects = pageSize === "all"
+    ? sortedProspects
+    : sortedProspects.slice(pageStart, pageStart + numericPageSize);
+  const visibleRangeStart = sortedProspects.length === 0 ? 0 : pageStart + 1;
+  const visibleRangeEnd = Math.min(pageStart + visibleProspects.length, sortedProspects.length);
   const SortIcon = ({ column }: { column: SortKey }) =>
     sortKey === column
       ? (sortDir === "asc" ? <ArrowUp className="ml-1 h-3 w-3 inline" /> : <ArrowDown className="ml-1 h-3 w-3 inline" />)
@@ -1013,7 +1025,12 @@ export default function Prospects() {
 
   useEffect(() => {
     setSelected(new Set());
+    setCurrentPage(1);
   }, [search, sentCampaignId, sentFrom, sentTo]);
+
+  useEffect(() => {
+    setCurrentPage(previous => Math.min(previous, totalPages));
+  }, [totalPages]);
 
   useEffect(() => {
     if (!prospects) return;
@@ -1040,6 +1057,7 @@ export default function Prospects() {
     setAppliedSentFrom("");
     setAppliedSentTo("");
     setSelected(new Set());
+    setCurrentPage(1);
   };
 
   // bulk enrich (Apollo)
@@ -1392,7 +1410,7 @@ export default function Prospects() {
                       : "Enter a complete date between 2000 and 2100."
                     : dateFilterIsPending || isLoading
                       ? "Updating prospect list…"
-                      : `${prospects?.length ?? 0} prospect${(prospects?.length ?? 0) === 1 ? "" : "s"} shown`}
+                      : `${prospects?.length ?? 0} prospect${(prospects?.length ?? 0) === 1 ? "" : "s"} · showing ${visibleRangeStart}–${visibleRangeEnd}`}
                   {dateFilterIsValid && !dateFilterIsPending && hasSentFilters && (
                     <>
                       {" "}from sent email history
@@ -1403,7 +1421,26 @@ export default function Prospects() {
                   )}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[108px] space-y-1">
+                  <Label htmlFor="prospects-page-size" className="text-xs text-muted-foreground">Rows</Label>
+                  <Select
+                    value={pageSize}
+                    onValueChange={(value: "50" | "100" | "all") => {
+                      setPageSize(value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger id="prospects-page-size" className="h-9" aria-label="Prospects per page">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50">Show 50</SelectItem>
+                      <SelectItem value="100">Show 100</SelectItem>
+                      <SelectItem value="all">Show all</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button
                   type="button"
                   size="sm"
@@ -1426,9 +1463,30 @@ export default function Prospects() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto p-0">
-            <Table>
-              <TableHeader>
+          <CardContent className="p-0">
+            <div
+              ref={topTableScrollRef}
+              className="overflow-x-auto overflow-y-hidden border-y bg-muted/20"
+              onScroll={event => {
+                if (tableScrollRef.current && tableScrollRef.current.scrollLeft !== event.currentTarget.scrollLeft) {
+                  tableScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                }
+              }}
+              aria-label="Top horizontal scrollbar for prospects table"
+            >
+              <div className="h-3 min-w-[1100px]" />
+            </div>
+            <div
+              ref={tableScrollRef}
+              className="max-h-[65vh] overflow-auto"
+              onScroll={event => {
+                if (topTableScrollRef.current && topTableScrollRef.current.scrollLeft !== event.currentTarget.scrollLeft) {
+                  topTableScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                }
+              }}
+            >
+            <table className="w-full min-w-[1100px] caption-bottom text-sm">
+              <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_hsl(var(--border))]">
                 <TableRow>
                   <TableHead className="w-10 pl-4">
                     <Checkbox
@@ -1468,7 +1526,7 @@ export default function Prospects() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedProspects.map(prospect => (
+                  visibleProspects.map(prospect => (
                     <TableRow
                       key={prospect.id}
                       className={`cursor-pointer hover:bg-muted/50 ${selected.has(prospect.id) ? "bg-primary/5" : ""}`}
@@ -1522,7 +1580,38 @@ export default function Prospects() {
                   ))
                 )}
               </TableBody>
-            </Table>
+            </table>
+            </div>
+            <div className="flex flex-col gap-3 border-t px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-muted-foreground">
+                Showing {visibleRangeStart}–{visibleRangeEnd} of {sortedProspects.length} prospects
+              </p>
+              {pageSize !== "all" && totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="min-w-[92px] text-center text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
