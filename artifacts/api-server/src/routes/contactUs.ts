@@ -23,6 +23,12 @@ export const ContactUsSchema = z.object({
   website: z.string().max(500).optional().default(""),
 });
 
+export const UnansweredQuestionSchema = z.object({
+  email: z.string().trim().email().max(320).refine(noHeaderControls, "invalid characters"),
+  question: z.string().trim().min(1).max(2000).refine(noUnsafeMessageControls, "invalid characters"),
+  website: z.string().max(500).optional().default(""),
+});
+
 const byIp = new Map<string, number[]>();
 const allSubmissions: number[] = [];
 const MAX_TRACKED_IPS = 1_000;
@@ -62,6 +68,87 @@ const withHtmlLineBreaks = (value: string) =>
   escapeHtml(value).replace(/\r?\n/g, "<br>");
 
 export const contactUsRouter = Router();
+
+contactUsRouter.post("/unanswered-question", async (req, res) => {
+  const parsed = UnansweredQuestionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      ok: false,
+      error: "Please enter a valid email address and your question.",
+    });
+  }
+
+  const data = parsed.data;
+  if (data.website !== "") return res.json({ ok: true });
+
+  const forwarded = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim();
+  const ip = forwarded && /^[0-9a-f:.]{2,64}$/i.test(forwarded)
+    ? forwarded
+    : (req.ip || "unknown").slice(0, 64);
+  if (limited(ip)) {
+    return res.status(429).json({
+      ok: false,
+      error: "Too many requests. Please try again in a few minutes.",
+    });
+  }
+
+  const requestId = randomUUID();
+  const text = `New unanswered website question\n\nEmail: ${data.email}\n\nQuestion:\n${data.question}`;
+  const internalHtml = [
+    "<p><strong>New unanswered website question from Trey</strong></p>",
+    `<p><strong>Email:</strong> ${escapeHtml(data.email)}</p>`,
+    `<p><strong>Question:</strong></p><blockquote>${withHtmlLineBreaks(data.question)}</blockquote>`,
+  ].join("");
+
+  try {
+    await sendEmail({
+      fromName: "iSDRX AI Website",
+      replyTo: data.email,
+      to: INBOX,
+      subject: "Unanswered website question",
+      body: text,
+      html: internalHtml,
+    });
+  } catch {
+    logger.error({ requestId, stage: "internal_email" }, "Unanswered-question delivery failed");
+    return res.status(502).json({
+      ok: false,
+      error: "We couldn't submit your question right now. Please email info@isdrxai.com directly.",
+    });
+  }
+
+  try {
+    await sendEmail({
+      fromName: "iSDRX AI",
+      replyTo: INBOX,
+      to: data.email,
+      subject: "We received your question",
+      body: `Thank you! Your question has been submitted. A member of the iSDRX AI team will contact you by email as soon as possible.\n\nYour question:\n${data.question}`,
+      html: `<p>Thank you! Your question has been submitted. A member of the iSDRX AI team will contact you by email as soon as possible.</p><p><strong>Your question:</strong></p><blockquote>${withHtmlLineBreaks(data.question)}</blockquote>`,
+    });
+  } catch {
+    // The question already reached the team. Do not ask the visitor to submit
+    // again and risk a duplicate.
+    logger.error({ requestId, stage: "acknowledgement_email" }, "Unanswered-question acknowledgement failed");
+  }
+
+  void (async () => {
+    try {
+      const admins = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.isAdmin, true));
+      await Promise.all(admins.map((admin) => db.insert(notificationsTable).values({
+        clientId: admin.id,
+        sourceKey: `unanswered-question:${requestId}:${admin.id}`,
+        type: "demo_request",
+        title: "New question for Trey",
+        body: `A website visitor submitted a question for follow-up. Contact: ${data.email}.`,
+      }).onConflictDoNothing({ target: notificationsTable.sourceKey })));
+    } catch {
+      logger.error({ requestId, stage: "admin_notification" }, "Unanswered-question admin notification failed");
+    }
+  })();
+
+  return res.json({ ok: true });
+});
 
 contactUsRouter.post("/", async (req, res) => {
   const parsed = ContactUsSchema.safeParse(req.body);

@@ -1,7 +1,7 @@
 import express from "express";
 import type { Server } from "node:http";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { ContactUsSchema, escapeHtml } from "./contactUs";
+import { ContactUsSchema, UnansweredQuestionSchema, escapeHtml } from "./contactUs";
 
 const mocks = vi.hoisted(() => ({
   sendEmail: vi.fn(),
@@ -59,8 +59,8 @@ beforeEach(() => {
   mocks.selectAdmins.mockReset().mockResolvedValue([]);
 });
 
-async function submit(body: Record<string, unknown>) {
-  const response = await fetch(baseUrl, {
+async function submit(body: Record<string, unknown>, path = "") {
+  const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -106,6 +106,23 @@ describe("ContactUsSchema", () => {
 
   it("rejects header control characters", () => {
     expect(ContactUsSchema.safeParse({ ...validRequest, firstName: "Jamie\nBcc: bad@example.com" }).success).toBe(false);
+  });
+});
+
+describe("UnansweredQuestionSchema", () => {
+  it("accepts a valid email address and question", () => {
+    expect(UnansweredQuestionSchema.safeParse({
+      email: "visitor@example.com",
+      question: "Can iSDRX AI work with my CRM?",
+      website: "",
+    }).success).toBe(true);
+  });
+
+  it("requires both a valid email address and a question", () => {
+    expect(UnansweredQuestionSchema.safeParse({
+      email: "not-an-email",
+      question: "",
+    }).success).toBe(false);
   });
 });
 
@@ -161,6 +178,56 @@ describe("contact-us route", () => {
 
   it("silently accepts the honeypot without sending email", async () => {
     const { response, json } = await submit({ ...validRequest, website: "https://spam.example" });
+
+    expect(response.status).toBe(200);
+    expect(json).toEqual({ ok: true });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("unanswered-question route", () => {
+  const unansweredQuestion = {
+    email: "visitor@example.com",
+    question: "Can you support our specific CRM?",
+    website: "",
+  };
+
+  it("sends the question to the team and acknowledges the visitor", async () => {
+    const { response, json } = await submit(
+      unansweredQuestion,
+      "/unanswered-question",
+    );
+
+    expect(response.status).toBe(200);
+    expect(json).toEqual({ ok: true });
+    expect(mocks.sendEmail).toHaveBeenCalledTimes(2);
+
+    const internal = mocks.sendEmail.mock.calls[0][0];
+    expect(internal.to).toBe("info@isdrxai.com");
+    expect(internal.replyTo).toBe(unansweredQuestion.email);
+    expect(internal.body).toContain(unansweredQuestion.question);
+
+    const acknowledgement = mocks.sendEmail.mock.calls[1][0];
+    expect(acknowledgement.to).toBe(unansweredQuestion.email);
+    expect(acknowledgement.body).toContain("Your question has been submitted");
+  });
+
+  it("rejects an invalid email address or blank question", async () => {
+    const { response, json } = await submit(
+      { email: "invalid", question: "" },
+      "/unanswered-question",
+    );
+
+    expect(response.status).toBe(400);
+    expect(json.ok).toBe(false);
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("silently accepts the honeypot without sending email", async () => {
+    const { response, json } = await submit(
+      { ...unansweredQuestion, website: "https://spam.example" },
+      "/unanswered-question",
+    );
 
     expect(response.status).toBe(200);
     expect(json).toEqual({ ok: true });
