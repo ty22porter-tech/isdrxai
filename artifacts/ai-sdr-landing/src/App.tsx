@@ -873,12 +873,11 @@ function ServiceTiers() {
                 Complete Engagement and Follow-Through
               </p>
               <div className="space-y-3">
-                <h4 className="text-lg font-semibold text-white">AI-Triggered Human Calling</h4>
+                <h4 className="text-lg font-semibold text-white">
+                  iSDRX AI+ — Add Professional Calling Support
+                </h4>
                 <p className="text-muted-foreground leading-relaxed">
-                  Add a trained human caller to your iSDRX AI employee. When a prospect demonstrates buying intent or reaches a qualified engagement score, the caller follows up, manages the initial conversation, and records the outcome. Interested prospects can then be transferred live or scheduled directly on your sales team’s calendar.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Every interaction is tracked and monitored through the iSDRX AI dashboard, including call attempts, contact outcomes, conversation notes, live transfers, and appointments or walkthroughs booked. This provides complete visibility into how interested prospects progress from initial engagement to qualified pipeline.
+                  Upgrade to iSDRX AI+ to add a trained professional caller to your virtual employee. The caller follows up with prospects who demonstrate buying intent or reach a qualified engagement score.
                 </p>
               </div>
             </div>
@@ -937,13 +936,14 @@ function ServiceTiers() {
             </div>
 
             <div className="space-y-4 mb-10 flex-1">
-              <div className="text-sm font-semibold text-white uppercase tracking-wider mb-2">Everything in AI, plus:</div>
+              <div className="text-sm font-semibold text-white uppercase tracking-wider mb-2">iSDRX AI+ includes:</div>
               {[
-                "AI-Triggered Human Calling",
-                "Interest confirmation and opportunity qualification",
-                "Hands-on appointment or walkthrough scheduling",
-                "Calls, outcomes, notes, transfers, and bookings tracked in the dashboard",
-                "Follow-through for engaged prospects who do not book"
+                "Calls to interested and highly engaged prospects",
+                "Initial qualification and conversation management",
+                "Live transfers to designated team members",
+                "Appointment or walkthrough scheduling",
+                "Call outcomes and conversation notes",
+                "Complete activity tracking within the dashboard"
               ].map((feature, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -956,7 +956,7 @@ function ServiceTiers() {
 
             <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <p className="text-sm text-gray-300 leading-relaxed">
-                All call attempts, outcomes, notes, live transfers, and appointments or walkthroughs are tracked through the iSDRX AI dashboard.
+                Use your own team or add professional calling support—the choice is yours.
               </p>
               <p className="text-sm font-semibold text-white mt-3">
                 AI+ setup and monthly service pricing are added to the cost of your selected iSDRX AI package.
