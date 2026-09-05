@@ -749,6 +749,32 @@ function ServiceTiers() {
               </p>
             </div>
 
+            <div className="mb-8 rounded-xl border border-primary/30 bg-primary/10 p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary mb-2">
+                Standard iSDRX AI
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="text-4xl font-display font-bold text-white">$499</span>
+                <span className="text-muted-foreground mb-1">/month</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Includes 1 user and 1,000 AI email sends per month.
+              </p>
+            </div>
+
+            <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/10">
+              {[
+                { name: "iSDRX AI Starter", price: "$249/month" },
+                { name: "iSDRX AI Growth", price: "$799/month" },
+                { name: "Enterprise", price: "Contact Sales" },
+              ].map((tier) => (
+                <div key={tier.name} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                  <span className="text-gray-300">{tier.name}</span>
+                  <span className="font-semibold text-white whitespace-nowrap">{tier.price}</span>
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-4 mb-10 flex-1">
               {[
                 "High-fit prospect research and buying-signal identification",
@@ -797,6 +823,53 @@ function ServiceTiers() {
               </p>
             </div>
 
+            <div className="mb-6 rounded-xl border border-primary/30 bg-primary/10 p-5">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                    One-time setup
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Scripting, caller training, CRM configuration, and campaign preparation.
+                  </p>
+                </div>
+                <span className="text-3xl font-display font-bold text-white">$1,000</span>
+              </div>
+            </div>
+
+            <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/10">
+              {[
+                {
+                  name: "Engagement Follow-Up",
+                  price: "$750/month",
+                  detail: "Calls to hot and highly engaged prospects who have not scheduled",
+                },
+                {
+                  name: "Outbound Calling",
+                  price: "$1,500/month",
+                  detail: "Approximately 20–30 calling hours per month",
+                },
+                {
+                  name: "Dedicated Caller",
+                  price: "$3,000/month",
+                  detail: "Dedicated or near-full-time caller with live transfers",
+                },
+                {
+                  name: "Additional Caller",
+                  price: "$2,500–$3,500 each/month",
+                  detail: "Additional capacity for expanded territories or higher call volume",
+                },
+              ].map((level) => (
+                <div key={level.name} className="px-4 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4">
+                    <span className="font-semibold text-white">{level.name}</span>
+                    <span className="font-semibold text-primary whitespace-nowrap">{level.price}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{level.detail}</p>
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-4 mb-10 flex-1">
               <div className="text-sm font-semibold text-white uppercase tracking-wider mb-2">Everything in AI, plus:</div>
               {[
@@ -813,6 +886,15 @@ function ServiceTiers() {
                   <span className="text-gray-300">{feature}</span>
                 </div>
               ))}
+            </div>
+
+            <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <p className="text-sm text-gray-300 leading-relaxed">
+                All call attempts, outcomes, notes, live transfers, and appointments or walkthroughs are tracked through the iSDRX AI dashboard.
+              </p>
+              <p className="text-sm font-semibold text-white mt-3">
+                AI+ pricing is added to the monthly cost of your selected iSDRX AI package.
+              </p>
             </div>
 
             <Button asChild size="lg" className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]">
