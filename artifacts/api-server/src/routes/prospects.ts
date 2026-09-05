@@ -15,7 +15,8 @@ import {
   GetProspectParams,
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
-import { enrichPerson, isPlaceholderEmail } from "../lib/apollo";
+import { enrichPerson } from "../lib/apollo";
+import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 
@@ -331,76 +332,27 @@ router.get("/:id/score-history", async (req, res) => {
   })));
 });
 
-// Placeholder values from CSV imports / mock data that enrichment may overwrite.
-const isPlaceholderPhone = (phone: string) => !phone || /^\(?0{3}\)?[\s.-]?0{3}[\s.-]?0{4}$/.test(phone.trim());
-// "Owner" is the generic contactName assigned to Google Maps prospects before enrichment.
-const isPlaceholderContactName = (name: string) => !name || name.trim() === "" || name.trim() === "Owner";
-
 // Bulk enrich selected prospects via Apollo people enrichment.
 router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
   const { ids } = BulkEnrichProspectsBody.parse(req.body);
   const rows = await db.select().from(prospectsTable)
     .where(and(eq(prospectsTable.clientId, req.clientId), inArray(prospectsTable.id, ids)));
 
-  let enriched = 0, skipped = 0, failed = 0, planBlocked = false;
-  const errors: string[] = [];
-
-  const processOne = async (p: typeof rows[number]) => {
-    if (planBlocked) return;
-    const result = await enrichPerson({
+  const result = await runProspectEnrichment({
+    rows,
+    enrich: (p) => enrichPerson({
       email: p.email,
       contactName: p.contactName,
       companyName: p.companyName,
       website: p.website,
       vertical: p.vertical,
-    });
-    if (!result.ok) {
-      // Plan-blocked applies to every row — stop the whole run with a clear message.
-      if (result.planBlocked) {
-        planBlocked = true;
-        if (!errors.includes(result.error)) errors.unshift(result.error);
-        return;
-      }
-      failed++;
-      if (errors.length < 5) errors.push(`${p.companyName}: ${result.error}`);
-      return;
-    }
-    if (!result.person) { skipped++; return; }
-    const e = result.person;
-
-    // Non-destructive merge: only fill in fields that are missing or placeholders.
-    // contactName: fill when current value is "Owner" or empty.
-    // email: fill when current value is a .invalid placeholder.
-    // phone: fill only when current value is the (000) 000-0000 placeholder.
-    // city/state/website/employeeCount: fill only when currently missing.
-    await db.update(prospectsTable).set({
-      contactName: e.contactName && isPlaceholderContactName(p.contactName) ? e.contactName : p.contactName,
-      email: e.email && isPlaceholderEmail(p.email) ? e.email : p.email,
-      title: e.title ?? p.title,
-      linkedinUrl: e.linkedinUrl ?? p.linkedinUrl,
-      phone: e.phone && isPlaceholderPhone(p.phone) ? e.phone : p.phone,
-      city: p.city || (e.city ?? ""),
-      state: p.state || (e.state ?? ""),
-      website: p.website ?? e.website,
-      employeeCount: p.employeeCount ?? e.employeeCount,
-      enrichedAt: new Date(),
-    }).where(and(eq(prospectsTable.id, p.id), eq(prospectsTable.clientId, req.clientId)));
-    enriched++;
-  };
-
-  // Bounded concurrency (5 at a time) keeps 100-prospect runs well under request timeouts.
-  const queue = [...rows];
-  await Promise.all(Array.from({ length: 5 }, async () => {
-    while (queue.length && !planBlocked) {
-      const p = queue.shift();
-      if (p) await processOne(p);
-    }
-  }));
-
-  if (planBlocked) {
-    return res.json({ enriched, skipped, failed: rows.length - enriched - skipped, planBlocked: true, errors: errors.slice(0, 1) });
-  }
-  return res.json({ enriched, skipped, failed, planBlocked: false, errors });
+    }),
+    update: async (p, values) => {
+      await db.update(prospectsTable).set(values)
+        .where(and(eq(prospectsTable.id, p.id), eq(prospectsTable.clientId, req.clientId)));
+    },
+  });
+  return res.json(result);
 });
 
 // Bulk delete selected prospects (only ones owned by this client).
