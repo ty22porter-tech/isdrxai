@@ -8,6 +8,7 @@ import {
   Mail,
   BadgeCheck,
   Building2,
+  PhoneCall,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ type Tier = {
   features: string[];
   popular?: boolean;
   cta: string;
+  contactHref?: string;
 };
 
 const TIERS: Tier[] = [
@@ -117,6 +119,29 @@ const TIERS: Tier[] = [
     cta: "Start 14-Day Free Trial",
   },
   {
+    key: "ai-plus",
+    productName: null,
+    name: "iSDRX AI+",
+    price: "Contact Us",
+    priceNote: "",
+    emails: "Adds managed calling to your selected plan",
+    users: "Works with any iSDRX AI package",
+    tagline: "Add a live, trained professional caller to follow through with engaged prospects and help them book.",
+    features: [
+      "Everything in your selected iSDRX AI plan",
+      "Engagement Follow-Up — $750/month",
+      "Outbound Calling — $1,500/month",
+      "Dedicated Caller — $3,000/month",
+      "Additional Callers — $2,500–$3,500 each/month",
+      "Interest confirmation and qualification",
+      "Hands-on appointment scheduling",
+      "Calls, outcomes, notes, transfers, and bookings tracked",
+      "$1,000 one-time AI+ onboarding",
+    ],
+    cta: "Contact Us",
+    contactHref: "/contact-us",
+  },
+  {
     key: "enterprise",
     productName: null,
     name: "Enterprise",
@@ -154,19 +179,24 @@ const LAUNCH_PACKAGE_ITEMS = [
   "Customer Training",
 ];
 
-const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, string] }> = [
-  { label: "Personalized AI email capacity / month", values: ["Up to 500", "Up to 1,000", "Up to 2,500", "Custom"] },
-  { label: "User licenses", values: ["1", "1", "3", "5 or more"] },
-  { label: "Sending domains", values: ["1", "1", "1", "Unlimited"] },
-  { label: "AI email generation & follow-up", values: ["✓", "✓", "✓", "✓"] },
-  { label: "Prospect search & CSV upload", values: ["✓", "✓", "✓", "✓"] },
-  { label: "Appointment booking", values: ["✓", "✓", "✓", "✓"] },
-  { label: "Advanced AI personalization", values: ["—", "✓", "✓", "✓"] },
-  { label: "Multi-step AI campaigns", values: ["—", "✓", "✓", "✓"] },
-  { label: "Team dashboard & pipeline reporting", values: ["—", "✓", "✓", "✓"] },
-  { label: "CRM integration & API access", values: ["—", "—", "✓", "✓"] },
-  { label: "Custom AI training & SSO", values: ["—", "—", "—", "✓"] },
-  { label: "Support", values: ["Email", "Priority", "Enhanced implementation", "Dedicated CSM + SLA"] },
+const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, string, string] }> = [
+  { label: "Personalized AI email capacity / month", values: ["Up to 500", "Up to 1,000", "Up to 2,500", "Selected base plan", "Custom"] },
+  { label: "User licenses", values: ["1", "1", "3", "Selected base plan", "5 or more"] },
+  { label: "Sending domains", values: ["1", "1", "1", "Selected base plan", "Unlimited"] },
+  { label: "AI email generation & follow-up", values: ["✓", "✓", "✓", "✓", "✓"] },
+  { label: "Prospect search & CSV upload", values: ["✓", "✓", "✓", "✓", "✓"] },
+  { label: "Appointment booking", values: ["✓", "✓", "✓", "✓", "✓"] },
+  { label: "Advanced AI personalization", values: ["—", "✓", "✓", "By base plan", "✓"] },
+  { label: "Multi-step AI campaigns", values: ["—", "✓", "✓", "By base plan", "✓"] },
+  { label: "Team dashboard & pipeline reporting", values: ["—", "✓", "✓", "By base plan", "✓"] },
+  { label: "CRM integration & API access", values: ["—", "—", "✓", "By base plan", "✓"] },
+  { label: "Live, trained professional caller", values: ["—", "—", "—", "✓", "Custom"] },
+  { label: "Engaged-prospect phone follow-up", values: ["—", "—", "—", "✓", "Custom"] },
+  { label: "Interest confirmation & qualification", values: ["—", "—", "—", "✓", "Custom"] },
+  { label: "Live transfers & assisted scheduling", values: ["—", "—", "—", "✓", "Custom"] },
+  { label: "Call outcomes, notes & bookings tracked", values: ["—", "—", "—", "✓", "Custom"] },
+  { label: "Custom AI training & SSO", values: ["—", "—", "—", "By base plan", "✓"] },
+  { label: "Support", values: ["Email", "Priority", "Enhanced implementation", "Managed calling service", "Dedicated CSM + SLA"] },
 ];
 
 const FAQS: Array<{ q: string; a: string }> = [
@@ -176,7 +206,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: "How does the 14-day free trial work?",
-    a: "Every new account starts with a 14-day free trial with full access to all features in your selected plan. We collect a card at sign-up, and your paid subscription begins automatically when the trial ends unless you cancel first. We'll remind you by email before your trial expires.",
+    a: "iSDRX AI Starter, iSDRX AI, and iSDRX AI Growth include a 14-day free trial with full access to the selected subscription plan. We collect a card at sign-up, and your paid subscription begins automatically when the trial ends unless you cancel first. AI+ and Enterprise are sales-assisted services—contact us to discuss those options.",
   },
   {
     q: "What is the AI Sales Launch Package and why is it required?",
@@ -221,7 +251,11 @@ export default function Pricing() {
   const handleCheckout = async (tier: Tier, location = `pricing_${tier.key}`) => {
     trackConversionClick(tier.productName ? "start_trial" : "get_started", location);
     if (!tier.productName) {
-      window.location.href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent("iSDRX AI Enterprise Inquiry")}`;
+      if (tier.contactHref) {
+        window.location.href = tier.contactHref;
+      } else {
+        window.location.href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(`iSDRX AI ${tier.name} Inquiry`)}`;
+      }
       return;
     }
     const priceId = priceIdFor(tier.productName);
@@ -277,17 +311,17 @@ export default function Pricing() {
         <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Sparkles className="w-6 h-6 text-sky-400 shrink-0" />
           <div className="flex-1">
-            <div className="font-semibold text-sky-300">14-Day Free Trial on every plan</div>
+            <div className="font-semibold text-sky-300">14-Day Free Trial on every self-service plan</div>
             <div className="text-sm text-muted-foreground mt-0.5">
-              Full access to all features in your selected plan. Card collected at sign-up; billing
+              Starter, iSDRX AI, and Growth include full access during the trial. Card collected at sign-up; billing
               starts automatically after the trial unless you cancel. We'll email you reminders at 7,
-              3, and 1 day before it ends.
+              3, and 1 day before it ends. AI+ and Enterprise are available by contacting us.
             </div>
           </div>
         </div>
 
         {/* Pricing cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
           {TIERS.map((tier) => (
             <div
               key={tier.key}
@@ -303,6 +337,8 @@ export default function Pricing() {
               <div className="flex items-center gap-2">
                 {tier.key === "enterprise" ? (
                   <Building2 className="w-5 h-5 text-primary" />
+                ) : tier.key === "ai-plus" ? (
+                  <PhoneCall className="w-5 h-5 text-primary" />
                 ) : (
                   <Rocket className="w-5 h-5 text-primary" />
                 )}
@@ -310,7 +346,7 @@ export default function Pricing() {
               </div>
               <p className="text-sm text-muted-foreground mt-2 min-h-[2.5rem]">{tier.tagline}</p>
               <div className="mt-4">
-                <span className={tier.key === "enterprise" ? "text-2xl font-bold" : "text-3xl font-bold"}>
+                <span className={!tier.productName ? "text-2xl font-bold" : "text-3xl font-bold"}>
                   {tier.price}
                 </span>
                 {tier.priceNote && (
@@ -381,15 +417,16 @@ export default function Pricing() {
 
         {/* Comparison table */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-center">Compare plans by email capacity</h2>
+          <h2 className="text-xl font-bold text-center">Compare plans and see what AI+ adds</h2>
           <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full text-sm min-w-[640px]">
+            <table className="w-full text-sm min-w-[900px]">
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="text-left font-semibold p-4">Feature</th>
                   <th className="text-center font-semibold p-4">iSDRX AI Starter</th>
                   <th className="text-center font-semibold p-4 text-primary">iSDRX AI</th>
                   <th className="text-center font-semibold p-4">iSDRX AI Growth</th>
+                  <th className="text-center font-semibold p-4 text-primary">iSDRX AI+ add-on</th>
                   <th className="text-center font-semibold p-4">Enterprise</th>
                 </tr>
               </thead>
@@ -413,7 +450,7 @@ export default function Pricing() {
             </table>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            Plans are licensed per user — not per domain — with pricing based on monthly AI email capacity.
+            AI+ is a sales-assisted managed calling service added to your selected iSDRX AI package.
           </p>
         </div>
 
@@ -434,20 +471,29 @@ export default function Pricing() {
         <div className="rounded-xl border bg-card p-8 text-center space-y-3">
           <h2 className="text-2xl font-bold">Ready to put AI on your sales team?</h2>
           <p className="text-muted-foreground">
-            Start your 14-day free trial today. No per-seat fees — ever.
+            Start with an iSDRX AI plan, or contact us to add live professional calling with AI+.
           </p>
-          <Button
-            size="lg"
-            className="mt-2"
-            onClick={() => handleCheckout(TIERS[1], "pricing_bottom_cta")}
-            disabled={loadingTier !== null}
-          >
-            {loadingTier === "growth" ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              "Start Free Trial with iSDRX AI"
-            )}
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Button
+              size="lg"
+              onClick={() => handleCheckout(TIERS[1], "pricing_bottom_cta")}
+              disabled={loadingTier !== null}
+            >
+              {loadingTier === "growth" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Start Free Trial with iSDRX AI"
+              )}
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <a
+                href="/contact-us"
+                onClick={() => trackConversionClick("get_started", "pricing_bottom_ai_plus")}
+              >
+                Contact Us About AI+
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
     </Layout>
