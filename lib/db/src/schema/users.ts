@@ -34,6 +34,8 @@ export const usersTable = pgTable("users", {
   step5CaseStudy: jsonb("step5_case_study").$type<{ path: string; name: string; size: number; contentType: string } | null>(),
   /** Engagement Automation settings (partial — merged with server defaults). */
   engagementSettings: jsonb("engagement_settings").$type<Record<string, unknown> | null>(),
+  termsAcceptedVersion: text("terms_accepted_version"),
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ createdAt: true });

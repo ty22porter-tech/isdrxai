@@ -354,7 +354,7 @@ router.get("/conversion-funnel", async (req, res) => {
     SELECT count(DISTINCT visitor_id)::int AS unique_visitors
     FROM conversion_events
     WHERE event_type = 'cta_click'
-      AND intent IN ('start_trial', 'get_started')
+      AND intent IN ('start_trial', 'buy_now', 'get_started')
       AND created_at >= ${since}
   `);
   const accountResult = await db.execute(sql`
@@ -367,6 +367,7 @@ router.get("/conversion-funnel", async (req, res) => {
   const clicks = {
     book_demo: { clicks: 0, uniqueVisitors: 0 },
     start_trial: { clicks: 0, uniqueVisitors: 0 },
+    buy_now: { clicks: 0, uniqueVisitors: 0 },
     get_started: { clicks: 0, uniqueVisitors: 0 },
   };
   for (const row of clickResult.rows as Array<{ intent: keyof typeof clicks; clicks: number; unique_visitors: number }>) {

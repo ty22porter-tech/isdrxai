@@ -375,6 +375,7 @@ export default function Admin() {
                   {[
                     { label: "Book a Demo", data: funnel.clicks.book_demo },
                     { label: "Start Free Trial", data: funnel.clicks.start_trial },
+                    { label: "Buy Now", data: funnel.clicks.buy_now },
                     { label: "Get Started", data: funnel.clicks.get_started },
                   ].map(({ label, data }) => (
                     <div key={label} className="rounded-lg border bg-background/50 p-4">

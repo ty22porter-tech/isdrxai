@@ -13,6 +13,17 @@ description: How free-trial-via-code access works and the entitlement rules that
   cron/scheduled job that flips status when a trial ends — do not add one expecting it to
   gate access; the time check already does.
 
+# Stripe checkout trial selection
+The Stripe trial is optional, not the default. Buy Now starts billing when checkout completes;
+only an explicit Start Free Trial selection receives 14 days. Both choices still include the
+required launch package.
+
+**Why:** The user requires customers to actively choose a trial rather than receiving one on every
+new subscription.
+
+**How to apply:** Carry an explicit purchase-versus-trial intent through checkout and validate it
+on the server. Never infer a trial merely because the customer is a first-time subscriber.
+
 # Enforce the whole paid-product boundary
 The browser gate is only onboarding UX. Apply entitlement middleware at the router boundary
 for paid product areas so an unpaid authenticated user cannot bypass the UI with direct API

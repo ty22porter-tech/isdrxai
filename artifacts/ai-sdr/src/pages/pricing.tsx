@@ -10,8 +10,18 @@ import {
   Building2,
   PhoneCall,
   Users,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Accordion,
   AccordionContent,
@@ -22,18 +32,22 @@ import { Layout } from "@/components/layout";
 import { useToast } from "@/hooks/use-toast";
 import { trackConversionClick, trackEvent } from "@/lib/analytics";
 
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
-
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(`/api${path}`, { credentials: "include", ...options });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `API error ${res.status}`);
+    throw new Error(err.message || err.error || `API error ${res.status}`);
   }
   return res.json();
 }
 
 const SALES_EMAIL = "sales@isdrxai.com";
+
+type PendingCheckout = {
+  tier: Tier;
+  location: string;
+  checkoutIntent: "buy_now" | "free_trial";
+};
 
 type Tier = {
   key: string;
@@ -73,7 +87,7 @@ const TIERS: Tier[] = [
       "Dashboard",
       "Email Support",
     ],
-    cta: "Start 14-Day Free Trial",
+    cta: "Buy Now",
   },
   {
     key: "growth",
@@ -96,7 +110,7 @@ const TIERS: Tier[] = [
       "Priority Support",
     ],
     popular: true,
-    cta: "Start 14-Day Free Trial",
+    cta: "Buy Now",
   },
   {
     key: "professional",
@@ -116,7 +130,7 @@ const TIERS: Tier[] = [
       "API Access",
       "Enhanced Implementation Support",
     ],
-    cta: "Start 14-Day Free Trial",
+    cta: "Buy Now",
   },
   {
     key: "ai-plus",
@@ -203,7 +217,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: "How does the 14-day free trial work?",
-    a: "iSDRX AI Starter, iSDRX AI, and iSDRX AI Growth include a 14-day free trial with full access to the selected subscription plan. We collect a card at sign-up, and your paid subscription begins automatically when the trial ends unless you cancel first. AI+ and Enterprise are sales-assisted services—contact us to discuss those options.",
+    a: "iSDRX AI Starter, iSDRX AI, and iSDRX AI Growth offer an optional 14-day free trial when you select Start Free Trial. We collect a card at sign-up, and your paid subscription begins automatically when the trial ends unless you cancel first. If you select Buy Now, billing begins immediately. AI+ and Enterprise are sales-assisted services—contact us to discuss those options.",
   },
   {
     q: "What is the AI Sales Launch Package and why is it required?",
@@ -230,6 +244,9 @@ const FAQS: Array<{ q: string; a: string }> = [
 export default function Pricing() {
   const { toast } = useToast();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [pendingCheckout, setPendingCheckout] = useState<PendingCheckout | null>(null);
+  const [hasReadTerms, setHasReadTerms] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
   const { data: productsData } = useQuery({
     queryKey: ["products"],
@@ -241,12 +258,18 @@ export default function Pricing() {
   const priceIdFor = (productName: string | null): string | null => {
     if (!productName) return null;
     const product = products.find((p) => p.name === productName);
-    const monthly = product?.prices?.find((pr: any) => pr.recurring?.interval === "month");
-    return monthly?.id ?? null;
+    return product?.monthlyPriceId ?? null;
   };
 
-  const handleCheckout = async (tier: Tier, location = `pricing_${tier.key}`) => {
-    trackConversionClick(tier.productName ? "start_trial" : "get_started", location);
+  const handleCheckout = async (
+    tier: Tier,
+    location = `pricing_${tier.key}`,
+    checkoutIntent: "buy_now" | "free_trial" = "buy_now",
+  ) => {
+    trackConversionClick(
+      tier.productName ? (checkoutIntent === "free_trial" ? "start_trial" : "buy_now") : "get_started",
+      location,
+    );
     if (!tier.productName) {
       if (tier.contactHref) {
         window.location.href = tier.contactHref;
@@ -264,15 +287,36 @@ export default function Pricing() {
       });
       return;
     }
+    setHasReadTerms(false);
+    setHasAcceptedTerms(false);
+    setPendingCheckout({ tier, location, checkoutIntent });
+  };
+
+  const continueToCheckout = async () => {
+    if (!pendingCheckout || !hasReadTerms || !hasAcceptedTerms) return;
+    const { tier, location, checkoutIntent } = pendingCheckout;
+    const priceId = priceIdFor(tier.productName);
+    if (!priceId) {
+      toast({
+        title: "Plan unavailable",
+        description: "This plan isn't ready for checkout yet. Please try again shortly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoadingTier(tier.key);
     try {
       const data = await apiFetch("/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId, acceptTerms: true, checkoutIntent }),
       });
       if (data.url) {
-        trackEvent("trial_checkout_started", { plan: tier.key, location });
+        trackEvent(
+          checkoutIntent === "free_trial" ? "trial_checkout_started" : "purchase_checkout_started",
+          { plan: tier.key, location },
+        );
         window.location.href = data.url;
       }
     } catch (err: any) {
@@ -308,11 +352,11 @@ export default function Pricing() {
         <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Sparkles className="w-6 h-6 text-sky-400 shrink-0" />
           <div className="flex-1">
-            <div className="font-semibold text-sky-300">14-Day Free Trial on every self-service plan</div>
+            <div className="font-semibold text-sky-300">Optional 14-Day Free Trial on every self-service plan</div>
             <div className="text-sm text-muted-foreground mt-0.5">
-              Starter, iSDRX AI, and Growth include full access during the trial. Card collected at sign-up; billing
-              starts automatically after the trial unless you cancel. We'll email you reminders at 7,
-              3, and 1 day before it ends. AI+ and Enterprise are available by contacting us.
+              Choose Start Free Trial for full access during the trial. Card collected at sign-up; billing
+              starts automatically after the trial unless you cancel. Choose Buy Now to begin billing
+              immediately. AI+ and Enterprise are available by contacting us.
             </div>
           </div>
         </div>
@@ -366,18 +410,35 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Button
-                className="mt-6 w-full"
-                variant={tier.popular ? "default" : "outline"}
-                onClick={() => handleCheckout(tier)}
-                disabled={loadingTier !== null}
-              >
-                {loadingTier === tier.key ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  tier.cta
-                )}
-              </Button>
+              {tier.productName ? (
+                <div className="mt-6 space-y-2">
+                  <Button
+                    className="w-full"
+                    variant={tier.popular ? "default" : "outline"}
+                    onClick={() => handleCheckout(tier, `pricing_${tier.key}_buy_now`, "buy_now")}
+                    disabled={loadingTier !== null}
+                  >
+                    {loadingTier === tier.key ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buy Now"}
+                  </Button>
+                  <Button
+                    className="w-full"
+                    variant="ghost"
+                    onClick={() => handleCheckout(tier, `pricing_${tier.key}_trial`, "free_trial")}
+                    disabled={loadingTier !== null}
+                  >
+                    Start Free Trial
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  className="mt-6 w-full"
+                  variant="outline"
+                  onClick={() => handleCheckout(tier)}
+                  disabled={loadingTier !== null}
+                >
+                  {tier.cta}
+                </Button>
+              )}
             </div>
           ))}
         </div>
@@ -473,13 +534,13 @@ export default function Pricing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
               size="lg"
-              onClick={() => handleCheckout(TIERS[1], "pricing_bottom_cta")}
+              onClick={() => handleCheckout(TIERS[1], "pricing_bottom_cta", "buy_now")}
               disabled={loadingTier !== null}
             >
               {loadingTier === "growth" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Start Free Trial with iSDRX AI"
+                "Buy iSDRX AI Now"
               )}
             </Button>
             <Button asChild size="lg" variant="outline">
@@ -492,7 +553,257 @@ export default function Pricing() {
             </Button>
           </div>
         </div>
+
+        <Dialog
+          open={pendingCheckout !== null}
+          onOpenChange={(open) => {
+            if (!open && loadingTier === null) {
+              setPendingCheckout(null);
+              setHasReadTerms(false);
+              setHasAcceptedTerms(false);
+            }
+          }}
+        >
+          <DialogContent className="max-h-[92vh] w-[calc(100%-2rem)] max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto]">
+            <DialogHeader>
+              <DialogTitle>Review and accept the terms</DialogTitle>
+              <DialogDescription>
+                {pendingCheckout?.checkoutIntent === "free_trial"
+                  ? "You selected the 14-day free trial. Scroll through the terms below to continue."
+                  : "You selected Buy Now. Billing begins when checkout is completed. Scroll through the terms below to continue."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div
+              className="min-h-0 overflow-y-auto rounded-lg border bg-background/50 p-4 text-sm leading-relaxed text-muted-foreground"
+              onScroll={(event) => {
+                const element = event.currentTarget;
+                if (element.scrollHeight - element.scrollTop - element.clientHeight <= 12) {
+                  setHasReadTerms(true);
+                }
+              }}
+            >
+              <TermsReview />
+              <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4 text-foreground">
+                <p className="font-semibold">You have reached the end of the terms.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  You may now select the acceptance box below.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t pt-4">
+              {!hasReadTerms && (
+                <div className="flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+                  <ArrowDown className="h-4 w-4" />
+                  Scroll to the bottom to continue
+                </div>
+              )}
+              <label
+                className={`flex items-start gap-3 rounded-lg border p-3 ${
+                  hasReadTerms ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                }`}
+              >
+                <Checkbox
+                  checked={hasAcceptedTerms}
+                  onCheckedChange={(checked) => setHasAcceptedTerms(checked === true)}
+                  disabled={!hasReadTerms || loadingTier !== null}
+                  aria-label="Accept the Terms of Service, Privacy Policy, and Acceptable Use Policy"
+                  className="mt-0.5"
+                />
+                <span className="text-sm leading-relaxed">
+                  I have reviewed and agree to the{" "}
+                  <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">
+                    Terms of Service
+                  </a>
+                  ,{" "}
+                  <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">
+                    Privacy Policy
+                  </a>
+                  , and{" "}
+                  <a href="/acceptable-use" target="_blank" rel="noreferrer" className="text-primary underline">
+                    Acceptable Use Policy
+                  </a>
+                  .
+                </span>
+              </label>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setPendingCheckout(null)}
+                  disabled={loadingTier !== null}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={continueToCheckout}
+                  disabled={!hasReadTerms || !hasAcceptedTerms || loadingTier !== null}
+                >
+                  {loadingTier !== null && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Accept and continue to checkout
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
+  );
+}
+
+function TermsReview() {
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="font-semibold text-foreground">iSDRX AI Terms of Service</p>
+        <p className="mt-1 text-xs">Effective September 5, 2026</p>
+      </div>
+
+      <p>
+        These Terms form a binding agreement between you or the organization you represent and
+        iSDRX AI Inc. By accepting, you also agree to the Privacy Policy and Acceptable Use Policy.
+      </p>
+
+      <section>
+        <h3 className="font-semibold text-foreground">1. Services and account</h3>
+        <p className="mt-1">
+          You must be at least 18 and authorized to bind the Customer. You are responsible for
+          account security, authorized users, and all activity through your account. Services may
+          include prospecting, AI-assisted content, campaign management, engagement tracking,
+          appointment booking, reporting, and sales support.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">2. AI-generated content</h3>
+        <p className="mt-1">
+          AI output may be incomplete or inaccurate. You are responsible for reviewing targeting,
+          factual claims, representations, and outbound content before use. iSDRX AI does not
+          guarantee leads, replies, appointments, conversions, sales, or revenue.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">3. Fees, trial, and one-time services</h3>
+        <p className="mt-1">
+          Subscription fees are billed in advance. A 14-day trial is available only when you
+          explicitly select Start Free Trial. Paid billing begins automatically when the trial ends
+          unless canceled first. If you select Buy Now, billing begins when checkout is completed.
+          The required $995 AI Sales Launch Package and any applicable $1,000 AI+ onboarding fee
+          are nonrefundable once work begins, except where required by law or expressly stated in a
+          signed order form.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">4. Renewal and cancellation</h3>
+        <p className="mt-1">
+          Standard subscriptions renew monthly until canceled. Cancellation through the billing
+          portal stops future renewals and takes effect at the end of the current paid period.
+          Fees already paid are nonrefundable and are not prorated, except where required by law.
+          AI+ options are month-to-month and require 30 days’ written notice to cancel. Canceling
+          AI+ does not automatically cancel the underlying iSDRX AI subscription.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">5. Outreach compliance</h3>
+        <p className="mt-1">
+          You represent that you have the rights, notices, permissions, and consents needed to use
+          Customer Data and contact each recipient. You are responsible for compliance with
+          CAN-SPAM, applicable privacy laws, the Telephone Consumer Protection Act where
+          applicable, the Telemarketing Sales Rule, Do-Not-Call rules, call-recording consent laws,
+          and local calling-hour restrictions. You must use accurate identification and promptly
+          honor opt-outs and suppression requests.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">6. Acceptable use</h3>
+        <p className="mt-1">
+          You may not use unlawfully obtained data or use the Services for spam, harassment,
+          deception, impersonation, spoofing, unlawful discrimination, fraud, malware, phishing,
+          rights infringement, or other illegal or harmful activity. You may not bypass platform
+          limits, disrupt systems, access another customer’s data, or direct AI or professional
+          callers to make unlawful or unsupported claims.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">7. Customer Data and third parties</h3>
+        <p className="mt-1">
+          You retain rights in Customer Data and grant iSDRX AI a limited right to process it to
+          provide, secure, support, and improve the Services. The Services may depend on third-party
+          providers for payments, authentication, email, calendars, prospect data, AI processing,
+          and related functions. Their services may be governed by separate terms.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">8. Ownership and confidentiality</h3>
+        <p className="mt-1">
+          iSDRX AI and its licensors retain all rights in the Services and related technology.
+          Your paid right to use the Services is limited, nonexclusive, nontransferable, and for
+          internal business use. Each party will reasonably protect the other’s nonpublic
+          confidential information.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">9. Suspension and termination</h3>
+        <p className="mt-1">
+          iSDRX AI may suspend or terminate access for nonpayment, unlawful conduct, security
+          threats, policy violations, or material risk to recipients or providers. Either party may
+          terminate an affected service for a material breach not cured within 30 days after written
+          notice. We may act immediately to prevent fraud, abuse, unlawful outreach, or harm.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">10. Disclaimers and liability</h3>
+        <p className="mt-1">
+          To the maximum extent permitted by law, the Services are provided “as is” and “as
+          available,” without implied warranties. Neither party is liable for indirect,
+          consequential, exemplary, or punitive damages or lost profits, revenue, data, or
+          opportunities. Total liability will not exceed amounts paid or payable for the affected
+          Services during the 12 months before the claim, except where liability cannot legally be
+          limited.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">11. Indemnification</h3>
+        <p className="mt-1">
+          You will defend and indemnify iSDRX AI against third-party claims arising from Customer
+          Data, campaign or calling instructions, unlawful recipient contact, your violation of
+          law, or your breach of the Terms.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-semibold text-foreground">12. General terms</h3>
+        <p className="mt-1">
+          Texas law governs these Terms. Material updates may require renewed acceptance. If one
+          provision is unenforceable, the rest remain effective. Questions, legal notices, and AI+
+          cancellation notices may be sent to info@isdrxai.com.
+        </p>
+      </section>
+
+      <p className="border-t pt-5 text-xs">
+        Read the complete{" "}
+        <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">
+          Terms of Service
+        </a>
+        ,{" "}
+        <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">
+          Privacy Policy
+        </a>
+        , and{" "}
+        <a href="/acceptable-use" target="_blank" rel="noreferrer" className="text-primary underline">
+          Acceptable Use Policy
+        </a>
+        .
+      </p>
+    </div>
   );
 }

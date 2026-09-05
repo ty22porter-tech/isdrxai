@@ -7,6 +7,8 @@ Every base subscription requires the one-time $995 AI Sales Launch Package. It c
 
 AI+ uses sales-assisted billing rather than public self-service checkout. It adds a separate one-time $1,000 setup and onboarding fee on top of the base Sales Launch Package, then activates one agreed fixed monthly service. Additional Caller remains quote-only while its scope and price vary.
 
-**Why:** Base email infrastructure must be configured for deliverability before outreach begins. AI+ then requires additional live-caller workflow design, scripting, onboarding, CRM setup, and campaign preparation before recurring service begins.
+AI+ is month-to-month and does not require a 12-month commitment. Cancellation requires 30 days' written notice and does not automatically cancel the underlying base subscription.
 
-**How to apply:** Always disclose the required $995 base setup alongside subscription pricing. Disclose the additional $1,000 AI+ onboarding fee separately, require an active base subscription, customer agreement, and staff approval, and keep AI+ calls to action sales-led.
+**Why:** Base email infrastructure must be configured for deliverability before outreach begins. AI+ then requires additional live-caller workflow design, scripting, onboarding, CRM setup, and campaign preparation before recurring service begins. The user explicitly declined a long-term AI+ commitment.
+
+**How to apply:** Always disclose the required $995 base setup alongside subscription pricing. Disclose the additional $1,000 AI+ onboarding fee separately, require an active base subscription, customer agreement, and staff approval, and keep AI+ calls to action sales-led. Never add a long-term AI+ commitment without a new explicit business decision.

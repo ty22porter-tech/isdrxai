@@ -28,7 +28,7 @@ export function trackEvent(name: string, data?: AnalyticsData): void {
 }
 
 export function trackConversionClick(
-  intent: "book_demo" | "start_trial" | "get_started",
+  intent: "book_demo" | "start_trial" | "buy_now" | "get_started",
   location: string,
 ): void {
   trackEvent("conversion_cta_click", { intent, location });

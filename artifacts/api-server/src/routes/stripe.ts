@@ -7,6 +7,8 @@ import { getUncachableStripeClient } from "../stripeClient";
 const router = Router();
 router.use(requireAuth);
 
+const CURRENT_TERMS_VERSION = "2026-09-05";
+
 router.get("/subscription", async (req, res) => {
   const user = req.dbUser;
   const trialEndsAt = user.trialEndsAt ? user.trialEndsAt.toISOString() : null;
@@ -63,9 +65,17 @@ async function isAllowedPlanPrice(priceId: string): Promise<boolean> {
 }
 
 router.post("/checkout", async (req, res) => {
-  const { priceId } = req.body;
+  const { priceId, acceptTerms, checkoutIntent } = req.body;
   if (!priceId || typeof priceId !== "string") {
     return res.status(400).json({ error: "priceId required" });
+  }
+  if (acceptTerms !== true) {
+    return res.status(400).json({
+      error: "You must review and accept the Terms of Service before checkout.",
+    });
+  }
+  if (checkoutIntent !== "buy_now" && checkoutIntent !== "free_trial") {
+    return res.status(400).json({ error: "A valid checkout option is required." });
   }
 
   if (!(await isAllowedPlanPrice(priceId))) {
@@ -118,14 +128,26 @@ router.post("/checkout", async (req, res) => {
     lineItems.push({ price: packagePriceId, quantity: 1 });
   }
 
+  // Record the server-owned terms version immediately before creating the
+  // checkout session. The client cannot choose the version or timestamp.
+  await db
+    .update(usersTable)
+    .set({
+      termsAcceptedVersion: CURRENT_TERMS_VERSION,
+      termsAcceptedAt: new Date(),
+    })
+    .where(eq(usersTable.id, user.id));
+
   const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     payment_method_types: ["card"],
     line_items: lineItems,
     mode: "subscription",
-    // Only first-time subscribers get the 14-day free trial.
-    ...(isNewSubscriber ? { subscription_data: { trial_period_days: 14 } } : {}),
+    // A trial is granted only when a first-time customer explicitly chooses it.
+    ...(isNewSubscriber && checkoutIntent === "free_trial"
+      ? { subscription_data: { trial_period_days: 14 } }
+      : {}),
     allow_promotion_codes: true,
     success_url: `${baseUrl}/app/billing?checkout=success&onboarding=1`,
     cancel_url: `${baseUrl}/app/pricing`,
@@ -165,12 +187,27 @@ router.get("/products", async (_req, res) => {
         products[row.id] = { id: row.id, name: row.name, description: row.description, prices: [] };
       }
       if (row.price_id) {
+        let recurring = row.recurring;
+        if (typeof recurring === "string") {
+          try {
+            recurring = JSON.parse(recurring);
+          } catch {
+            recurring = null;
+          }
+        }
+        const interval =
+          recurring && typeof recurring === "object" && "interval" in recurring
+            ? recurring.interval
+            : null;
         products[row.id].prices.push({
           id: row.price_id,
           unitAmount: row.unit_amount,
           currency: row.currency,
-          recurring: row.recurring,
+          interval,
         });
+        if (interval === "month") {
+          products[row.id].monthlyPriceId = row.price_id;
+        }
       }
     }
     res.json({ products: Object.values(products) });

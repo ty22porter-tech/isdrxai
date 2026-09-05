@@ -31,6 +31,11 @@ import VerticalPage, { TRADE_SERVICES_CONFIG, IT_SERVICES_CONFIG } from "@/pages
 import NotFound from "@/pages/not-found";
 import BookDemoPage from "@/pages/book-demo";
 import ContactUsPage from "@/pages/contact-us";
+import {
+  AcceptableUsePolicyPage,
+  PrivacyPolicyPage,
+  TermsOfServicePage,
+} from "@/pages/legal";
 import { trackConversionClick } from "@/lib/analytics";
 
 const APP_ORIGIN = window.location.origin;
@@ -682,8 +687,9 @@ function Footer() {
           <span className="font-display font-bold text-lg tracking-tight text-white">iSDRX AI</span>
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
-          <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Terms of Service</a>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+          <Link href="/acceptable-use" className="hover:text-white transition-colors">Acceptable Use</Link>
           <a href="mailto:info@isdrxai.com" className="hover:text-white transition-colors">info@isdrxai.com</a>
           <a href="tel:+14693229056" className="hover:text-white transition-colors">+1 (469) 322-9056</a>
           <a
@@ -1117,6 +1123,9 @@ export default function App() {
         </Route>
         <Route path="/book-demo" component={BookDemoPage} />
         <Route path="/contact-us" component={ContactUsPage} />
+        <Route path="/terms" component={TermsOfServicePage} />
+        <Route path="/privacy" component={PrivacyPolicyPage} />
+        <Route path="/acceptable-use" component={AcceptableUsePolicyPage} />
         <Route path="/schedule/:token" component={RedirectToApp} />
         <Route path="/unsubscribe/:token" component={RedirectToApp} />
         <Route path="/prospects" component={RedirectToApp} />
