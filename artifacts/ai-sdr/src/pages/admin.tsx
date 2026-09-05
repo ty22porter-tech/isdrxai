@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
-import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock, ChevronDown, ChevronRight, Ticket, Plus, Copy, Check } from "lucide-react";
+import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock, ChevronDown, ChevronRight, Ticket, Plus, Copy, Check, MousePointerClick, CalendarCheck, UserPlus, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout";
 import { Redirect } from "wouter";
@@ -162,6 +162,13 @@ export default function Admin() {
     refetchInterval: 30000,
   });
 
+  const { data: funnelData, isLoading: funnelLoading } = useQuery({
+    queryKey: ["admin-conversion-funnel", 30],
+    queryFn: () => apiFetch("/admin/conversion-funnel?days=30"),
+    enabled: !!meData?.isAdmin,
+    refetchInterval: 30000,
+  });
+
   const patchMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, any> }) =>
       apiFetch(`/admin/clients/${id}`, {
@@ -208,6 +215,15 @@ export default function Admin() {
   const clients: any[] = data?.clients ?? [];
   const trialCodes: any[] = codesData?.codes ?? [];
   const allViews: any[] = viewsData?.views ?? [];
+  const funnel = funnelData ?? {
+    clicks: {
+      book_demo: { clicks: 0, uniqueVisitors: 0 },
+      start_trial: { clicks: 0, uniqueVisitors: 0 },
+      get_started: { clicks: 0, uniqueVisitors: 0 },
+    },
+    outcomes: { demoRequests: 0, newAccounts: 0, freeTrials: 0, newCustomers: 0 },
+    estimatedIncomplete: { demo: 0, accountSetup: 0 },
+  };
   const groupedViews = groupViewsByRef(allViews);
   const uniqueLinks = new Set(allViews.map((v: any) => `${v.clientId}::${v.ref}`)).size;
   const watchedCount = groupedViews.filter(g => g.events.has("100")).length;
@@ -224,6 +240,82 @@ export default function Admin() {
             <p className="text-muted-foreground mt-0.5">Manage all client accounts and video analytics</p>
           </div>
         </div>
+
+        {/* Marketing conversion funnel */}
+        <section className="rounded-xl border bg-card overflow-hidden">
+          <div className="px-6 py-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h3 className="font-semibold flex items-center gap-2">
+                <MousePointerClick className="w-4 h-4 text-primary" />
+                Conversion Intent
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Website interest and completed outcomes from the last 30 days
+              </p>
+            </div>
+            <span className="text-xs text-muted-foreground">Refreshes every 30 seconds</span>
+          </div>
+
+          {funnelLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="p-6 space-y-6">
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                  Calls to action clicked
+                </div>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {[
+                    { label: "Book a Demo", data: funnel.clicks.book_demo },
+                    { label: "Start Free Trial", data: funnel.clicks.start_trial },
+                    { label: "Get Started", data: funnel.clicks.get_started },
+                  ].map(({ label, data }) => (
+                    <div key={label} className="rounded-lg border bg-background/50 p-4">
+                      <div className="text-sm text-muted-foreground">{label}</div>
+                      <div className="text-2xl font-bold mt-1">{data.clicks}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {data.uniqueVisitors} unique visitor{data.uniqueVisitors === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                  Completed outcomes
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: "Demo requests", value: funnel.outcomes.demoRequests, icon: CalendarCheck },
+                    { label: "Accounts created", value: funnel.outcomes.newAccounts, icon: UserPlus },
+                    { label: "Free trials", value: funnel.outcomes.freeTrials, icon: CheckCircle2 },
+                    { label: "New customers", value: funnel.outcomes.newCustomers, icon: CreditCard },
+                  ].map(({ label, value, icon: Icon }) => (
+                    <div key={label} className="rounded-lg border bg-background/50 p-4">
+                      <Icon className="w-4 h-4 text-primary mb-2" />
+                      <div className="text-2xl font-bold">{value}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+                <div className="font-medium text-sm">Estimated incomplete attempts</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {funnel.estimatedIncomplete.demo} demo visitor{funnel.estimatedIncomplete.demo === 1 ? "" : "s"} did not submit the form, and{" "}
+                  {funnel.estimatedIncomplete.accountSetup} account visitor{funnel.estimatedIncomplete.accountSetup === 1 ? "" : "s"} did not create an account.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Estimates use anonymous unique visitors and may differ when someone changes devices, browsers, or privacy settings.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Client stats */}
         <div className="grid grid-cols-3 gap-4">

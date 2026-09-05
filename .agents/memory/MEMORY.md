@@ -26,3 +26,4 @@
 - [Stale lib dist after codegen](stale-lib-dist-after-codegen.md) — orval regen can leave lib dist/*.d.ts stale (tsbuildinfo skips rebuild); artifact typechecks fail on "missing" fields → `tsc --build --force` the lib.
 - [Date query parameters](date-query-parameters.md) — define OpenAPI date-only query params as patterned strings, not format:date; debounce native date inputs and validate again on the server.
 - [Visual brand palette](visual-brand-palette.md) — iSDRX AI’s brand accent is navy blue, never teal/green; reserve green only for explicit success states.
+- [Conversion funnel analytics](conversion-funnel-analytics.md) — track anonymous CTA intent separately from server-confirmed outcomes; abandonment is always an estimate.

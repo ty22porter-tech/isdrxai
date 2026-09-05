@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { logger } from "./lib/logger";
-import { notifyAdminsOfStripeSale } from "./lib/stripeSaleAlerts";
+import { notifyAdminsOfStripeEvent } from "./lib/stripeSaleAlerts";
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
@@ -23,7 +23,7 @@ export class WebhookHandlers {
     // synchronization must still succeed if an email provider is unavailable.
     try {
       const event = JSON.parse(payload.toString("utf8")) as Stripe.Event;
-      await notifyAdminsOfStripeSale(event);
+      await notifyAdminsOfStripeEvent(event);
     } catch (error) {
       logger.error({ err: error }, "Stripe webhook synced, but sale notification processing failed");
     }

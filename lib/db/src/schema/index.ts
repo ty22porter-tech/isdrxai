@@ -11,3 +11,4 @@ export * from "./autopilot-enrollments";
 export * from "./processed-inbound-emails";
 export * from "./trial-codes";
 export * from "./engagement";
+export * from "./conversion-events";

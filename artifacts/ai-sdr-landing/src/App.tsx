@@ -30,6 +30,7 @@ import { Route, Router, Switch, Link, Redirect } from "wouter";
 import VerticalPage, { TRADE_SERVICES_CONFIG, IT_SERVICES_CONFIG } from "@/pages/vertical";
 import NotFound from "@/pages/not-found";
 import BookDemoPage from "@/pages/book-demo";
+import { trackConversionClick } from "@/lib/analytics";
 
 const APP_ORIGIN = window.location.origin;
 const SIGN_IN_URL = `${APP_ORIGIN}/app/sign-in`;
@@ -70,7 +71,7 @@ function Navbar() {
           </div>
           <div className="flex items-center gap-4">
             <a href={SIGN_IN_URL} className="text-sm font-medium text-white hover:text-accent transition-colors">Log in</a>
-            <Button asChild className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]"><Link href="/book-demo">Book a Demo</Link></Button>
+            <Button asChild className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]"><Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "navbar_desktop")}>Book a Demo</Link></Button>
           </div>
         </div>
 
@@ -102,7 +103,7 @@ function Navbar() {
             ))}
             <div className="h-px w-full bg-border my-2" />
             <a href={SIGN_IN_URL} className="text-lg font-medium text-white">Log in</a>
-            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2"><Link href="/book-demo" className="w-full">Book a Demo</Link></Button>
+            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2"><Link href="/book-demo" className="w-full" onClick={() => trackConversionClick("book_demo", "navbar_mobile")}>Book a Demo</Link></Button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -156,13 +157,13 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <a href={SIGN_UP_URL} className="w-full sm:w-auto">
+          <a href={SIGN_UP_URL} onClick={() => trackConversionClick("get_started", "hero_signup")} className="w-full sm:w-auto">
             <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] w-full sm:w-auto">
               Start Prospecting Now <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </a>
           <Button asChild size="lg" variant="outline" className="h-14 px-8 text-lg border-white/10 hover:bg-white/5 hover:text-white w-full sm:w-auto">
-            <Link href="/book-demo" className="w-full sm:w-auto">
+            <Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "hero_demo")} className="w-full sm:w-auto">
               <Play className="mr-2 w-5 h-5" /> Watch Demo
             </Link>
           </Button>
@@ -660,7 +661,7 @@ function CTA() {
           Stop letting your competitors out-prospect you. Get an unfair advantage with the AI outreach engine built for commercial cleaners.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Button asChild size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]"><Link href="/book-demo">Book a Demo</Link></Button>
+          <Button asChild size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]"><Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "bottom_cta")}>Book a Demo</Link></Button>
         </div>
         <p className="mt-6 text-sm text-muted-foreground">No credit card required. See it work live on your territory.</p>
       </div>
@@ -805,7 +806,7 @@ function ServiceTiers() {
             </div>
 
             <Button asChild size="lg" variant="outline" className="w-full h-14 text-lg border-white/10 hover:bg-white/5 hover:text-white">
-              <Link href="/book-demo">Start Automating</Link>
+              <Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "standard_plan")}>Start Automating</Link>
             </Button>
           </motion.div>
 
@@ -910,7 +911,7 @@ function ServiceTiers() {
             </div>
 
             <Button asChild size="lg" className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-              <Link href="/book-demo">Upgrade to AI+</Link>
+              <Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "ai_plus_plan")}>Upgrade to AI+</Link>
             </Button>
           </motion.div>
         </div>

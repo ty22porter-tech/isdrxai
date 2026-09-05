@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { getConversionVisitorId, getLastConversionLocation, trackEvent } from "@/lib/analytics";
 
 const APP_ORIGIN = window.location.origin;
 const VIDEOS = [
@@ -45,10 +46,18 @@ export default function BookDemoPage() {
       const res = await fetch("/api/demo-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          visitorId: getConversionVisitorId(),
+          sourceLocation: getLastConversionLocation(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+      trackEvent("demo_request_completed", {
+        location: getLastConversionLocation(),
+        industry: form.industry,
+      });
       setStatus("sent");
     } catch (err) {
       setStatus("error");

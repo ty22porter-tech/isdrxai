@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/accordion";
 import { Layout } from "@/components/layout";
 import { useToast } from "@/hooks/use-toast";
+import { trackConversionClick, trackEvent } from "@/lib/analytics";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -217,7 +218,8 @@ export default function Pricing() {
     return monthly?.id ?? null;
   };
 
-  const handleCheckout = async (tier: Tier) => {
+  const handleCheckout = async (tier: Tier, location = `pricing_${tier.key}`) => {
+    trackConversionClick(tier.productName ? "start_trial" : "get_started", location);
     if (!tier.productName) {
       window.location.href = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent("iSDRX AI Enterprise Inquiry")}`;
       return;
@@ -238,7 +240,10 @@ export default function Pricing() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priceId }),
       });
-      if (data.url) window.location.href = data.url;
+      if (data.url) {
+        trackEvent("trial_checkout_started", { plan: tier.key, location });
+        window.location.href = data.url;
+      }
     } catch (err: any) {
       toast({
         title: "Couldn't start checkout",
@@ -434,7 +439,7 @@ export default function Pricing() {
           <Button
             size="lg"
             className="mt-2"
-            onClick={() => handleCheckout(TIERS[1])}
+            onClick={() => handleCheckout(TIERS[1], "pricing_bottom_cta")}
             disabled={loadingTier !== null}
           >
             {loadingTier === "growth" ? (

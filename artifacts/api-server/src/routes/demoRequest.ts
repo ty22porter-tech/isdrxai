@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { conversionEventsTable, db, notificationsTable, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { sendEmail } from "../lib/emailSender";
+import { logger } from "../lib/logger";
 
 // Public demo-request endpoint: visitors on the marketing landing page submit
 // this form; we notify the iSDRX team inbox and set Reply-To to the visitor so
@@ -20,6 +24,8 @@ const DemoRequestSchema = z.object({
   message: z.string().trim().max(2000).optional().default(""),
   // Honeypot: real users never fill this hidden field; bots do.
   website: z.string().max(500).optional().default(""),
+  visitorId: z.string().uuid().optional(),
+  sourceLocation: z.string().trim().min(1).max(80).regex(/^[a-z0-9_]+$/).optional().default("book_demo_page"),
 });
 
 const INDUSTRY_LABELS: Record<string, string> = {
@@ -89,8 +95,55 @@ demoRequestRouter.post("/", async (req, res) => {
       body: lines.join("\n"),
     });
   } catch (err) {
-    console.error("[demo-request] failed to send notification email:", err);
+    logger.error({ err }, "Demo-request notification email failed");
     return res.status(502).json({ ok: false, error: "We couldn't submit your request right now. Please email info@isdrxai.com directly." });
+  }
+
+  const completionId = randomUUID();
+  try {
+    await db.insert(conversionEventsTable).values({
+      eventType: "demo_completed",
+      intent: "book_demo",
+      location: data.sourceLocation,
+      visitorId: data.visitorId,
+      sourceKey: `demo:${completionId}`,
+    });
+
+    const admins = await db
+      .select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable)
+      .where(eq(usersTable.isAdmin, true));
+
+    for (const admin of admins) {
+      await db
+        .insert(notificationsTable)
+        .values({
+          clientId: admin.id,
+          sourceKey: `demo-request:${completionId}:${admin.id}`,
+          type: "demo_request",
+          title: `New demo request from ${data.company}`,
+          body: `${data.name} requested a demo. Contact: ${data.email}${data.phone ? ` or ${data.phone}` : ""}.`,
+        })
+        .onConflictDoNothing({ target: notificationsTable.sourceKey });
+
+      const adminEmail = admin.email?.trim().toLowerCase();
+      if (adminEmail && adminEmail !== DEMO_INBOX) {
+        sendEmail({
+          fromName: "iSDRX AI Website",
+          replyTo: data.email,
+          to: adminEmail,
+          subject: `Demo request: ${data.name} at ${data.company}`,
+          body: lines.join("\n"),
+        }).catch((err) =>
+          logger.error({ err, adminId: admin.id }, "Additional admin demo-request email failed"),
+        );
+      }
+    }
+  } catch (err) {
+    // The visitor already received a successful form response path because the
+    // primary inbox notification was sent. Record the reporting failure without
+    // asking them to submit again and risk a duplicate lead.
+    logger.error({ err }, "Demo request delivered, but admin reporting failed");
   }
 
   return res.json({ ok: true });

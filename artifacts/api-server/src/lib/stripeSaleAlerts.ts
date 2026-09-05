@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import { db, notificationsTable, usersTable } from "@workspace/db";
+import { conversionEventsTable, db, notificationsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "./emailSender";
 import { logger } from "./logger";
@@ -7,10 +7,12 @@ import { getPublicAppUrl } from "./publicUrl";
 
 export type StripeSaleSummary = {
   eventId: string;
+  eventType: "paid_sale" | "trial_started";
+  intent: "new_customer" | "renewal" | "one_time_sale" | "free_trial";
   title: string;
   customer: string;
   packageName: string;
-  amount: string;
+  amount?: string;
   body: string;
 };
 
@@ -56,6 +58,12 @@ export function getStripeSaleSummary(event: Stripe.Event): StripeSaleSummary | n
 
     return {
       eventId: event.id,
+      eventType: "paid_sale",
+      intent: isRenewal
+        ? "renewal"
+        : invoice.billing_reason === "subscription_create"
+          ? "new_customer"
+          : "one_time_sale",
       title,
       customer,
       packageName,
@@ -87,6 +95,8 @@ export function getStripeSaleSummary(event: Stripe.Event): StripeSaleSummary | n
 
     return {
       eventId: event.id,
+      eventType: "paid_sale",
+      intent: "one_time_sale",
       title: "New Stripe sale completed",
       customer,
       packageName,
@@ -95,12 +105,51 @@ export function getStripeSaleSummary(event: Stripe.Event): StripeSaleSummary | n
     };
   }
 
+  if (event.type === "customer.subscription.created") {
+    const subscription = event.data.object as Stripe.Subscription;
+    if (subscription.status !== "trialing") return null;
+
+    const customer =
+      typeof subscription.customer === "string"
+        ? subscription.customer
+        : "Stripe customer";
+    const product = subscription.items.data[0]?.price.product;
+    const packageName =
+      product && typeof product !== "string" && !product.deleted
+        ? product.name
+        : "iSDRX AI free trial";
+
+    return {
+      eventId: event.id,
+      eventType: "trial_started",
+      intent: "free_trial",
+      title: "New free trial started",
+      customer,
+      packageName,
+      body: `${customer} started a free trial for ${packageName}. Stripe subscription: ${subscription.id}.`,
+    };
+  }
+
   return null;
 }
 
-export async function notifyAdminsOfStripeSale(event: Stripe.Event): Promise<void> {
+export async function notifyAdminsOfStripeEvent(event: Stripe.Event): Promise<void> {
   const sale = getStripeSaleSummary(event);
   if (!sale) return;
+
+  await db
+    .insert(conversionEventsTable)
+    .values({
+      eventType: sale.eventType,
+      intent: sale.intent,
+      location: "stripe",
+      sourceKey: `stripe-outcome:${sale.eventId}`,
+      metadata: {
+        package: sale.packageName,
+        ...(sale.amount ? { amount: sale.amount } : {}),
+      },
+    })
+    .onConflictDoNothing({ target: conversionEventsTable.sourceKey });
 
   const admins = await db
     .select({ id: usersTable.id, email: usersTable.email })
@@ -146,19 +195,21 @@ export async function notifyAdminsOfStripeSale(event: Stripe.Event): Promise<voi
         fromName: "iSDRX AI Sales Alerts",
         to: email,
         replyTo: "info@isdrxai.com",
-        subject: `${sale.title}: ${sale.amount}`,
+        subject: sale.amount ? `${sale.title}: ${sale.amount}` : sale.title,
         body:
           `${sale.body}\n\n` +
           `Customer: ${sale.customer}\n` +
           `Package: ${sale.packageName}\n` +
-          `Amount received: ${sale.amount}\n\n` +
+          (sale.amount ? `Amount received: ${sale.amount}\n` : "") +
+          `\n` +
           `Review the admin dashboard: ${adminUrl}`,
         html:
           `<p><strong>${escapeHtml(sale.title)}</strong></p>` +
           `<p>${escapeHtml(sale.body)}</p>` +
           `<p>Customer: ${escapeHtml(sale.customer)}<br>` +
-          `Package: ${escapeHtml(sale.packageName)}<br>` +
-          `Amount received: ${escapeHtml(sale.amount)}</p>` +
+          `Package: ${escapeHtml(sale.packageName)}` +
+          (sale.amount ? `<br>Amount received: ${escapeHtml(sale.amount)}` : "") +
+          `</p>` +
           `<p><a href="${adminUrl}">Review the admin dashboard</a></p>`,
       });
     } catch (error) {

@@ -27,6 +27,8 @@ describe("getStripeSaleSummary", () => {
     }));
 
     expect(summary).toMatchObject({
+      eventType: "paid_sale",
+      intent: "new_customer",
       title: "New Stripe sale completed",
       customer: "Acme Services",
       packageName: "iSDRX AI+ Engagement Follow-Up",
@@ -47,6 +49,7 @@ describe("getStripeSaleSummary", () => {
     }));
 
     expect(summary?.title).toBe("Stripe renewal payment received");
+    expect(summary?.intent).toBe("renewal");
   });
 
   it("ignores zero-dollar invoices", () => {
@@ -86,10 +89,34 @@ describe("getStripeSaleSummary", () => {
     }));
 
     expect(summary).toMatchObject({
+      eventType: "paid_sale",
+      intent: "one_time_sale",
       title: "New Stripe sale completed",
       customer: "buyer@example.com",
       packageName: "iSDRX AI+ Setup",
       amount: "$1,000.00",
+    });
+  });
+
+  it("summarizes a new Stripe trial", () => {
+    const summary = getStripeSaleSummary(event("customer.subscription.created", {
+      id: "sub_1",
+      status: "trialing",
+      customer: "cus_trial",
+      items: {
+        data: [{
+          price: {
+            product: { name: "iSDRX AI", deleted: false },
+          },
+        }],
+      },
+    }));
+
+    expect(summary).toMatchObject({
+      eventType: "trial_started",
+      intent: "free_trial",
+      title: "New free trial started",
+      packageName: "iSDRX AI",
     });
   });
 });

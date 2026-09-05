@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Bot, Zap, BarChart3, Users } from "lucide-react";
+import { trackConversionClick } from "@/lib/analytics";
 
 export default function Home() {
   return (
@@ -36,7 +37,11 @@ export default function Home() {
         </div>
 
         <div className="relative flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/sign-up" className="px-8 py-3 bg-[#2d6a9b] hover:bg-[#377caf] text-white font-semibold rounded-lg transition-colors shadow-[0_6px_18px_rgba(0,0,0,.28)]">
+          <Link
+            href="/sign-up"
+            onClick={() => trackConversionClick("get_started", "logged_out_home")}
+            className="px-8 py-3 bg-[#2d6a9b] hover:bg-[#377caf] text-white font-semibold rounded-lg transition-colors shadow-[0_6px_18px_rgba(0,0,0,.28)]"
+          >
             Get Started Free
           </Link>
           <Link href="/sign-in" className="px-8 py-3 border border-white/25 bg-white/[.03] text-[#d5e0e9] hover:border-[#7eb4dc] hover:bg-white/[.07] hover:text-white font-semibold rounded-lg transition-colors">
