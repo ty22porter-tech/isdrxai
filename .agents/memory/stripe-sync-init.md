@@ -13,3 +13,9 @@ Two silent no-ops observed with stripe-replit-sync in the esbuild-bundled api-se
 **How to apply:** if Stripe products/prices are empty in DB despite "schema ready"/"backfill complete" logs, check these two first before blaming keys or the connector.
 
 Related: Stripe connector binding is a ghost (added but proxy returns empty); stripeClient falls back to STRIPE_SECRET_KEY env var — don't retry proposeIntegration.
+
+3. **Production mirrors can be partial even after backfill.** Do not use synchronized `stripe.products` / `stripe.prices` rows as the authority for checkout price discovery. Resolve checkout products and active monthly prices through the live Stripe API, while continuing to use the mirror for reporting and webhook-derived state.
+
+**Why:** A production mirror contained only one of three active self-service products, causing valid Starter and core-plan checkout buttons to show “Plan unavailable.”
+
+**How to apply:** Any identifier that is immediately required to create a Stripe Checkout session should come from Stripe’s live API and be validated server-side against the allowed product names.

@@ -136,7 +136,7 @@ const TIERS: Tier[] = [
     key: "ai-plus",
     productName: null,
     name: "iSDRX AI+",
-    price: "Contact Us",
+    price: "Contact Sales",
     priceNote: "",
     emails: "Adds managed calling to your selected plan",
     users: "Works with any iSDRX AI package",
@@ -149,7 +149,7 @@ const TIERS: Tier[] = [
       "Call outcomes and conversation notes",
       "Complete activity tracking within the dashboard",
     ],
-    cta: "Contact Us",
+    cta: "Contact Sales",
     contactHref: "/contact-us",
   },
   {
@@ -414,7 +414,6 @@ export default function Pricing() {
                 <div className="mt-6 space-y-2">
                   <Button
                     className="w-full"
-                    variant={tier.popular ? "default" : "outline"}
                     onClick={() => handleCheckout(tier, `pricing_${tier.key}_buy_now`, "buy_now")}
                     disabled={loadingTier !== null}
                   >
@@ -432,7 +431,6 @@ export default function Pricing() {
               ) : (
                 <Button
                   className="mt-6 w-full"
-                  variant="outline"
                   onClick={() => handleCheckout(tier)}
                   disabled={loadingTier !== null}
                 >
@@ -529,7 +527,7 @@ export default function Pricing() {
         <div className="rounded-xl border bg-card p-8 text-center space-y-3">
           <h2 className="text-2xl font-bold">Ready to put AI on your sales team?</h2>
           <p className="text-muted-foreground">
-            Start with an iSDRX AI plan, or contact us to add AI-Triggered Human Calling with AI+.
+            Start with an iSDRX AI plan, or contact sales to add AI-Triggered Human Calling with AI+.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
@@ -543,12 +541,12 @@ export default function Pricing() {
                 "Buy iSDRX AI Now"
               )}
             </Button>
-            <Button asChild size="lg" variant="outline">
+            <Button asChild size="lg">
               <a
                 href="/contact-us"
                 onClick={() => trackConversionClick("get_started", "pricing_bottom_ai_plus")}
               >
-                Contact Us About AI+
+                Contact Sales About AI+
               </a>
             </Button>
           </div>

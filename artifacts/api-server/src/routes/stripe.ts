@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { getUncachableStripeClient } from "../stripeClient";
 
@@ -174,45 +174,48 @@ router.post("/billing-portal", async (req, res) => {
 
 router.get("/products", async (_req, res) => {
   try {
-    const result = await db.execute(
-      sql`SELECT p.id, p.name, p.description, pr.id as price_id, pr.unit_amount, pr.currency, pr.recurring
-          FROM stripe.products p
-          LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-          WHERE p.active = true
-          ORDER BY pr.unit_amount ASC`
-    );
-    const products: Record<string, any> = {};
-    for (const row of result.rows as any[]) {
-      if (!products[row.id]) {
-        products[row.id] = { id: row.id, name: row.name, description: row.description, prices: [] };
-      }
-      if (row.price_id) {
-        let recurring = row.recurring;
-        if (typeof recurring === "string") {
-          try {
-            recurring = JSON.parse(recurring);
-          } catch {
-            recurring = null;
-          }
-        }
-        const interval =
-          recurring && typeof recurring === "object" && "interval" in recurring
-            ? recurring.interval
-            : null;
-        products[row.id].prices.push({
-          id: row.price_id,
-          unitAmount: row.unit_amount,
-          currency: row.currency,
-          interval,
+    // Checkout must use Stripe's authoritative catalog. The synchronized
+    // database can lag behind (especially after a new production database is
+    // created), which previously made valid plans appear unavailable.
+    const stripe = await getUncachableStripeClient();
+    const products = await Promise.all(
+      Array.from(SUBSCRIPTION_PLAN_NAMES).map(async (name) => {
+        const matches = await stripe.products.search({
+          query: `name:'${name}' AND active:'true'`,
         });
-        if (interval === "month") {
-          products[row.id].monthlyPriceId = row.price_id;
-        }
-      }
-    }
-    res.json({ products: Object.values(products) });
+        const product = matches.data.find((candidate) => candidate.name === name);
+        if (!product) return null;
+
+        const prices = await stripe.prices.list({
+          product: product.id,
+          active: true,
+          limit: 100,
+        });
+        const monthlyPrice = prices.data.find(
+          (price) => price.type === "recurring" && price.recurring?.interval === "month",
+        );
+        if (!monthlyPrice) return null;
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          monthlyPriceId: monthlyPrice.id,
+          prices: prices.data.map((price) => ({
+            id: price.id,
+            unitAmount: price.unit_amount,
+            currency: price.currency,
+            interval: price.recurring?.interval ?? null,
+          })),
+        };
+      }),
+    );
+
+    return res.json({ products: products.filter((product) => product !== null) });
   } catch {
-    res.json({ products: [] });
+    return res.status(503).json({
+      error: "The subscription catalog is temporarily unavailable. Please try again shortly.",
+    });
   }
 });
 
