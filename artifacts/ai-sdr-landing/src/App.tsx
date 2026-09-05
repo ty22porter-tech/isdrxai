@@ -6,6 +6,7 @@ import {
   Briefcase, 
   Building2, 
   CalendarCheck, 
+  Check,
   ChevronRight, 
   Mail, 
   MapPin, 
@@ -31,6 +32,7 @@ const VIDEO_URL = `${APP_ORIGIN}/ai-sdr-video/`;
 const navItems = [
   { label: "Features", href: "#features" },
   { label: "How it Works", href: "#how-it-works" },
+  { label: "Plans", href: "#plans" },
   { label: "Results", href: "#results" },
 ];
 
@@ -578,6 +580,155 @@ function Footer() {
   );
 }
 
+function ServiceTiers() {
+  return (
+    <section id="plans" className="py-24 relative overflow-hidden bg-[#0b1220] border-y border-white/5">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-20 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 to-transparent blur-3xl rounded-full mix-blend-screen" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-accent mb-6"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="text-sm font-medium">Support options</span>
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl md:text-5xl font-bold mb-6 text-white"
+          >
+            Choose the Support That Fits Your Business
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-muted-foreground"
+          >
+            Start with automated prospecting and scheduling, or add professional follow-through for prospects who show interest but do not book.
+          </motion.p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {/* iSDRX AI */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="rounded-2xl border border-white/10 bg-card p-8 md:p-10 flex flex-col relative hover:border-white/20 transition-colors"
+          >
+            <div className="mb-8">
+              <h3 className="text-3xl font-display font-bold text-white mb-2">iSDRX AI</h3>
+              <p className="text-sm font-semibold uppercase tracking-wider text-accent mb-5">
+                Automated Prospecting and Scheduling
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                iSDRX AI researches high-fit prospects, identifies buying signals, delivers personalized outreach, and monitors engagement. When a prospect responds with interest, the platform automatically guides them to schedule an appointment or walkthrough directly on your calendar.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-10 flex-1">
+              {[
+                "High-fit prospect research and buying-signal identification",
+                "Personalized outreach and engagement monitoring",
+                "Automatic guidance to your calendar",
+                "Dashboard follow-up for engaged prospects who did not select a meeting time",
+                "Visibility into prospect activity that was previously unknown"
+              ].map((feature, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                  <span className="text-gray-300">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button asChild size="lg" variant="outline" className="w-full h-14 text-lg border-white/10 hover:bg-white/5 hover:text-white">
+              <Link href="/book-demo">Start Automating</Link>
+            </Button>
+          </motion.div>
+
+          {/* iSDRX AI+ */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="rounded-2xl border border-primary bg-card p-8 md:p-10 flex flex-col relative shadow-[0_0_40px_rgba(37,99,235,0.1)]"
+          >
+            <div className="absolute top-0 right-8 -translate-y-1/2">
+              <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-white bg-primary px-4 py-1.5 rounded-full shadow-lg">
+                <Sparkles className="w-3.5 h-3.5" /> Premium Support
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-3xl font-display font-bold text-white mb-2 flex items-center gap-1">
+                iSDRX AI<span className="text-primary">+</span>
+              </h3>
+              <p className="text-sm font-semibold uppercase tracking-wider text-accent mb-5">
+                Complete Engagement and Follow-Through
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                iSDRX AI+ adds a live, trained professional caller who follows up with prospects who show interest but do not complete the scheduling process—including those who repeatedly open emails, view attachments, or click the calendar link without booking.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-10 flex-1">
+              <div className="text-sm font-semibold text-white uppercase tracking-wider mb-2">Everything in AI, plus:</div>
+              {[
+                "A live, trained professional caller",
+                "Interest confirmation and opportunity qualification",
+                "Hands-on appointment or walkthrough scheduling",
+                "Calls, outcomes, notes, transfers, and bookings tracked in the dashboard",
+                "Follow-through for engaged prospects who do not book"
+              ].map((feature, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                  <span className="text-gray-300">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button asChild size="lg" className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+              <Link href="/book-demo">Upgrade to AI+</Link>
+            </Button>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5 }}
+          className="mt-16 text-center max-w-2xl mx-auto p-6 rounded-xl bg-white/[0.02] border border-white/5"
+        >
+          <p className="text-lg text-white font-medium">
+            iSDRX AI automates prospecting and scheduling.
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            iSDRX AI+ adds the professional follow-through that helps prevent interested prospects from being missed.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 function LandingPage() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
@@ -614,6 +765,8 @@ function LandingPage() {
             { title: "Objection Handling", description: "AI categorizes replies ('Not right now', 'Who currently handles this for you?') and flags them for you." }
           ]}
         />
+
+        <ServiceTiers />
 
         <Stats />
         <Testimonial />
