@@ -61,7 +61,7 @@ Here's what we bring to ${industry} companies like yours:
 
 We currently support several ${industry} businesses in ${city} and consistently receive 5-star reviews for responsiveness and reliability.
 
-I'd love to schedule a free IT assessment for ${companyName} so we can put together a no-obligation recommendation tailored to your environment.
+I'd love to schedule an IT assessment for ${companyName} so we can put together a no-obligation recommendation tailored to your environment.
 
 Would you have 15 minutes this week for a quick call?`;
     return { subject, body };

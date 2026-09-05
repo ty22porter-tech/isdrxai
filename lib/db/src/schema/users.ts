@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -20,6 +20,9 @@ export const usersTable = pgTable("users", {
   calendlyUrl: text("calendly_url"),
   timezone: text("timezone").default("America/New_York"),
   autopilotEnabled: boolean("autopilot_enabled").notNull().default(false),
+  callerPilotEnabled: boolean("caller_pilot_enabled").notNull().default(false),
+  callerDailyLimit: integer("caller_daily_limit").notNull().default(50),
+  callerMonthlyLimit: integer("caller_monthly_limit").notNull().default(500),
   vertical: text("vertical").notNull().default("janitorial"),
   verticalSelected: boolean("vertical_selected").notNull().default(true),
   website: text("website"),

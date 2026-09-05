@@ -42,7 +42,7 @@ function defaultSubject(campaignName: string, vertical: string = "janitorial") {
 
 function fallbackBody(p: any, vertical: string = "janitorial") {
   return vertical === "it_services"
-    ? `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule a free IT assessment for ${p.companyName}.`
+    ? `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule an IT assessment for ${p.companyName}.`
     : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
 }
 

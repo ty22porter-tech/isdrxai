@@ -10,6 +10,8 @@ import {
   GetCampaignParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../lib/requireAuth";
+import { requireAdmin } from "../lib/requireAuth";
+import { z } from "zod/v4";
 
 const router = Router();
 router.use(requireAuth);
@@ -44,9 +46,53 @@ router.patch("/:id", async (req, res) => {
     }
     body.followUpMode = fm;
   }
+  if (Object.prototype.hasOwnProperty.call(body, "callScript")) {
+    body.callScriptApprovedAt = null;
+    body.callScriptApprovedBy = null;
+  }
   const [campaign] = await db.update(campaignsTable).set(body).where(and(eq(campaignsTable.id, id), eq(campaignsTable.clientId, req.clientId))).returning();
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
   return res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
+});
+
+router.post("/:id/approve-script", requireAdmin, async (req, res): Promise<void> => {
+  const id = z.coerce.number().int().positive().safeParse(req.params.id);
+  const body = z.object({ expectedScript: z.string().optional() }).strict().safeParse(req.body ?? {});
+  if (!id.success || !body.success) {
+    res.status(400).json({ error: (!id.success ? id.error : body.error)!.message });
+    return;
+  }
+  const [existing] = await db.select().from(campaignsTable).where(and(
+    eq(campaignsTable.id, id.data),
+    eq(campaignsTable.clientId, req.clientId),
+  ));
+  if (!existing) {
+    res.status(404).json({ error: "Campaign not found" });
+    return;
+  }
+  if (existing.type !== "call") {
+    res.status(400).json({ error: "Only call campaign scripts can be approved for the caller pilot" });
+    return;
+  }
+  const script = existing.callScript?.trim();
+  if (!script) {
+    res.status(400).json({ error: "A non-empty call script is required before approval" });
+    return;
+  }
+  if (body.data.expectedScript !== undefined && body.data.expectedScript.trim() !== script) {
+    res.status(409).json({ error: "Call script changed before it could be approved" });
+    return;
+  }
+  const [campaign] = await db.update(campaignsTable).set({
+    callScript: script,
+    callScriptApprovedAt: new Date(),
+    callScriptApprovedBy: req.clientId,
+    callScriptVersion: sql`${campaignsTable.callScriptVersion} + 1`,
+  }).where(and(
+    eq(campaignsTable.id, id.data),
+    eq(campaignsTable.clientId, req.clientId),
+  )).returning();
+  res.json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
 
 router.delete("/:id", async (req, res) => {

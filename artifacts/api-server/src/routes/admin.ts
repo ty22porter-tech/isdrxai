@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { clerkClient } from "@clerk/express";
-import { db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable, videoViewsTable } from "@workspace/db";
-import { eq, count, desc, sql } from "drizzle-orm";
+import { campaignsTable, db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable, videoViewsTable } from "@workspace/db";
+import { and, eq, count, desc, sql } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../lib/requireAuth";
 
 const router = Router();
@@ -55,10 +55,23 @@ router.get("/clients", async (_req, res) => {
 
 router.patch("/clients/:id", async (req, res) => {
   const { id } = req.params;
-  const { status, isAdmin, sendingEmail } = req.body;
+  const { status, isAdmin, sendingEmail, callerPilotEnabled, callerDailyLimit, callerMonthlyLimit } = req.body;
   const update: Record<string, any> = {};
   if (status) update.status = status;
   if (typeof isAdmin === "boolean") update.isAdmin = isAdmin;
+  if (typeof callerPilotEnabled === "boolean") update.callerPilotEnabled = callerPilotEnabled;
+  if (callerDailyLimit !== undefined) {
+    if (!Number.isInteger(callerDailyLimit) || callerDailyLimit < 1 || callerDailyLimit > 10000) {
+      return res.status(400).json({ error: "callerDailyLimit must be an integer from 1 to 10000" });
+    }
+    update.callerDailyLimit = callerDailyLimit;
+  }
+  if (callerMonthlyLimit !== undefined) {
+    if (!Number.isInteger(callerMonthlyLimit) || callerMonthlyLimit < 1 || callerMonthlyLimit > 100000) {
+      return res.status(400).json({ error: "callerMonthlyLimit must be an integer from 1 to 100000" });
+    }
+    update.callerMonthlyLimit = callerMonthlyLimit;
+  }
   // Admin-managed per-client sending address (the authenticated From: domain
   // provisioned for that client during onboarding). Empty string clears it,
   // reverting the client to the shared platform sending domain.
@@ -72,6 +85,64 @@ router.patch("/clients/:id", async (req, res) => {
   const [user] = await db.update(usersTable).set(update).where(eq(usersTable.id, id)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   return res.json({ ...user, createdAt: user.createdAt.toISOString() });
+});
+
+router.get("/clients/:id/call-campaigns", async (req, res): Promise<void> => {
+  const clientId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const campaigns = await db
+    .select()
+    .from(campaignsTable)
+    .where(and(eq(campaignsTable.clientId, clientId), eq(campaignsTable.type, "call")))
+    .orderBy(desc(campaignsTable.createdAt));
+  res.json({
+    campaigns: campaigns.map((campaign) => ({
+      ...campaign,
+      createdAt: campaign.createdAt.toISOString(),
+      callScriptApprovedAt: campaign.callScriptApprovedAt?.toISOString() ?? null,
+    })),
+  });
+});
+
+router.post("/clients/:id/call-campaigns/:campaignId/approve-script", async (req, res): Promise<void> => {
+  const clientId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const rawCampaignId = Array.isArray(req.params.campaignId) ? req.params.campaignId[0] : req.params.campaignId;
+  const campaignId = Number.parseInt(rawCampaignId, 10);
+  if (!Number.isInteger(campaignId) || campaignId < 1) {
+    res.status(400).json({ error: "Invalid campaign ID" });
+    return;
+  }
+  const [campaign] = await db
+    .select()
+    .from(campaignsTable)
+    .where(and(
+      eq(campaignsTable.id, campaignId),
+      eq(campaignsTable.clientId, clientId),
+      eq(campaignsTable.type, "call"),
+    ));
+  if (!campaign) {
+    res.status(404).json({ error: "Call campaign not found" });
+    return;
+  }
+  const script = campaign.callScript?.trim();
+  if (!script) {
+    res.status(400).json({ error: "A non-empty call script is required before approval" });
+    return;
+  }
+  const [approved] = await db
+    .update(campaignsTable)
+    .set({
+      callScript: script,
+      callScriptApprovedAt: new Date(),
+      callScriptApprovedBy: req.clientId,
+      callScriptVersion: sql`${campaignsTable.callScriptVersion} + 1`,
+    })
+    .where(and(eq(campaignsTable.id, campaignId), eq(campaignsTable.clientId, clientId)))
+    .returning();
+  res.json({
+    ...approved,
+    createdAt: approved.createdAt.toISOString(),
+    callScriptApprovedAt: approved.callScriptApprovedAt?.toISOString() ?? null,
+  });
 });
 
 router.get("/video-views", async (_req, res) => {

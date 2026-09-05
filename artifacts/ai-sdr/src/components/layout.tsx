@@ -22,6 +22,7 @@ import {
   X,
   Bell,
   Flame,
+  Headset,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const navigation = [
   { name: "Emails", href: "/emails", icon: Mail },
   { name: "Calls", href: "/calls", icon: PhoneCall },
   { name: "Appointments", href: "/appointments", icon: Calendar },
+  { name: "Caller Workspace", href: "/caller", icon: Headset },
   { name: "Billing", href: "/billing", icon: CreditCard },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

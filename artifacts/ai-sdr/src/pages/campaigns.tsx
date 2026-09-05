@@ -126,7 +126,7 @@ const IT_FORM_OVERRIDES: Partial<Record<typeof FOLLOW_UP_KEYS[number], SequenceS
   followUp4: {
     dayDelay: 7,
     subject: "Still thinking about {{companyName}}",
-    body: "Hi {{contactName}},\n\nI know you're busy — I'll keep this short. We specialize in IT for {{industry}} businesses in {{city}} and have availability to take on a new client this month.\n\nIf you'd like a free IT assessment, we can do most of it remotely.\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\nI know you're busy — I'll keep this short. We specialize in IT for {{industry}} businesses in {{city}} and have availability to take on a new client this month.\n\nIf you'd like an IT assessment, we can do most of it remotely.\n\nBest,\nYour SDR Team",
   },
   followUp5: {
     dayDelay: 10,

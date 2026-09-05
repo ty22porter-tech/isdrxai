@@ -31,6 +31,10 @@ NOT fix the others — verify the actual caller before assuming a path is dead.
   an explicit `noSignatureRule`; ai.ts must simply end at the CTA.
 - **Scope every prospect lookup by `req.clientId`** (`and(eq(id), eq(clientId))`).
   ai.ts originally fetched prospects by id alone = cross-tenant IDOR.
+- **IT outreach email bodies must never contain the word “free,” including generic
+  phrases such as “feel free.”** Use “IT assessment” without that qualifier, and keep
+  an output guard on the LLM path because prompt instructions alone are not guaranteed.
+  **Why:** this is an explicit copy requirement for the IT campaign vertical.
 - **`composeEmail` owns links/CTAs — generators must NOT emit raw URLs.** `composeEmail`
   takes an optional `cta?: {label,url}` that renders a clean `<a>label</a>` (HTML) plus a
   `label: url` text fallback. The walkthrough/scheduling prompt (`generateCalendlyEmail`)

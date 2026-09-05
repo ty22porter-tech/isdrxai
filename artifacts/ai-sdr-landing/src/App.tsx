@@ -40,7 +40,6 @@ const VIDEO_URL = `${APP_ORIGIN}/ai-sdr-video/`;
 const navItems = [
   { label: "Features", href: "#features" },
   { label: "How it Works", href: "#how-it-works" },
-  { label: "Plans", href: "#plans" },
   { label: "Results", href: "#results" },
 ];
 
@@ -71,6 +70,7 @@ function Navbar() {
           </div>
           <div className="flex items-center gap-4">
             <a href={SIGN_IN_URL} className="text-sm font-medium text-white hover:text-accent transition-colors">Log in</a>
+            <a href="#plans" className="text-sm font-medium text-white hover:text-accent transition-colors">Pricing</a>
             <Button asChild className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]"><Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "navbar_desktop")}>Book a Demo</Link></Button>
           </div>
         </div>
@@ -103,6 +103,7 @@ function Navbar() {
             ))}
             <div className="h-px w-full bg-border my-2" />
             <a href={SIGN_IN_URL} className="text-lg font-medium text-white">Log in</a>
+            <a href="#plans" className="text-lg font-medium text-white" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2"><Link href="/book-demo" className="w-full" onClick={() => trackConversionClick("book_demo", "navbar_mobile")}>Book a Demo</Link></Button>
           </motion.div>
         )}

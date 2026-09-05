@@ -387,8 +387,8 @@ const WORDING: Record<ClientVertical, { serviceNoun: string; offer: string; offe
   },
   it_services: {
     serviceNoun: "managed IT services",
-    offer: "free IT assessment",
-    offerAction: "run a free IT assessment for",
+    offer: "IT assessment",
+    offerAction: "run an IT assessment for",
   },
 };
 
@@ -474,7 +474,7 @@ I've reached out a couple of times about ${w.serviceNoun} for ${prospect.company
 
 If ${p.challenges[0].toLowerCase()} ever becomes a priority, we'd love to help — ${p.valueProps[0]} is something we do really well for ${p.label.toLowerCase()} businesses.
 
-I'll leave the door open. If you'd like to revisit this down the road, feel free to reply to this email.
+I'll leave the door open. If you'd like to revisit this down the road, you can reply to this email.
 
 Wishing you a great rest of the year!
 

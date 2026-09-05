@@ -12,6 +12,7 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { sendEmail } from "./emailSender";
 import { getPublicAppUrl } from "./publicUrl";
 import { logger } from "./logger";
+import { enqueueHotProspect } from "./callerQueue";
 
 /** Default point model per spec — every value is user-configurable. */
 export const DEFAULT_ENGAGEMENT_SETTINGS = {
@@ -236,6 +237,7 @@ export async function recordEngagementEvent(
     // commit so a slow email provider never holds the transaction open.
     if (outcome?.becameHot) {
       await sendHotAlert(client, prospect, outcome.newScore);
+      await enqueueHotProspect(prospect.clientId, prospect.id);
     }
   } catch (err) {
     logger.error({ err, prospectId, eventType }, "Engagement scoring failed");

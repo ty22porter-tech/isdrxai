@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock, ChevronDown, ChevronRight, Ticket, Plus, Copy, Check, MousePointerClick, CalendarCheck, UserPlus, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -103,6 +105,35 @@ function SendingEmailEditor({
 }
 
 function ClientDetails({ client }: { client: any }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const patchMutation = useMutation({
+    mutationFn: (body: Record<string, any>) =>
+      apiFetch(`/admin/clients/${client.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-clients"] }),
+    onError: (err: Error) => toast({ title: "Failed to update client", description: err.message, variant: "destructive" }),
+  });
+
+  const { data: campaignsData } = useQuery({
+    queryKey: ["admin-client-campaigns", client.id],
+    queryFn: () => apiFetch(`/admin/clients/${client.id}/call-campaigns`),
+    enabled: client.callerPilotEnabled,
+  });
+
+  const approveScriptMutation = useMutation({
+    mutationFn: (campaignId: number) =>
+      apiFetch(`/admin/clients/${client.id}/call-campaigns/${campaignId}/approve-script`, {
+        method: "POST",
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-client-campaigns", client.id] }),
+    onError: (err: Error) => toast({ title: "Failed to approve script", description: err.message, variant: "destructive" }),
+  });
+
   const rows: [string, string | null][] = [
     ["Account name", client.accountName],
     ["Email", client.email],
@@ -120,15 +151,89 @@ function ClientDetails({ client }: { client: any }) {
     ["Account ID", client.id],
   ];
   return (
-    <div className="mt-3 rounded-lg border bg-muted/30 p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex items-baseline justify-between gap-4 text-xs">
-          <span className="text-muted-foreground shrink-0">{label}</span>
-          <span className={`text-right break-all ${value ? "font-medium" : "text-muted-foreground/60 italic"}`}>
-            {value || "not set"}
-          </span>
+    <div className="mt-3 grid gap-4">
+      <div className="rounded-lg border bg-muted/30 p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-4 text-xs">
+            <span className="text-muted-foreground shrink-0">{label}</span>
+            <span className={`text-right break-all ${value ? "font-medium" : "text-muted-foreground/60 italic"}`}>
+              {value || "not set"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold text-sm">Caller Pilot</h4>
+            <p className="text-xs text-muted-foreground">Enable the hybrid human-caller queue for this client</p>
+          </div>
+          <Switch
+            checked={client.callerPilotEnabled}
+            onCheckedChange={(checked) => patchMutation.mutate({ callerPilotEnabled: checked })}
+            disabled={patchMutation.isPending}
+          />
         </div>
-      ))}
+
+        {client.callerPilotEnabled && (
+          <>
+            <div className="flex items-center gap-6">
+              <div className="flex-1 space-y-1.5">
+                <label className="text-xs font-medium">Daily Limit</label>
+                <Input
+                  type="number"
+                  min={1}
+                  defaultValue={client.callerDailyLimit ?? 50}
+                  onBlur={(e) => patchMutation.mutate({ callerDailyLimit: parseInt(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <label className="text-xs font-medium">Monthly Limit</label>
+                <Input
+                  type="number"
+                  min={1}
+                  defaultValue={client.callerMonthlyLimit ?? 500}
+                  onBlur={(e) => patchMutation.mutate({ callerMonthlyLimit: parseInt(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <h5 className="text-xs font-medium mb-2">Call Campaigns</h5>
+              {campaignsData?.campaigns?.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No call campaigns found.</p>
+              ) : (
+                <div className="space-y-2">
+                  {campaignsData?.campaigns?.map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between p-2 rounded border bg-muted/20">
+                      <div>
+                        <p className="text-xs font-medium">{c.name}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Script: {c.callScript ? "Provided" : "Empty"} •
+                          Approved: {c.callScriptApprovedAt ? new Date(c.callScriptApprovedAt).toLocaleDateString() : "No"}
+                          {c.callScriptVersion > 0 && ` (v${c.callScriptVersion})`}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 text-xs"
+                        disabled={!c.callScript || approveScriptMutation.isPending}
+                        onClick={() => approveScriptMutation.mutate(c.id)}
+                      >
+                        Approve Script
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

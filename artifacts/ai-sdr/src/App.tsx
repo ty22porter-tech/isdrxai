@@ -26,6 +26,7 @@ import Settings from "@/pages/settings";
 import Autopilot from "@/pages/autopilot";
 import Schedule from "@/pages/schedule";
 import Unsubscribe from "@/pages/unsubscribe";
+import Caller from "@/pages/caller";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -232,6 +233,7 @@ function AppRoutes() {
             <Route path="/admin" component={() => <ProtectedRoute component={Admin} />} />
             <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
             <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} />} />
+            <Route path="/caller" component={() => <ProtectedRoute component={Caller} />} />
             <Route component={FallbackRoute} />
           </Switch>
           <Toaster />

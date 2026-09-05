@@ -5,7 +5,7 @@
 - [DB schema changes](db-schema-changes.md) — additive cols + type-mismatch/rename detection (exit 1, fix manually): run db lib's `ensure-columns` (schema guard; push prompts/breaks) + `cd lib/db && tsc --build --force`; guard also auto-creates whole missing tables (no FKs — warned, exit 0); FK-less guard tables need manual `ALTER TABLE ADD CONSTRAINT` using drizzle's `<t>_<col>_<ft>_id_fk` names so publish diff won't duplicate.
 - [Publish approval greyed](publish-approval-blocked-notnull.md) — NOT NULL cols with only app-level `.$defaultFn` (no DB default) make publish diff unappliable on populated prod → button greys; use `.default(sql\`gen_random_uuid()::text\`)`.
 - [Email send paths](email-send-paths.md) — never write status:"sent" without a real Resend dispatch; manual POST /api/emails once only logged. Share emailCompose.ts for CAN-SPAM.
-- [Email/call-script generation paths](email-generation-paths.md) — 3 gen paths (ai.ts template, openai.ts LLM, client email-ai.ts); each must inject client senderName/businessName, omit body signature (composeEmail owns it), and scope prospect by clientId.
+- [Email/call-script generation paths](email-generation-paths.md) — 3 gen paths; inject client identity, omit body signatures, scope by client, and keep “free” out of IT email bodies.
 - [Deliverability checks](deliverability-checks.md) — SPF/DKIM come from Resend GET /domains/{id} detail (not list); DMARC only via DNS resolveTxt(_dmarc.<domain>).
 - [Per-client sending email](per-client-sending-email.md) — users.sendingEmail = per-client From (null→shared RESEND_FROM_EMAIL); must be Resend-verified; From≠Reply-To (shared inbound) is intentional, don't "fix".
 - [Admin bootstrap](admin-bootstrap.md) — no self-serve first admin; dev = direct SQL update; PROD DB is separate + read-only from tooling, promote via BOOTSTRAP_ADMIN_USER_ID env on startup then republish.
@@ -27,3 +27,5 @@
 - [Date query parameters](date-query-parameters.md) — define OpenAPI date-only query params as patterned strings, not format:date; debounce native date inputs and validate again on the server.
 - [Visual brand palette](visual-brand-palette.md) — iSDRX AI’s brand accent is navy blue, never teal/green; reserve green only for explicit success states.
 - [Conversion funnel analytics](conversion-funnel-analytics.md) — track anonymous CTA intent separately from server-confirmed outcomes; abandonment is always an estimate.
+- [Caller pilot architecture](caller-pilot-architecture.md) — human callers operate now; preserve provider-ready fields and immutable approved-script snapshots for later automation.
+- [Temporary TypeScript smoke tests](temporary-tsx-smoke-tests.md) — run /tmp TS scripts through the DB package's tsx and wrap top-level async work.

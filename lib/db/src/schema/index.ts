@@ -3,6 +3,7 @@ export * from "./campaigns";
 export * from "./emails";
 export * from "./email-events";
 export * from "./calls";
+export * from "./call-tasks";
 export * from "./appointments";
 export * from "./activity";
 export * from "./users";
