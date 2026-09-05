@@ -23,6 +23,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw } from "lucide-react";
 
 const INDUSTRIES = [
@@ -336,6 +337,11 @@ export default function Prospecting() {
         onSuccess: (data) => {
           setLeads(data);
           runEnrichment(data);
+          trackEvent("prospect_search_completed", {
+            vertical,
+            requested_count: parseInt(searchCount),
+            result_count: data.length,
+          });
         },
         onError: (err: any) =>
           toast({

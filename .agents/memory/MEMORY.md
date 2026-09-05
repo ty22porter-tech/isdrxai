@@ -27,5 +27,6 @@
 - [Date query parameters](date-query-parameters.md) — define OpenAPI date-only query params as patterned strings, not format:date; debounce native date inputs and validate again on the server.
 - [Visual brand palette](visual-brand-palette.md) — iSDRX AI’s brand accent is navy blue, never teal/green; reserve green only for explicit success states.
 - [Conversion funnel analytics](conversion-funnel-analytics.md) — track anonymous CTA intent separately from server-confirmed outcomes; abandonment is always an estimate.
+- [Leadership dashboard scope](leadership-dashboard-scope.md) — Overview is operational, Leadership is tenant-scoped, and Platform Leadership is admin-global; API rates use 0–100.
 - [Caller pilot architecture](caller-pilot-architecture.md) — human callers operate now; preserve provider-ready fields and immutable approved-script snapshots for later automation.
 - [Temporary TypeScript smoke tests](temporary-tsx-smoke-tests.md) — run /tmp TS scripts through the DB package's tsx and wrap top-level async work.

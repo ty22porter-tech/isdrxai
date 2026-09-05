@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics";
 import {
   Mail,
   Send,
@@ -168,7 +169,10 @@ export default function Sequences() {
     queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
   };
 
-  const sendFollowUp = async (entry: QueueEntry): Promise<{ ok: boolean; error?: string }> => {
+  const sendFollowUp = async (
+    entry: QueueEntry,
+    sendMode: "single" | "bulk",
+  ): Promise<{ ok: boolean; error?: string }> => {
     const key = `${entry.prospect.id}:${entry.campaign.id}`;
     setSending(prev => new Set(prev).add(key));
 
@@ -197,7 +201,13 @@ export default function Sequences() {
       createEmail.mutate(
         { data: { prospectId: entry.prospect.id, campaignId: entry.campaign.id, subject, body, status: "sent" } },
         {
-          onSuccess: () => resolve({ ok: true }),
+          onSuccess: () => {
+            trackEvent("email_sent", {
+              sequence_step: entry.step.stepNumber,
+              send_mode: sendMode,
+            });
+            resolve({ ok: true });
+          },
           onError: (err: any) => resolve({ ok: false, error: err?.data?.error || err?.message || "Send failed" }),
         }
       );
@@ -208,7 +218,7 @@ export default function Sequences() {
   };
 
   const sendSingle = async (entry: QueueEntry) => {
-    const { ok, error } = await sendFollowUp(entry);
+    const { ok, error } = await sendFollowUp(entry, "single");
     if (ok) {
       toast({ title: "Follow-up sent", description: entry.prospect.companyName });
     } else {
@@ -221,7 +231,7 @@ export default function Sequences() {
     let sent = 0;
     let firstError = "";
     for (const entry of entries) {
-      const { ok, error } = await sendFollowUp(entry);
+      const { ok, error } = await sendFollowUp(entry, "bulk");
       if (ok) sent++;
       else if (!firstError && error) firstError = error;
     }

@@ -10,8 +10,8 @@ import { getConversionVisitorId, getLastConversionLocation, trackEvent } from "@
 
 const APP_ORIGIN = window.location.origin;
 const VIDEOS = [
-  { id: "trade-services", label: "Commercial Trade Services", url: `${APP_ORIGIN}/ai-sdr-video/` },
-  { id: "it-services", label: "IT Services / MSP", url: `${APP_ORIGIN}/ai-sdr-video-it/` },
+  { id: "trade-services", analyticsId: "trade_services", label: "Commercial Trade Services", url: `${APP_ORIGIN}/ai-sdr-video/` },
+  { id: "it-services", analyticsId: "it_services", label: "IT Services / MSP", url: `${APP_ORIGIN}/ai-sdr-video-it/` },
 ] as const;
 
 export default function BookDemoPage() {
@@ -56,7 +56,6 @@ export default function BookDemoPage() {
       if (!res.ok || !data.ok) throw new Error(data.error || "Something went wrong. Please try again.");
       trackEvent("demo_request_completed", {
         location: getLastConversionLocation(),
-        industry: form.industry,
       });
       setStatus("sent");
     } catch (err) {
@@ -88,7 +87,10 @@ export default function BookDemoPage() {
               {VIDEOS.map((v) => (
                 <button
                   key={v.id}
-                  onClick={() => setActiveVideo(v)}
+                  onClick={() => {
+                    setActiveVideo(v);
+                    trackEvent("product_video_selected", { video_id: v.analyticsId });
+                  }}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
                     activeVideo.id === v.id
                       ? "bg-primary text-white border-primary"

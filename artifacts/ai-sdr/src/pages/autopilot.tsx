@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, Play, Pause, Mail, Calendar, CheckCircle2, AlertCircle, Clock, MessageSquare, Loader2, PlusCircle, X, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -121,25 +122,43 @@ export default function AutopilotPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] });
+      if (variables.status === "paused") {
+        trackEvent("autopilot_disabled", { state: "paused" });
+      }
+    },
     onError: (err: Error) => toast({ title: "Failed to update status", description: err.message, variant: "destructive" }),
   });
 
   const unenrollMutation = useMutation({
     mutationFn: (id: number) =>
       apiFetch(`/autopilot/enrollments/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] });
+      trackEvent("autopilot_disabled", { state: "removed" });
+    },
     onError: (err: Error) => toast({ title: "Failed to remove enrollment", description: err.message, variant: "destructive" }),
   });
 
   const enrollMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: ({
+      prospectIds,
+      startImmediately,
+    }: {
+      prospectIds: number[];
+      startImmediately: boolean;
+    }) =>
       apiFetch("/autopilot/enroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaignId: enrollCampaign ?? undefined, prospectIds: selectedProspects, startNow: true }),
+        body: JSON.stringify({ campaignId: enrollCampaign ?? undefined, prospectIds, startNow: startImmediately }),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      trackEvent("autopilot_enabled", {
+        prospect_count: variables.prospectIds.length,
+        start_immediately: variables.startImmediately,
+      });
       qc.invalidateQueries({ queryKey: ["autopilot-enrollments"] });
       setEnrollModal(false);
       setSelectedProspects([]);
@@ -380,7 +399,10 @@ export default function AutopilotPage() {
               <Button
                 className="flex-1"
                 disabled={selectedProspects.length === 0 || enrollMutation.isPending}
-                onClick={() => enrollMutation.mutate()}
+                onClick={() => enrollMutation.mutate({
+                  prospectIds: [...selectedProspects],
+                  startImmediately: true,
+                })}
               >
                 {enrollMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting…</> : `Start Autopilot (${selectedProspects.length})`}
               </Button>

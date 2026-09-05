@@ -23,6 +23,8 @@ import {
   Bell,
   Flame,
   Headset,
+  TrendingUp,
+  BarChart,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -36,7 +38,8 @@ interface LayoutProps {
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+  { name: "Overview", href: "/dashboard", icon: BarChart3 },
+  { name: "Leadership", href: "/leadership", icon: TrendingUp },
   { name: "Autopilot", href: "/autopilot", icon: Bot },
   { name: "Prospect Search", href: "/prospecting", icon: Telescope },
   { name: "Prospects", href: "/prospects", icon: Users },
@@ -199,7 +202,11 @@ export function Layout({ children }: LayoutProps) {
   const isAdmin = meData?.isAdmin === true;
 
   const allNavigation = isAdmin
-    ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
+    ? [
+        ...navigation,
+        { name: "Admin", href: "/admin", icon: Shield },
+        { name: "Platform Leadership", href: "/admin/leadership", icon: BarChart },
+      ]
     : navigation;
 
   const currentPage = allNavigation.find(

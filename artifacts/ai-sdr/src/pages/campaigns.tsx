@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateEmailForStep, type ClientVertical } from "@/lib/email-ai";
+import { trackEvent } from "@/lib/analytics";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -292,7 +293,11 @@ export default function Campaigns() {
         }
       },
       {
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
+          trackEvent("campaign_created", {
+            campaign_type: variables.data.type,
+            vertical,
+          });
           toast({ title: "Campaign created" });
           setCreateOpen(false);
           setForm(blankForm(vertical));
@@ -567,6 +572,11 @@ export default function Campaigns() {
 
     if (result?.body) {
       applyResult(result.subject, result.body);
+      trackEvent("ai_email_generated", {
+        sequence_step: stepNum,
+        vertical,
+        source: "ai",
+      });
     } else {
       const fallback = generateEmailForStep(stepNum, {
         industry: form.targetIndustry,
@@ -575,6 +585,11 @@ export default function Campaigns() {
         city: "{{city}}",
       }, vertical);
       applyResult(fallback.subject, fallback.body);
+      trackEvent("ai_email_generated", {
+        sequence_step: stepNum,
+        vertical,
+        source: "fallback",
+      });
     }
   };
 

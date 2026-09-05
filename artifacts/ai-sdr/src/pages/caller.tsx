@@ -17,6 +17,7 @@ import { useListProspects, useListCampaigns } from "@workspace/api-client-react"
 import { Headset, Phone, Play, Clock, Search, Briefcase, Plus, AlertCircle, Users, BarChart3, ListOrdered } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { trackEvent } from "@/lib/analytics";
 
 async function fetchApi(path: string, options?: RequestInit) {
   const res = await fetch(`/api${path}`, { credentials: "include", ...options });
@@ -97,12 +98,12 @@ export default function CallerWorkspace() {
   });
 
   const completeMutation = useMutation({
-    mutationFn: () => {
-      const payload: any = { outcome };
+    mutationFn: (submittedOutcome: string) => {
+      const payload: any = { outcome: submittedOutcome };
       if (notes) payload.notes = notes;
       const parsedDuration = parseInt(duration);
       if (!isNaN(parsedDuration)) payload.duration = parsedDuration;
-      if (outcome === "callback_requested" && callbackAt) {
+      if (submittedOutcome === "callback_requested" && callbackAt) {
         payload.callbackAt = new Date(callbackAt).toISOString();
       }
       return fetchApi(`/caller/queue/${activeTask.id}/complete`, {
@@ -111,7 +112,8 @@ export default function CallerWorkspace() {
         body: JSON.stringify(payload),
       });
     },
-    onSuccess: () => {
+    onSuccess: (_data, submittedOutcome) => {
+      trackEvent("caller_outcome_completed", { outcome: submittedOutcome });
       toast({ title: "Call completed" });
       qc.invalidateQueries({ queryKey: ["caller-queue"] });
       qc.invalidateQueries({ queryKey: ["caller-reporting"] });
@@ -402,7 +404,7 @@ export default function CallerWorkspace() {
 
                       <div className="pt-6 border-t flex flex-col gap-3">
                         <Button
-                          onClick={() => completeMutation.mutate()}
+                          onClick={() => completeMutation.mutate(outcome)}
                           disabled={!outcome || (outcome === 'callback_requested' && !callbackAt) || completeMutation.isPending}
                           size="lg"
                           className={`w-full font-semibold text-white ${

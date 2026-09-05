@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { clerkClient } from "@clerk/express";
 import { campaignsTable, db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable, videoViewsTable } from "@workspace/db";
-import { and, eq, count, desc, sql } from "drizzle-orm";
+import { and, eq, count, desc, sql, gte, lt } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../lib/requireAuth";
 
 const router = Router();
@@ -21,6 +21,179 @@ async function fetchClerkIdentity(userId: string): Promise<{ name: string | null
     return { name: null, email: null };
   }
 }
+
+function leadershipPeriod(rawDays: unknown) {
+  if (rawDays !== undefined && (typeof rawDays !== "string" || !/^\d+$/.test(rawDays))) {
+    return null;
+  }
+  const days = rawDays === undefined ? 30 : Number(rawDays);
+  if (!Number.isInteger(days) || days < 7 || days > 365) return null;
+
+  const end = new Date();
+  const start = new Date(end);
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  return { days, start, end };
+}
+
+function dateKey(value: unknown) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
+router.get("/leadership", async (req, res) => {
+  const period = leadershipPeriod(req.query.days);
+  if (!period) {
+    return res.status(400).json({ error: "days must be a single integer from 7 to 365" });
+  }
+
+  const [clientSummary, emailDaily, callDaily, appointmentDaily, clientRows, planRows, verticalRows] = await Promise.all([
+    db.execute(sql`
+      SELECT
+        count(*) FILTER (WHERE is_admin = false)::int AS clients,
+        count(*) FILTER (WHERE is_admin = false AND status = 'active')::int AS active_clients,
+        count(*) FILTER (WHERE is_admin = false AND status = 'suspended')::int AS suspended_clients,
+        count(*) FILTER (WHERE is_admin = false AND status = 'trialing')::int AS trial_clients,
+        count(*) FILTER (WHERE is_admin = false AND status = 'active')::int AS paid_clients,
+        (SELECT count(*)::int FROM prospects WHERE created_at >= ${period.start} AND created_at < ${period.end}) AS prospects,
+        (SELECT count(*)::int FROM emails WHERE sent_at >= ${period.start} AND sent_at < ${period.end}) AS emails,
+        (SELECT count(*)::int FROM calls WHERE created_at >= ${period.start} AND created_at < ${period.end}) AS calls,
+        (SELECT count(*)::int FROM appointments WHERE status != 'cancelled' AND created_at >= ${period.start} AND created_at < ${period.end}) AS appointments
+      FROM users
+    `),
+    db.select({
+      date: sql<string>`to_char(${emailsTable.sentAt}, 'YYYY-MM-DD')`,
+      count: count(),
+    }).from(emailsTable).where(and(gte(emailsTable.sentAt, period.start), lt(emailsTable.sentAt, period.end)))
+      .groupBy(sql`to_char(${emailsTable.sentAt}, 'YYYY-MM-DD')`),
+    db.select({
+      date: sql<string>`to_char(${callsTable.createdAt}, 'YYYY-MM-DD')`,
+      count: count(),
+    }).from(callsTable).where(and(gte(callsTable.createdAt, period.start), lt(callsTable.createdAt, period.end)))
+      .groupBy(sql`to_char(${callsTable.createdAt}, 'YYYY-MM-DD')`),
+    db.select({
+      date: sql<string>`to_char(${appointmentsTable.createdAt}, 'YYYY-MM-DD')`,
+      count: count(),
+    }).from(appointmentsTable).where(and(
+      sql`${appointmentsTable.status} != 'cancelled'`,
+      gte(appointmentsTable.createdAt, period.start),
+      lt(appointmentsTable.createdAt, period.end),
+    )).groupBy(sql`to_char(${appointmentsTable.createdAt}, 'YYYY-MM-DD')`),
+    db.execute(sql`
+      SELECT u.id, u.email, u.business_name, u.status, u.vertical,
+        CASE
+          WHEN u.status = 'active' THEN 'paid'
+          WHEN u.status = 'trialing' THEN 'trial'
+          ELSE 'none'
+        END AS subscription_plan,
+        coalesce(p.total, 0)::int AS prospects,
+        coalesce(e.total, 0)::int AS emails,
+        coalesce(c.total, 0)::int AS calls,
+        coalesce(a.total, 0)::int AS appointments,
+        greatest(p.last_at, e.last_at, c.last_at, a.last_at) AS last_activity
+      FROM users u
+      LEFT JOIN (
+        SELECT client_id,
+          count(*) FILTER (WHERE created_at >= ${period.start} AND created_at < ${period.end}) AS total,
+          max(created_at) AS last_at
+        FROM prospects GROUP BY client_id
+      ) p ON p.client_id = u.id
+      LEFT JOIN (
+        SELECT client_id,
+          count(*) FILTER (WHERE sent_at >= ${period.start} AND sent_at < ${period.end}) AS total,
+          max(sent_at) AS last_at
+        FROM emails GROUP BY client_id
+      ) e ON e.client_id = u.id
+      LEFT JOIN (
+        SELECT client_id,
+          count(*) FILTER (WHERE created_at >= ${period.start} AND created_at < ${period.end}) AS total,
+          max(created_at) AS last_at
+        FROM calls GROUP BY client_id
+      ) c ON c.client_id = u.id
+      LEFT JOIN (
+        SELECT client_id,
+          count(*) FILTER (WHERE created_at >= ${period.start} AND created_at < ${period.end}) AS total,
+          max(created_at) AS last_at
+        FROM appointments WHERE status != 'cancelled' GROUP BY client_id
+      ) a ON a.client_id = u.id
+      WHERE u.is_admin = false
+      ORDER BY last_activity DESC NULLS LAST, u.created_at DESC
+    `),
+    db.execute(sql`
+      SELECT CASE
+        WHEN status = 'active' THEN 'paid'
+        WHEN status = 'trialing' THEN 'trial'
+        ELSE 'none'
+      END AS plan, count(*)::int AS count
+      FROM users WHERE is_admin = false GROUP BY plan ORDER BY count DESC, plan
+    `),
+    db.select({ vertical: usersTable.vertical, count: count() }).from(usersTable)
+      .where(eq(usersTable.isAdmin, false))
+      .groupBy(usersTable.vertical)
+      .orderBy(desc(count())),
+  ]);
+
+  type SummaryRow = {
+    clients: number; active_clients: number; suspended_clients: number; trial_clients: number;
+    paid_clients: number; prospects: number; emails: number; calls: number; appointments: number;
+  };
+  type ClientRow = {
+    id: string; email: string | null; business_name: string | null; status: string;
+    subscription_plan: string; prospects: number; emails: number; calls: number;
+    appointments: number; last_activity: Date | string | null;
+  };
+  const summary = clientSummary.rows[0] as SummaryRow;
+  const emailByDate = new Map(emailDaily.map((row) => [dateKey(row.date), row.count]));
+  const callByDate = new Map(callDaily.map((row) => [dateKey(row.date), row.count]));
+  const appointmentByDate = new Map(appointmentDaily.map((row) => [dateKey(row.date), row.count]));
+  const dailyActivity = Array.from({ length: period.days }, (_, offset) => {
+    const day = new Date(period.start);
+    day.setUTCDate(day.getUTCDate() + offset);
+    const date = day.toISOString().slice(0, 10);
+    return {
+      date,
+      emails: emailByDate.get(date) ?? 0,
+      calls: callByDate.get(date) ?? 0,
+      appointments: appointmentByDate.get(date) ?? 0,
+    };
+  });
+
+  return res.json({
+    period: { days: period.days, start: period.start.toISOString(), end: period.end.toISOString() },
+    totals: {
+      clients: Number(summary.clients),
+      activeClients: Number(summary.active_clients),
+      suspendedClients: Number(summary.suspended_clients),
+      trialClients: Number(summary.trial_clients),
+      paidClients: Number(summary.paid_clients),
+      prospects: Number(summary.prospects),
+      emails: Number(summary.emails),
+      calls: Number(summary.calls),
+      appointments: Number(summary.appointments),
+    },
+    dailyActivity,
+    clientPerformance: (clientRows.rows as unknown as ClientRow[]).map((row) => ({
+      id: row.id,
+      email: row.email,
+      businessName: row.business_name,
+      status: row.status,
+      subscriptionPlan: row.subscription_plan,
+      prospects: Number(row.prospects),
+      emails: Number(row.emails),
+      calls: Number(row.calls),
+      appointments: Number(row.appointments),
+      lastActivity: row.last_activity ? new Date(row.last_activity).toISOString() : null,
+    })),
+    planBreakdown: (planRows.rows as Array<{ plan: string; count: number }>).map((row) => ({
+      label: row.plan,
+      count: Number(row.count),
+    })),
+    verticalBreakdown: verticalRows.map((row) => ({
+      label: row.vertical,
+      count: row.count,
+    })),
+  });
+});
 
 router.get("/clients", async (_req, res) => {
   const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);

@@ -27,6 +27,8 @@ import Autopilot from "@/pages/autopilot";
 import Schedule from "@/pages/schedule";
 import Unsubscribe from "@/pages/unsubscribe";
 import Caller from "@/pages/caller";
+import Leadership from "@/pages/leadership";
+import AdminLeadership from "@/pages/admin-leadership";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -220,6 +222,9 @@ function AppRoutes() {
             <Route path="/schedule/:token" component={Schedule} />
             <Route path="/unsubscribe/:token" component={Unsubscribe} />
             <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+            <Route path="/overview" component={() => <ProtectedRoute component={() => <Redirect to="/dashboard" />} />} />
+            <Route path="/leadership" component={() => <ProtectedRoute component={Leadership} />} />
+            <Route path="/admin/leadership" component={() => <ProtectedRoute component={AdminLeadership} />} />
             <Route path="/prospects" component={() => <ProtectedRoute component={Prospects} />} />
             <Route path="/prospects/:id" component={() => <ProtectedRoute component={ProspectDetail} />} />
             <Route path="/campaigns" component={() => <ProtectedRoute component={Campaigns} />} />
