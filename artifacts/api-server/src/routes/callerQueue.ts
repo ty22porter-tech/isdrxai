@@ -9,7 +9,7 @@ import {
   prospectsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, ilike, inArray, sql } from "drizzle-orm";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import {
   CALL_OUTCOMES,
   assertPilotCapacity,
@@ -21,7 +21,7 @@ import {
 import { callbackIdempotencyKey } from "../lib/callerPolicy";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 const idSchema = z.coerce.number().int().positive();
 const queueQuerySchema = z.object({

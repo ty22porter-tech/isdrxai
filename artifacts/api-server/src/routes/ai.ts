@@ -9,7 +9,7 @@ import { enrichPerson } from "../lib/apollo";
 import { logger } from "../lib/logger";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect, client: typeof usersTable.$inferSelect | undefined, tone: string = "professional") {
   const { companyName, contactName, industry, city, state, squareFootage, employeeCount } = prospect;

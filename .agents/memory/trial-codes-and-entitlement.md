@@ -13,6 +13,19 @@ description: How free-trial-via-code access works and the entitlement rules that
   cron/scheduled job that flips status when a trial ends — do not add one expecting it to
   gate access; the time check already does.
 
+# Enforce the whole paid-product boundary
+The browser gate is only onboarding UX. Apply entitlement middleware at the router boundary
+for paid product areas so an unpaid authenticated user cannot bypass the UI with direct API
+requests. Keep account identity, Stripe/billing, and trial redemption auth-only so onboarding
+can complete.
+
+**Why:** Page redirects do not secure HTTP endpoints; entitlement must be checked again on
+the server for every paid product request.
+
+**How to apply:** When adding a product router, decide explicitly whether it is part of paid
+use or needed to obtain entitlement. Paid-use routers inherit the shared entitlement check;
+onboarding exceptions remain narrow and documented.
+
 # Two parallel AI route families — gate BOTH
 There are two AI generation route trees that duplicate `generate-email` / `generate-call-script`:
 - `/api/ai/*`  (template-based, routes/ai.ts)

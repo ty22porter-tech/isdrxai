@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, AlertCircle, ExternalLink, Loader2, Ticket, Sparkles } from "lucide-react";
@@ -38,11 +38,21 @@ export default function Billing() {
   const { user } = useUser();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
   const [code, setCode] = useState("");
+  const params = new URLSearchParams(window.location.search);
+  const onboarding = params.get("onboarding") === "1";
+  const checkoutSuccess = params.get("checkout") === "success";
 
   const { data: subData } = useQuery({
     queryKey: ["subscription"],
     queryFn: () => apiFetch("/stripe/subscription"),
+    refetchInterval: checkoutSuccess ? 3_000 : false,
+  });
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiFetch("/users/me"),
+    refetchInterval: checkoutSuccess ? 3_000 : false,
   });
 
   const portalMutation = useMutation({
@@ -58,11 +68,14 @@ export default function Billing() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: c }),
       }),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({ title: "Free trial activated!", description: data.trialDays === 0 ? "You have full access with no expiration." : `You have full access for ${data.trialDays} days.` });
       setCode("");
-      qc.invalidateQueries({ queryKey: ["subscription"] });
-      qc.invalidateQueries({ queryKey: ["me"] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["subscription"] }),
+        qc.invalidateQueries({ queryKey: ["me"] }),
+      ]);
+      setLocation("/prospecting");
     },
     onError: (err: Error) => toast({ title: "Couldn't redeem code", description: err.message, variant: "destructive" }),
   });
@@ -74,6 +87,10 @@ export default function Billing() {
   // Trials ending more than ~50 years out are "unlimited" test-access trials.
   const trialUnlimited = trialActive && trialEndsAt!.getTime() - Date.now() > 50 * 365 * 86400000;
   const trialDaysLeft = trialActive ? Math.ceil((trialEndsAt!.getTime() - Date.now()) / 86400000) : 0;
+  const serverEntitled = meData?.isAdmin || meData?.status === "active" || (meData?.trialEndsAt && new Date(meData.trialEndsAt).getTime() > Date.now());
+  useEffect(() => {
+    if (checkoutSuccess && serverEntitled) setLocation("/prospecting");
+  }, [checkoutSuccess, serverEntitled, setLocation]);
 
   return (
     <Layout>
@@ -82,6 +99,14 @@ export default function Billing() {
           <h2 className="text-2xl font-bold tracking-tight">Billing</h2>
           <p className="text-muted-foreground mt-1">Manage your subscription and payment method</p>
         </div>
+        {checkoutSuccess && !serverEntitled && <div role="status" className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-sm">
+          <div className="font-semibold">Confirming payment…</div>
+          <p className="text-muted-foreground mt-1">Your payment is being verified with our server. This page will continue checking; if it takes more than a few minutes, refresh or contact support.</p>
+        </div>}
+        {onboarding && !serverEntitled && <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+          <div className="font-semibold">Choose a plan or redeem a trial code to continue</div>
+          <p className="text-sm text-muted-foreground mt-1">Your account needs an active subscription or trial before prospecting is available.</p>
+        </div>}
 
         <div className="rounded-xl border bg-card p-6 space-y-4">
           <div className="flex items-center justify-between">

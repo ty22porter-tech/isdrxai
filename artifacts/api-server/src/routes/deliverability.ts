@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { resolveTxt } from "node:dns/promises";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getPlatformFromEmail } from "../lib/emailSender";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 type CheckStatus = "pass" | "fail" | "warn" | "unknown";
 interface Check {

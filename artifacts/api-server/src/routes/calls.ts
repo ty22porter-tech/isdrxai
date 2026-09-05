@@ -8,10 +8,10 @@ import {
   UpdateCallParams,
   UpdateCallBody,
 } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 function serializeCall(c: typeof callsTable.$inferSelect) {
   return { ...c, createdAt: c.createdAt.toISOString() };

@@ -9,12 +9,12 @@ import {
   DeleteCampaignParams,
   GetCampaignParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { requireAdmin } from "../lib/requireAuth";
 import { z } from "zod/v4";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 router.get("/", async (req, res) => {
   const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.clientId, req.clientId)).orderBy(sql`${campaignsTable.createdAt} desc`);

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getCalendlyWebhookStatus } from "../lib/calendlyWebhook";
 
 /**
@@ -9,7 +9,7 @@ import { getCalendlyWebhookStatus } from "../lib/calendlyWebhook";
  * anyone reading server logs.
  */
 const router: IRouter = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 router.get("/status", (_req, res) => {
   res.json(getCalendlyWebhookStatus());

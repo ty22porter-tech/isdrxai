@@ -12,7 +12,7 @@ import {
   campaignsTable,
 } from "@workspace/db";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { recommendedNextAction } from "../lib/nextAction";
 import { matchesEngagementSearch } from "../lib/engagementSearch";
 import { CALENDLY_CLICK_FOLLOW_UP_TYPE } from "../lib/calendlyConversion";
@@ -22,7 +22,7 @@ import { CALENDLY_CLICK_FOLLOW_UP_TYPE } from "../lib/calendlyConversion";
  * upcoming interest-scoring and dashboard features.
  */
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 // Client-wide engagement summary.
 router.get("/summary", async (req, res) => {

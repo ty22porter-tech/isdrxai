@@ -30,6 +30,7 @@ import { Route, Router, Switch, Link, Redirect } from "wouter";
 import VerticalPage, { TRADE_SERVICES_CONFIG, IT_SERVICES_CONFIG } from "@/pages/vertical";
 import NotFound from "@/pages/not-found";
 import BookDemoPage from "@/pages/book-demo";
+import ContactUsPage from "@/pages/contact-us";
 import { trackConversionClick } from "@/lib/analytics";
 
 const APP_ORIGIN = window.location.origin;
@@ -846,7 +847,7 @@ function ServiceTiers() {
             </div>
 
             <Button asChild size="lg" variant="outline" className="w-full h-14 text-lg border-white/10 hover:bg-white/5 hover:text-white">
-              <Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "standard_plan")}>Start Automating</Link>
+              <a href="/app/sign-in?redirect_url=%2Fapp%2Fbilling%3Fonboarding%3D1" onClick={() => trackConversionClick("start_trial", "standard_plan")}>Choose Your Plan</a>
             </Button>
           </motion.div>
 
@@ -957,7 +958,7 @@ function ServiceTiers() {
             </div>
 
             <Button asChild size="lg" className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-              <Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "ai_plus_plan")}>Upgrade to AI+</Link>
+              <Link href="/contact-us" onClick={() => trackConversionClick("book_demo", "ai_plus_contact")}>CONTACT US</Link>
             </Button>
           </motion.div>
         </div>
@@ -1109,6 +1110,7 @@ export default function App() {
           <VerticalPage config={IT_SERVICES_CONFIG} />
         </Route>
         <Route path="/book-demo" component={BookDemoPage} />
+        <Route path="/contact-us" component={ContactUsPage} />
         <Route path="/schedule/:token" component={RedirectToApp} />
         <Route path="/unsubscribe/:token" component={RedirectToApp} />
         <Route path="/prospects" component={RedirectToApp} />

@@ -5,7 +5,7 @@ import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { processAutopilotQueue } from "../lib/autopilotEngine";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 function serializeEnrollment(e: typeof autopilotEnrollmentsTable.$inferSelect) {
   return {

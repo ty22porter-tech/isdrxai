@@ -127,8 +127,8 @@ router.post("/checkout", async (req, res) => {
     // Only first-time subscribers get the 14-day free trial.
     ...(isNewSubscriber ? { subscription_data: { trial_period_days: 14 } } : {}),
     allow_promotion_codes: true,
-    success_url: `${baseUrl}/billing?checkout=success`,
-    cancel_url: `${baseUrl}/pricing`,
+    success_url: `${baseUrl}/app/billing?checkout=success&onboarding=1`,
+    cancel_url: `${baseUrl}/app/pricing`,
   });
 
   return res.json({ url: session.url });

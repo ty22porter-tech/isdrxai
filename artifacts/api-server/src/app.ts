@@ -10,6 +10,7 @@ import { handleResendWebhookEvent } from "./lib/inboundReply";
 import { handleDeliveryWebhookEvent } from "./lib/deliveryEvents";
 import trackingRouter from "./routes/tracking";
 import { demoRequestRouter } from "./routes/demoRequest";
+import { contactUsRouter } from "./routes/contactUs";
 import { conversionEventsRouter } from "./routes/conversionEvents";
 import {
   CLERK_PROXY_PATH,
@@ -135,6 +136,7 @@ app.use("/api/t", trackingRouter);
 // Public demo-request form (marketing landing page) — no auth; validated,
 // honeypot-protected, and rate-limited inside the router.
 app.use("/api/demo-request", express.json({ limit: "50kb" }), demoRequestRouter);
+app.use("/api/contact-us", express.json({ limit: "50kb" }), contactUsRouter);
 app.use("/api/conversion-events", express.json({ limit: "10kb" }), conversionEventsRouter);
 
 app.use(express.json());

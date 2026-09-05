@@ -21,7 +21,7 @@ import {
 } from "../lib/emailCompose";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 function serializeEmail(e: typeof emailsTable.$inferSelect) {
   return {

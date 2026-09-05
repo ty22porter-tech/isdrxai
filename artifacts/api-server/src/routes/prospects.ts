@@ -21,7 +21,7 @@ import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 // Prospects are stamped with the vertical the client was in when they were
 // created, so vertical-specific data never bleeds between workflows.

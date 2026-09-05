@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -137,11 +137,28 @@ function HomeRedirect() {
   );
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+type Me = { isAdmin: boolean; status: string; trialEndsAt: string | null };
+
+function EntitlementRoute({ component: Component }: { component: React.ComponentType }) {
+  const { data, isPending } = useQuery<Me>({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/me", { credentials: "include" });
+      if (!response.ok) throw new Error("Unable to verify access");
+      return response.json();
+    },
+    staleTime: 30_000,
+  });
+  if (isPending) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Checking account access…</div>;
+  const hasEntitlement = data?.isAdmin || data?.status === "active" || (!!data?.trialEndsAt && new Date(data.trialEndsAt).getTime() > Date.now());
+  return hasEntitlement ? <Component /> : <Redirect to="/billing?onboarding=1" replace />;
+}
+
+function ProtectedRoute({ component: Component, entitlement = false }: { component: React.ComponentType; entitlement?: boolean }) {
   return (
     <>
       <Show when="signed-in">
-        <Component />
+        {entitlement ? <EntitlementRoute component={Component} /> : <Component />}
       </Show>
       <Show when="signed-out">
         <Redirect to="/" />
@@ -221,24 +238,24 @@ function AppRoutes() {
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/schedule/:token" component={Schedule} />
             <Route path="/unsubscribe/:token" component={Unsubscribe} />
-            <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
-            <Route path="/overview" component={() => <ProtectedRoute component={() => <Redirect to="/dashboard" />} />} />
-            <Route path="/leadership" component={() => <ProtectedRoute component={Leadership} />} />
-            <Route path="/admin/leadership" component={() => <ProtectedRoute component={AdminLeadership} />} />
-            <Route path="/prospects" component={() => <ProtectedRoute component={Prospects} />} />
-            <Route path="/prospects/:id" component={() => <ProtectedRoute component={ProspectDetail} />} />
-            <Route path="/campaigns" component={() => <ProtectedRoute component={Campaigns} />} />
-            <Route path="/appointments" component={() => <ProtectedRoute component={Appointments} />} />
-            <Route path="/emails" component={() => <ProtectedRoute component={Emails} />} />
-            <Route path="/calls" component={() => <ProtectedRoute component={Calls} />} />
-            <Route path="/prospecting" component={() => <ProtectedRoute component={Prospecting} />} />
-            <Route path="/sequences" component={() => <ProtectedRoute component={Sequences} />} />
+            <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} entitlement />} />
+            <Route path="/overview" component={() => <ProtectedRoute component={() => <Redirect to="/dashboard" />} entitlement />} />
+            <Route path="/leadership" component={() => <ProtectedRoute component={Leadership} entitlement />} />
+            <Route path="/admin/leadership" component={() => <ProtectedRoute component={AdminLeadership} entitlement />} />
+            <Route path="/prospects" component={() => <ProtectedRoute component={Prospects} entitlement />} />
+            <Route path="/prospects/:id" component={() => <ProtectedRoute component={ProspectDetail} entitlement />} />
+            <Route path="/campaigns" component={() => <ProtectedRoute component={Campaigns} entitlement />} />
+            <Route path="/appointments" component={() => <ProtectedRoute component={Appointments} entitlement />} />
+            <Route path="/emails" component={() => <ProtectedRoute component={Emails} entitlement />} />
+            <Route path="/calls" component={() => <ProtectedRoute component={Calls} entitlement />} />
+            <Route path="/prospecting" component={() => <ProtectedRoute component={Prospecting} entitlement />} />
+            <Route path="/sequences" component={() => <ProtectedRoute component={Sequences} entitlement />} />
             <Route path="/billing" component={() => <ProtectedRoute component={Billing} />} />
             <Route path="/pricing" component={() => <ProtectedRoute component={Pricing} />} />
-            <Route path="/admin" component={() => <ProtectedRoute component={Admin} />} />
-            <Route path="/settings" component={() => <ProtectedRoute component={Settings} />} />
-            <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} />} />
-            <Route path="/caller" component={() => <ProtectedRoute component={Caller} />} />
+            <Route path="/admin" component={() => <ProtectedRoute component={Admin} entitlement />} />
+            <Route path="/settings" component={() => <ProtectedRoute component={Settings} entitlement />} />
+            <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} entitlement />} />
+            <Route path="/caller" component={() => <ProtectedRoute component={Caller} entitlement />} />
             <Route component={FallbackRoute} />
           </Switch>
           <Toaster />

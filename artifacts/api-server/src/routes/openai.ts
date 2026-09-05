@@ -23,7 +23,7 @@ async function chatComplete(messages: {role: string; content: string}[], maxToke
 }
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 const FINAL_STEP = 7;
 

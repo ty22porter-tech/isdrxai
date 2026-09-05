@@ -4,10 +4,10 @@ import { prospectsTable, emailsTable, callsTable, appointmentsTable, activityTab
 import { eq, gte, count, sql, and, lt, isNotNull, desc } from "drizzle-orm";
 import type { AnyColumn } from "drizzle-orm";
 import { GetActivityFeedQueryParams } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 router.get("/dashboard", async (req, res) => {
   const cid = req.clientId;

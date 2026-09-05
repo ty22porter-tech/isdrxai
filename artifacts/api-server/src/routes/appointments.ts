@@ -9,11 +9,11 @@ import {
   UpdateAppointmentBody,
   DeleteAppointmentParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../lib/requireAuth";
+import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { recordEngagementEvent, cancelPendingAutomation } from "../lib/engagementScoring";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireEntitlement);
 
 function serializeAppt(a: typeof appointmentsTable.$inferSelect) {
   return { ...a, scheduledAt: a.scheduledAt.toISOString(), createdAt: a.createdAt.toISOString() };
