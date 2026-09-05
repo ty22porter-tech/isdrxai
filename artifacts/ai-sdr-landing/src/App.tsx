@@ -37,6 +37,7 @@ import {
   TermsOfServicePage,
 } from "@/pages/legal";
 import { trackConversionClick } from "@/lib/analytics";
+import { GuidedAssistant } from "@/components/guided-assistant";
 
 const APP_ORIGIN = window.location.origin;
 const SIGN_IN_URL = `${APP_ORIGIN}/app/sign-in`;
@@ -1051,6 +1052,7 @@ function LandingPage() {
         <CTA />
       </main>
       <Footer />
+      <GuidedAssistant />
     </div>
   );
 }
