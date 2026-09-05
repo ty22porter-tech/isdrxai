@@ -873,7 +873,7 @@ function ServiceTiers() {
                 Complete Engagement and Follow-Through
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                iSDRX AI+ adds a live, trained professional caller who follows up with prospects who show interest but do not complete the scheduling process—including those who repeatedly open emails, view attachments, or click the calendar link without booking.
+                iSDRX AI+ adds AI-Triggered Human Calling for prospects who show interest but do not complete the scheduling process—including those who repeatedly open emails, view attachments, or click the calendar link without booking.
               </p>
             </div>
 
@@ -884,7 +884,7 @@ function ServiceTiers() {
                     Additional AI+ setup and onboarding
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Live-caller workflow design, scripting, professional caller onboarding, CRM configuration, and campaign preparation.
+                    AI-triggered human calling workflow design, scripting, caller onboarding, CRM configuration, and campaign preparation.
                   </p>
                 </div>
                 <div className="sm:text-right shrink-0">
@@ -933,7 +933,7 @@ function ServiceTiers() {
             <div className="space-y-4 mb-10 flex-1">
               <div className="text-sm font-semibold text-white uppercase tracking-wider mb-2">Everything in AI, plus:</div>
               {[
-                "A live, trained professional caller",
+                "AI-Triggered Human Calling",
                 "Interest confirmation and opportunity qualification",
                 "Hands-on appointment or walkthrough scheduling",
                 "Calls, outcomes, notes, transfers, and bookings tracked in the dashboard",

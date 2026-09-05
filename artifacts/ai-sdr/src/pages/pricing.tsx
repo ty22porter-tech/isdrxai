@@ -126,7 +126,7 @@ const TIERS: Tier[] = [
     priceNote: "",
     emails: "Adds managed calling to your selected plan",
     users: "Works with any iSDRX AI package",
-    tagline: "Add a live, trained professional caller to follow through with engaged prospects and help them book.",
+    tagline: "Add AI-Triggered Human Calling to follow through with engaged prospects and help them book.",
     features: [
       "Everything in your selected iSDRX AI plan",
       "Engagement Follow-Up — $750/month",
@@ -190,7 +190,7 @@ const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, s
   { label: "Multi-step AI campaigns", values: ["—", "✓", "✓", "By base plan", "✓"] },
   { label: "Team dashboard & pipeline reporting", values: ["—", "✓", "✓", "By base plan", "✓"] },
   { label: "CRM integration & API access", values: ["—", "—", "✓", "By base plan", "✓"] },
-  { label: "Live, trained professional caller", values: ["—", "—", "—", "✓", "Custom"] },
+  { label: "AI-Triggered Human Calling", values: ["—", "—", "—", "✓", "Custom"] },
   { label: "Engaged-prospect phone follow-up", values: ["—", "—", "—", "✓", "Custom"] },
   { label: "Interest confirmation & qualification", values: ["—", "—", "—", "✓", "Custom"] },
   { label: "Live transfers & assisted scheduling", values: ["—", "—", "—", "✓", "Custom"] },
@@ -471,7 +471,7 @@ export default function Pricing() {
         <div className="rounded-xl border bg-card p-8 text-center space-y-3">
           <h2 className="text-2xl font-bold">Ready to put AI on your sales team?</h2>
           <p className="text-muted-foreground">
-            Start with an iSDRX AI plan, or contact us to add live professional calling with AI+.
+            Start with an iSDRX AI plan, or contact us to add AI-Triggered Human Calling with AI+.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
