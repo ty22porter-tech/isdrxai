@@ -401,12 +401,13 @@ export function GuidedAssistant() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-16 h-16 rounded-full bg-primary text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] flex items-center justify-center border border-white/10 p-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-background"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 h-16 rounded-full bg-primary text-white shadow-[0_0_24px_rgba(37,99,235,0.55)] flex items-center gap-2 border border-white/20 p-1.5 pr-5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-background"
             aria-label="Open Trey Assistant"
           >
-            <div className="w-full h-full rounded-full overflow-hidden">
+            <div className="w-13 h-13 rounded-full overflow-hidden border border-white/30 shrink-0">
               <img src={treyProfile} alt="" className="w-full h-full object-cover" />
             </div>
+            <span className="font-semibold text-sm whitespace-nowrap">Ask Trey</span>
           </motion.button>
         )}
       </AnimatePresence>
