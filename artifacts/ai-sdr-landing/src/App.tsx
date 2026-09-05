@@ -872,9 +872,15 @@ function ServiceTiers() {
               <p className="text-sm font-semibold uppercase tracking-wider text-accent mb-5">
                 Complete Engagement and Follow-Through
               </p>
-              <p className="text-muted-foreground leading-relaxed">
-                iSDRX AI+ adds AI-Triggered Human Calling for prospects who show interest but do not complete the scheduling process—including those who repeatedly open emails, view attachments, or click the calendar link without booking.
-              </p>
+              <div className="space-y-3">
+                <h4 className="text-lg font-semibold text-white">AI-Triggered Human Calling</h4>
+                <p className="text-muted-foreground leading-relaxed">
+                  Add a trained human caller to your iSDRX AI employee. When a prospect demonstrates buying intent or reaches a qualified engagement score, the caller follows up, manages the initial conversation, and records the outcome. Interested prospects can then be transferred live or scheduled directly on your sales team’s calendar.
+                </p>
+                <p className="text-muted-foreground leading-relaxed">
+                  Every interaction is tracked and monitored through the iSDRX AI dashboard, including call attempts, contact outcomes, conversation notes, live transfers, and appointments or walkthroughs booked. This provides complete visibility into how interested prospects progress from initial engagement to qualified pipeline.
+                </p>
+              </div>
             </div>
 
             <div className="mb-6 rounded-xl border border-primary/30 bg-primary/10 p-5">
