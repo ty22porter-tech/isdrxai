@@ -758,7 +758,10 @@ function ServiceTiers() {
                 <span className="text-muted-foreground mb-1">/month</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Includes 1 user and 1,000 AI email sends per month.
+                Automated prospect research, personalized outreach, engagement monitoring, and appointment guidance for 1 user.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Includes capacity for up to 1,000 personalized AI emails per month.
               </p>
             </div>
 

@@ -54,11 +54,11 @@ const TIERS: Tier[] = [
     name: "iSDRX AI Starter",
     price: "$249",
     priceNote: "/month",
-    emails: "500 AI email sends / month",
+    emails: "Up to 500 personalized AI emails / month",
     users: "Includes 1 user",
-    tagline: "For solo operators getting their outbound engine running.",
+    tagline: "Find high-fit prospects, personalize outreach, and guide interested buyers toward a meeting.",
     features: [
-      "500 AI email sends per month",
+      "Up to 500 personalized AI emails per month",
       "1 User license",
       "1 Sending Domain",
       "CSV Upload",
@@ -78,11 +78,11 @@ const TIERS: Tier[] = [
     name: "iSDRX AI",
     price: "$499",
     priceNote: "/month",
-    emails: "1,000 AI email sends / month",
+    emails: "Up to 1,000 personalized AI emails / month",
     users: "Includes 1 user",
-    tagline: "For teams ready to scale multi-step AI outreach.",
+    tagline: "Turn prospect research and buying signals into consistent, multi-step outreach and qualified pipeline.",
     features: [
-      "1,000 AI email sends per month",
+      "Up to 1,000 personalized AI emails per month",
       "1 User license",
       "1 Sending Domain",
       "Everything in iSDRX AI Starter",
@@ -101,17 +101,17 @@ const TIERS: Tier[] = [
     name: "iSDRX AI Growth",
     price: "$799",
     priceNote: "/month",
-    emails: "2,500 AI email sends / month",
+    emails: "Up to 2,500 personalized AI emails / month",
     users: "Includes 3 users",
-    tagline: "For established sales orgs with serious volume.",
+    tagline: "Expand personalized prospecting, team visibility, and pipeline generation across a growing sales organization.",
     features: [
-      "2,500 AI email sends per month",
+      "Up to 2,500 personalized AI emails per month",
       "3 User licenses",
       "1 Sending Domain",
       "Everything in iSDRX AI",
       "CRM Integration",
       "API Access",
-      "White Glove Support",
+      "Enhanced Implementation Support",
     ],
     cta: "Start 14-Day Free Trial",
   },
@@ -121,11 +121,11 @@ const TIERS: Tier[] = [
     name: "Enterprise",
     price: "Contact Sales",
     priceNote: "",
-    emails: "Unlimited AI email sends",
+    emails: "Custom personalized AI email capacity",
     users: "5 or more users",
     tagline: "Custom capacity, integrations, and support at scale.",
     features: [
-      "Unlimited AI email sends",
+      "Custom personalized AI email capacity",
       "5 or more User licenses",
       "Unlimited Sending Domains",
       "Custom Integrations",
@@ -154,7 +154,7 @@ const LAUNCH_PACKAGE_ITEMS = [
 ];
 
 const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, string] }> = [
-  { label: "AI email sends / month", values: ["500", "1,000", "2,500", "Unlimited"] },
+  { label: "Personalized AI email capacity / month", values: ["Up to 500", "Up to 1,000", "Up to 2,500", "Custom"] },
   { label: "User licenses", values: ["1", "1", "3", "5 or more"] },
   { label: "Sending domains", values: ["1", "1", "1", "Unlimited"] },
   { label: "AI email generation & follow-up", values: ["✓", "✓", "✓", "✓"] },
@@ -165,13 +165,13 @@ const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, s
   { label: "Team dashboard & pipeline reporting", values: ["—", "✓", "✓", "✓"] },
   { label: "CRM integration & API access", values: ["—", "—", "✓", "✓"] },
   { label: "Custom AI training & SSO", values: ["—", "—", "—", "✓"] },
-  { label: "Support", values: ["Email", "Priority", "White Glove", "Dedicated CSM + SLA"] },
+  { label: "Support", values: ["Email", "Priority", "Enhanced implementation", "Dedicated CSM + SLA"] },
 ];
 
 const FAQS: Array<{ q: string; a: string }> = [
   {
     q: "How is iSDRX AI priced?",
-    a: "iSDRX AI is licensed per user — not per domain. iSDRX AI Starter and iSDRX AI each include 1 user, iSDRX AI Growth includes 3 users, and Enterprise covers 5 or more users. Each plan also sets your monthly AI email capacity (the number of AI-generated emails you can send each month). Need more capacity or users? Upgrade your plan anytime.",
+    a: "iSDRX AI is licensed per user — not per domain. iSDRX AI Starter and iSDRX AI each include 1 user, iSDRX AI Growth includes 3 users, and Enterprise covers 5 or more users. Each plan also includes monthly capacity for personalized AI emails sent through the platform. Need more capacity or users? Upgrade your plan anytime.",
   },
   {
     q: "How does the 14-day free trial work?",
