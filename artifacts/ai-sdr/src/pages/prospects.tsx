@@ -968,6 +968,10 @@ export default function Prospects() {
     const rank = level === "hot" ? 2 : level === "medium" ? 1 : 0;
     return rank * 1000 + (p.engagementScore ?? 0);
   };
+  const needsContact = (prospect: { contactName?: string | null; email?: string | null }) =>
+    prospect.contactName?.trim().toLowerCase() === "owner"
+    || !prospect.email
+    || prospect.email.trim().toLowerCase().endsWith(".invalid");
   const sortedProspects = (() => {
     const list = [...(prospects ?? [])];
     if (!sortKey) return list;
@@ -1006,6 +1010,7 @@ export default function Prospects() {
   // selection
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const allIds = (prospects ?? []).map(p => p.id);
+  const needsContactIds = (prospects ?? []).filter(needsContact).map(p => p.id);
   const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id));
   const someSelected = selected.size > 0;
   const hasSentFilters = sentCampaignId !== "all" || !!sentFrom || !!sentTo;
@@ -1049,6 +1054,7 @@ export default function Prospects() {
     });
   };
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
+  const selectNeedsContact = () => setSelected(new Set(needsContactIds.slice(0, 100)));
   const clearFilters = () => {
     setSearch("");
     setSentCampaignId("all");
@@ -1350,6 +1356,14 @@ export default function Prospects() {
 
         <Card>
           <CardHeader className="space-y-4 py-4">
+            {needsContactIds.length > 0 && (
+              <div className="flex justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={selectNeedsContact}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Select needs contact ({needsContactIds.length})
+                </Button>
+              </div>
+            )}
             <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_minmax(200px,1fr)_minmax(150px,.7fr)_minmax(150px,.7fr)]">
               <div className="space-y-1.5">
                 <Label htmlFor="prospect-search">Search prospects</Label>
@@ -1529,7 +1543,13 @@ export default function Prospects() {
                   visibleProspects.map(prospect => (
                     <TableRow
                       key={prospect.id}
-                      className={`cursor-pointer hover:bg-muted/50 ${selected.has(prospect.id) ? "bg-primary/5" : ""}`}
+                      className={`cursor-pointer hover:bg-muted/50 ${
+                        selected.has(prospect.id)
+                          ? "bg-primary/5"
+                          : needsContact(prospect)
+                            ? "bg-amber-50/60 dark:bg-amber-950/10"
+                            : ""
+                      }`}
                       onClick={e => {
                         const target = e.target as HTMLElement;
                         if (target.closest('[role="checkbox"]') || target.tagName === "INPUT") return;
@@ -1548,6 +1568,11 @@ export default function Prospects() {
                       <TableCell>
                         <div className="font-medium flex items-center gap-1.5">
                           {prospect.contactName}
+                          {needsContact(prospect) && (
+                            <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                              Needs contact
+                            </Badge>
+                          )}
                           {prospect.linkedinUrl && (
                             <a href={prospect.linkedinUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="LinkedIn profile">
                               <Linkedin className="h-3.5 w-3.5 text-[#0A66C2]" />
