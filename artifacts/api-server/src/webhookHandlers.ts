@@ -1,6 +1,9 @@
 import { getStripeSync } from "./stripeClient";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import type Stripe from "stripe";
+import { logger } from "./lib/logger";
+import { notifyAdminsOfStripeSale } from "./lib/stripeSaleAlerts";
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
@@ -14,6 +17,16 @@ export class WebhookHandlers {
 
     const sync = await getStripeSync();
     await sync.processWebhook(payload, signature);
+
+    // processWebhook verifies the signature before this payload is trusted.
+    // Sale alerts are intentionally non-blocking: Stripe data and entitlement
+    // synchronization must still succeed if an email provider is unavailable.
+    try {
+      const event = JSON.parse(payload.toString("utf8")) as Stripe.Event;
+      await notifyAdminsOfStripeSale(event);
+    } catch (error) {
+      logger.error({ err: error }, "Stripe webhook synced, but sale notification processing failed");
+    }
 
     // The Stripe sync only mirrors Stripe data into the `stripe.*` tables; it does
     // NOT touch our app's `users.status`. Reconcile entitlement here so a customer

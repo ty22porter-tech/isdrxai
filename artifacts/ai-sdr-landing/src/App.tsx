@@ -678,10 +678,19 @@ function Footer() {
           </div>
           <span className="font-display font-bold text-lg tracking-tight text-white">iSDRX AI</span>
         </div>
-        <div className="flex gap-6 text-sm text-muted-foreground">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
           <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Privacy Policy</a>
           <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Terms of Service</a>
-          <a href={SIGN_IN_URL} className="hover:text-white transition-colors">Contact</a>
+          <a href="mailto:info@isdrxai.com" className="hover:text-white transition-colors">info@isdrxai.com</a>
+          <a href="tel:+14693229056" className="hover:text-white transition-colors">+1 (469) 322-9056</a>
+          <a
+            href="https://wa.me/14693229056"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-white transition-colors"
+          >
+            Chat with us on WhatsApp
+          </a>
         </div>
         <p className="text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} iSDRX AI Inc. All rights reserved.

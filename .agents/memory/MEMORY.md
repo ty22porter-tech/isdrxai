@@ -14,6 +14,7 @@
 - [Stripe sync init](stripe-sync-init.md) — bundled runMigrations needs dist/migrations copy (build.mjs); syncBackfill requires {object:"all"} or it no-ops; connector is ghost → env-key fallback.
 - [Stripe entitlement](stripe-entitlement.md) — sync.processWebhook never sets users.status; webhook must reconcile status from stripe.subscriptions (_raw_data jsonb) or paying customers stay blocked.
 - [AI+ billing model](ai-plus-billing-model.md) — AI+ is sales-assisted: one-time setup plus one fixed monthly add-on; Additional Caller stays quote-only until standardized.
+- [Stripe sale alerts](stripe-sale-alerts.md) — every paid package sale or renewal must notify all admin accounts in-app and by email, once per Stripe event.
 - [Trial codes & entitlement](trial-codes-and-entitlement.md) — access = admin OR active sub OR trialEndsAt>now; BOTH /api/ai & /api/openai gen routes need requireEntitlement; codes single-use + one-per-client (transactional).
 - [Inbound reply detection (Option B)](inbound-reply-option-b.md) — outgoing prospect email uses tokenized Reply-To so verified positive replies can be scored and automatically receive a meeting request.
 - [Dev/prod Clerk + data split](env-clerk-and-data-split.md) — dev & prod are SEPARATE Clerk tenants (key-by-host) → same person has different user IDs; clientId NOT portable across envs; dev DB is test/seed only; deploy is autoscale (no always-on).

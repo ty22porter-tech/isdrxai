@@ -61,6 +61,8 @@ export const automationRunsTable = pgTable("automation_runs", {
 export const notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),
   clientId: text("client_id").notNull().default(""),
+  /** External event key used to prevent duplicate webhook-driven notifications. */
+  sourceKey: text("source_key").unique(),
   type: text("type").notNull().default("info"),
   title: text("title").notNull(),
   body: text("body").notNull().default(""),
