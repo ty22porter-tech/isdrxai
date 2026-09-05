@@ -29,12 +29,14 @@ id = "t1w43sgTbBIxz4B6ZDEKh"
 uri = "file://artifacts/ai-sdr-video/public/audio/bg_music.mp3"
 type = "audio"
 title = "background music"
+logical_id = "8f566089-86f8-41fa-9c29-607c07d5e87b"
 
 [[outputs]]
 id = "qeNekgZzbwdwmU5OLkPjD"
 uri = "file://artifacts/ai-sdr-video-it/public/audio/bg_music.mp3"
 type = "audio"
 title = "IT video background music"
+logical_id = "ad364887-afb9-4534-8f89-e7c78cbd87f6"
 
 [[outputs]]
 id = "awh-fDDn5seEPJh1Yn0IZ"
@@ -42,3 +44,18 @@ uri = "file://attached_assets/generated_images/linkedin_promo.png"
 type = "image"
 title = "iSDRX AI LinkedIn Promo Image"
 description = "Branded 1200×627 promo image for LinkedIn posts, linking to isdrxai.com/book-demo"
+logical_id = "2544b214-bcf6-4994-b0b8-696e40288251"
+
+[[outputs]]
+id = "Zyd62BpHDQBP9UoYgPSKy"
+uri = "file://artifacts/ai-sdr-landing/src/assets/trey-profile.png"
+type = "image"
+title = "Trey — AI Assistant Portrait"
+description = "The fictional AI-generated profile portrait currently used for Trey on the iSDRX AI landing page."
+logical_id = "7af43bbb-73c5-4f41-9cf5-ed52197e13e7"
+content_hash = "sha256:efcb98ff3c1bd1adc6bf5388d211a045325fb0f93edd0b4747ccb66afe56c1a7"
+size = 84876
+mtime_ms = 1788647170776
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/7af43bbb-73c5-4f41-9cf5-ed52197e13e7/13f7e792-d1dd-40a9-9ef6-130c8de104a1"
+storage_version_token = "1788651311523506"
+content_type = "image/png"
