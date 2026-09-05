@@ -776,6 +776,45 @@ function ServiceTiers() {
               </p>
             </div>
 
+            <div className="mb-8 rounded-xl border border-accent/30 bg-accent/[0.06] p-5">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
+                    AI Sales Launch Package
+                  </div>
+                  <p className="text-sm font-semibold text-white mt-1">Required for every subscription</p>
+                </div>
+                <div className="sm:text-right shrink-0">
+                  <div className="text-3xl font-display font-bold text-white">$995</div>
+                  <div className="text-xs text-muted-foreground">one-time implementation fee</div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-4">
+                Added automatically at checkout. Our team sets up everything so your first campaign lands in inboxes—not spam folders.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-5">
+                {[
+                  "Account Configuration",
+                  "Domain Configuration",
+                  "DNS Authentication (SPF, DKIM, DMARC)",
+                  "Email Platform Configuration",
+                  "Calendar Integration",
+                  "ICP Development",
+                  "AI Prompt Customization",
+                  "Sales Workflow Configuration",
+                  "Initial Campaign Setup",
+                  "CRM Configuration",
+                  "Live Implementation Session",
+                  "Customer Training",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2 text-sm text-gray-300">
+                    <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/10">
               {[
                 { name: "iSDRX AI Starter", price: "$249/month" },
@@ -841,14 +880,20 @@ function ServiceTiers() {
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                    One-time setup
+                    Additional AI+ setup and onboarding
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Scripting, caller training, CRM configuration, and campaign preparation.
+                    Live-caller workflow design, scripting, professional caller onboarding, CRM configuration, and campaign preparation.
                   </p>
                 </div>
-                <span className="text-3xl font-display font-bold text-white">$1,000</span>
+                <div className="sm:text-right shrink-0">
+                  <div className="text-3xl font-display font-bold text-white">$1,000</div>
+                  <div className="text-xs text-muted-foreground">one-time fee</div>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-primary/20">
+                This is in addition to the required $995 AI Sales Launch Package for the base subscription.
+              </p>
             </div>
 
             <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/10">
@@ -907,7 +952,7 @@ function ServiceTiers() {
                 All call attempts, outcomes, notes, live transfers, and appointments or walkthroughs are tracked through the iSDRX AI dashboard.
               </p>
               <p className="text-sm font-semibold text-white mt-3">
-                AI+ pricing is added to the monthly cost of your selected iSDRX AI package.
+                AI+ setup and monthly service pricing are added to the cost of your selected iSDRX AI package.
               </p>
             </div>
 
