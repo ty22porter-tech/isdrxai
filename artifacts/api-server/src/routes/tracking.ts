@@ -6,6 +6,7 @@ import { eq, and, gte, sql } from "drizzle-orm";
 import { getPublicAppUrl } from "../lib/publicUrl";
 import { logger } from "../lib/logger";
 import { recordEngagementEvent } from "../lib/engagementScoring";
+import { queueCalendlyClickFollowUp } from "../lib/calendlyConversion";
 
 /**
  * Public engagement-tracking endpoints (no auth — keyed by unguessable
@@ -261,6 +262,15 @@ router.get("/l/:token/:slug", async (req, res) => {
         campaignId: email.campaignId,
         detail: link.name ?? link.kind,
       });
+      if (link.kind === "cta") {
+        await queueCalendlyClickFollowUp({
+          clientId: email.clientId,
+          prospectId: email.prospectId,
+          campaignId: email.campaignId,
+          destination: link.destination,
+          clickedAt: now,
+        });
+      }
     }).catch((err) => logger.error({ err }, "Link-click event failed"));
   } catch (err) {
     logger.error({ err }, "Tracked link redirect failed");

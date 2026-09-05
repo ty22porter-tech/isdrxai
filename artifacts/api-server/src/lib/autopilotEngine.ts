@@ -8,6 +8,7 @@ import { getPublicAppUrl } from "./publicUrl";
 import { resolveReplyTo } from "./inboundAddressing";
 import { getVerticalConfig, offeringForStep, type VerticalConfig } from "./verticals";
 import { processEngagementAutomation } from "./engagementAutomation";
+import { LOW_FRICTION_CTA_LABEL } from "./calendlyConversion";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -61,7 +62,7 @@ async function generateCalendlyEmail(
   const firstName = prospect.contactName.split(" ")[0];
   const nextStepNoun = vc.key === "it_services" ? "their IT environment" : "their facility";
   return aiGenerate(
-    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Tell them the next step is simple: on one page they can either answer a few quick questions about ${nextStepNoun} before booking or skip the questions and pick a time immediately for a ${vc.offerName}. Refer to the "Click here to schedule appointment" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 80 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
+    `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Offer a low-pressure, brief conversation without claiming a specific duration. Suggest two easy alternatives such as a morning or afternoon window, and explicitly say they can reply with a preferred time instead of booking. Tell them the next step is simple: on one page they can either answer a few quick questions about ${nextStepNoun} before booking or skip the questions and pick a time immediately for a ${vc.offerName}. Refer to the "${LOW_FRICTION_CTA_LABEL}" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 90 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
   );
 }
 
@@ -337,7 +338,7 @@ export async function processAutopilotQueue(): Promise<void> {
       const coreBody = await generateCalendlyEmail(prospect, vc);
       const trackingToken = randomUUID();
       const composed = composeEmail(coreBody, client, prospect, {
-        label: "Click here to schedule appointment",
+        label: LOW_FRICTION_CTA_LABEL,
         url: scheduleUrl,
       }, { token: trackingToken });
 

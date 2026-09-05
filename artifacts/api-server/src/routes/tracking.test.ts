@@ -93,9 +93,11 @@ vi.mock("drizzle-orm", () => ({
 vi.mock("../lib/publicUrl", () => ({ getPublicAppUrl: () => "https://app.example.com" }));
 vi.mock("../lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock("../lib/engagementScoring", () => ({ recordEngagementEvent: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../lib/calendlyConversion", () => ({ queueCalendlyClickFollowUp: vi.fn().mockResolvedValue(undefined) }));
 
 import trackingRouter from "./tracking";
 import { recordEngagementEvent } from "../lib/engagementScoring";
+import { queueCalendlyClickFollowUp } from "../lib/calendlyConversion";
 
 // Extract the GET /l/:token/:slug handler from the router.
 const linkLayer = (trackingRouter as any).stack.find((l: any) => l.route?.path === "/l/:token/:slug");
@@ -238,6 +240,12 @@ describe("tracked link redirect bot filtering (GET /l/:token/:slug)", () => {
     const calls = (recordEngagementEvent as any).mock.calls;
     expect(calls.map((c: any) => c[1]).sort()).toEqual(["calendly_click", "open"]);
     for (const c of calls) expect(c[0]).toBe(7); // prospectId
+    expect(queueCalendlyClickFollowUp).toHaveBeenCalledWith(expect.objectContaining({
+      clientId: "client-1",
+      prospectId: 7,
+      campaignId: 3,
+      destination: "https://calendly.com/rep/15min",
+    }));
   });
 
   it("skips the inferred open (but still scores the click) when the email already has valid opens", async () => {
@@ -257,5 +265,6 @@ describe("tracked link redirect bot filtering (GET /l/:token/:slug)", () => {
     await runClick(HUMAN_UA);
     const calls = (recordEngagementEvent as any).mock.calls;
     expect(calls.map((c: any) => c[1])).toEqual(["link_click"]);
+    expect(queueCalendlyClickFollowUp).not.toHaveBeenCalled();
   });
 });

@@ -11,10 +11,11 @@ import {
   appointmentsTable,
   campaignsTable,
 } from "@workspace/db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { recommendedNextAction } from "../lib/nextAction";
 import { matchesEngagementSearch } from "../lib/engagementSearch";
+import { CALENDLY_CLICK_FOLLOW_UP_TYPE } from "../lib/calendlyConversion";
 
 /**
  * Engagement summary APIs (authenticated, tenant-scoped). Consumed by the
@@ -88,7 +89,10 @@ router.get("/summary", async (req, res) => {
       meetingRequestsSent: sql<number>`count(*) filter (where ${automationRunsTable.status} = 'sent')::int`,
     })
     .from(automationRunsTable)
-    .where(and(eq(automationRunsTable.clientId, clientId), eq(automationRunsTable.automationType, "meeting_request")));
+    .where(and(
+      eq(automationRunsTable.clientId, clientId),
+      inArray(automationRunsTable.automationType, ["meeting_request", CALENDLY_CLICK_FOLLOW_UP_TYPE]),
+    ));
 
   const [apptAgg] = await db
     .select({ meetingsScheduled: sql<number>`count(*)::int` })
@@ -217,7 +221,10 @@ router.get("/table", async (req, res) => {
       pending: sql<number>`count(*) filter (where ${automationRunsTable.status} in ('pending','sending'))::int`,
     })
     .from(automationRunsTable)
-    .where(and(eq(automationRunsTable.clientId, clientId), eq(automationRunsTable.automationType, "meeting_request")))
+    .where(and(
+      eq(automationRunsTable.clientId, clientId),
+      inArray(automationRunsTable.automationType, ["meeting_request", CALENDLY_CLICK_FOLLOW_UP_TYPE]),
+    ))
     .groupBy(automationRunsTable.prospectId);
   const autoByProspect = new Map(autoRuns.map(r => [r.prospectId, r]));
 
@@ -537,12 +544,15 @@ router.get("/prospects/:id/timeline", async (req, res) => {
     if (s.eventType !== "manual_override") prevLevel = s.interestLevelAfter;
   }
   for (const r of runs) {
+    const clickFollowUp = r.automationType === CALENDLY_CLICK_FOLLOW_UP_TYPE;
+    const titlePrefix = clickFollowUp ? "Scheduling follow-up" : "Automated meeting request";
+    const typePrefix = clickFollowUp ? "scheduling_follow_up" : "meeting_request";
     if (r.sentAt) {
-      items.push({ ts: r.sentAt.toISOString(), type: "meeting_request_sent", title: "Automated meeting request sent", detail: r.triggerReason, source: "Automation" });
+      items.push({ ts: r.sentAt.toISOString(), type: `${typePrefix}_sent`, title: `${titlePrefix} sent`, detail: r.triggerReason, source: "Automation" });
     } else if (r.status === "pending" || r.status === "sending") {
-      items.push({ ts: r.createdAt.toISOString(), type: "meeting_request_queued", title: "Automated meeting request queued", detail: `${r.triggerReason} — scheduled for ${r.scheduledFor.toISOString()}`, source: "Automation" });
+      items.push({ ts: r.createdAt.toISOString(), type: `${typePrefix}_queued`, title: `${titlePrefix} queued`, detail: `${r.triggerReason} — scheduled for ${r.scheduledFor.toISOString()}`, source: "Automation" });
     } else if (r.status === "suppressed") {
-      items.push({ ts: r.createdAt.toISOString(), type: "meeting_request_suppressed", title: "Automated meeting request suppressed", detail: r.resultDetail, source: "Automation" });
+      items.push({ ts: r.createdAt.toISOString(), type: `${typePrefix}_suppressed`, title: `${titlePrefix} suppressed`, detail: r.resultDetail, source: "Automation" });
     }
   }
   for (const a of appts) {

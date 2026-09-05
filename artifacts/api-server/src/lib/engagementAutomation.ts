@@ -9,7 +9,7 @@ import {
   activityTable,
   autopilotEnrollmentsTable,
 } from "@workspace/db";
-import { eq, and, lte, gte, sql, desc } from "drizzle-orm";
+import { eq, and, lte, gte, sql, desc, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
 import { composeEmail, unsubscribeHeaders } from "./emailCompose";
@@ -17,6 +17,11 @@ import { resolveReplyTo } from "./inboundAddressing";
 import { getPublicAppUrl } from "./publicUrl";
 import { getEngagementSettings, isValidCalendlyUrl } from "./engagementScoring";
 import { logger } from "./logger";
+import {
+  CALENDLY_CLICK_FOLLOW_UP_TYPE,
+  LOW_FRICTION_CTA_LABEL,
+  clickFollowUpCopy,
+} from "./calendlyConversion";
 
 function mergeTpl(tpl: string, p: { contactName?: string | null; companyName?: string | null; city?: string | null; state?: string | null; industry?: string | null }): string {
   return tpl
@@ -49,7 +54,7 @@ export async function processEngagementAutomation(): Promise<void> {
     .from(automationRunsTable)
     .where(and(
       eq(automationRunsTable.status, "pending"),
-      eq(automationRunsTable.automationType, "meeting_request"),
+      inArray(automationRunsTable.automationType, ["meeting_request", CALENDLY_CLICK_FOLLOW_UP_TYPE]),
       lte(automationRunsTable.scheduledFor, now),
     ))
     .limit(20);
@@ -67,6 +72,17 @@ export async function processEngagementAutomation(): Promise<void> {
       if (prospect.optedOut) { await suppress(run.id, "Prospect unsubscribed / do-not-contact"); continue; }
       if (TERMINAL_STATUSES.includes(prospect.status)) { await suppress(run.id, `Prospect status is terminal (${prospect.status})`); continue; }
       if (MEETING_STATUSES.includes(prospect.status)) { await suppress(run.id, `Meeting already in motion (${prospect.status})`); continue; }
+
+      if (run.automationType === CALENDLY_CLICK_FOLLOW_UP_TYPE) {
+        const [reply] = await db.select({ id: activityTable.id })
+          .from(activityTable)
+          .where(and(
+            eq(activityTable.prospectId, prospect.id),
+            eq(activityTable.type, "reply_received"),
+          ))
+          .limit(1);
+        if (reply) { await suppress(run.id, "Prospect already replied"); continue; }
+      }
 
       // Negative reply anywhere on file suppresses the nudge.
       const [negReply] = await db.select({ id: autopilotEnrollmentsTable.id })
@@ -130,9 +146,15 @@ export async function processEngagementAutomation(): Promise<void> {
       if (claimed.length === 0) continue;
 
       // --- Compose ----------------------------------------------------------
-      const subject = mergeTpl(settings.template.subject, prospect) || `Quick 15-minute chat, ${prospect.companyName}?`;
-      const coreBody = mergeTpl(settings.template.body, prospect);
-      const optionB = campaign?.followUpMode === "questionnaire_first";
+      const clickFollowUp = run.automationType === CALENDLY_CLICK_FOLLOW_UP_TYPE;
+      const clickCopy = clickFollowUp
+        ? clickFollowUpCopy(prospect.contactName, prospect.companyName, now, client.timezone)
+        : null;
+      const subject =
+        clickCopy?.subject ??
+        (mergeTpl(settings.template.subject, prospect) || `Quick conversation, ${prospect.companyName}?`);
+      const coreBody = clickCopy?.body ?? mergeTpl(settings.template.body, prospect);
+      const optionB = !clickFollowUp && campaign?.followUpMode === "questionnaire_first";
 
       // Option A: Calendly link directly. Option B: the scheduling
       // questionnaire page first (it ends with the Calendly embed).
@@ -145,10 +167,10 @@ export async function processEngagementAutomation(): Promise<void> {
           await db.update(prospectsTable).set({ scheduleToken }).where(eq(prospectsTable.id, prospect.id));
         }
         ctaUrl = `${getPublicAppUrl()}/app/schedule/${scheduleToken}`;
-        ctaLabel = "Click here to schedule appointment";
+        ctaLabel = LOW_FRICTION_CTA_LABEL;
       } else {
         ctaUrl = client.calendlyUrl!.trim();
-        ctaLabel = "Click here to schedule appointment";
+        ctaLabel = LOW_FRICTION_CTA_LABEL;
       }
 
       const trackingToken = randomUUID();
@@ -199,18 +221,30 @@ export async function processEngagementAutomation(): Promise<void> {
       }
 
       await db.update(automationRunsTable)
-        .set({ status: "sent", sentAt, emailId: emailRow.id, resultDetail: optionB ? "Sent (Option B — questionnaire first)" : "Sent (Option A — meeting request)" })
+        .set({
+          status: "sent",
+          sentAt,
+          emailId: emailRow.id,
+          resultDetail: clickFollowUp
+            ? "Sent after verified scheduling-link click without a booking"
+            : optionB ? "Sent (Option B — questionnaire first)" : "Sent (Option A — meeting request)",
+        })
         .where(eq(automationRunsTable.id, run.id));
 
       await db.insert(activityTable).values({
         clientId: run.clientId,
         type: "email_sent",
-        description: `[Engagement] Meeting-request follow-up sent to ${prospect.companyName} after repeated opens`,
+        description: clickFollowUp
+          ? `[Engagement] Scheduling follow-up sent to ${prospect.companyName} after a verified link click`
+          : `[Engagement] Meeting-request follow-up sent to ${prospect.companyName} after repeated opens`,
         prospectId: prospect.id,
         prospectName: prospect.contactName,
       });
 
-      logger.info({ runId: run.id, prospectId: prospect.id, optionB }, "Repeated-open meeting-request email sent");
+      logger.info(
+        { runId: run.id, prospectId: prospect.id, optionB, clickFollowUp },
+        clickFollowUp ? "Calendly click follow-up email sent" : "Repeated-open meeting-request email sent",
+      );
     } catch (err: any) {
       logger.error({ err, runId: run.id }, "Engagement automation run failed");
       await db.update(automationRunsTable)

@@ -42,11 +42,11 @@ export const DEFAULT_ENGAGEMENT_SETTINGS = {
   /** Max automated meeting-request emails per client per calendar day. */
   dailySendCap: 25,
   template: {
-    subject: "Quick 15-minute chat, {{companyName}}?",
+    subject: "Quick conversation, {{companyName}}?",
     body:
       "Hi {{contactName}},\n\n" +
       "I noticed you've had a chance to look over the emails I sent about {{companyName}} — I hope they were helpful.\n\n" +
-      "Rather than trade more emails, would you be open to a quick 15-minute call? You can grab any time that works for you using the link below, and if none fit, just reply and we'll find one.\n\n" +
+      "Rather than trade more emails, would you be open to a quick call? Would a morning or afternoon next week be easier? You can choose a time using the link below, or simply reply with a preferred time and we'll coordinate it.\n\n" +
       "Looking forward to it.",
   },
 };

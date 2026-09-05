@@ -568,6 +568,9 @@ export default function SettingsPage() {
               )}
             </p>
             <p className="text-xs text-muted-foreground">
+              For better cold-outreach conversion, use a short 10–15 minute Calendly event with minimal required questions. iSDRX AI keeps the email wording duration-neutral so it always matches the event configured in your own account.
+            </p>
+            <p className="text-xs text-muted-foreground">
               Want bookings made directly on your Calendly page to show up here automatically? Ask your admin to add a Calendly API token
               (Calendly → Integrations → API &amp; Webhooks → Personal Access Token) as the <span className="font-mono">CALENDLY_API_TOKEN</span> secret —
               the app then registers a verified webhook on its own. Bookings made through emailed links are always tracked either way.
