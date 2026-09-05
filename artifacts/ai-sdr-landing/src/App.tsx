@@ -8,15 +8,22 @@ import {
   CalendarCheck, 
   Check,
   ChevronRight, 
+  Database,
+  Download,
+  Filter,
   Mail, 
+  MailCheck,
   MapPin, 
   Menu,
   MessageSquare, 
   Play, 
+  RefreshCw,
   Sparkles, 
   Target, 
   TrendingUp, 
-  X
+  Users,
+  X,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Route, Router, Switch, Link, Redirect } from "wouter";
@@ -439,6 +446,110 @@ function EmailMockup() {
   );
 }
 
+function CrmIntegrationMockup() {
+  return (
+    <div className="relative rounded-2xl border border-white/10 shadow-2xl bg-[#0b1220] p-6 w-full flex flex-col overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-primary/10 via-transparent to-emerald-400/5 blur-[80px] pointer-events-none"></div>
+
+      <div className="flex flex-col sm:flex-row items-stretch gap-6 relative z-10">
+
+        {/* Left: iSDRX AI */}
+        <div className="flex-1 rounded-xl bg-[#080d18] border border-white/5 p-5 flex flex-col relative shadow-xl">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-400"></div>
+
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <div className="font-display font-bold text-white text-sm leading-tight">iSDRX AI</div>
+                <div className="text-[10px] text-primary uppercase tracking-wider font-semibold">Prospecting Activity</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 flex-1">
+            <div className="flex items-center gap-3 text-xs bg-white/5 border border-white/5 rounded-lg p-2.5">
+              <Database className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-gray-300">Early-stage research</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs bg-white/5 border border-white/5 rounded-lg p-2.5">
+              <MailCheck className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-gray-300">Personalized outreach</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs bg-white/5 border border-white/5 rounded-lg p-2.5">
+              <XCircle className="w-4 h-4 text-muted-foreground opacity-50 shrink-0" />
+              <span className="text-gray-500 line-through">Bounces & Disqualified</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs bg-primary/10 border border-primary/20 rounded-lg p-2.5 relative overflow-hidden">
+              <div className="absolute inset-0 bg-primary/5 animate-pulse"></div>
+              <Filter className="w-4 h-4 text-primary relative z-10 shrink-0" />
+              <span className="text-primary font-medium relative z-10">Buying-signal detection</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Sync / Export */}
+        <div className="flex sm:flex-col items-center justify-center gap-4 py-2 sm:py-0 shrink-0 relative">
+          {/* Connecting dashed line */}
+          <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 left-[-100px] right-[-100px] h-px border-t border-dashed border-white/20 -z-10"></div>
+          <div className="sm:hidden absolute left-1/2 -translate-x-1/2 top-[-100px] bottom-[-100px] w-px border-l border-dashed border-white/20 -z-10"></div>
+
+          <div className="relative z-10 flex items-center gap-1.5 bg-card border border-white/10 px-3 py-2 rounded-full text-[10px] font-medium text-white shadow-xl whitespace-nowrap cursor-default">
+            <Download className="w-3.5 h-3.5 text-muted-foreground" />
+            CSV Export
+          </div>
+
+          <div className="relative z-10 flex items-center gap-1.5 bg-[#0b1220] border border-primary/30 px-3 py-2 rounded-full text-[10px] font-medium text-primary shadow-xl whitespace-nowrap shadow-[0_0_15px_rgba(37,99,235,0.2)]">
+            <RefreshCw className="w-3.5 h-3.5 text-primary" />
+            Optional Sync
+          </div>
+
+          <ArrowRight className="w-5 h-5 text-muted-foreground/50 hidden sm:block mt-1" />
+        </div>
+
+        {/* Right: CRM */}
+        <div className="flex-1 rounded-xl bg-gradient-to-b from-[#0d1522] to-[#080d18] border border-white/10 p-5 flex flex-col relative shadow-xl">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center">
+                <Database className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <div className="font-display font-bold text-white text-sm leading-tight">Your CRM</div>
+                <div className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Qualified Pipeline</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center flex-1 space-y-3 relative">
+            <div className="absolute inset-0 bg-emerald-400/5 blur-xl rounded-full pointer-events-none"></div>
+
+            <div className="flex items-center gap-3 text-xs bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-4 relative z-10 shadow-[0_0_20px_rgba(52,211,153,0.1)]">
+              <div className="w-8 h-8 rounded-full bg-emerald-400/20 flex items-center justify-center shrink-0">
+                <Check className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <div className="text-emerald-400 font-bold text-sm">Qualified Opportunities</div>
+                <div className="text-[10px] text-emerald-400/70 mt-0.5">Appointments Booked</div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg border border-dashed border-white/10 flex items-center justify-center text-center relative z-10 bg-white/[0.01]">
+              <span className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                Zero clutter.<br />100% trustworthy pipeline.
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 function DeepDiveSection({ id, reversed, imageSrc, graphic, pretitle, title, description, items }: any) {
   return (
     <section id={id} className="py-24 overflow-hidden scroll-mt-20">
@@ -742,7 +853,7 @@ function LandingPage() {
         <Logos />
         <FeaturesGrid />
         
-        <DeepDiveSection 
+        <DeepDiveSection
           id="how-it-works"
           graphic={<EmailMockup />}
           pretitle="Personalized Pitch"
@@ -763,6 +874,19 @@ function LandingPage() {
           items={[
             { title: "Smart Sequencing", description: "Pauses automatically if they reply or book." },
             { title: "Objection Handling", description: "AI categorizes replies ('Not right now', 'Who currently handles this for you?') and flags them for you." }
+          ]}
+        />
+
+        <DeepDiveSection
+          reversed={false}
+          graphic={<CrmIntegrationMockup />}
+          pretitle="Clean CRM"
+          title="A Cleaner CRM and a More Accurate Sales Pipeline."
+          description="iSDRX AI is the working area for early-stage research, personalized outreach, engagement monitoring, buying-signal detection, and qualification. Your CRM should only receive legitimate, qualified opportunities after an appointment is booked."
+          items={[
+            { title: "CSV Export", description: "Export selected prospects, qualified opportunities, or all campaign records at any time." },
+            { title: "Optional CRM Synchronization", description: "CRM integration can be provided to automatically synchronize selected prospects, qualified opportunities, or all campaign records." },
+            { title: "Perfect Clarity", description: "iSDRX AI manages the prospecting activity. Your CRM manages the qualified pipeline." }
           ]}
         />
 
