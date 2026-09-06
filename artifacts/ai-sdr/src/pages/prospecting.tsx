@@ -84,10 +84,12 @@ const FLEET_INDUSTRIES = [
   "Plumbing",
   "Electrical",
   "Landscaping",
+  "Pest Control",
+  "Car Dealerships",
   "Construction",
   "Delivery & Logistics",
   "Municipal",
-  "Education",
+  "Higher Education",
   "Commercial",
 ];
 

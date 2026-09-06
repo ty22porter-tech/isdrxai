@@ -7,6 +7,7 @@ import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
 import { enrichPerson } from "../lib/apollo";
 import { logger } from "../lib/logger";
+import { C4_VERIFIED_SELLER_CONTEXT, getC4IndustryProfile } from "../lib/c4Wraps";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -65,6 +66,26 @@ I'd love to schedule an IT assessment for ${companyName} so we can put together 
 
 Would you have 15 minutes this week for a quick call?`;
     return { subject, body };
+  }
+
+  if (vertical === "fleet_wraps") {
+    const profile = getC4IndustryProfile(industry);
+    const subjectOptions = [
+      `Making every ${companyName} vehicle work harder`,
+      `${companyName}'s mobile brand presence`,
+      `A vehicle-branding idea for ${companyName}`,
+    ];
+    const fleetSubject = subjectOptions[Math.floor(Math.random() * subjectOptions.length)];
+    const body = `${opening}
+
+${profile.emailOpening(companyName, city)}
+
+For ${profile.label.toLowerCase()} organizations, ${profile.industryFit.charAt(0).toLowerCase()}${profile.industryFit.slice(1)} C4 Wraps helps businesses address that opportunity with ${profile.relevantCapabilities.slice(0, 2).join(" and ")}.
+
+C4's custom in-house design process helps carry a professional brand consistently across eligible vehicle types, using premium materials and professional installation. That can create ongoing local visibility from vehicles already in operation without assuming any specific fleet size or expansion plan.
+
+Would it be worth a quick conversation about how ${companyName} currently handles vehicle branding?`;
+    return { subject: fleetSubject, body };
   }
 
   const body = `${opening}
@@ -317,72 +338,30 @@ function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string,
   };
 }
 
-const FLEET_NEEDS: Record<string, string[]> = {
-  "Home Services": ["Full vehicle wraps", "Fleet graphics", "Vehicle lettering", "Replacement vehicle graphics"],
-  Roofing: ["Truck wraps", "Fleet graphics", "Trailer graphics", "New fleet branding"],
-  HVAC: ["Technician van wraps", "Fleet graphics", "Vehicle lettering", "Replacement vehicle graphics"],
-  Plumbing: ["Service van wraps", "Fleet graphics", "Vehicle lettering", "Multi-location fleet branding"],
-  Electrical: ["Service vehicle wraps", "Fleet graphics", "Vehicle lettering", "New fleet branding"],
-  Landscaping: ["Truck graphics", "Trailer graphics", "Fleet branding", "Promotional vehicle graphics"],
-  Construction: ["Truck wraps", "Trailer graphics", "Fleet graphics", "Replacement vehicle graphics"],
-  "Delivery & Logistics": ["Fleet graphics", "Vehicle lettering", "Multi-location fleet branding", "Replacement vehicle graphics"],
-  Municipal: ["Municipal fleet graphics", "Vehicle lettering", "Replacement vehicle graphics", "Department identification"],
-  Education: ["Campus fleet graphics", "Vehicle lettering", "Replacement vehicle graphics", "Facilities vehicle branding"],
-  Commercial: ["Full vehicle wraps", "Partial vehicle wraps", "Fleet graphics", "Vehicle lettering"],
-};
-
-const FLEET_OUTREACH: Record<string, string> = {
-  "Home Services": "Lead with turning each service vehicle into recognizable local mobile advertising while keeping the fleet consistent.",
-  Roofing: "Lead with consistent truck and trailer branding for field crews and replacement graphics as vehicles change.",
-  HVAC: "Lead with professional technician-van branding that builds recognition across the local service area.",
-  Plumbing: "Lead with consistent service-van graphics that make technicians recognizable when they arrive at customer properties.",
-  Electrical: "Lead with matching graphics for field-service vehicles and an easy process for branding future additions.",
-  Landscaping: "Lead with coordinated truck-and-trailer graphics that create visibility throughout the service territory.",
-  Construction: "Lead with durable, consistent branding across trucks and trailers used at multiple job sites.",
-  "Delivery & Logistics": "Lead with scalable, consistent fleet identification across vehicle types and operating locations.",
-  Municipal: "Lead with a replacement-graphics and vehicle-identification review for working municipal fleet vehicles.",
-  Education: "Lead with a fleet-branding review for campus facilities, service, and transportation vehicles.",
-  Commercial: "Lead with a fleet branding consultation focused on consistent graphics and mobile visibility.",
-};
-
-const FLEET_DEPENDENCY: Record<string, number> = {
-  "Home Services": 24, Roofing: 25, HVAC: 26, Plumbing: 26, Electrical: 24,
-  Landscaping: 25, Construction: 22, "Delivery & Logistics": 26, Municipal: 23,
-  Education: 18, Commercial: 14,
-};
-
 function addFleetOverlay(lead: BaseLead, industry: string) {
-  const rng = strRng(lead.companyName);
-  const profile = FLEET_NEEDS[industry] ? industry : "Commercial";
+  const profile = getC4IndustryProfile(industry);
   const verifiedSignals = [
-    lead.address ? `a verified operating address in ${lead.city}, ${lead.state}` : null,
-    lead.website ? "an active public website" : null,
-    lead.phone ? "a published business phone number" : null,
+    lead.address ? `Google Places lists an operating address in ${lead.city}, ${lead.state}` : null,
+    lead.website ? `Google Places lists the public website ${lead.website}` : null,
+    lead.phone ? "Google Places lists a published business phone number" : null,
   ].filter(Boolean);
-  const dependencyScore = FLEET_DEPENDENCY[profile] ?? FLEET_DEPENDENCY.Commercial;
   const verificationScore = (lead.address ? 10 : 0) + (lead.website ? 8 : 0) + (lead.phone ? 6 : 0);
-  const opportunityScore = Math.min(100, 28 + dependencyScore + verificationScore + Math.floor(rng() * 9));
+  const opportunityScore = Math.min(100, 28 + profile.fitScore + verificationScore);
   const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 40 ? "Possible Fit" : "Low Priority";
-  const needsPool = FLEET_NEEDS[profile];
-  const needStart = Math.floor(rng() * needsPool.length);
-  const potentialNeeds = [0, 1, 2].map((offset) => needsPool[(needStart + offset) % needsPool.length]);
-  const signalBasis = profile === "Commercial"
-    ? "The business model's dependence on fleet vehicles is unconfirmed."
-    : `${industry} is a fleet-dependent industry profile; actual vehicle ownership and fleet size are unconfirmed.`;
-  const fleetBrandingSignal = verifiedSignals.length
-    ? `${signalBasis} Public research confirms ${verifiedSignals.join(", ")}.`
-    : `${signalBasis} No direct fleet, hiring, expansion, or rebranding signal was verified.`;
+  const verified = verifiedSignals.length ? verifiedSignals.join("; ") : "No direct operating, website, or phone signal was available in the Google Places result.";
+  const fleetBrandingSignal = `Verified: ${verified}. Industry Fit: ${profile.industryFit} Unverified: Actual vehicle ownership, fleet size, vehicle purchases, hiring, expansion, rebranding, location count, and current wrap status have not been confirmed.`;
+  const whyTarget = `${lead.companyName} is a verified ${lead.industry} business in ${lead.city}, ${lead.state}. ${profile.businessModel} ${profile.industryFit} C4 Wraps' ${profile.relevantCapabilities.slice(0, 2).join(" and ")} can address that business opportunity while turning confirmed commercial vehicles into professional, long-term brand assets. Actual vehicle ownership and fleet size remain unverified and should begin as discovery questions.`;
 
   return {
     ...lead,
     vertical: "fleet_wraps" as const,
     opportunityScore,
     scoreLabel,
-    scoreExplanation: `Fleet Wrap Opportunity Score is based on industry fit and verified Google Places business signals. Fleet size, vehicle purchases, hiring, expansion, and rebranding are not assumed.`,
-    whyTarget: `${lead.companyName} is a ${lead.industry} prospect in ${lead.city}, ${lead.state}. ${signalBasis} ${verifiedSignals.length ? `The company also has ${verifiedSignals.join(", ")}.` : "Direct fleet evidence was not available, so outreach should begin with discovery rather than assumptions."}`,
-    potentialNeeds,
+    scoreExplanation: `Fleet Wrap Opportunity Score is based only on C4 service fit for the selected industry and verified Google Places business signals. Fleet size, vehicle purchases, hiring, expansion, rebranding, and current vehicle-wrap status are not assumed.`,
+    whyTarget,
+    potentialNeeds: profile.potentialNeeds,
     fleetBrandingSignal,
-    recommendedOutreach: FLEET_OUTREACH[profile],
+    recommendedOutreach: profile.outreachAngle(lead.companyName, lead.city),
   };
 }
 
@@ -537,7 +516,13 @@ async function generateWhyTargets(
   const messages = [
     {
       role: "system",
-      content: `You are a B2B sales researcher for a company that sells ${sellerDesc}. For EACH business below:
+      content: vertical === "fleet_wraps"
+        ? `You are a B2B sales researcher working specifically for C4 Wraps. ${C4_VERIFIED_SELLER_CONTEXT}
+For EACH business below:
+1. Write a 1-2 sentence "why target" insight that connects the prospect's verified business identity and well-known industry business model to one relevant C4 Wraps capability and business outcome.
+2. Score 0-100 how likely the account is to fit and engage, based only on industry relevance and the verified Google Places signals supplied.
+The selected search industry is "${searchIndustry}". Never write a generic explanation of vehicle wraps. Never claim the prospect owns vehicles or has a particular fleet size, vehicle count, purchase, hiring plan, expansion, rebrand, location count, marketing problem, sales decline, advertising spend, or current wrap provider unless that fact is supplied. State uncertainty naturally where it matters. Do not cite a portfolio example or customer result because none is supplied here. Return ONLY a JSON array of objects {"why": string, "score": number}, one per business, in the same order, no markdown.`
+        : `You are a B2B sales researcher for a company that sells ${sellerDesc}. For EACH business below:
 1. Write a 1-2 sentence "why target this account" insight for the salesperson. Be specific to that company's industry, likely facility/operations profile, and location — what their type of business typically needs from a vendor like ours and what buying signals the data shows.
 2. Score 0-100 how likely this account is to engage with outreach and actually buy ${sellerDesc}. Consider: how strongly their industry depends on these services, whether they look like an established operation (website, phone), and whether the business type typically outsources vs handles it in-house. Be discriminating — use the full range, don't cluster everything at 70-80.
 Ground every claim in the provided data or in well-known traits of that industry; NEVER invent facts like employee counts, revenue, or specific equipment. No fluff like "great opportunity". Return ONLY a JSON array of objects {"why": string, "score": number}, one per business, in the same order, no markdown.`,

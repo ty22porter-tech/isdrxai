@@ -286,10 +286,10 @@ const FLEET_WRAPS: VerticalConfig = {
   fallbackEmailSubject: (c) => `Fleet graphics for ${c}`,
   offerings: [
     "full and partial vehicle wraps",
-    "fleet graphics and vehicle lettering",
-    "replacement vehicle graphics",
-    "trailer graphics",
-    "multi-location fleet branding",
+    "fleet graphics, die-cut lettering, and vehicle graphics",
+    "custom in-house design for consistent fleet branding",
+    "professional installation using premium 3M and Avery Dennison materials",
+    "replacement-vehicle graphics and fleet programs",
   ],
   industryChallenges: {
     "Home Services": ["keeping service vehicles consistently branded", "turning daily drive time into local advertising"],
@@ -299,9 +299,12 @@ const FLEET_WRAPS: VerticalConfig = {
     Electrical: ["branding field-service vehicles", "supporting new crews with matching vehicle graphics"],
     Landscaping: ["coordinating truck and trailer graphics", "building visibility across a local service territory"],
     Construction: ["branding trucks and trailers used across job sites", "keeping multi-vehicle graphics consistent"],
+    "Pest Control": ["making technician vehicles recognizable", "building local visibility along recurring service routes"],
+    "Car Dealerships": ["branding courtesy, loaner, service, or promotional vehicles", "keeping dealer-group vehicle branding consistent"],
     "Delivery & Logistics": ["consistent fleet identification", "coordinating graphics across vehicle types and locations"],
     Municipal: ["clear department and vehicle identification", "replacement graphics for working fleet vehicles"],
     Education: ["consistent campus fleet identification", "graphics for facilities, transportation, and service vehicles"],
+    "Higher Education": ["consistent campus fleet identification", "departmental graphics for facilities, transportation, athletics, and service vehicles"],
   },
   fallbackChallenges: [
     "keeping commercial vehicles consistently branded",

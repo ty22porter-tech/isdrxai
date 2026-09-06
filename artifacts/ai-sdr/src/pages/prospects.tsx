@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { InterestBadge } from "@/components/interest-badge";
 import { EmailPreview } from "@/components/email-preview";
+import { generateIntroEmail } from "@/lib/email-ai";
 
 // ─── Merge template ───────────────────────────────────────────────────────────
 function mergeTpl(tpl: string, prospect: any): string {
@@ -45,7 +46,7 @@ function fallbackBody(p: any, vertical: string = "janitorial") {
     return `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule an IT assessment for ${p.companyName}.`;
   }
   if (vertical === "fleet_wraps") {
-    return `Hi ${p.contactName},\n\nWe provide commercial vehicle wraps, fleet graphics, and vehicle lettering for ${p.industry} companies in ${p.city}. I'd love to schedule a fleet branding consultation for ${p.companyName}.`;
+    return generateIntroEmail(p, "fleet_wraps").body;
   }
   return `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
 }

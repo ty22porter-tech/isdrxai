@@ -1,0 +1,373 @@
+C4 WRAPS VALUE-PROP MATCHING & PROSPECT INTELLIGENCE
+
+CRITICAL REQUIREMENT:
+
+For the Fleet & Commercial Vehicle Wraps industry profile, do not generate generic fleet-wrap prospect intelligence.
+
+The customer using this profile is C4 Wraps.
+
+Use C4 Wraps' actual services, capabilities, differentiators, portfolio, and value proposition as the SELLER context when analyzing every prospect.
+
+C4 Wraps website:
+https://www.goc4wraps.com/
+
+Commercial services:
+https://www.goc4wraps.com/commercial-vehicle-wraps
+
+Services:
+https://www.goc4wraps.com/services
+
+Gallery:
+https://www.goc4wraps.com/gallery
+
+The system should compare:
+
+C4 WRAPS CAPABILITIES
+        ↓
+PROSPECT'S BUSINESS
+        ↓
+PROSPECT'S LIKELY OR VERIFIED BUSINESS CHALLENGE
+        ↓
+RELEVANT C4 SOLUTION
+        ↓
+WHY THERE IS A FIT
+        ↓
+RECOMMENDED SALES ANGLE
+        ↓
+PERSONALIZED EMAIL OUTREACH
+
+
+C4 WRAPS VALUE PROPOSITION
+
+Use verified information from C4 Wraps' website to establish the seller value proposition.
+
+Relevant C4 capabilities include:
+
+- Commercial vehicle wraps
+- Full commercial wraps
+- Partial commercial wraps
+- Fleet wraps
+- Die-cut lettering and graphics
+- Custom in-house design
+- Consistent branding across multiple vehicles
+- Commercial fleet branding
+- Professional installation
+- Premium 3M and Avery Dennison materials
+- Certified installation and printing
+- Warranty-backed work
+- Quick turnaround
+- Bulk/fleet pricing where applicable
+- Financing / Wrap Now, Pay Later where applicable
+- Architectural wraps where relevant
+- Window tint where relevant
+- Paint protection film where relevant
+
+C4's commercial value proposition includes helping businesses:
+
+- Turn vehicles into mobile advertising
+- Increase local brand visibility
+- Generate more impressions while vehicles are already on the road
+- Create professional and consistent fleet branding
+- Make service vehicles easier to recognize
+- Strengthen brand credibility when technicians arrive at customer locations
+- Brand newly acquired vehicles
+- Maintain consistency as fleets grow
+- Support company rebranding
+- Reduce dependence on recurring advertising channels by using vehicles as long-term marketing assets
+- Keep branding consistent across multiple vehicles and locations
+
+
+PROSPECT-TO-C4 MATCHING
+
+For every generated prospect, analyze:
+
+1. What does this company do?
+2. How does it acquire customers?
+3. Does its business model involve vehicles, field technicians, deliveries, service calls, transportation, or mobile employees?
+4. What verified growth, hiring, expansion, fleet, location, or branding signals exist?
+5. What business challenge could C4 Wraps reasonably help solve?
+6. Which specific C4 service or capability best addresses that challenge?
+7. What is the strongest reason for a C4 salesperson to contact this company?
+8. What should the salesperson lead with in the outreach?
+
+Do not simply describe why vehicle wraps are useful in general.
+
+Connect C4's capabilities directly to the individual prospect.
+
+
+PROSPECT RESULT CARD
+
+Continue using the existing result-card structure.
+
+Display:
+
+Fleet Wrap Opportunity Score
+Why Target
+Potential Needs
+Fleet / Branding Signal
+Recommended Outreach
+
+
+WHY TARGET
+
+"Why Target" must explain why the prospect is a good fit specifically for C4 Wraps.
+
+It should connect:
+
+Prospect business model
++
+Verified prospect information
++
+Relevant business challenge
++
+C4 capability
+
+Example:
+
+Why Target:
+Rescue Air and Plumbing operates a field-service business where technicians travel throughout the Dallas market. For a home-service company, each service vehicle is both transportation and a customer-facing brand asset. C4 Wraps specializes in commercial fleet graphics and custom vehicle branding that can help service businesses create a consistent, professional presence while turning vehicles already traveling through the service area into ongoing brand exposure.
+
+Do not claim fleet size, fleet expansion, new vehicles, or other facts unless verified.
+
+
+POTENTIAL NEEDS
+
+Do NOT make Potential Needs merely a list of wrap products.
+
+Potential Needs should identify BUSINESS NEED + C4 SOLUTION.
+
+Examples:
+
+- Local brand visibility → C4 commercial vehicle wraps can turn service vans and trucks into mobile advertising throughout the company's service territory.
+
+- Fleet brand consistency → C4's custom design and fleet-wrap capabilities can create consistent branding across multiple vehicle types.
+
+- New vehicle branding → C4 can reproduce approved fleet graphics as additional vehicles are placed into service.
+
+- Professional technician arrival → Consistently branded service vehicles can reinforce company identity and credibility when crews arrive at homes or businesses.
+
+- Rebranding → C4's in-house design capabilities can help carry updated branding across the vehicle fleet.
+
+- Marketing efficiency → Commercial wraps can provide ongoing local exposure from vehicles the company is already operating.
+
+
+FLEET / BRANDING SIGNAL
+
+Clearly distinguish VERIFIED SIGNALS from INFERRED FIT.
+
+Example:
+
+Fleet / Branding Signal:
+Verified: Rescue Air and Plumbing operates in HVAC and plumbing and serves the Dallas market.
+
+Industry Fit:
+HVAC and plumbing are field-service businesses where service vehicles can play an important role in local visibility and customer-facing branding.
+
+Unverified:
+Actual fleet size, vehicle purchases, expansion, and current vehicle-wrap status have not been confirmed.
+
+Never present an assumption as a verified buying signal.
+
+
+RECOMMENDED OUTREACH
+
+Recommended Outreach must tell the salesperson which C4 value proposition is most relevant to THIS prospect.
+
+Do not write generic recommendations such as:
+
+"Offer vehicle wraps."
+
+Instead generate recommendations such as:
+
+"Lead with C4's ability to turn Rescue Air and Plumbing's service vehicles into consistent mobile advertising throughout its Dallas service territory. Position C4's in-house design and commercial fleet capabilities around brand consistency, professional technician arrival, and generating additional local visibility from vehicles already on the road."
+
+The recommendation should change according to the prospect.
+
+
+INDUSTRY-SPECIFIC VALUE MATCHING
+
+Use different C4 value propositions depending on the prospect.
+
+HVAC / PLUMBING:
+Service vans and trucks
+Local visibility
+Professional technician arrival
+Consistent fleet branding
+Growth/new technician vehicles
+
+ROOFING:
+Work trucks
+Field crews
+Neighborhood visibility
+Job-site exposure
+Territory expansion
+Trailer graphics
+
+ELECTRICAL:
+Service vehicles
+Technician identification
+Professional branding
+Local awareness
+
+CONSTRUCTION:
+Trucks
+Trailers
+Job-site branding
+Fleet consistency
+Company recognition across projects
+
+LANDSCAPING:
+Trucks
+Trailers
+Highly visible neighborhood routes
+Local brand recognition
+
+PEST CONTROL:
+Service vehicles
+Recurring neighborhood routes
+Recognizable technician vehicles
+Local advertising
+
+CAR DEALERSHIPS:
+Courtesy vehicles
+Loaners
+Service vehicles
+Promotional vehicles
+Dealer group branding
+
+LOGISTICS / DELIVERY:
+Fleet consistency
+Multi-vehicle graphics
+Brand visibility
+Replacement vehicle branding
+
+MUNICIPALITIES:
+Fleet identification
+Department-specific graphics
+Replacement vehicle graphics
+Consistent municipal branding
+
+HIGHER EDUCATION:
+Facilities vehicles
+Campus transportation
+Maintenance vehicles
+Athletic/promotional vehicles
+Departmental branding
+Campus brand consistency
+
+
+EMAIL OUTREACH — CRITICAL
+
+Use the same C4-to-prospect value matching when generating outreach emails.
+
+The email must answer:
+
+WHY SHOULD THIS PARTICULAR PROSPECT CARE ABOUT C4 WRAPS?
+
+Do not generate a generic wrap sales email.
+
+Do not start emails with:
+
+"I noticed..."
+"I came across..."
+"I wanted to reach out..."
+"I hope this email finds you well."
+
+Instead, begin with a relevant business-value statement connected to the prospect's business.
+
+Examples of opening strategies:
+
+HVAC:
+"Every service van your technicians put on the road is another opportunity to keep your brand visible throughout Dallas."
+
+Plumbing:
+"When your technicians are already driving throughout the service area every day, those vehicles can do more than get crews from one job to the next."
+
+Roofing:
+"Your trucks spend time in the exact neighborhoods where your next roofing customer may be looking for a contractor."
+
+Construction:
+"Every truck and trailer arriving at a job site represents another opportunity to reinforce your company's brand."
+
+Landscaping:
+"Your crews already travel through the neighborhoods and commercial properties you're trying to reach."
+
+These are examples of the STYLE and reasoning required. Do not repeat the exact same opening for every company.
+
+
+EMAIL PERSONALIZATION
+
+Build each email using:
+
+Prospect industry
++
+Prospect company information
++
+Verified buying signal when available
++
+Relevant business challenge
++
+Specific C4 capability
++
+Business outcome
++
+CTA
+
+Email structure:
+
+1. Relevant value-based opening
+2. Prospect-specific business challenge/opportunity
+3. How C4 Wraps addresses it
+4. Relevant C4 differentiator
+5. Low-friction CTA
+
+
+EXAMPLE
+
+Subject: Making every Rescue Air service vehicle work harder
+
+Hi [First Name],
+
+Every service vehicle your technicians put on the road is another opportunity to keep Rescue Air and Plumbing visible throughout the Dallas market.
+
+C4 Wraps helps service businesses turn trucks and vans into professional, consistent mobile advertising. Their in-house design and commercial fleet capabilities make it possible to carry the same brand across different vehicles while creating additional exposure during the routes your crews are already driving.
+
+For a home-service business, that can mean strengthening recognition in the neighborhoods you serve without adding another recurring advertising channel.
+
+Would it be worth a quick conversation about how you're currently handling vehicle branding?
+
+Best,
+[Signature]
+
+
+IMPORTANT ACCURACY RULE
+
+Never fabricate:
+- fleet size
+- number of vehicles
+- new vehicle purchases
+- hiring
+- expansion
+- rebranding
+- locations
+- marketing problems
+- sales declines
+- advertising spend
+- current wrap provider
+
+If verified evidence exists, use it.
+
+If evidence does not exist, frame the opportunity based on the prospect's verified business model and C4's relevant capabilities rather than pretending a buying signal was found.
+
+
+PORTFOLIO / SOCIAL PROOF
+
+Where C4's gallery contains a genuinely relevant example for the prospect's industry, the AI may use that as supporting relevance.
+
+For example, if C4 has completed work for HVAC, plumbing, construction, or another similar business, the system may mention C4's experience working with similar businesses.
+
+Do not claim a specific result, ROI, percentage increase, or customer outcome unless that specific claim is supported by C4's verified website data.
+
+The purpose is to make iSDRX AI function as a VALUE-MATCHING SALES INTELLIGENCE ENGINE:
+
+C4 capability → Prospect challenge → Business fit → Personalized sales strategy → Personalized outreach.

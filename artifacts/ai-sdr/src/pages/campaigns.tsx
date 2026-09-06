@@ -82,7 +82,8 @@ const INDUSTRIES = [
 
 const FLEET_INDUSTRIES = [
   "Home Services", "Roofing", "HVAC", "Plumbing", "Electrical", "Landscaping",
-  "Construction", "Delivery & Logistics", "Municipal", "Education", "Commercial",
+  "Pest Control", "Car Dealerships", "Construction", "Delivery & Logistics",
+  "Municipal", "Higher Education", "Commercial",
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -151,12 +152,12 @@ function blankForm(vertical: ClientVertical): CampaignForm {
   if (vertical === "fleet_wraps") {
     return {
       ...BLANK_FORM,
-      followUp1: { dayDelay: 3, subject: "Following up on {{companyName}}'s fleet branding", body: "Hi {{contactName}},\n\nJust following up on my note about commercial vehicle wraps and fleet graphics for {{companyName}}. Would a quick fleet branding consultation be useful?\n\nBest,\nYour SDR Team" },
-      followUp2: { dayDelay: 4, subject: "A branding idea for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} businesses, every vehicle can reinforce the brand throughout {{city}}. We help keep wraps, lettering, and replacement graphics consistent as vehicles change.\n\nWorth a quick conversation?\n\nBest,\nYour SDR Team" },
-      followUp3: { dayDelay: 5, subject: "{{companyName}} — fleet graphics", body: "Hi {{contactName}},\n\nWe can help with full wraps, partial wraps, vehicle lettering, trailer graphics, and consistent fleet branding. I would be happy to review what may fit {{companyName}} without assuming how many vehicles you operate.\n\nBest,\nYour SDR Team" },
-      followUp4: { dayDelay: 7, subject: "Fleet branding consultation for {{companyName}}", body: "Hi {{contactName}},\n\nI know you're busy, so I'll keep this short. We help {{industry}} businesses in {{city}} turn working vehicles into professional, consistent mobile advertising.\n\nWould you be open to a fleet branding consultation?\n\nBest,\nYour SDR Team" },
-      followUp5: { dayDelay: 10, subject: "One more vehicle-branding thought", body: "Hi {{contactName}},\n\nIf {{companyName}} is adding or replacing vehicles, we can make the graphics process repeatable so each one matches the brand. If that is not currently planned, I am happy to reconnect later.\n\nBest,\nYour SDR Team" },
-      followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI'll close the loop after this. If commercial vehicle wraps, fleet graphics, or replacement lettering become a priority for {{companyName}}, we'd be glad to help.\n\nBest,\nYour SDR Team" },
+      followUp1: { dayDelay: 3, subject: "Following up on {{companyName}}'s vehicle branding", body: "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can support recognition throughout {{city}}. C4 Wraps pairs custom in-house design with commercial fleet graphics to keep that brand presence professional and consistent.\n\nWould a quick conversation about how {{companyName}} currently handles vehicle branding be useful?" },
+      followUp2: { dayDelay: 4, subject: "A mobile-visibility idea for {{companyName}}", body: "Hi {{contactName}},\n\nCommercial vehicles can keep a {{industry}} brand visible while crews, technicians, or drivers are already on the road. C4 Wraps can match the confirmed need with full wraps, partial wraps, or lettering rather than a one-size-fits-all package.\n\nIs vehicle branding something {{companyName}} is reviewing?" },
+      followUp3: { dayDelay: 5, subject: "{{companyName}} — consistent fleet graphics", body: "Hi {{contactName}},\n\nC4 Wraps handles design and professional installation in one process, using premium materials to help approved graphics stay consistent across eligible vehicle types.\n\nWould it help to compare that approach with how {{companyName}} currently manages its commercial vehicle branding?" },
+      followUp4: { dayDelay: 7, subject: "A practical branding question for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} businesses in {{city}}, recognizable commercial vehicles can support both professional arrival and ongoing local visibility. C4 Wraps builds that around the actual vehicles and brand standards involved.\n\nDoes {{companyName}} operate customer-facing vehicles today?" },
+      followUp5: { dayDelay: 10, subject: "Keeping vehicle branding repeatable", body: "Hi {{contactName}},\n\nWhen a vehicle is replaced or added, reproducing approved graphics can become an operational challenge. If that need applies to {{companyName}}, C4 Wraps can create a repeatable design and installation process without assuming a particular fleet size or growth plan.\n\nWorth a brief conversation?" },
+      followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI'll close the loop after this. If {{companyName}} wants to explore commercial wraps, fleet graphics, or vehicle lettering, C4 Wraps can match the format to the confirmed business need and vehicles involved.\n\nWould a future fleet-branding conversation be useful?" },
     };
   }
   return BLANK_FORM;
@@ -685,7 +686,9 @@ export default function Campaigns() {
         {isIntro ? (
           <Textarea
             rows={4}
-            placeholder={"Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
+            placeholder={vertical === "fleet_wraps"
+              ? "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can create ongoing visibility throughout {{city}}..."
+              : "Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
             value={form.emailTemplate}
             onChange={e => setForm({ ...form, emailTemplate: e.target.value })}
             className="font-mono text-xs"

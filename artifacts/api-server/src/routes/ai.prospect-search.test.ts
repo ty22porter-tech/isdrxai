@@ -182,8 +182,10 @@ describe("addFleetOverlay", () => {
     expect(lead.opportunityScore).toBeGreaterThanOrEqual(0);
     expect(lead.opportunityScore).toBeLessThanOrEqual(100);
     expect(lead.potentialNeeds.length).toBeGreaterThan(0);
-    expect(lead.fleetBrandingSignal).toMatch(/unconfirmed/i);
-    expect(lead.recommendedOutreach).toMatch(/technician-van branding/i);
+    expect(lead.fleetBrandingSignal).toMatch(/Unverified:/i);
+    expect(lead.whyTarget).toMatch(/C4 Wraps/i);
+    expect(lead.potentialNeeds.every((need) => need.includes("→ C4"))).toBe(true);
+    expect(lead.recommendedOutreach).toMatch(/C4's ability/i);
     expect(lead.scoreExplanation).toMatch(/not assumed/i);
   });
 
@@ -192,9 +194,30 @@ describe("addFleetOverlay", () => {
     const lead = addFleetOverlay(base, "Unknown Industry");
 
     expect(lead.fleetBrandingSignal).toContain("published business phone number");
-    expect(lead.fleetBrandingSignal).toMatch(/unconfirmed/i);
+    expect(lead.fleetBrandingSignal).toContain("Verified:");
+    expect(lead.fleetBrandingSignal).toContain("Industry Fit:");
+    expect(lead.fleetBrandingSignal).toContain("Unverified:");
     expect(lead.whyTarget).toContain("Riverside Medical Center");
     expect(lead.whyTarget).toContain("Chicago, IL");
+  });
+
+  it("matches different industries to different C4 capabilities and business outcomes", () => {
+    const hvac = addFleetOverlay(placeToLeadBase(PLACE, "Dallas", "TX", "HVAC", "fleet_wraps"), "HVAC");
+    const roofing = addFleetOverlay(placeToLeadBase(PLACE, "Dallas", "TX", "Roofing", "fleet_wraps"), "Roofing");
+
+    expect(hvac.potentialNeeds.join(" ")).toMatch(/technician arrival/i);
+    expect(roofing.potentialNeeds.join(" ")).toMatch(/job-site/i);
+    expect(hvac.recommendedOutreach).not.toBe(roofing.recommendedOutreach);
+  });
+
+  it("uses discovery language instead of inventing fleet facts for a generic business", () => {
+    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Commercial", "fleet_wraps");
+    const lead = addFleetOverlay(base, "Commercial");
+
+    expect(lead.whyTarget).toMatch(/remain unverified/i);
+    expect(lead.recommendedOutreach).toMatch(/ask whether/i);
+    const verifiedSection = lead.fleetBrandingSignal.split("Industry Fit:")[0];
+    expect(verifiedSection).not.toMatch(/fleet size/i);
   });
 });
 

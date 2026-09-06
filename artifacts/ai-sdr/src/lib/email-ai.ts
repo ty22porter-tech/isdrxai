@@ -392,11 +392,98 @@ const DEFAULT_FLEET_PROFILE: IndustryProfile = {
   closingLine: "Consistent fleet graphics help every vehicle look professional and work as mobile advertising.",
 };
 
+const FLEET_INDUSTRY_PROFILES: Record<string, IndustryProfile> = {
+  "Home Services": {
+    label: "Home Services",
+    painPoints: ["using customer-facing vehicles to build local visibility", "making technician arrivals look recognizable and professional", "keeping branding consistent across vehicle types"],
+    challenges: ["Local brand visibility", "Professional technician arrival", "Fleet brand consistency"],
+    valueProps: ["C4 commercial wraps that turn eligible service vehicles into mobile advertising", "C4's custom in-house design for consistent fleet graphics", "professional installation using premium materials"],
+    closingLine: "C4 Wraps helps home-service businesses turn vehicles already on the road into consistent, professional local brand assets.",
+  },
+  HVAC: {
+    label: "HVAC",
+    painPoints: ["building recognition across a local service area", "presenting a professional technician arrival", "keeping service-vehicle branding consistent"],
+    challenges: ["Local visibility", "Professional technician arrival", "Consistent fleet branding"],
+    valueProps: ["C4 commercial service-vehicle wraps for mobile visibility", "C4's in-house design for consistent graphics across eligible vans and trucks", "professional installation using premium materials"],
+    closingLine: "C4 Wraps can help an HVAC brand make each confirmed service vehicle work harder throughout the local market.",
+  },
+  Plumbing: {
+    label: "Plumbing",
+    painPoints: ["making service vehicles recognizable at customer properties", "building local visibility between jobs", "maintaining consistent vehicle branding"],
+    challenges: ["Customer recognition", "Mobile local advertising", "Fleet brand consistency"],
+    valueProps: ["C4 commercial wraps for customer-facing service vehicles", "C4's custom fleet graphics and die-cut lettering", "a repeatable in-house design system for eligible vans and trucks"],
+    closingLine: "C4 Wraps connects professional service-vehicle branding with recognition throughout a plumbing company's service area.",
+  },
+  Roofing: {
+    label: "Roofing",
+    painPoints: ["building neighborhood visibility near active work", "making trucks and trailers recognizable at job sites", "keeping field branding consistent"],
+    challenges: ["Neighborhood visibility", "Job-site exposure", "Truck-and-trailer consistency"],
+    valueProps: ["C4 truck wraps for neighborhood brand exposure", "C4 trailer graphics for job-site identification", "custom in-house design across eligible field vehicles"],
+    closingLine: "C4 Wraps can help roofing companies turn confirmed trucks and trailers into consistent job-site and neighborhood brand assets.",
+  },
+  Electrical: {
+    label: "Electrical",
+    painPoints: ["making technician vehicles easy to identify", "presenting a professional field-service brand", "building local awareness"],
+    challenges: ["Technician identification", "Professional field presence", "Local awareness"],
+    valueProps: ["C4 service-vehicle wraps and lettering", "C4's custom in-house design for professional field branding", "consistent commercial graphics across eligible vehicles"],
+    closingLine: "C4 Wraps can help electrical contractors present a recognizable, consistent brand wherever technicians work.",
+  },
+  Construction: {
+    label: "Construction",
+    painPoints: ["reinforcing the company brand across job sites", "coordinating graphics across trucks and trailers", "making field vehicles recognizable"],
+    challenges: ["Job-site branding", "Fleet consistency", "Company recognition"],
+    valueProps: ["C4 truck and trailer graphics for job-site visibility", "C4's in-house design for consistent multi-vehicle branding", "professional commercial wrap installation"],
+    closingLine: "C4 Wraps can carry one professional construction brand across confirmed trucks, trailers, and other field vehicles.",
+  },
+  Landscaping: {
+    label: "Landscaping",
+    painPoints: ["building recognition along recurring neighborhood routes", "coordinating truck and trailer graphics", "making crews recognizable at customer properties"],
+    challenges: ["Neighborhood visibility", "Truck-and-trailer consistency", "Local brand recognition"],
+    valueProps: ["C4 truck wraps for repeated route visibility", "C4 trailer graphics coordinated by an in-house design team", "consistent commercial fleet branding"],
+    closingLine: "C4 Wraps can help landscaping companies turn confirmed route vehicles into coordinated local brand assets.",
+  },
+  "Pest Control": {
+    label: "Pest Control",
+    painPoints: ["making technician vehicles recognizable", "building awareness along recurring routes", "keeping service-vehicle branding consistent"],
+    challenges: ["Technician recognition", "Recurring-route advertising", "Fleet consistency"],
+    valueProps: ["C4 commercial wraps for recognizable service vehicles", "C4 fleet graphics for recurring local exposure", "custom in-house design across eligible vehicles"],
+    closingLine: "C4 Wraps can help pest-control companies build recognition on the routes technicians already travel.",
+  },
+  "Car Dealerships": {
+    label: "Car Dealerships",
+    painPoints: ["extending the dealership brand beyond the lot", "coordinating courtesy or promotional vehicle graphics", "keeping dealer-group branding consistent"],
+    challenges: ["Promotional visibility", "Dealer-group consistency", "Service-vehicle identification"],
+    valueProps: ["C4 promotional and commercial vehicle wraps", "C4's custom in-house design for dealer-group consistency", "vehicle lettering and graphics for eligible dealership vehicles"],
+    closingLine: "C4 Wraps can help dealerships extend a consistent showroom brand to confirmed courtesy, service, or promotional vehicles.",
+  },
+  "Delivery & Logistics": {
+    label: "Logistics / Delivery",
+    painPoints: ["keeping multi-vehicle branding consistent", "making operating vehicles recognizable", "reproducing approved graphics when vehicles change"],
+    challenges: ["Fleet consistency", "Route visibility", "Replacement vehicle branding"],
+    valueProps: ["C4 multi-vehicle fleet graphics", "C4's repeatable in-house design process", "commercial wraps and lettering across eligible vehicle types"],
+    closingLine: "C4 Wraps can help logistics and delivery organizations carry one consistent brand across confirmed operating vehicles.",
+  },
+  Municipal: {
+    label: "Municipalities",
+    painPoints: ["making departments and field vehicles clear to the public", "coordinating approved municipal graphics", "reproducing graphics for replacement vehicles"],
+    challenges: ["Fleet identification", "Department consistency", "Replacement graphics"],
+    valueProps: ["C4 department-specific vehicle lettering and graphics", "C4's in-house design for approved fleet consistency", "repeatable replacement-vehicle graphics"],
+    closingLine: "C4 Wraps can support clear, consistent identification across confirmed municipal service vehicles.",
+  },
+  "Higher Education": {
+    label: "Higher Education",
+    painPoints: ["carrying campus standards across department vehicles", "making service vehicles easy to identify", "coordinating facilities, transportation, or promotional graphics"],
+    challenges: ["Campus brand consistency", "Department identification", "Promotional visibility"],
+    valueProps: ["C4 campus fleet and department graphics", "C4's custom in-house design for institutional brand standards", "commercial wraps for eligible promotional vehicles"],
+    closingLine: "C4 Wraps can help extend a campus identity across confirmed facilities, transportation, service, or promotional vehicles.",
+  },
+};
+
 export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps";
 
 function getProfile(industry: string, vertical: ClientVertical = "janitorial"): IndustryProfile {
   if (vertical === "it_services") return IT_INDUSTRY_PROFILES[industry] ?? DEFAULT_IT_PROFILE;
-  if (vertical === "fleet_wraps") return DEFAULT_FLEET_PROFILE;
+  if (vertical === "fleet_wraps") return FLEET_INDUSTRY_PROFILES[industry] ?? DEFAULT_FLEET_PROFILE;
   return INDUSTRY_PROFILES[industry] ?? DEFAULT_PROFILE;
 }
 
@@ -435,11 +522,35 @@ export function generateIntroEmail(prospect: {
   const valueProp1 = p.valueProps[0];
   const valueProp2 = p.valueProps[1];
 
+  if (vertical === "fleet_wraps") {
+    const company = prospect.companyName ?? "{{companyName}}";
+    const city = prospect.city ?? "{{city}}";
+    const openingByIndustry: Record<string, string> = {
+      HVAC: `For HVAC operators, service vehicles can do more than move technicians between jobs—they can keep a brand visible throughout ${city}.`,
+      Plumbing: `For plumbing operators, each service vehicle can reinforce the brand between customer visits throughout ${city}.`,
+      Roofing: `For roofing companies, every truck or trailer at a job site can reinforce the brand in the ${city} neighborhoods where future customers are paying attention.`,
+      Construction: `Every construction truck and trailer arriving at a ${city} job site can reinforce the same professional brand.`,
+      Landscaping: `Landscaping crews typically travel through the ${city} neighborhoods and commercial properties their brands want to reach.`,
+      "Pest Control": `Recurring pest-control service routes can create repeated opportunities to build recognition throughout ${city}.`,
+    };
+    const fleetOpening = openingByIndustry[prospect.industry ?? ""] ?? `If ${company} operates customer-facing vehicles in ${city}, those vehicles may be an underused brand asset.`;
+    return {
+      subject: `Making every ${company} vehicle work harder`,
+      body: `Hi ${prospect.contactName ?? "{{contactName}}"},
+
+${fleetOpening}
+
+For ${p.label.toLowerCase()} organizations, ${painPoint} can directly affect how the business is recognized in the field. C4 Wraps addresses that opportunity with ${valueProp1} and ${valueProp2}.
+
+${p.closingLine}
+
+Would it be worth a quick conversation about how ${company} currently handles vehicle branding?`,
+    };
+  }
+
   const subjectPrefix = vertical === "it_services"
     ? "Managed IT services"
-    : vertical === "fleet_wraps"
-      ? "Fleet graphics"
-      : "Janitorial services";
+    : "Janitorial services";
   const subject = `${subjectPrefix} for ${prospect.companyName ?? p.label + " businesses"} — quick question`;
 
   const body = `Hi ${prospect.contactName ?? "there"},
@@ -472,6 +583,20 @@ export function generateFollowUpEmail(prospect: {
   const p = getProfile(prospect.industry ?? "", vertical);
   const w = WORDING[vertical];
   const valueProp = pick(p.valueProps);
+
+  if (vertical === "fleet_wraps") {
+    const company = prospect.companyName ?? "{{companyName}}";
+    return {
+      subject: `A vehicle-branding idea for ${company}`,
+      body: `Hi ${prospect.contactName ?? "{{contactName}}"},
+
+For ${p.label.toLowerCase()} organizations, ${pick(p.painPoints)} can make commercial vehicles more valuable than transportation alone.
+
+C4 Wraps can help with ${valueProp}, connecting the vehicle graphics to a real business outcome rather than applying a generic wrap package.
+
+Would a brief conversation about how ${company} currently handles vehicle branding be useful?`,
+    };
+  }
 
   const subject = `Following up — ${prospect.companyName ?? p.label}`;
   const body = `Hi ${prospect.contactName ?? "there"},
