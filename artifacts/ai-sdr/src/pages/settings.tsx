@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUpload } from "@workspace/object-storage-web";
 import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox, ImageIcon, Camera, Paperclip, Trash2, FileText, Upload, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CompanyIntelligenceEditor } from "@/components/company-intelligence-editor";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -220,6 +221,8 @@ export default function SettingsPage() {
   const [replyEmail, setReplyEmail] = useState("");
   const [calendlyUrl, setCalendlyUrl] = useState("");
   const [vertical, setVertical] = useState("janitorial");
+  const [sellerDifferentiatorsInput, setSellerDifferentiatorsInput] = useState("");
+  const [sellerServicePriorities, setSellerServicePriorities] = useState("");
   const [companyLogoPath, setCompanyLogoPath] = useState<string | null>(null);
   const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -271,6 +274,8 @@ export default function SettingsPage() {
       setReplyEmail(me.outreachEmail ?? "");
       setCalendlyUrl(me.calendlyUrl ?? "");
       setVertical(me.vertical ?? "janitorial");
+      setSellerDifferentiatorsInput(me.sellerDifferentiatorsInput ?? "");
+      setSellerServicePriorities(me.sellerServicePriorities ?? "");
       setCompanyLogoPath(me.companyLogoPath ?? null);
       setProfilePhotoPath(me.profilePhotoPath ?? null);
       setAttachments(Array.isArray(me.attachments) ? me.attachments : []);
@@ -312,6 +317,8 @@ export default function SettingsPage() {
           outreachEmail: replyEmail,
           calendlyUrl,
           vertical,
+          sellerDifferentiatorsInput: sellerDifferentiatorsInput || null,
+          sellerServicePriorities: sellerServicePriorities || null,
           mobilePhone: mobilePhone || null,
           website: website || null,
           companyLogoPath,
@@ -358,7 +365,8 @@ export default function SettingsPage() {
   ).toLowerCase();
   const intelligenceIsAnalyzing = refreshIntelligenceMutation.isPending || /analy[sz]|pending|queued|processing|refresh/.test(intelligenceStatus);
   const intelligenceIsLimited = /limited|partial|fail|error|unavailable/.test(intelligenceStatus);
-  const intelligenceIsReady = !!sellerIntelligenceProfile && !intelligenceIsAnalyzing && !intelligenceIsLimited
+  const intelligenceNeedsReview = /review/.test(intelligenceStatus);
+  const intelligenceIsReady = !!sellerIntelligenceProfile && !intelligenceIsAnalyzing && !intelligenceIsLimited && !intelligenceNeedsReview
     && !/not.?analy[sz]|missing|none/.test(intelligenceStatus);
   const intelligenceDisplayFields = sellerIntelligenceProfile
     ? Object.entries(sellerIntelligenceProfile).filter(([key]) => !["status", "analysisStatus", "state", "error", "lastError"].includes(key))
@@ -592,15 +600,52 @@ export default function SettingsPage() {
             />
             <p className="text-xs text-muted-foreground">Shown as "Website" in your email signature when provided.</p>
 
+            <div className="grid gap-4 pt-2 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  What makes your company different? <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <textarea
+                  value={sellerDifferentiatorsInput}
+                  onChange={event => setSellerDifferentiatorsInput(event.target.value)}
+                  placeholder="e.g. We provide 48-hour installation, handle design in-house, and use certified installers."
+                  rows={4}
+                  maxLength={4000}
+                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Tell iSDRX AI about strengths, guarantees, processes, services, experience, or advantages that may not be obvious from your website. This information will be used to improve prospect matching and email personalization.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  What services or solutions do you want iSDRX AI to prioritize? <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <textarea
+                  value={sellerServicePriorities}
+                  onChange={event => setSellerServicePriorities(event.target.value)}
+                  placeholder="e.g. Managed IT, cybersecurity, cloud migration"
+                  rows={4}
+                  maxLength={2000}
+                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the services you most want to sell. iSDRX AI will prioritize these when matching prospect needs and generating outreach.
+                </p>
+              </div>
+            </div>
+
             <div
               className={`rounded-lg border p-3 space-y-3 ${
                 intelligenceIsAnalyzing
                   ? "border-blue-500/30 bg-blue-500/10"
                   : intelligenceIsReady
                     ? "border-emerald-500/30 bg-emerald-500/10"
-                    : intelligenceIsLimited
+                    : intelligenceNeedsReview
                       ? "border-amber-500/30 bg-amber-500/10"
-                      : "border-border bg-card"
+                      : intelligenceIsLimited
+                        ? "border-amber-500/30 bg-amber-500/10"
+                        : "border-border bg-card"
               }`}
               aria-live="polite"
             >
@@ -609,6 +654,8 @@ export default function SettingsPage() {
                   <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-blue-400" />
                 ) : intelligenceIsReady ? (
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                ) : intelligenceNeedsReview ? (
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 ) : intelligenceIsLimited ? (
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 ) : (
@@ -616,25 +663,34 @@ export default function SettingsPage() {
                 )}
                 <div className="min-w-0">
                   <p className={`text-xs font-semibold ${
-                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
+                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceNeedsReview || intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
                   }`}>
-                    Company Intelligence: {intelligenceIsAnalyzing ? "Analyzing" : intelligenceIsReady ? "Ready" : intelligenceIsLimited ? "Limited" : "Not analyzed"}
+                    {
+                      intelligenceIsAnalyzing ? "Company Intelligence Analyzing"
+                      : intelligenceIsReady ? "Company Intelligence Ready"
+                      : intelligenceNeedsReview ? "Company Intelligence Needs Review"
+                      : intelligenceIsLimited ? "Company Intelligence Limited"
+                      : !savedWebsite ? "Company Website Not Added"
+                      : "Company Intelligence Not Analyzed"
+                    }
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {intelligenceIsAnalyzing
                       ? "Your website is being analyzed. This can take a few moments; the intelligence below will update when it is ready."
                       : intelligenceIsReady
                         ? "Your company profile is ready to help tailor prospect research and outreach."
-                        : intelligenceIsLimited
-                          ? "We found limited company information. Refresh after updating your website for a more complete profile."
-                          : savedWebsite
-                            ? "Your saved website has not been analyzed yet. Refresh to create company intelligence."
-                            : "Add and save your company website to create company intelligence."}
+                        : intelligenceNeedsReview
+                          ? "Website was analyzed but important information may be incomplete or uncertain. Please review."
+                          : intelligenceIsLimited
+                            ? "We found limited company information. Refresh after updating your website for a more complete profile."
+                            : savedWebsite
+                              ? "Your saved website has not been analyzed yet. Refresh to create company intelligence."
+                              : "Add and save your company website to create company intelligence."}
                   </p>
                 </div>
               </div>
 
-              {intelligenceDisplayFields.length > 0 && (
+              {sellerIntelligenceProfile && (
                 <Collapsible open={intelligenceOpen} onOpenChange={setIntelligenceOpen}>
                   <CollapsibleTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-auto px-0 py-1 text-xs">
@@ -643,14 +699,15 @@ export default function SettingsPage() {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pt-2">
-                    <dl className="space-y-3 rounded-md border border-border/70 bg-background/60 p-3 text-xs">
-                      {intelligenceDisplayFields.map(([key, value]) => (
-                        <div key={key}>
-                          <dt className="font-semibold">{intelligenceFieldLabel(key)}</dt>
-                          <dd className="mt-1 break-words"><IntelligenceValue value={value} /></dd>
-                        </div>
-                      ))}
-                    </dl>
+                    <div className="mb-2 text-[11px] text-muted-foreground">
+                      {Boolean(sellerIntelligenceProfile.websiteLastAnalyzed) && (
+                        <div>Last analyzed: {new Date(sellerIntelligenceProfile.websiteLastAnalyzed as string).toLocaleString()}</div>
+                      )}
+                      {Boolean(sellerIntelligenceProfile.userEditedAt) && (
+                        <div>Last updated by user: {new Date(sellerIntelligenceProfile.userEditedAt as string).toLocaleString()}</div>
+                      )}
+                    </div>
+                    <CompanyIntelligenceEditor profile={sellerIntelligenceProfile} />
                   </CollapsibleContent>
                 </Collapsible>
               )}

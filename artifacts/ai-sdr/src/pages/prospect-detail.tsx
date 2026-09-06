@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { InterestBadge } from "@/components/interest-badge";
 import { EmailPreview } from "@/components/email-preview";
+import { OpportunityIntelligenceView } from "@/components/opportunity-intelligence-view";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -475,6 +476,15 @@ export default function ProspectDetail() {
             </Dialog>
           </div>
         </div>
+
+        {prospect.opportunityIntelligence && (
+          <div className="pt-2">
+            <OpportunityIntelligenceView
+              intelligence={prospect.opportunityIntelligence}
+              className="bg-card border rounded-lg p-6 shadow-sm"
+            />
+          </div>
+        )}
 
         <Tabs defaultValue="timeline" className="w-full">
           <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">

@@ -30,3 +30,5 @@
 - [Leadership dashboard scope](leadership-dashboard-scope.md) — Overview is operational, Leadership is tenant-scoped, and Platform Leadership is admin-global; API rates use 0–100.
 - [Caller pilot architecture](caller-pilot-architecture.md) — human callers operate now; preserve provider-ready fields and immutable approved-script snapshots for later automation.
 - [Temporary TypeScript smoke tests](temporary-tsx-smoke-tests.md) — run /tmp TS scripts through the DB package's tsx and wrap top-level async work.
+- [Seller intelligence approval](seller-intelligence-approval.md) — Needs Review stays discovery-only; preserve per-field user approvals over live lower-priority sources.
+- [Opportunity intelligence integrity](opportunity-intelligence-integrity.md) — server-derived score snapshots; listing facts are not buying signals; stay independent from engagement.

@@ -8,8 +8,11 @@ import { ObjectStorageService } from "../lib/objectStorage";
 import { getObjectAclPolicy } from "../lib/objectAcl";
 import {
   analyzeSellerIntelligence,
+  applySellerIntelligenceSources,
   buildGenericSellerProfile,
   normalizeWebsite,
+  SellerIntelligenceEditableSchema,
+  type SellerIntelligenceEditable,
   type SellerIntelligenceProfile,
 } from "../lib/sellerIntelligence";
 
@@ -57,6 +60,8 @@ router.get("/me", async (req, res) => {
     verticalSelected: user.verticalSelected,
     autopilotEnabled: user.autopilotEnabled,
     website: user.website,
+    sellerDifferentiatorsInput: user.sellerDifferentiatorsInput,
+    sellerServicePriorities: user.sellerServicePriorities,
     sellerIntelligenceStatus: user.sellerIntelligenceProfile?.status ?? "not_analyzed",
     sellerIntelligenceProfile: user.sellerIntelligenceProfile ?? null,
     mobilePhone: user.mobilePhone,
@@ -137,7 +142,12 @@ router.put("/engagement-settings", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const { businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl, timezone, vertical, website, mobilePhone, companyLogoPath, profilePhotoPath, attachments, step3CaseStudy, step5CaseStudy } = req.body;
+  const {
+    businessName, senderName, phone, businessAddress, outreachEmail, calendlyUrl,
+    timezone, vertical, website, mobilePhone, companyLogoPath, profilePhotoPath,
+    attachments, step3CaseStudy, step5CaseStudy, sellerDifferentiatorsInput,
+    sellerServicePriorities,
+  } = req.body;
 
   const cleanCaseStudy = async (v: any) => ({
     path: await normalizeAndOwn(v.path, req.clientId),
@@ -219,16 +229,26 @@ router.put("/settings", async (req, res) => {
   if (typeof businessAddress === "string") update.businessAddress = businessAddress;
   if (typeof outreachEmail === "string") update.outreachEmail = outreachEmail;
   if (typeof calendlyUrl === "string") update.calendlyUrl = calendlyUrl;
+  if (typeof sellerDifferentiatorsInput === "string" || sellerDifferentiatorsInput === null) {
+    update.sellerDifferentiatorsInput = sellerDifferentiatorsInput?.trim().slice(0, 4000) || null;
+  }
+  if (typeof sellerServicePriorities === "string" || sellerServicePriorities === null) {
+    update.sellerServicePriorities = sellerServicePriorities?.trim().slice(0, 2000) || null;
+  }
   if (timezone) update.timezone = timezone;
 
   // Website analysis is intentionally bounded and best-effort: saving settings
   // must not discard a valid website because an external site is temporarily down.
   if (websiteChanged && update.website) {
     try {
-      update.sellerIntelligenceProfile = await analyzeSellerIntelligence(
+      const analyzed = await analyzeSellerIntelligence(
         update.website,
         update.vertical ?? req.dbUser.vertical,
       );
+      update.sellerIntelligenceProfile = applySellerIntelligenceSources(analyzed, {
+        differentiatorsInput: update.sellerDifferentiatorsInput ?? req.dbUser.sellerDifferentiatorsInput,
+        servicePriorities: update.sellerServicePriorities ?? req.dbUser.sellerServicePriorities,
+      });
     } catch (err) {
       req.log.warn({ err }, "Seller intelligence analysis failed while saving settings");
       update.sellerIntelligenceProfile = buildGenericSellerProfile(
@@ -237,6 +257,15 @@ router.put("/settings", async (req, res) => {
         "We could not analyze this website yet. Please try refresh later.",
       );
     }
+  } else if (req.dbUser.sellerIntelligenceProfile &&
+    (update.sellerDifferentiatorsInput !== undefined || update.sellerServicePriorities !== undefined || update.vertical)) {
+    update.sellerIntelligenceProfile = applySellerIntelligenceSources(
+      update.sellerIntelligenceProfile ?? req.dbUser.sellerIntelligenceProfile,
+      {
+        differentiatorsInput: update.sellerDifferentiatorsInput ?? req.dbUser.sellerDifferentiatorsInput,
+        servicePriorities: update.sellerServicePriorities ?? req.dbUser.sellerServicePriorities,
+      },
+    );
   }
 
   const [user] = await db.update(usersTable).set(update).where(eq(usersTable.id, req.clientId)).returning();
@@ -252,6 +281,8 @@ router.put("/settings", async (req, res) => {
     vertical: user.vertical,
     verticalSelected: user.verticalSelected,
     website: user.website,
+    sellerDifferentiatorsInput: user.sellerDifferentiatorsInput,
+    sellerServicePriorities: user.sellerServicePriorities,
     sellerIntelligenceStatus: user.sellerIntelligenceProfile?.status ?? "not_analyzed",
     sellerIntelligenceProfile: user.sellerIntelligenceProfile ?? null,
     mobilePhone: user.mobilePhone,
@@ -272,7 +303,14 @@ router.post("/company-intelligence/refresh", async (req, res) => {
   }
 
   try {
-    const profile = await analyzeSellerIntelligence(website, req.dbUser.vertical);
+    const analyzed = await analyzeSellerIntelligence(website, req.dbUser.vertical);
+    const previous = req.dbUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+    const profile = applySellerIntelligenceSources(analyzed, {
+      differentiatorsInput: req.dbUser.sellerDifferentiatorsInput,
+      servicePriorities: req.dbUser.sellerServicePriorities,
+      userOverrides: previous?.userOverrides,
+      userEditedAt: previous?.userEditedAt,
+    });
     await db.update(usersTable)
       .set({ sellerIntelligenceProfile: profile })
       .where(eq(usersTable.id, req.clientId));
@@ -281,7 +319,7 @@ router.post("/company-intelligence/refresh", async (req, res) => {
     req.log.warn({ err, userId: req.clientId }, "Seller intelligence manual refresh failed");
     const previous = req.dbUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
     // Never replace useful prior research with a transient crawl/model failure.
-    if (previous?.status === "ready") {
+    if (previous?.status === "ready" || previous?.status === "needs_review") {
       return res.status(502).json({
         error: "We could not refresh company intelligence. Your previous profile is still available.",
         sellerIntelligenceStatus: "limited",
@@ -302,6 +340,51 @@ router.post("/company-intelligence/refresh", async (req, res) => {
       sellerIntelligenceProfile: failed,
     });
   }
+});
+
+router.put("/company-intelligence", async (req, res) => {
+  const current = req.dbUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+  if (!current) {
+    return res.status(400).json({ error: "Add and analyze a company website before editing company intelligence." });
+  }
+  const parsed = SellerIntelligenceEditableSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Company intelligence contains an invalid or oversized field." });
+  }
+  const editableKeys: (keyof SellerIntelligenceEditable)[] = [
+    "sellerCompanyName", "sellerServices", "sellerProducts", "sellerCapabilities",
+    "sellerDifferentiators", "sellerCertifications", "sellerIndustriesServed",
+    "sellerBusinessOutcomes", "sellerProblemsSolved", "sellerProofPoints",
+    "sellerPortfolioExamples", "sellerValuePropositions", "sellerTypicalCustomers",
+    "sellerCTAs",
+  ];
+  const baseline = applySellerIntelligenceSources(current, {
+    differentiatorsInput: req.dbUser.sellerDifferentiatorsInput,
+    servicePriorities: req.dbUser.sellerServicePriorities,
+    userOverrides: {},
+  });
+  const userOverrides: Partial<SellerIntelligenceEditable> = { ...(current.userOverrides ?? {}) };
+  for (const key of editableKeys) {
+    if (JSON.stringify(parsed.data[key]) === JSON.stringify(baseline[key])) {
+      delete userOverrides[key];
+    } else {
+      (userOverrides as Record<string, unknown>)[key] = parsed.data[key];
+    }
+  }
+  const userEditedAt = new Date().toISOString();
+  const profile = applySellerIntelligenceSources(current, {
+    differentiatorsInput: req.dbUser.sellerDifferentiatorsInput,
+    servicePriorities: req.dbUser.sellerServicePriorities,
+    userOverrides,
+    userEditedAt,
+  });
+  await db.update(usersTable)
+    .set({ sellerIntelligenceProfile: profile })
+    .where(eq(usersTable.id, req.clientId));
+  return res.json({
+    sellerIntelligenceStatus: profile.status,
+    sellerIntelligenceProfile: profile,
+  });
 });
 
 export default router;

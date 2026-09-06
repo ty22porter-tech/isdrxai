@@ -1,7 +1,48 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+
+export interface OpportunitySignal {
+  signalType: string;
+  signalTitle: string;
+  signalDescription: string;
+  signalClassification: "verified" | "implication" | "unconfirmed";
+  confidenceLevel: "high" | "medium" | "low";
+  freshness: "recent" | "active" | "older" | "stale" | "unknown";
+  sourceName?: string;
+  sourceURL?: string;
+  sourceDate?: string | Date;
+  dateDiscovered: string | Date;
+  dateVerified?: string | Date;
+  supportingEvidence?: string;
+  relatedSellerCapability?: string;
+  potentialBusinessImpact?: string;
+  points: number;
+}
+
+export interface OpportunityScoreCategory {
+  key: "company_industry_fit" | "verified_buying_signals" | "seller_prospect_match" | "decision_maker_match" | "signal_freshness" | "business_need_potential";
+  label: string;
+  points: number;
+  maxPoints: number;
+  explanation: string;
+  evidence: string[];
+}
+
+export interface OpportunityIntelligence {
+  version: 1;
+  score: number;
+  label: "High Priority" | "Strong Fit" | "Possible Fit" | "Low Priority";
+  scoreConfidence: "high" | "medium" | "low";
+  definition: string;
+  breakdown: OpportunityScoreCategory[];
+  signals: OpportunitySignal[];
+  whyTarget: string;
+  potentialNeeds: string[];
+  recommendedOutreach: string;
+  generatedAt: string | Date;
+}
 
 export const prospectsTable = pgTable("prospects", {
   id: serial("id").primaryKey(),
@@ -14,7 +55,10 @@ export const prospectsTable = pgTable("prospects", {
   city: text("city").notNull(),
   state: text("state").notNull(),
   website: text("website"),
+  address: text("address"),
   notes: text("notes"),
+  /** Seller-specific opportunity fit. Never used for engagement Hot/Medium/Low. */
+  opportunityIntelligence: jsonb("opportunity_intelligence").$type<OpportunityIntelligence>(),
   employeeCount: integer("employee_count"),
   squareFootage: integer("square_footage"),
   vertical: text("vertical"),

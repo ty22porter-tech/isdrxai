@@ -19,16 +19,34 @@ import { enrichPerson } from "../lib/apollo";
 import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
+import { deriveOpportunityForPersistence } from "../lib/opportunityIntelligence";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
 
 // Prospects are stamped with the vertical the client was in when they were
 // created, so vertical-specific data never bleeds between workflows.
-async function currentVertical(clientId: string): Promise<string> {
-  const [client] = await db.select({ vertical: usersTable.vertical }).from(usersTable).where(eq(usersTable.id, clientId));
+function clientVertical(client?: typeof usersTable.$inferSelect): string {
   if (client?.vertical === "it_services" || client?.vertical === "fleet_wraps") return client.vertical;
   return "janitorial";
+}
+
+async function currentClient(clientId: string) {
+  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, clientId));
+  return client;
+}
+
+function trustedProspectValues(
+  input: Record<string, any>,
+  vertical: string,
+  client?: typeof usersTable.$inferSelect,
+): any {
+  const { opportunityIntelligence: requestedIntelligence, ...values } = input;
+  const opportunityIntelligence = deriveOpportunityForPersistence({
+    ...values,
+    opportunityIntelligence: requestedIntelligence,
+  } as any, vertical, client);
+  return { ...values, opportunityIntelligence };
 }
 
 function parseUtcCalendarDate(value: string): Date | null {
@@ -102,8 +120,10 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   const body = CreateProspectBody.parse(req.body);
   const scheduleToken = randomUUID();
-  const vertical = await currentVertical(req.clientId);
-  const [prospect] = await db.insert(prospectsTable).values({ ...body, clientId: req.clientId, status: "new", scheduleToken, vertical }).returning();
+  const client = await currentClient(req.clientId);
+  const vertical = clientVertical(client);
+  const values = trustedProspectValues(body, vertical, client);
+  const [prospect] = await db.insert(prospectsTable).values({ ...values, clientId: req.clientId, status: "new", scheduleToken, vertical }).returning();
   await db.insert(activityTable).values({
     clientId: req.clientId,
     type: "prospect_added",
@@ -118,7 +138,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post("/bulk", async (req, res) => {
   const { prospects, duplicateStrategy } = BulkCreateProspectsBody.parse(req.body);
-  const vertical = await currentVertical(req.clientId);
+  const client = await currentClient(req.clientId);
+  const vertical = clientVertical(client);
   const results: { index: number; success: boolean; updated?: boolean; error?: string; prospect?: any }[] = [];
   let added = 0;
   let updated = 0;
@@ -132,7 +153,7 @@ router.post("/bulk", async (req, res) => {
   const validRows: { index: number; values: any }[] = [];
   const updateRows: { index: number; prospectId: number; input: any }[] = [];
   for (let i = 0; i < prospects.length; i++) {
-    const input = prospects[i];
+    const input = trustedProspectValues(prospects[i], vertical, client);
     const email = (input.email ?? "").trim().toLowerCase();
     if (!input.companyName?.trim()) {
       failed++;
@@ -172,7 +193,7 @@ router.post("/bulk", async (req, res) => {
   for (const row of updateRows) {
     try {
       const updateValues: Record<string, any> = {};
-      for (const key of ["companyName", "contactName", "phone", "industry", "city", "state", "website", "notes", "employeeCount", "squareFootage"] as const) {
+      for (const key of ["companyName", "contactName", "phone", "industry", "city", "state", "website", "address", "notes", "employeeCount", "squareFootage", "title", "linkedinUrl", "opportunityIntelligence"] as const) {
         const v = (row.input as any)[key];
         if (v !== undefined && v !== null && (typeof v !== "string" || v.trim() !== "")) {
           updateValues[key] = v;

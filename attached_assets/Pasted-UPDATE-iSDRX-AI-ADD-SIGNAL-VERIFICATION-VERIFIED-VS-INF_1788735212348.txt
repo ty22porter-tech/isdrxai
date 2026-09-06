@@ -1,0 +1,707 @@
+UPDATE iSDRX AI — ADD SIGNAL VERIFICATION + VERIFIED VS INFERRED INTELLIGENCE
+
+IMPORTANT:
+
+Do not redesign Prospect Search or the existing prospect cards.
+
+Extend the current prospect intelligence architecture so that iSDRX AI
+clearly separates:
+
+1. VERIFIED FACTS
+2. REASONABLE BUSINESS IMPLICATIONS
+3. UNVERIFIED / UNKNOWN INFORMATION
+
+The goal is to prevent AI-generated prospect intelligence from presenting
+assumptions as facts.
+
+
+====================================================
+1. CORE SIGNAL ACCURACY RULE
+====================================================
+
+iSDRX AI must NEVER present an inferred business condition as a verified fact.
+
+Example of incorrect behavior:
+
+"Rescue Air is expanding its fleet."
+
+This statement should NOT be shown unless there is reliable evidence that
+the company is actually adding vehicles or expanding its fleet.
+
+
+Instead, if verified research shows:
+
+"Rescue Air is hiring 12 field technicians"
+
+display:
+
+VERIFIED SIGNAL
+Hiring 12 field technicians
+
+POTENTIAL IMPLICATION
+Additional field staffing may create future vehicle, fleet branding,
+vehicle graphics, or operational needs.
+
+The AI may interpret a verified signal, but it must clearly distinguish
+the interpretation from the verified fact.
+
+
+====================================================
+2. SIGNAL CLASSIFICATIONS
+====================================================
+
+Create three classifications for prospect intelligence:
+
+VERIFIED
+
+Use when there is direct supporting evidence from a reliable source.
+
+Examples:
+
+- Active job posting
+- New location announcement
+- Published acquisition
+- Company press release
+- Public contract award
+- Government procurement record
+- Published rebranding announcement
+- Confirmed new facility
+- Confirmed leadership change
+- Published fleet purchase
+- Publicly announced expansion
+
+
+POTENTIAL IMPLICATION
+
+Use when the AI is interpreting what a verified signal MAY mean for the
+seller.
+
+Examples:
+
+Verified:
+Hiring 15 HVAC technicians
+
+Potential implication:
+Additional field staffing may increase the need for service vehicles,
+vehicle graphics, fleet branding, uniforms, IT support, cleaning, or other
+relevant services depending on the seller's capabilities.
+
+
+UNVERIFIED / UNKNOWN
+
+Use when a fact cannot be confirmed.
+
+Examples:
+
+- Fleet size not confirmed
+- Current janitorial provider unknown
+- IT provider unknown
+- Contract expiration unknown
+- Vehicle purchase plans unknown
+- Budget unknown
+- Square footage unknown
+- Expansion not confirmed
+
+
+====================================================
+3. NEVER TURN INDUSTRY FIT INTO A FACT
+====================================================
+
+Industry characteristics may be used to determine fit, but they must not be
+stated as verified company-specific facts.
+
+Example:
+
+HVAC companies commonly operate service vehicles.
+
+Acceptable:
+
+INDUSTRY FIT
+HVAC businesses typically rely on field-service vehicles, making fleet
+branding potentially relevant.
+
+Not acceptable:
+
+"This company operates 25 service vans."
+
+unless that number is verified.
+
+
+====================================================
+4. ADD SIGNAL CONFIDENCE
+====================================================
+
+Each signal should have a confidence classification.
+
+Use:
+
+HIGH CONFIDENCE
+Direct evidence from reliable company, government, job, news, or other
+authoritative source.
+
+MEDIUM CONFIDENCE
+Strong indirect evidence or multiple corroborating sources.
+
+LOW CONFIDENCE
+Industry inference, incomplete evidence, or weak source.
+
+Low-confidence signals must NEVER be written as confirmed facts.
+
+
+====================================================
+5. STORE SIGNAL METADATA
+====================================================
+
+Where supported by the existing data model, store signal information such as:
+
+signalType
+
+signalTitle
+
+signalDescription
+
+signalClassification
+- verified
+- implication
+- unverified
+
+confidenceLevel
+- high
+- medium
+- low
+
+sourceName
+
+sourceURL
+
+sourceDate
+
+dateDiscovered
+
+dateVerified
+
+supportingEvidence
+
+relatedSellerCapability
+
+potentialBusinessImpact
+
+
+====================================================
+6. SOURCE TRACEABILITY
+====================================================
+
+For verified signals, retain the supporting source whenever possible.
+
+Examples:
+
+Signal:
+Hiring 12 field technicians
+
+Source:
+Company Careers Page
+
+Source Date:
+September 2026
+
+
+Signal:
+Opening new location in Fort Worth
+
+Source:
+Company Press Release
+
+Source Date:
+August 2026
+
+
+Do not require the salesperson to search again to understand where the
+signal came from.
+
+
+====================================================
+7. PROSPECT CARD DISPLAY
+====================================================
+
+Update prospect cards so intelligence is easier to trust.
+
+Example:
+
+-----------------------------------
+VERIFIED SIGNALS
+-----------------------------------
+
+✓ Hiring 12 field technicians
+Source: Company Careers Page
+
+✓ New Fort Worth location announced
+Source: Company Press Release
+
+
+-----------------------------------
+POTENTIAL IMPLICATIONS
+-----------------------------------
+
+• Additional field staffing may increase the need for service vehicles.
+
+• Expansion into another territory may create a need for consistent branding
+across new vehicles and locations.
+
+
+-----------------------------------
+UNCONFIRMED
+-----------------------------------
+
+• Current fleet size
+
+• Planned vehicle purchases
+
+• Current wrap provider
+
+
+Do not imply that unconfirmed information is known.
+
+
+====================================================
+8. USE VERIFIED SIGNALS IN "WHY TARGET"
+====================================================
+
+The Why Target section should prioritize:
+
+VERIFIED SIGNAL
++
+SELLER RELEVANCE
++
+POTENTIAL BUSINESS IMPACT
+
+
+Example for Fleet Wraps:
+
+Why Target:
+
+The company is actively hiring additional field technicians, which indicates
+growth in its field-service operation.
+
+Because C4 Wraps specializes in commercial vehicle branding and fleet
+graphics, additional field staffing may create future opportunities around
+branding new service vehicles or maintaining consistency across an expanding
+fleet.
+
+Do NOT say:
+
+"The company is expanding its fleet."
+
+unless fleet expansion itself is verified.
+
+
+====================================================
+9. USE VERIFIED SIGNALS IN "POTENTIAL NEEDS"
+====================================================
+
+Potential Needs must be written as opportunities, not confirmed purchases.
+
+Good:
+
+Potential Need:
+Branding additional service vehicles if field hiring results in fleet growth.
+
+Good:
+
+Potential Need:
+Maintaining consistent graphics across vehicles as the operation expands.
+
+Bad:
+
+Potential Need:
+Wrap 12 new vans.
+
+The system cannot assume that each new technician receives a new vehicle.
+
+
+====================================================
+10. USE VERIFIED SIGNALS IN EMAIL GENERATION
+====================================================
+
+AI-generated emails must follow the same rule.
+
+If the verified signal is:
+
+"Hiring 12 field technicians"
+
+the email may say:
+
+"Adding field technicians can create additional pressure to keep service
+vehicles and branding consistent as the operation grows."
+
+Do NOT say:
+
+"I saw you're adding 12 new vans."
+
+unless that is independently verified.
+
+
+====================================================
+11. SIGNAL → IMPLICATION → SELLER VALUE
+====================================================
+
+Use this reasoning model:
+
+VERIFIED SIGNAL
+        ↓
+WHAT COULD THIS SIGNAL MEAN?
+        ↓
+WHICH BUSINESS CHALLENGE COULD EMERGE?
+        ↓
+IS THAT CHALLENGE RELEVANT TO THE SELLER?
+        ↓
+WHICH SELLER CAPABILITY ADDRESSES IT?
+        ↓
+WHAT BUSINESS VALUE COULD THE SELLER PROVIDE?
+
+
+Example:
+
+Verified Signal:
+Hiring 12 HVAC technicians
+
+Potential Implication:
+Field-service capacity is increasing.
+
+Possible Business Challenge:
+Maintaining consistent branding as the field operation grows.
+
+Seller Capability:
+Commercial fleet graphics and multi-vehicle branding.
+
+Business Value:
+Consistent brand presentation and increased local visibility.
+
+Email Angle:
+Scaling field operations while maintaining fleet-brand consistency.
+
+
+====================================================
+12. SIGNAL LANGUAGE RULES
+====================================================
+
+Use language carefully.
+
+For verified information:
+
+- "The company announced..."
+- "The company is hiring..."
+- "Public records show..."
+- "The company's careers page lists..."
+- "The company opened..."
+- "The company published..."
+
+For implications:
+
+- "This may indicate..."
+- "This could create..."
+- "This may increase the need for..."
+- "This could make..."
+- "This may present an opportunity for..."
+- "If this growth results in..."
+
+Avoid:
+
+- "Clearly needs"
+- "Definitely needs"
+- "Must be expanding"
+- "Will need"
+- "Is adding vehicles"
+
+unless directly verified.
+
+
+====================================================
+13. MULTIPLE SIGNAL CORROBORATION
+====================================================
+
+When multiple signals support the same conclusion, increase confidence but
+continue distinguishing facts from conclusions.
+
+Example:
+
+Verified:
+Hiring technicians
+
+Verified:
+New service territory announced
+
+Verified:
+New branch opened
+
+Potential implication:
+The company appears to be increasing its field-service capacity.
+
+This is stronger than relying on one signal alone.
+
+However, do not automatically convert:
+
+"increasing field-service capacity"
+
+into:
+
+"buying more vehicles"
+
+without evidence.
+
+
+====================================================
+14. NO-SIGNAL BEHAVIOR
+====================================================
+
+If there are no meaningful verified signals, do not invent urgency.
+
+Use:
+
+INDUSTRY FIT
+COMPANY BUSINESS MODEL
+SELLER VALUE MATCH
+
+Example:
+
+"No recent fleet expansion signal was verified. However, the company operates
+in a field-service industry where branded commercial vehicles may play an
+important role in local visibility."
+
+This is better than creating a fake trigger event.
+
+
+====================================================
+15. SIGNAL FRESHNESS
+====================================================
+
+Where possible, account for signal age.
+
+Suggested categories:
+
+RECENT
+0–90 days
+
+ACTIVE
+91–180 days
+
+OLDER
+181–365 days
+
+STALE
+Over 365 days
+
+Prefer recent signals when generating outreach.
+
+Do not use stale signals as if they just happened.
+
+
+====================================================
+16. SIGNAL VALIDATION BEFORE EMAIL SEND
+====================================================
+
+Before using a signal in an AI-generated email, verify:
+
+1. Is there a supporting source?
+
+2. Does the source actually support the statement?
+
+3. Is the signal recent enough to still be relevant?
+
+4. Is the email presenting the signal accurately?
+
+5. Is the AI adding an inference?
+
+If yes to #5, the inference must be written as a potential implication,
+not a fact.
+
+
+====================================================
+17. EMAIL QUALITY CHECK UPDATE
+====================================================
+
+Add this to the existing Email Relevance Quality Check:
+
+SIGNAL ACCURACY CHECK
+
+Before approving an email, ask:
+
+- Does this email contain a prospect-specific factual claim?
+
+If YES:
+
+- Is the claim verified?
+- Is there supporting evidence?
+- Is it phrased accurately?
+- Has an inference accidentally been written as a fact?
+
+If any factual claim cannot be supported, revise the email before approval.
+
+
+====================================================
+18. PROSPECT SCORE SHOULD NOT RELY ON FABRICATED SIGNALS
+====================================================
+
+Only verified signals should receive full buying-signal scoring points.
+
+Potential implications may influence the fit score but should receive lower
+weight.
+
+Unverified assumptions should receive zero signal points.
+
+
+Example:
+
+Verified job growth signal:
++20
+
+Verified expansion:
++20
+
+Industry-based potential fleet fit:
++5
+
+Unconfirmed fleet expansion:
++0
+
+
+====================================================
+19. EXAMPLE — FLEET WRAP PROSPECT
+====================================================
+
+BAD:
+
+Fleet Wrap Opportunity Score: 86
+
+Why Target:
+The company is growing its fleet and adding new service vehicles.
+
+
+GOOD:
+
+Fleet Wrap Opportunity Score: 86
+
+Verified Signals:
+✓ Hiring 12 field technicians
+✓ New service territory announced
+
+Potential Implication:
+Growth in field-service capacity may eventually require additional vehicles
+or stronger fleet-brand consistency.
+
+Why Target:
+The verified hiring and territory expansion signals suggest growth in the
+company's field operation. Because the seller specializes in commercial fleet
+graphics, this may create a relevant opportunity if the company adds vehicles
+or needs consistent branding across its service fleet.
+
+Unconfirmed:
+Current fleet size
+Vehicle purchase plans
+Current wrap provider
+
+
+====================================================
+20. EXAMPLE — JANITORIAL PROSPECT
+====================================================
+
+BAD:
+
+"The company needs a new janitorial provider because it recently expanded."
+
+
+GOOD:
+
+Verified Signal:
+New 150,000-square-foot facility announced.
+
+Potential Implication:
+A new operating location may create additional cleaning and facility
+maintenance requirements.
+
+Seller Match:
+The seller specializes in industrial/warehouse janitorial services.
+
+Recommended Angle:
+Ask how cleaning is being planned for the new facility rather than assuming
+the current provider is being replaced.
+
+
+====================================================
+21. EXAMPLE — IT SERVICES PROSPECT
+====================================================
+
+BAD:
+
+"The company has cybersecurity problems."
+
+
+GOOD:
+
+Verified Signal:
+Company is adding multiple locations and hiring additional employees.
+
+Potential Implication:
+Additional locations and users may increase endpoint management,
+cybersecurity, support, and infrastructure complexity.
+
+Seller Match:
+The seller provides managed IT and cybersecurity services.
+
+Recommended Angle:
+Discuss how IT support and security are being scaled alongside business
+growth.
+
+
+====================================================
+22. CRITICAL ACCURACY PRINCIPLE
+====================================================
+
+The system must always distinguish:
+
+WHAT WE KNOW
+vs.
+WHAT WE THINK IT MAY MEAN
+
+Use this model throughout iSDRX AI:
+
+WHAT WE KNOW
+= VERIFIED SIGNAL
+
+WHAT IT MAY MEAN
+= POTENTIAL IMPLICATION
+
+WHY IT MATTERS TO THIS SELLER
+= VALUE MATCH
+
+HOW TO APPROACH THE PROSPECT
+= SALES STRATEGY
+
+WHAT TO SAY
+= PERSONALIZED OUTREACH
+
+
+====================================================
+23. IMPLEMENTATION REQUIREMENT
+====================================================
+
+Inspect the current Prospect Search, lead intelligence, scoring, Seller
+Intelligence, and AI email-generation logic before making changes.
+
+Reuse the current application architecture, components, database models, and
+styling wherever possible.
+
+Do not create a separate signal system if one already exists.
+
+Extend the current implementation so verified facts and AI interpretations
+are clearly separated throughout:
+
+- Prospect Search
+- Prospect cards
+- Opportunity scoring
+- Why Target
+- Potential Needs
+- Recommended Outreach
+- AI email generation
+- Campaign generation
+- Lead scoring
+- Pipeline intelligence

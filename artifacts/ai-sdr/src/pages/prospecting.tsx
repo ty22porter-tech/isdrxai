@@ -22,6 +22,14 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { OpportunityIntelligenceView } from "@/components/opportunity-intelligence-view";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw } from "lucide-react";
@@ -413,9 +421,12 @@ export default function Prospecting() {
           city: lead.city,
           state: lead.state,
           website: lead.website,
+          address: lead.address,
           notes: leadNotes(lead),
+          opportunityIntelligence: lead.opportunityIntelligence,
           employeeCount: lead.estimatedEmployees,
           squareFootage: lead.estimatedSquareFootage,
+          title: /pending/i.test(lead.contactTitle) ? undefined : lead.contactTitle,
         },
       },
       {
@@ -482,9 +493,12 @@ export default function Prospecting() {
                 city: lead.city,
                 state: lead.state,
                 website: lead.website,
+                address: lead.address,
                 notes: leadNotes(lead),
+                opportunityIntelligence: lead.opportunityIntelligence,
                 employeeCount: lead.estimatedEmployees,
                 squareFootage: lead.estimatedSquareFootage,
+                title: /pending/i.test(lead.contactTitle) ? undefined : lead.contactTitle,
               })),
             },
           });
@@ -1110,11 +1124,26 @@ export default function Prospecting() {
                               variant="outline"
                               className={`text-xs font-medium ${SCORE_COLORS[lead.scoreLabel] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}
                             >
-                              {isFleet ? "Fleet Wrap" : "IT"} Opportunity Score: {lead.opportunityScore} — {lead.scoreLabel}
+                              {isFleet ? "Fleet Wrap Opportunity Score" : isIT ? "IT Opportunity Score" : "Opportunity Score"}: {lead.opportunityScore} — {lead.scoreLabel}
                             </Badge>
+                            {lead.opportunityIntelligence && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-6 text-xs px-2 hover:bg-muted">
+                                    View Score Breakdown
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                                  <DialogHeader>
+                                    <DialogTitle>Opportunity Intelligence</DialogTitle>
+                                  </DialogHeader>
+                                  <OpportunityIntelligenceView intelligence={lead.opportunityIntelligence} isDialog={true} />
+                                </DialogContent>
+                              </Dialog>
+                            )}
                           </div>
                         )}
-                        {lead.scoreExplanation && (
+                        {lead.scoreExplanation && !lead.opportunityIntelligence && (
                           <p className="text-xs text-muted-foreground mb-2">{lead.scoreExplanation}</p>
                         )}
 

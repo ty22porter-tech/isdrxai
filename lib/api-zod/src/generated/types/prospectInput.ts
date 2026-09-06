@@ -5,6 +5,7 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { OpportunityIntelligence } from './opportunityIntelligence';
 
 export interface ProspectInput {
   companyName: string;
@@ -15,7 +16,11 @@ export interface ProspectInput {
   city: string;
   state: string;
   website?: string;
+  address?: string;
   notes?: string;
+  opportunityIntelligence?: OpportunityIntelligence;
   employeeCount?: number;
   squareFootage?: number;
+  title?: string;
+  linkedinUrl?: string;
 }

@@ -23,16 +23,22 @@ const clean = (values: string[] | null | undefined) =>
 /** Reads only a successfully analyzed, website-backed profile. */
 export function sellerIntelligenceProfile(user?: User | null): SellerIntelligence {
   const profile = user?.sellerIntelligenceProfile as SellerIntelligenceProfile | null | undefined;
-  if (!profile || profile.status !== "ready" || profile.websiteAnalysisStatus !== "ready") {
+  if (!profile || profile.status !== "ready") {
     return {
       services: [], products: [], capabilities: [], differentiators: [],
       certifications: [], industriesServed: [], outcomes: [], problemsSolved: [],
       proof: [], portfolioExamples: [], valuePropositions: [], ctas: [], ready: false,
     };
   }
+  // Service-priority preferences affect opportunity ordering, but they are not
+  // approved seller capabilities. Read services from their factual source so
+  // older cached profiles cannot leak priority-only text into sales claims.
+  const approvedServices = profile.userOverrides?.sellerServices
+    ?? profile.websiteGenerated?.sellerServices
+    ?? profile.sellerServices;
   const seller = {
     name: profile.sellerCompanyName?.trim() || undefined,
-    services: clean(profile.sellerServices),
+    services: clean(approvedServices),
     products: clean(profile.sellerProducts),
     capabilities: clean(profile.sellerCapabilities),
     differentiators: clean(profile.sellerDifferentiators),

@@ -5,6 +5,7 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { OpportunityIntelligence } from './opportunityIntelligence';
 import type { ProspectLeadConfidence } from './prospectLeadConfidence';
 
 export interface ProspectLead {
@@ -39,4 +40,5 @@ export interface ProspectLead {
   recommendedOutreach?: string;
   /** Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly */
   fleetBrandingSignal?: string;
+  opportunityIntelligence?: OpportunityIntelligence;
 }

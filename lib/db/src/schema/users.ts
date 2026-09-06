@@ -2,11 +2,8 @@ import { pgTable, text, boolean, timestamp, jsonb, integer } from "drizzle-orm/p
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export interface SellerIntelligenceProfile {
-  status: "ready" | "limited";
+export interface SellerIntelligenceEditable {
   sellerCompanyName: string | null;
-  sellerWebsite: string;
-  sellerIndustry: string;
   sellerServices: string[];
   sellerProducts: string[];
   sellerCapabilities: string[];
@@ -18,10 +15,21 @@ export interface SellerIntelligenceProfile {
   sellerProofPoints: string[];
   sellerPortfolioExamples: string[];
   sellerValuePropositions: string[];
+  sellerTypicalCustomers: string[];
   sellerCTAs: string[];
+}
+
+export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
+  status: "ready" | "needs_review" | "limited";
+  sellerCompanyName: string | null;
+  sellerWebsite: string;
+  sellerIndustry: string;
   sourcePages: string[];
   websiteLastAnalyzed: string;
   websiteAnalysisStatus: "ready" | "limited";
+  websiteGenerated?: SellerIntelligenceEditable;
+  userOverrides?: Partial<SellerIntelligenceEditable>;
+  userEditedAt?: string;
   analysisError?: string;
 }
 
@@ -49,6 +57,8 @@ export const usersTable = pgTable("users", {
   vertical: text("vertical").notNull().default("janitorial"),
   verticalSelected: boolean("vertical_selected").notNull().default(true),
   website: text("website"),
+  sellerDifferentiatorsInput: text("seller_differentiators_input"),
+  sellerServicePriorities: text("seller_service_priorities"),
   /** Derived only from the account holder's public company website. */
   sellerIntelligenceProfile: jsonb("seller_intelligence_profile").$type<SellerIntelligenceProfile | null>(),
   mobilePhone: text("mobile_phone"),

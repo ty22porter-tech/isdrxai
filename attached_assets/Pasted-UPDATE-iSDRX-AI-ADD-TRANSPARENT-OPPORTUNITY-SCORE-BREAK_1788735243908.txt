@@ -1,0 +1,446 @@
+UPDATE iSDRX AI — ADD TRANSPARENT OPPORTUNITY SCORE BREAKDOWN
+
+IMPORTANT:
+
+Do not replace the existing Opportunity Score.
+
+Extend the current scoring system so users can understand WHY a prospect
+received its score.
+
+The objective is to make iSDRX AI's scoring transparent, trustworthy, and
+actionable.
+
+
+====================================================
+1. ADD "VIEW SCORE BREAKDOWN"
+====================================================
+
+Wherever an Opportunity Score appears, such as:
+
+Fleet Wrap Opportunity Score: 86 — High Priority
+
+Janitorial Opportunity Score: 82 — High Priority
+
+IT Opportunity Score: 74 — Strong Fit
+
+add a small clickable option:
+
+View Score Breakdown
+
+Keep the primary prospect card clean.
+
+When clicked, open a modal, drawer, popover, or expandable section using the
+existing application design patterns.
+
+
+====================================================
+2. SHOW HOW THE SCORE WAS CALCULATED
+====================================================
+
+Display the major scoring categories and points earned.
+
+Use a 100-point scoring model.
+
+Example:
+
+WHY THIS PROSPECT SCORED 86
+
+
+COMPANY / INDUSTRY FIT
+22 / 25
+
+Strong match with the target customer profile.
+
+
+VERIFIED BUYING SIGNALS
+24 / 30
+
+✓ Hiring field technicians
+✓ New service territory announced
+
+
+SELLER-TO-PROSPECT MATCH
+18 / 20
+
+The seller's commercial fleet branding capabilities align strongly with
+the prospect's field-service business model and verified growth signals.
+
+
+DECISION-MAKER MATCH
+10 / 10
+
+Relevant Operations or Marketing contact identified.
+
+
+SIGNAL FRESHNESS
+7 / 10
+
+Relevant signals were identified within the last 90 days.
+
+
+BUSINESS NEED POTENTIAL
+5 / 5
+
+Verified growth signals create a reasonable potential business need that
+matches the seller's capabilities.
+
+
+TOTAL
+86 / 100
+
+HIGH PRIORITY
+
+
+====================================================
+3. CRITICAL SCORE DEFINITION
+====================================================
+
+Clearly explain:
+
+"The Opportunity Score measures how strongly this prospect matches your
+company, target customer profile, verified signals, and potential business
+need. It does not represent the probability that the prospect will make a
+purchase."
+
+Do NOT describe:
+
+86 / 100
+
+as:
+
+86% likelihood to buy
+
+unless the application eventually has statistically validated conversion
+data capable of supporting such a probability.
+
+
+====================================================
+4. VERIFIED SIGNALS RECEIVE MORE WEIGHT
+====================================================
+
+Continue following the Signal Verification system.
+
+Verified signals should receive the strongest scoring weight.
+
+Potential implications may contribute to fit/relevance scoring but should
+receive less weight.
+
+Unverified assumptions receive ZERO buying-signal points.
+
+Example:
+
+Verified hiring signal:
+Eligible for signal points.
+
+Verified expansion:
+Eligible for signal points.
+
+Industry-based potential fleet fit:
+May contribute limited fit points.
+
+Unconfirmed fleet expansion:
+0 signal points.
+
+Never increase the Opportunity Score because of an invented or unverified
+event.
+
+
+====================================================
+5. SHOW VERIFIED VS INFERRED
+====================================================
+
+Inside the score breakdown, visually distinguish:
+
+✓ VERIFIED
+
+→ POTENTIAL IMPLICATION
+
+? UNCONFIRMED
+
+
+Example:
+
+✓ VERIFIED
+Hiring 12 field technicians
++12 points
+
+→ POTENTIAL IMPLICATION
+Field-service capacity may be increasing.
+Used as supporting relevance context.
+
+? UNCONFIRMED
+Fleet expansion
++0 points
+
+
+====================================================
+6. MAKE SCORING SELLER-SPECIFIC
+====================================================
+
+Opportunity scoring must use the Seller Intelligence Profile.
+
+The same prospect should NOT necessarily receive the same score for every
+iSDRX AI customer.
+
+Calculate:
+
+PROSPECT FIT
++
+VERIFIED SIGNALS
++
+SELLER INTELLIGENCE
++
+SELLER / PROSPECT VALUE MATCH
++
+DECISION-MAKER QUALITY
++
+SIGNAL FRESHNESS
+=
+OPPORTUNITY SCORE
+
+
+Example:
+
+A prospect could score:
+
+86 for Seller A
+
+because Seller A's capabilities strongly match the identified opportunity.
+
+The same prospect could score:
+
+67 for Seller B
+
+because Seller B provides different services or has a weaker value match.
+
+
+====================================================
+7. USE SERVICE PRIORITIES
+====================================================
+
+Use the existing:
+
+"What services or solutions do you want iSDRX AI to prioritize?"
+
+setting as part of the score.
+
+If a prospect has a strong potential need for one of the seller's PRIORITY
+services, increase the seller-to-prospect relevance score where justified.
+
+Do not increase buying-signal points unless there is verified supporting
+evidence.
+
+
+====================================================
+8. SCORE EXPLANATION MUST USE HUMAN LANGUAGE
+====================================================
+
+Do not show only:
+
+industryFit = 22
+signals = 24
+sellerMatch = 18
+
+Explain WHY points were earned.
+
+Example:
+
+"Strong Industry Fit — 22/25
+
+This company operates in HVAC and plumbing, which strongly matches your
+selected fleet-wrap target profile because field-service businesses commonly
+depend on commercial vehicles."
+
+Then separate verified company-specific evidence from general industry fit.
+
+
+====================================================
+9. SCORE PENALTIES
+====================================================
+
+Allow the scoring model to reduce scores when important information is weak.
+
+Examples:
+
+No relevant decision-maker found
+-5
+
+No recent verified signals
+-10
+
+Weak seller capability match
+-10
+
+Signal older than 365 days
+Reduce signal contribution
+
+Company outside target geography
+Reduce fit score when geography is important
+
+Poor ICP fit
+Significant reduction
+
+
+====================================================
+10. SCORE CONFIDENCE
+====================================================
+
+In addition to Opportunity Score, calculate:
+
+Score Confidence
+
+HIGH
+MEDIUM
+LOW
+
+Score Confidence represents how much reliable evidence supports the score.
+
+Example:
+
+Opportunity Score:
+86 — High Priority
+
+Score Confidence:
+High
+
+Supported by:
+✓ 3 verified signals
+✓ Strong company information
+✓ Relevant decision-maker
+✓ Strong seller match
+
+
+Another prospect might show:
+
+Opportunity Score:
+82 — High Priority
+
+Score Confidence:
+Low
+
+Reason:
+Strong industry fit but limited verified company-specific signals.
+
+
+This distinction is important.
+
+A high opportunity score with low confidence should NOT be treated the same
+as a high opportunity score supported by multiple verified signals.
+
+
+====================================================
+11. DO NOT CONFUSE OPPORTUNITY SCORE WITH ENGAGEMENT SCORE
+====================================================
+
+Maintain a clear distinction between:
+
+OPPORTUNITY SCORE
+"Should we pursue this company?"
+
+and
+
+ENGAGEMENT SCORE
+"How is this prospect responding to our outreach?"
+
+
+Opportunity Score is based primarily on:
+
+- ICP fit
+- Seller fit
+- Verified signals
+- Business relevance
+- Decision-maker quality
+- Signal freshness
+
+
+Engagement Score is based on:
+
+- Email opens
+- Repeat opens
+- Website clicks
+- Attachment clicks
+- Video interactions
+- Calendar clicks
+- Replies
+- Other campaign behavior
+
+
+Do not combine these into one unexplained score.
+
+
+====================================================
+12. EVENTUAL PRIORITY SCORE
+====================================================
+
+Preserve the architecture so a future combined:
+
+SALES PRIORITY SCORE
+
+could consider:
+
+Opportunity Score
++
+Engagement Score
+
+Example:
+
+Opportunity Score: 91
+Engagement Score: 88
+
+Sales Priority:
+🔥 Immediate Follow-Up
+
+Do not implement this combined score yet unless it fits cleanly into the
+existing architecture.
+
+For now, keep Opportunity and Engagement scores clearly separate.
+
+
+====================================================
+13. FINAL UX GOAL
+====================================================
+
+The salesperson should be able to answer:
+
+WHY DID THIS COMPANY SCORE HIGH?
+
+WHAT INFORMATION WAS VERIFIED?
+
+WHAT WAS INFERRED?
+
+WHAT INFORMATION IS UNKNOWN?
+
+WHY DOES THIS PROSPECT FIT MY COMPANY?
+
+WHICH SELLER STRENGTH CONTRIBUTED TO THE MATCH?
+
+HOW RECENT ARE THE SIGNALS?
+
+HOW CONFIDENT IS iSDRX AI IN THIS SCORE?
+
+
+====================================================
+14. IMPLEMENTATION REQUIREMENT
+====================================================
+
+Inspect the existing Opportunity Score calculation and UI before changing
+anything.
+
+Reuse existing scoring functions, components, database models, and styling
+where possible.
+
+Do not create conflicting duplicate scoring systems.
+
+Extend the existing scoring architecture to support:
+
+- Score categories
+- Points earned
+- Maximum points
+- Human-readable explanations
+- Verified signal contribution
+- Seller-specific relevance
+- Score confidence
+- Score breakdown UI
+
+Do not break Prospect Search, Seller Intelligence, Signal Verification,
+Pipeline, Campaigns, or existing Engagement scoring.

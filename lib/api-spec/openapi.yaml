@@ -813,8 +813,14 @@ components:
           type: string
         website:
           type: ["string", "null"]
+        address:
+          type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        opportunityIntelligence:
+          oneOf:
+            - $ref: "#/components/schemas/OpportunityIntelligence"
+            - type: "null"
         employeeCount:
           type: ["integer", "null"]
         squareFootage:
@@ -853,12 +859,21 @@ components:
           type: string
         website:
           type: string
+        address:
+          type: string
         notes:
           type: string
+        opportunityIntelligence:
+          $ref: "#/components/schemas/OpportunityIntelligence"
         employeeCount:
           type: integer
         squareFootage:
           type: integer
+        title:
+          type: string
+        linkedinUrl:
+          type: string
+          format: uri
 
     BulkProspectsInput:
       type: object
@@ -1387,6 +1402,117 @@ components:
         fleetBrandingSignal:
           type: string
           description: Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly
+        opportunityIntelligence:
+          $ref: "#/components/schemas/OpportunityIntelligence"
+
+    OpportunitySignal:
+      type: object
+      required: [signalType, signalTitle, signalDescription, signalClassification, confidenceLevel, freshness, dateDiscovered, points]
+      properties:
+        signalType:
+          type: string
+        signalTitle:
+          type: string
+        signalDescription:
+          type: string
+        signalClassification:
+          type: string
+          enum: [verified, implication, unconfirmed]
+        confidenceLevel:
+          type: string
+          enum: [high, medium, low]
+        freshness:
+          type: string
+          enum: [recent, active, older, stale, unknown]
+        sourceName:
+          type: string
+        sourceURL:
+          type: string
+          format: uri
+        sourceDate:
+          type: string
+          format: date-time
+        dateDiscovered:
+          type: string
+          format: date-time
+        dateVerified:
+          type: string
+          format: date-time
+        supportingEvidence:
+          type: string
+        relatedSellerCapability:
+          type: string
+        potentialBusinessImpact:
+          type: string
+        points:
+          type: integer
+          minimum: 0
+          maximum: 30
+
+    OpportunityScoreCategory:
+      type: object
+      required: [key, label, points, maxPoints, explanation, evidence]
+      properties:
+        key:
+          type: string
+          enum: [company_industry_fit, verified_buying_signals, seller_prospect_match, decision_maker_match, signal_freshness, business_need_potential]
+        label:
+          type: string
+        points:
+          type: integer
+          minimum: 0
+          maximum: 30
+        maxPoints:
+          type: integer
+          minimum: 1
+          maximum: 30
+        explanation:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+
+    OpportunityIntelligence:
+      type: object
+      required: [version, score, label, scoreConfidence, definition, breakdown, signals, whyTarget, potentialNeeds, recommendedOutreach, generatedAt]
+      properties:
+        version:
+          type: integer
+          enum: [1]
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        label:
+          type: string
+          enum: [High Priority, Strong Fit, Possible Fit, Low Priority]
+        scoreConfidence:
+          type: string
+          enum: [high, medium, low]
+        definition:
+          type: string
+        breakdown:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items:
+            $ref: "#/components/schemas/OpportunityScoreCategory"
+        signals:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpportunitySignal"
+        whyTarget:
+          type: string
+        potentialNeeds:
+          type: array
+          items:
+            type: string
+        recommendedOutreach:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
 
     DashboardStats:
       type: object

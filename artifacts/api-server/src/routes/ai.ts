@@ -11,9 +11,9 @@ import {
   genericOutreach,
   industryMatch,
   potentialNeedsForSeller,
-  sellerContext,
   sellerIntelligenceProfile,
 } from "../lib/prospectMatching";
+import { buildOpportunityIntelligence } from "../lib/opportunityIntelligence";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -422,88 +422,8 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
   };
 }
 
-// ─── AI-written "Why target" insights ─────────────────────────────────────────
-// One batched LLM call per search: for each found business, write a short,
-// company-specific reason it's a good outreach target, grounded ONLY in the
-// verified signals we actually have. Falls back to the signal-based template.
-
-interface ProspectInsight {
-  why: string;
-  /** 0-100 likelihood this account engages with and buys the client's service. */
-  score: number;
-  potentialNeeds: string[];
-  recommendedOutreach: string;
-}
-
-async function generateWhyTargets(
-  leads: BaseLead[],
-  vertical: string,
-  searchIndustry: string,
-  client?: typeof usersTable.$inferSelect,
-): Promise<ProspectInsight[] | null> {
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
-  if (!baseURL || !apiKey || !leads.length) return null;
-
-  const seller = sellerIntelligenceProfile(client);
-  const sellerDesc = seller.ready ? seller.services.concat(seller.capabilities).join(", ") : "a seller whose services have not yet been configured";
-
-  const companyLines = leads.map((l, i) => JSON.stringify({
-    i,
-    name: l.companyName,
-    industry: l.industry,
-    location: `${l.city}, ${l.state}`,
-    address: l.address ?? null,
-    website: l.website ?? null,
-    hasPhone: Boolean(l.phone),
-  }));
-
-  const messages = [
-    {
-      role: "system",
-      content: `You are a B2B sales researcher. ${sellerContext(client, searchIndustry, vertical)}
-For EACH business below:
-1. Write a 1-2 sentence "why target this account" insight that combines verified prospect data, industry fit, one relevant configured seller capability, and a potential business outcome. When seller intelligence is limited, use discovery language instead of a seller claim.
-2. Score 0-100 how likely this account is to fit and engage with ${sellerDesc}. Use seller-to-prospect fit, industry relevance, and only verified Google Places signals. Be discriminating.
-3. Write 2-3 potentialNeeds entries, each following BUSINESS CHALLENGE → SELLER SOLUTION → POTENTIAL BUSINESS OUTCOME. Use only configured seller capabilities and outcomes. When seller intelligence is limited, recommend discovery instead of naming a seller-specific solution.
-4. Write recommendedOutreach as "Lead with [configured seller capability] because [verified prospect situation or clearly labeled industry fit] creates an opportunity around [business outcome]." When seller intelligence is limited, recommend a discovery question.
-Ground every claim in supplied prospect data, configured Seller Intelligence, or clearly labeled industry traits. Never invent employee counts, revenue, equipment, locations, current providers, certifications, services, results, fleet size, vehicle ownership, purchases, hiring, expansion, rebranding, ad spend, ROI, or portfolio examples. Return ONLY a JSON array of objects {"why": string, "score": number, "potentialNeeds": string[], "recommendedOutreach": string}, one per business, in the same order, no markdown.`,
-    },
-    { role: "user", content: companyLines.join("\n") },
-  ];
-
-  try {
-    const resp = await fetch(`${baseURL}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: "gpt-5.4", max_completion_tokens: 2500, messages }),
-      signal: AbortSignal.timeout(25_000),
-    });
-    if (!resp.ok) throw new Error(`LLM ${resp.status}`);
-    const data = await resp.json() as any;
-    const raw: string = data.choices?.[0]?.message?.content ?? "";
-    const jsonText = raw.trim().replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
-    const parsed = JSON.parse(jsonText);
-    if (!Array.isArray(parsed) || parsed.length !== leads.length) return null;
-    if (!parsed.every((o) =>
-      o && typeof o.why === "string" && o.why.trim().length > 20 && o.why.length < 600 &&
-      typeof o.score === "number" && o.score >= 0 && o.score <= 100 &&
-      Array.isArray(o.potentialNeeds) && o.potentialNeeds.length >= 2 && o.potentialNeeds.length <= 3 &&
-      o.potentialNeeds.every((need: unknown) => typeof need === "string" && need.length >= 20 && need.length <= 500) &&
-      typeof o.recommendedOutreach === "string" &&
-      o.recommendedOutreach.length >= 20 && o.recommendedOutreach.length <= 700
-    )) return null;
-    return parsed.map((o: any) => ({
-      why: o.why.trim(),
-      score: Math.round(o.score),
-      potentialNeeds: o.potentialNeeds.map((need: string) => need.trim()),
-      recommendedOutreach: o.recommendedOutreach.trim(),
-    }));
-  } catch (err: any) {
-    logger.warn({ err: err?.message }, "AI why-target generation failed — using signal-based fallback");
-    return null;
-  }
-}
+// Opportunity narratives are deterministic projections of structured evidence.
+// This keeps unsupported LLM prose from turning implications into prospect facts.
 
 router.post("/prospect-search", requireEntitlement, async (req, res) => {
   const body = ProspectSearchBody.parse(req.body);
@@ -523,34 +443,27 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     const places = await searchRealBusinesses(apiKey, body.city.trim(), body.state, body.industry, count);
     const bases = places.slice(0, count).map((p) => placeToLeadBase(p, body.city.trim(), body.state, body.industry, vertical));
 
-    // AI research pass: company-specific "why target" insights (falls back to
-    // the signal-based template already on each lead when AI is unavailable).
-    const insights = await generateWhyTargets(bases, vertical, body.industry, client);
-
     const leads = bases.map((base, i) => {
       const lead = vertical === "it_services"
         ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined, client)
         : vertical === "fleet_wraps"
           ? addFleetOverlay(base, body.industry, client)
           : base;
-      if (!insights) return lead; // AI unavailable — keep signal-based why + confidence.
-      const { why, score, potentialNeeds, recommendedOutreach } = insights[i];
-      // Engagement-likelihood score drives the fit label and result ordering.
-      const confidence: "high" | "medium" | "low" = score >= 70 ? "high" : score >= 45 ? "medium" : "low";
+      const opportunityIntelligence = buildOpportunityIntelligence(lead, vertical, client);
       return {
         ...lead,
-        whyTarget: why,
-        potentialNeeds,
-        recommendedOutreach,
-        confidence,
-        engagementScore: score,
+        opportunityScore: opportunityIntelligence.score,
+        scoreLabel: opportunityIntelligence.label,
+        scoreExplanation: opportunityIntelligence.definition,
+        whyTarget: opportunityIntelligence.whyTarget,
+        potentialNeeds: opportunityIntelligence.potentialNeeds,
+        recommendedOutreach: opportunityIntelligence.recommendedOutreach,
+        opportunityIntelligence,
       };
     });
 
-    // Likeliest-to-engage accounts first.
-    if (insights) {
-      leads.sort((a: any, b: any) => (b.engagementScore ?? 0) - (a.engagementScore ?? 0));
-    }
+    // Strongest seller-specific opportunities first. This never uses engagement.
+    leads.sort((a: any, b: any) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
     return res.json(leads);
   } catch (err) {
     if (err instanceof ProspectSearchError) {

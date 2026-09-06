@@ -56,6 +56,134 @@ export const ProspectStatus = {
   closed_lost: 'closed_lost',
 } as const;
 
+export type OpportunityIntelligenceVersion = typeof OpportunityIntelligenceVersion[keyof typeof OpportunityIntelligenceVersion];
+
+
+export const OpportunityIntelligenceVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type OpportunityIntelligenceLabel = typeof OpportunityIntelligenceLabel[keyof typeof OpportunityIntelligenceLabel];
+
+
+export const OpportunityIntelligenceLabel = {
+  High_Priority: 'High Priority',
+  Strong_Fit: 'Strong Fit',
+  Possible_Fit: 'Possible Fit',
+  Low_Priority: 'Low Priority',
+} as const;
+
+export type OpportunityIntelligenceScoreConfidence = typeof OpportunityIntelligenceScoreConfidence[keyof typeof OpportunityIntelligenceScoreConfidence];
+
+
+export const OpportunityIntelligenceScoreConfidence = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export type OpportunityScoreCategoryKey = typeof OpportunityScoreCategoryKey[keyof typeof OpportunityScoreCategoryKey];
+
+
+export const OpportunityScoreCategoryKey = {
+  company_industry_fit: 'company_industry_fit',
+  verified_buying_signals: 'verified_buying_signals',
+  seller_prospect_match: 'seller_prospect_match',
+  decision_maker_match: 'decision_maker_match',
+  signal_freshness: 'signal_freshness',
+  business_need_potential: 'business_need_potential',
+} as const;
+
+export interface OpportunityScoreCategory {
+  key: OpportunityScoreCategoryKey;
+  label: string;
+  /**
+     * @minimum 0
+     * @maximum 30
+     */
+  points: number;
+  /**
+     * @minimum 1
+     * @maximum 30
+     */
+  maxPoints: number;
+  explanation: string;
+  evidence: string[];
+}
+
+export type OpportunitySignalSignalClassification = typeof OpportunitySignalSignalClassification[keyof typeof OpportunitySignalSignalClassification];
+
+
+export const OpportunitySignalSignalClassification = {
+  verified: 'verified',
+  implication: 'implication',
+  unconfirmed: 'unconfirmed',
+} as const;
+
+export type OpportunitySignalConfidenceLevel = typeof OpportunitySignalConfidenceLevel[keyof typeof OpportunitySignalConfidenceLevel];
+
+
+export const OpportunitySignalConfidenceLevel = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export type OpportunitySignalFreshness = typeof OpportunitySignalFreshness[keyof typeof OpportunitySignalFreshness];
+
+
+export const OpportunitySignalFreshness = {
+  recent: 'recent',
+  active: 'active',
+  older: 'older',
+  stale: 'stale',
+  unknown: 'unknown',
+} as const;
+
+export interface OpportunitySignal {
+  signalType: string;
+  signalTitle: string;
+  signalDescription: string;
+  signalClassification: OpportunitySignalSignalClassification;
+  confidenceLevel: OpportunitySignalConfidenceLevel;
+  freshness: OpportunitySignalFreshness;
+  sourceName?: string;
+  sourceURL?: string;
+  sourceDate?: string;
+  dateDiscovered: string;
+  dateVerified?: string;
+  supportingEvidence?: string;
+  relatedSellerCapability?: string;
+  potentialBusinessImpact?: string;
+  /**
+     * @minimum 0
+     * @maximum 30
+     */
+  points: number;
+}
+
+export interface OpportunityIntelligence {
+  version: OpportunityIntelligenceVersion;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  score: number;
+  label: OpportunityIntelligenceLabel;
+  scoreConfidence: OpportunityIntelligenceScoreConfidence;
+  definition: string;
+  /**
+     * @minItems 6
+     * @maxItems 6
+     */
+  breakdown: OpportunityScoreCategory[];
+  signals: OpportunitySignal[];
+  whyTarget: string;
+  potentialNeeds: string[];
+  recommendedOutreach: string;
+  generatedAt: string;
+}
+
 export interface Prospect {
   id: number;
   companyName: string;
@@ -68,7 +196,10 @@ export interface Prospect {
   /** @nullable */
   website?: string | null;
   /** @nullable */
+  address?: string | null;
+  /** @nullable */
   notes?: string | null;
+  opportunityIntelligence?: OpportunityIntelligence | null;
   /** @nullable */
   employeeCount?: number | null;
   /** @nullable */
@@ -94,9 +225,13 @@ export interface ProspectInput {
   city: string;
   state: string;
   website?: string;
+  address?: string;
   notes?: string;
+  opportunityIntelligence?: OpportunityIntelligence;
   employeeCount?: number;
   squareFootage?: number;
+  title?: string;
+  linkedinUrl?: string;
 }
 
 /**
@@ -488,6 +623,7 @@ export interface ProspectLead {
   recommendedOutreach?: string;
   /** Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly */
   fleetBrandingSignal?: string;
+  opportunityIntelligence?: OpportunityIntelligence;
 }
 
 export type DashboardStatsProspectsByStatusItem = {
