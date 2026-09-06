@@ -15,7 +15,7 @@ vi.mock("../lib/requireAuth", () => ({
   requireEntitlement: (_req: any, _res: any, next: any) => { next(); },
 }));
 vi.mock("../lib/verticals", () => ({
-  getVerticalConfig: (v: string | undefined) => ({ key: v === "it_services" ? "it_services" : "janitorial" }),
+  getVerticalConfig: (v: string | undefined) => ({ key: v === "it_services" || v === "fleet_wraps" ? v : "janitorial" }),
 }));
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -24,6 +24,7 @@ vi.mock("../lib/logger", () => ({
 import {
   placeToLeadBase,
   addItOverlay,
+  addFleetOverlay,
   websiteDomain,
   searchRealBusinesses,
   ProspectSearchError,
@@ -169,6 +170,31 @@ describe("addItOverlay", () => {
     const lead = addItOverlay(base, "Unknown");
     expect(lead.opportunityScore).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(lead.potentialNeeds)).toBe(true);
+  });
+});
+
+describe("addFleetOverlay", () => {
+  it("adds the complete fleet-wrap result intelligence without claiming an unverified fleet size", () => {
+    const base = placeToLeadBase(PLACE, "Chicago", "IL", "HVAC", "fleet_wraps");
+    const lead = addFleetOverlay(base, "HVAC");
+
+    expect(lead.vertical).toBe("fleet_wraps");
+    expect(lead.opportunityScore).toBeGreaterThanOrEqual(0);
+    expect(lead.opportunityScore).toBeLessThanOrEqual(100);
+    expect(lead.potentialNeeds.length).toBeGreaterThan(0);
+    expect(lead.fleetBrandingSignal).toMatch(/unconfirmed/i);
+    expect(lead.recommendedOutreach).toMatch(/technician-van branding/i);
+    expect(lead.scoreExplanation).toMatch(/not assumed/i);
+  });
+
+  it("uses verified public signals and explicitly labels unknown fleet evidence", () => {
+    const base = placeToLeadBase(PLACE_NO_WEB, "Chicago", "IL", "Unknown Industry", "fleet_wraps");
+    const lead = addFleetOverlay(base, "Unknown Industry");
+
+    expect(lead.fleetBrandingSignal).toContain("published business phone number");
+    expect(lead.fleetBrandingSignal).toMatch(/unconfirmed/i);
+    expect(lead.whyTarget).toContain("Riverside Medical Center");
+    expect(lead.whyTarget).toContain("Chicago, IL");
   });
 });
 

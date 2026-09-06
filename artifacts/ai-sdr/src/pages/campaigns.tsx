@@ -80,6 +80,11 @@ const INDUSTRIES = [
   "Commercial Real Estate", "Logistics & Warehousing", "Manufacturing", "Education",
 ];
 
+const FLEET_INDUSTRIES = [
+  "Home Services", "Roofing", "HVAC", "Plumbing", "Electrical", "Landscaping",
+  "Construction", "Delivery & Logistics", "Municipal", "Education", "Commercial",
+];
+
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:     { label: "Draft",     color: "bg-muted text-muted-foreground border-border" },
   active:    { label: "Active",    color: "bg-blue-100 text-blue-800 border-blue-200" },
@@ -142,8 +147,19 @@ const IT_FORM_OVERRIDES: Partial<Record<typeof FOLLOW_UP_KEYS[number], SequenceS
 };
 
 function blankForm(vertical: ClientVertical): CampaignForm {
-  if (vertical !== "it_services") return BLANK_FORM;
-  return { ...BLANK_FORM, ...IT_FORM_OVERRIDES } as CampaignForm;
+  if (vertical === "it_services") return { ...BLANK_FORM, ...IT_FORM_OVERRIDES } as CampaignForm;
+  if (vertical === "fleet_wraps") {
+    return {
+      ...BLANK_FORM,
+      followUp1: { dayDelay: 3, subject: "Following up on {{companyName}}'s fleet branding", body: "Hi {{contactName}},\n\nJust following up on my note about commercial vehicle wraps and fleet graphics for {{companyName}}. Would a quick fleet branding consultation be useful?\n\nBest,\nYour SDR Team" },
+      followUp2: { dayDelay: 4, subject: "A branding idea for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} businesses, every vehicle can reinforce the brand throughout {{city}}. We help keep wraps, lettering, and replacement graphics consistent as vehicles change.\n\nWorth a quick conversation?\n\nBest,\nYour SDR Team" },
+      followUp3: { dayDelay: 5, subject: "{{companyName}} — fleet graphics", body: "Hi {{contactName}},\n\nWe can help with full wraps, partial wraps, vehicle lettering, trailer graphics, and consistent fleet branding. I would be happy to review what may fit {{companyName}} without assuming how many vehicles you operate.\n\nBest,\nYour SDR Team" },
+      followUp4: { dayDelay: 7, subject: "Fleet branding consultation for {{companyName}}", body: "Hi {{contactName}},\n\nI know you're busy, so I'll keep this short. We help {{industry}} businesses in {{city}} turn working vehicles into professional, consistent mobile advertising.\n\nWould you be open to a fleet branding consultation?\n\nBest,\nYour SDR Team" },
+      followUp5: { dayDelay: 10, subject: "One more vehicle-branding thought", body: "Hi {{contactName}},\n\nIf {{companyName}} is adding or replacing vehicles, we can make the graphics process repeatable so each one matches the brand. If that is not currently planned, I am happy to reconnect later.\n\nBest,\nYour SDR Team" },
+      followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI'll close the loop after this. If commercial vehicle wraps, fleet graphics, or replacement lettering become a priority for {{companyName}}, we'd be glad to help.\n\nBest,\nYour SDR Team" },
+    };
+  }
+  return BLANK_FORM;
 }
 
 const BLANK_FORM: CampaignForm = {
@@ -248,7 +264,7 @@ function mergePreviewTemplate(template: string, industry: string): string {
 }
 
 function introPreviewSubject(campaignName: string, vertical: ClientVertical): string {
-  const prefix = vertical === "it_services" ? "Managed IT Services" : "Janitorial Services";
+  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : "Janitorial Services";
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
@@ -264,7 +280,12 @@ export default function Campaigns() {
       return res.json();
     },
   });
-  const vertical: ClientVertical = me?.vertical === "it_services" ? "it_services" : "janitorial";
+  const vertical: ClientVertical = me?.vertical === "it_services"
+    ? "it_services"
+    : me?.vertical === "fleet_wraps"
+      ? "fleet_wraps"
+      : "janitorial";
+  const campaignIndustries = vertical === "fleet_wraps" ? FLEET_INDUSTRIES : INDUSTRIES;
 
   const { data: campaigns, isLoading } = useListCampaigns();
   const createCampaign = useCreateCampaign();
@@ -723,7 +744,7 @@ export default function Campaigns() {
           <Select value={form.targetIndustry} onValueChange={v => setForm({ ...form, targetIndustry: v })}>
             <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
             <SelectContent>
-              {INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+              {campaignIndustries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

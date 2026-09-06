@@ -1,7 +1,8 @@
-export type Vertical = "janitorial" | "it_services";
+export type Vertical = "janitorial" | "it_services" | "fleet_wraps";
 
 export function normalizeVertical(v?: string | null): Vertical {
-  return v === "it_services" ? "it_services" : "janitorial";
+  if (v === "it_services" || v === "fleet_wraps") return v;
+  return "janitorial";
 }
 
 export interface VerticalConfig {
@@ -267,9 +268,65 @@ const IT_SERVICES: VerticalConfig = {
   },
 };
 
+const FLEET_WRAPS: VerticalConfig = {
+  key: "fleet_wraps",
+  label: "Fleet & Commercial Vehicle Wraps",
+  serviceNoun: "fleet graphics and commercial vehicle wraps",
+  senderDescriptor: "a commercial vehicle wrap and fleet graphics provider",
+  audience: "business owners, fleet managers, operations leaders, and marketing leaders",
+  offerName: "fleet branding consultation",
+  offerCtaLabel: "Schedule fleet consultation",
+  offerSubject: (c) => `Let's review ${c}'s fleet branding`,
+  footerServicePhrase: "professional fleet graphics and commercial vehicle wraps",
+  stepSubject: (step, companyName) => {
+    if (step === 1) return `Quick question about ${companyName}'s vehicle branding`;
+    if (step === 2) return `Re: ${companyName}'s fleet graphics`;
+    return `Last follow-up — ${companyName}`;
+  },
+  fallbackEmailSubject: (c) => `Fleet graphics for ${c}`,
+  offerings: [
+    "full and partial vehicle wraps",
+    "fleet graphics and vehicle lettering",
+    "replacement vehicle graphics",
+    "trailer graphics",
+    "multi-location fleet branding",
+  ],
+  industryChallenges: {
+    "Home Services": ["keeping service vehicles consistently branded", "turning daily drive time into local advertising"],
+    Roofing: ["branding trucks used by field crews", "maintaining consistent graphics as crews expand"],
+    HVAC: ["wrapping technician vans", "replacing worn graphics on high-mileage service vehicles"],
+    Plumbing: ["making service vehicles recognizable and professional", "consistent branding across vans and trucks"],
+    Electrical: ["branding field-service vehicles", "supporting new crews with matching vehicle graphics"],
+    Landscaping: ["coordinating truck and trailer graphics", "building visibility across a local service territory"],
+    Construction: ["branding trucks and trailers used across job sites", "keeping multi-vehicle graphics consistent"],
+    "Delivery & Logistics": ["consistent fleet identification", "coordinating graphics across vehicle types and locations"],
+    Municipal: ["clear department and vehicle identification", "replacement graphics for working fleet vehicles"],
+    Education: ["consistent campus fleet identification", "graphics for facilities, transportation, and service vehicles"],
+  },
+  fallbackChallenges: [
+    "keeping commercial vehicles consistently branded",
+    "using fleet vehicles as professional mobile advertising",
+  ],
+  schedule: {
+    headline: "Schedule your fleet branding consultation",
+    intro: (b, c) => `${b} would love to learn about ${c}'s vehicle and fleet branding needs. Answer a few quick questions, then pick a time below.`,
+    providerQuestion: "Who currently handles your vehicle graphics?",
+    frequencyQuestion: "How many vehicles may need graphics?",
+    sizeLabel: "Vehicles by location",
+    sizeUnit: "vehicles",
+    locationQuestion: "How many locations operate vehicles?",
+    uploadLabel: "Logos, brand guides, or vehicle photos (optional)",
+    summaryTitle: (c) => `New fleet branding request from ${c}`,
+    summaryIntro: "A prospect completed the qualifying questionnaire and is ready to discuss fleet graphics.",
+    summarySizeHeading: "VEHICLES BY LOCATION",
+    notificationSubject: (c) => `Fleet branding request — ${c}`,
+  },
+};
+
 const CONFIGS: Record<Vertical, VerticalConfig> = {
   janitorial: JANITORIAL,
   it_services: IT_SERVICES,
+  fleet_wraps: FLEET_WRAPS,
 };
 
 export function getVerticalConfig(v?: string | null): VerticalConfig {

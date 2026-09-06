@@ -1362,7 +1362,7 @@ components:
           enum: [high, medium, low]
         vertical:
           type: string
-          description: Vertical this lead was generated for (janitorial | it_services)
+          description: Vertical this lead was generated for (janitorial | it_services | fleet_wraps)
         opportunityScore:
           type: integer
           description: IT Opportunity Score 0-100 (IT Services vertical only)
@@ -1384,6 +1384,9 @@ components:
           description: Likely/potential compliance consideration, clearly inferred
         recommendedOutreach:
           type: string
+        fleetBrandingSignal:
+          type: string
+          description: Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly
 
     DashboardStats:
       type: object

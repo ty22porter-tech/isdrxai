@@ -472,7 +472,7 @@ export interface ProspectLead {
   estimatedSquareFootage?: number;
   whyTarget: string;
   confidence: ProspectLeadConfidence;
-  /** Vertical this lead was generated for (janitorial | it_services) */
+  /** Vertical this lead was generated for (janitorial | it_services | fleet_wraps) */
   vertical?: string;
   /** IT Opportunity Score 0-100 (IT Services vertical only) */
   opportunityScore?: number;
@@ -486,6 +486,8 @@ export interface ProspectLead {
   /** Likely/potential compliance consideration, clearly inferred */
   complianceConsideration?: string;
   recommendedOutreach?: string;
+  /** Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly */
+  fleetBrandingSignal?: string;
 }
 
 export type DashboardStatsProspectsByStatusItem = {

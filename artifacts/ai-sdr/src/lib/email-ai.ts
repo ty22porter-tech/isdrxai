@@ -372,10 +372,31 @@ const DEFAULT_IT_PROFILE: IndustryProfile = {
   closingLine: "Reliable, secure IT means fewer disruptions, lower risk, and a team that can focus on the business.",
 };
 
-export type ClientVertical = "janitorial" | "it_services";
+const DEFAULT_FLEET_PROFILE: IndustryProfile = {
+  label: "Commercial",
+  painPoints: [
+    "keeping commercial vehicles consistently branded",
+    "making service vehicles recognizable in the local market",
+    "coordinating graphics when vehicles are added or replaced",
+  ],
+  challenges: [
+    "Inconsistent branding across vehicles",
+    "Worn or outdated fleet graphics",
+    "Missed mobile-advertising opportunities",
+  ],
+  valueProps: [
+    "professional full and partial commercial vehicle wraps",
+    "consistent fleet graphics and vehicle lettering",
+    "a repeatable process for replacement vehicles and fleet additions",
+  ],
+  closingLine: "Consistent fleet graphics help every vehicle look professional and work as mobile advertising.",
+};
+
+export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps";
 
 function getProfile(industry: string, vertical: ClientVertical = "janitorial"): IndustryProfile {
   if (vertical === "it_services") return IT_INDUSTRY_PROFILES[industry] ?? DEFAULT_IT_PROFILE;
+  if (vertical === "fleet_wraps") return DEFAULT_FLEET_PROFILE;
   return INDUSTRY_PROFILES[industry] ?? DEFAULT_PROFILE;
 }
 
@@ -389,6 +410,11 @@ const WORDING: Record<ClientVertical, { serviceNoun: string; offer: string; offe
     serviceNoun: "managed IT services",
     offer: "IT assessment",
     offerAction: "run an IT assessment for",
+  },
+  fleet_wraps: {
+    serviceNoun: "fleet graphics and commercial vehicle wraps",
+    offer: "fleet branding consultation",
+    offerAction: "review the vehicle branding for",
   },
 };
 
@@ -409,7 +435,12 @@ export function generateIntroEmail(prospect: {
   const valueProp1 = p.valueProps[0];
   const valueProp2 = p.valueProps[1];
 
-  const subject = `${vertical === "it_services" ? "Managed IT services" : "Janitorial services"} for ${prospect.companyName ?? p.label + " businesses"} — quick question`;
+  const subjectPrefix = vertical === "it_services"
+    ? "Managed IT services"
+    : vertical === "fleet_wraps"
+      ? "Fleet graphics"
+      : "Janitorial services";
+  const subject = `${subjectPrefix} for ${prospect.companyName ?? p.label + " businesses"} — quick question`;
 
   const body = `Hi ${prospect.contactName ?? "there"},
 
@@ -424,7 +455,7 @@ A few business challenges we specifically address for ${p.label.toLowerCase()} c
 
 ${p.closingLine}
 
-Would you be open to a 15-minute call this week? I'd love to ${w.offerAction} ${prospect.companyName ?? (vertical === "it_services" ? "your business" : "your facility")} and put together a custom quote.
+Would you be open to a 15-minute call this week? I'd love to ${w.offerAction} ${prospect.companyName ?? (vertical === "janitorial" ? "your facility" : "your business")} and put together a custom quote.
 
 Best,
 Your SDR Team`;
@@ -445,7 +476,7 @@ export function generateFollowUpEmail(prospect: {
   const subject = `Following up — ${prospect.companyName ?? p.label}`;
   const body = `Hi ${prospect.contactName ?? "there"},
 
-I wanted to follow up on my previous note about ${w.serviceNoun} for ${prospect.companyName ?? (vertical === "it_services" ? "your business" : "your facility")}.
+I wanted to follow up on my previous note about ${w.serviceNoun} for ${prospect.companyName ?? (vertical === "janitorial" ? "your facility" : "your business")}.
 
 Given that ${pick(p.challenges).toLowerCase()} is a real concern for ${p.label.toLowerCase()} operations, I thought it was worth reaching out again.
 
@@ -470,7 +501,7 @@ export function generateBreakupEmail(prospect: {
   const subject = `Last note — ${prospect.companyName ?? p.label}`;
   const body = `Hi ${prospect.contactName ?? "there"},
 
-I've reached out a couple of times about ${w.serviceNoun} for ${prospect.companyName ?? (vertical === "it_services" ? "your business" : "your facility")}, and I don't want to keep filling your inbox if the timing isn't right.
+I've reached out a couple of times about ${w.serviceNoun} for ${prospect.companyName ?? (vertical === "janitorial" ? "your facility" : "your business")}, and I don't want to keep filling your inbox if the timing isn't right.
 
 If ${p.challenges[0].toLowerCase()} ever becomes a priority, we'd love to help — ${p.valueProps[0]} is something we do really well for ${p.label.toLowerCase()} businesses.
 

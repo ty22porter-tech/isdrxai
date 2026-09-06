@@ -429,10 +429,11 @@ export default function SettingsPage() {
             <label className="text-sm font-medium flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" /> Your Industry
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {[
                 { value: "janitorial", label: "Janitorial", desc: "Commercial cleaning outreach" },
                 { value: "it_services", label: "IT Services", desc: "Cybersecurity, MS365, Managed IT, MDM" },
+                { value: "fleet_wraps", label: "Fleet & Vehicle Wraps", desc: "Commercial vehicle graphics and fleet branding" },
               ].map(opt => (
                 <button
                   key={opt.value}

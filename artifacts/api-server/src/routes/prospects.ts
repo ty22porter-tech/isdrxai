@@ -27,7 +27,8 @@ router.use(requireAuth, requireEntitlement);
 // created, so vertical-specific data never bleeds between workflows.
 async function currentVertical(clientId: string): Promise<string> {
   const [client] = await db.select({ vertical: usersTable.vertical }).from(usersTable).where(eq(usersTable.id, clientId));
-  return client?.vertical === "it_services" ? "it_services" : "janitorial";
+  if (client?.vertical === "it_services" || client?.vertical === "fleet_wraps") return client.vertical;
+  return "janitorial";
 }
 
 function parseUtcCalendarDate(value: string): Date | null {

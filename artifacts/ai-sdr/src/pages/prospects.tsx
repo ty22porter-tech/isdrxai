@@ -36,14 +36,18 @@ function mergeTpl(tpl: string, prospect: any): string {
     .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
 }
 function defaultSubject(campaignName: string, vertical: string = "janitorial") {
-  const prefix = vertical === "it_services" ? "Managed IT Services" : "Janitorial Services";
+  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : "Janitorial Services";
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
 function fallbackBody(p: any, vertical: string = "janitorial") {
-  return vertical === "it_services"
-    ? `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule an IT assessment for ${p.companyName}.`
-    : `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
+  if (vertical === "it_services") {
+    return `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule an IT assessment for ${p.companyName}.`;
+  }
+  if (vertical === "fleet_wraps") {
+    return `Hi ${p.contactName},\n\nWe provide commercial vehicle wraps, fleet graphics, and vehicle lettering for ${p.industry} companies in ${p.city}. I'd love to schedule a fleet branding consultation for ${p.companyName}.`;
+  }
+  return `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
 }
 
 function isCompleteFilterDate(value: string): boolean {
@@ -938,7 +942,11 @@ export default function Prospects() {
       return res.json();
     },
   });
-  const vertical: string = me?.vertical === "it_services" ? "it_services" : "janitorial";
+  const vertical: string = me?.vertical === "it_services"
+    ? "it_services"
+    : me?.vertical === "fleet_wraps"
+      ? "fleet_wraps"
+      : "janitorial";
 
   // create dialog
   const [isOpen, setIsOpen] = useState(false);
@@ -1189,7 +1197,11 @@ export default function Prospects() {
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Prospects</h2>
             <p className="text-muted-foreground mt-1">
-              {vertical === "it_services" ? "Manage your IT services prospects." : "Manage your janitorial commercial targets."}
+              {vertical === "it_services"
+                ? "Manage your IT services prospects."
+                : vertical === "fleet_wraps"
+                  ? "Manage your fleet and commercial vehicle wrap prospects."
+                  : "Manage your janitorial commercial targets."}
             </p>
           </div>
           <div className="flex items-center gap-2">

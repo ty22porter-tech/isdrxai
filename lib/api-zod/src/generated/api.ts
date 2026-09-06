@@ -691,14 +691,15 @@ export const ProspectSearchResponseItem = zod.object({
   "estimatedSquareFootage": zod.number().optional(),
   "whyTarget": zod.string(),
   "confidence": zod.enum(['high', 'medium', 'low']),
-  "vertical": zod.string().optional().describe('Vertical this lead was generated for (janitorial | it_services)'),
+  "vertical": zod.string().optional().describe('Vertical this lead was generated for (janitorial | it_services | fleet_wraps)'),
   "opportunityScore": zod.number().optional().describe('IT Opportunity Score 0-100 (IT Services vertical only)'),
   "scoreLabel": zod.string().optional().describe('High Priority | Strong Fit | Possible Fit | Low Priority'),
   "scoreExplanation": zod.string().optional(),
   "estimatedLocations": zod.number().optional().describe('Estimated number of locations (IT Services vertical only)'),
   "potentialNeeds": zod.array(zod.string()).optional().describe('Potential IT service needs (IT Services vertical only)'),
   "complianceConsideration": zod.string().optional().describe('Likely\/potential compliance consideration, clearly inferred'),
-  "recommendedOutreach": zod.string().optional()
+  "recommendedOutreach": zod.string().optional(),
+  "fleetBrandingSignal": zod.string().optional().describe('Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly')
 })
 export const ProspectSearchResponse = zod.array(ProspectSearchResponseItem)
 

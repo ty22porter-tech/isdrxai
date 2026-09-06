@@ -1,0 +1,116 @@
+PROSPECT RESULT CARD — FLEET & COMMERCIAL VEHICLE WRAPS
+
+CRITICAL:
+When Fleet & Commercial Vehicle Wraps is selected, prospect search results must use the SAME result-card structure and presentation style currently used by IT Services.
+
+Do not simplify the results.
+
+Use the existing IT prospect result card as the reference implementation.
+
+For Fleet & Commercial Vehicle Wraps, each prospect result should include:
+
+1. Fleet Wrap Opportunity Score
+2. Why target
+3. Potential needs
+4. Fleet / branding signal
+5. Recommended outreach
+
+Replace IT-specific wording such as:
+- IT Opportunity Score
+- Compliance
+- Cybersecurity needs
+
+with Fleet Wrap-specific intelligence.
+
+EXAMPLE STRUCTURE
+
+Fleet Wrap Opportunity Score: 82 — Strong Fit
+
+Why target:
+Explain specifically why this company is a good commercial vehicle wrap prospect based on its industry, business model, fleet usage, growth, locations, hiring activity, branding, or other verified signals.
+
+Potential needs:
+List likely relevant services such as:
+- Full vehicle wraps
+- Partial vehicle wraps
+- Fleet graphics
+- Vehicle lettering
+- New fleet branding
+- Replacement vehicle graphics
+- Trailer graphics
+- Multi-location fleet branding
+- Rebranding existing vehicles
+- Promotional vehicle graphics
+
+Fleet / Branding Signal:
+Summarize the strongest verified prospecting signal.
+
+Examples:
+- Operates service vehicles
+- Hiring field technicians
+- Hiring drivers
+- Opening a new location
+- Expanding service territory
+- Multi-location operation
+- Adding vehicles
+- Rebranding
+- New logo
+- Fleet-dependent business model
+- Municipal fleet
+- University fleet
+
+Recommended outreach:
+Provide the best outreach angle for the sales representative based on the prospect's actual business and available buying signals.
+
+The recommendation should explain WHAT the sales rep should lead with.
+
+Examples:
+- Offer a fleet branding consultation for newly added service vehicles.
+- Lead with consistent branding across multiple locations.
+- Discuss wrapping new technician vans as the company expands.
+- Position fleet graphics as mobile advertising for a local service business.
+- Discuss replacement graphics for municipal vehicles.
+- Offer a fleet branding review for campus service and facilities vehicles.
+
+IMPORTANT:
+The AI must NOT return generic fleet-wrap explanations for every prospect.
+
+The result must be customized based on:
+- Prospect industry
+- Company size
+- Location
+- Decision-maker
+- Business model
+- Available public research
+- Fleet indicators
+- Growth signals
+- Hiring signals
+- Expansion signals
+- Branding signals
+
+Do not fabricate fleet size, number of vehicles, purchases, hiring, expansion, rebranding, or other facts.
+
+If a signal cannot be verified, state that it is unconfirmed or base the recommendation on the company's industry/business model only.
+
+EXAMPLE RESULT
+
+ABC Roofing                         HIGH FIT
+Real contact found
+
+James Smith
+President
+Dallas, TX
+
+Fleet Wrap Opportunity Score: 84 — Strong Fit
+
+Why target:
+ABC Roofing operates in a highly fleet-dependent industry where field crews commonly use branded service trucks. The company is actively hiring additional roofing technicians and serves multiple DFW markets, which may indicate continued field-operation growth.
+
+Potential needs:
+New vehicle wraps, fleet graphics, consistent branding across service trucks, replacement vehicle graphics
+
+Fleet / Branding Signal:
+Active field technician hiring and multi-market operations suggest potential fleet growth.
+
+Recommended outreach:
+Lead with helping ABC Roofing maintain consistent branding as additional crews and vehicles are added, while turning each truck into local mobile advertising.

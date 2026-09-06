@@ -129,7 +129,7 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const choose = async (vertical: "janitorial" | "it_services") => {
+  const choose = async (vertical: "janitorial" | "it_services" | "fleet_wraps") => {
     setSaving(vertical);
     setError(null);
     try {
@@ -173,6 +173,14 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
           >
             <div className="font-semibold">IT Services / MSP</div>
             <div className="text-sm text-muted-foreground mt-1">Book free IT assessments — cybersecurity, MS365, managed IT, managed security, MDM.</div>
+          </button>
+          <button
+            onClick={() => choose("fleet_wraps")}
+            disabled={saving !== null}
+            className="rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-60"
+          >
+            <div className="font-semibold">Fleet & Commercial Vehicle Wraps</div>
+            <div className="text-sm text-muted-foreground mt-1">Find fleet-dependent businesses and sell vehicle wraps, graphics, and lettering.</div>
           </button>
           {error && (
             <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

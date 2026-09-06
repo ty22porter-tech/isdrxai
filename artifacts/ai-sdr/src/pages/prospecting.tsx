@@ -76,6 +76,21 @@ const IT_COMPLIANCE_PRIORITIES = [
   "Data Privacy Requirements",
 ];
 
+const FLEET_INDUSTRIES = [
+  "All Industries",
+  "Home Services",
+  "Roofing",
+  "HVAC",
+  "Plumbing",
+  "Electrical",
+  "Landscaping",
+  "Construction",
+  "Delivery & Logistics",
+  "Municipal",
+  "Education",
+  "Commercial",
+];
+
 const SCORE_COLORS: Record<string, string> = {
   "High Priority": "bg-green-100 text-green-800 border-green-200",
   "Strong Fit": "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -223,9 +238,10 @@ export default function Prospecting() {
   });
   const verticalLoaded = me !== undefined;
   const isIT = me?.vertical === "it_services";
-  const vertical = isIT ? "it_services" : "janitorial";
-  const verticalLabel = isIT ? "IT Services" : "Janitorial";
-  const industryOptions = isIT ? IT_INDUSTRIES : INDUSTRIES;
+  const isFleet = me?.vertical === "fleet_wraps";
+  const vertical = isIT ? "it_services" : isFleet ? "fleet_wraps" : "janitorial";
+  const verticalLabel = isIT ? "IT Services" : isFleet ? "Fleet & Commercial Vehicle Wraps" : "Janitorial";
+  const industryOptions = isIT ? IT_INDUSTRIES : isFleet ? FLEET_INDUSTRIES : INDUSTRIES;
 
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -368,13 +384,15 @@ export default function Prospecting() {
     runSearch();
   };
 
-  // IT leads carry scoring/compliance context worth preserving in the pipeline notes.
+  // Rich vertical-specific research stays attached when the lead enters the pipeline.
   const leadNotes = (lead: ProspectLead) => {
     let notes = `${lead.contactTitle} — ${lead.whyTarget}`;
     if (lead.opportunityScore != null) {
-      notes += `\nIT Opportunity Score: ${lead.opportunityScore}${lead.scoreLabel ? ` (${lead.scoreLabel})` : ""}`;
+      const scoreName = lead.vertical === "fleet_wraps" ? "Fleet Wrap Opportunity Score" : "IT Opportunity Score";
+      notes += `\n${scoreName}: ${lead.opportunityScore}${lead.scoreLabel ? ` (${lead.scoreLabel})` : ""}`;
       if (lead.potentialNeeds?.length) notes += `\nPotential needs: ${lead.potentialNeeds.join(", ")}`;
       if (lead.complianceConsideration) notes += `\nCompliance: ${lead.complianceConsideration}`;
+      if (lead.fleetBrandingSignal) notes += `\nFleet / Branding Signal: ${lead.fleetBrandingSignal}`;
       if (lead.recommendedOutreach) notes += `\nRecommended outreach: ${lead.recommendedOutreach}`;
     }
     return notes;
@@ -1090,7 +1108,7 @@ export default function Prospecting() {
                               variant="outline"
                               className={`text-xs font-medium ${SCORE_COLORS[lead.scoreLabel] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}
                             >
-                              IT Opportunity Score: {lead.opportunityScore} — {lead.scoreLabel}
+                              {isFleet ? "Fleet Wrap" : "IT"} Opportunity Score: {lead.opportunityScore} — {lead.scoreLabel}
                             </Badge>
                           </div>
                         )}
@@ -1113,6 +1131,12 @@ export default function Prospecting() {
                           <p className="text-xs text-muted-foreground mt-1.5">
                             <span className="font-medium text-foreground">Compliance: </span>
                             {lead.complianceConsideration}
+                          </p>
+                        )}
+                        {lead.fleetBrandingSignal && (
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            <span className="font-medium text-foreground">Fleet / Branding Signal: </span>
+                            {lead.fleetBrandingSignal}
                           </p>
                         )}
                         {lead.recommendedOutreach && (

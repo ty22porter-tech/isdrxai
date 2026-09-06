@@ -317,6 +317,75 @@ function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string,
   };
 }
 
+const FLEET_NEEDS: Record<string, string[]> = {
+  "Home Services": ["Full vehicle wraps", "Fleet graphics", "Vehicle lettering", "Replacement vehicle graphics"],
+  Roofing: ["Truck wraps", "Fleet graphics", "Trailer graphics", "New fleet branding"],
+  HVAC: ["Technician van wraps", "Fleet graphics", "Vehicle lettering", "Replacement vehicle graphics"],
+  Plumbing: ["Service van wraps", "Fleet graphics", "Vehicle lettering", "Multi-location fleet branding"],
+  Electrical: ["Service vehicle wraps", "Fleet graphics", "Vehicle lettering", "New fleet branding"],
+  Landscaping: ["Truck graphics", "Trailer graphics", "Fleet branding", "Promotional vehicle graphics"],
+  Construction: ["Truck wraps", "Trailer graphics", "Fleet graphics", "Replacement vehicle graphics"],
+  "Delivery & Logistics": ["Fleet graphics", "Vehicle lettering", "Multi-location fleet branding", "Replacement vehicle graphics"],
+  Municipal: ["Municipal fleet graphics", "Vehicle lettering", "Replacement vehicle graphics", "Department identification"],
+  Education: ["Campus fleet graphics", "Vehicle lettering", "Replacement vehicle graphics", "Facilities vehicle branding"],
+  Commercial: ["Full vehicle wraps", "Partial vehicle wraps", "Fleet graphics", "Vehicle lettering"],
+};
+
+const FLEET_OUTREACH: Record<string, string> = {
+  "Home Services": "Lead with turning each service vehicle into recognizable local mobile advertising while keeping the fleet consistent.",
+  Roofing: "Lead with consistent truck and trailer branding for field crews and replacement graphics as vehicles change.",
+  HVAC: "Lead with professional technician-van branding that builds recognition across the local service area.",
+  Plumbing: "Lead with consistent service-van graphics that make technicians recognizable when they arrive at customer properties.",
+  Electrical: "Lead with matching graphics for field-service vehicles and an easy process for branding future additions.",
+  Landscaping: "Lead with coordinated truck-and-trailer graphics that create visibility throughout the service territory.",
+  Construction: "Lead with durable, consistent branding across trucks and trailers used at multiple job sites.",
+  "Delivery & Logistics": "Lead with scalable, consistent fleet identification across vehicle types and operating locations.",
+  Municipal: "Lead with a replacement-graphics and vehicle-identification review for working municipal fleet vehicles.",
+  Education: "Lead with a fleet-branding review for campus facilities, service, and transportation vehicles.",
+  Commercial: "Lead with a fleet branding consultation focused on consistent graphics and mobile visibility.",
+};
+
+const FLEET_DEPENDENCY: Record<string, number> = {
+  "Home Services": 24, Roofing: 25, HVAC: 26, Plumbing: 26, Electrical: 24,
+  Landscaping: 25, Construction: 22, "Delivery & Logistics": 26, Municipal: 23,
+  Education: 18, Commercial: 14,
+};
+
+function addFleetOverlay(lead: BaseLead, industry: string) {
+  const rng = strRng(lead.companyName);
+  const profile = FLEET_NEEDS[industry] ? industry : "Commercial";
+  const verifiedSignals = [
+    lead.address ? `a verified operating address in ${lead.city}, ${lead.state}` : null,
+    lead.website ? "an active public website" : null,
+    lead.phone ? "a published business phone number" : null,
+  ].filter(Boolean);
+  const dependencyScore = FLEET_DEPENDENCY[profile] ?? FLEET_DEPENDENCY.Commercial;
+  const verificationScore = (lead.address ? 10 : 0) + (lead.website ? 8 : 0) + (lead.phone ? 6 : 0);
+  const opportunityScore = Math.min(100, 28 + dependencyScore + verificationScore + Math.floor(rng() * 9));
+  const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 40 ? "Possible Fit" : "Low Priority";
+  const needsPool = FLEET_NEEDS[profile];
+  const needStart = Math.floor(rng() * needsPool.length);
+  const potentialNeeds = [0, 1, 2].map((offset) => needsPool[(needStart + offset) % needsPool.length]);
+  const signalBasis = profile === "Commercial"
+    ? "The business model's dependence on fleet vehicles is unconfirmed."
+    : `${industry} is a fleet-dependent industry profile; actual vehicle ownership and fleet size are unconfirmed.`;
+  const fleetBrandingSignal = verifiedSignals.length
+    ? `${signalBasis} Public research confirms ${verifiedSignals.join(", ")}.`
+    : `${signalBasis} No direct fleet, hiring, expansion, or rebranding signal was verified.`;
+
+  return {
+    ...lead,
+    vertical: "fleet_wraps" as const,
+    opportunityScore,
+    scoreLabel,
+    scoreExplanation: `Fleet Wrap Opportunity Score is based on industry fit and verified Google Places business signals. Fleet size, vehicle purchases, hiring, expansion, and rebranding are not assumed.`,
+    whyTarget: `${lead.companyName} is a ${lead.industry} prospect in ${lead.city}, ${lead.state}. ${signalBasis} ${verifiedSignals.length ? `The company also has ${verifiedSignals.join(", ")}.` : "Direct fleet evidence was not available, so outreach should begin with discovery rather than assumptions."}`,
+    potentialNeeds,
+    fleetBrandingSignal,
+    recommendedOutreach: FLEET_OUTREACH[profile],
+  };
+}
+
 // ─── Real business search via Google Places (Text Search) ────────────────────
 // Replaces the old mock/practice-data generators: results are real companies
 // found by city + industry. Contact name/email are placeholders until
@@ -451,7 +520,9 @@ async function generateWhyTargets(
 
   const sellerDesc = vertical === "it_services"
     ? "managed IT services, cybersecurity, and IT support"
-    : "recurring commercial trade services (cleaning, maintenance, facility upkeep)";
+    : vertical === "fleet_wraps"
+      ? "fleet graphics and commercial vehicle wraps"
+      : "recurring commercial trade services (cleaning, maintenance, facility upkeep)";
 
   const companyLines = leads.map((l, i) => JSON.stringify({
     i,
@@ -523,7 +594,9 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     const leads = bases.map((base, i) => {
       const lead = vertical === "it_services"
         ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined)
-        : base;
+        : vertical === "fleet_wraps"
+          ? addFleetOverlay(base, body.industry)
+          : base;
       if (!insights) return lead; // AI unavailable — keep signal-based why + confidence.
       const { why, score } = insights[i];
       // Engagement-likelihood score drives the fit label and result ordering.
@@ -633,5 +706,5 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
 export default router;
 
 // ── Test-only exports ─────────────────────────────────────────────────────────
-export { placeToLeadBase, addItOverlay, websiteDomain, searchRealBusinesses, ProspectSearchError };
+export { placeToLeadBase, addItOverlay, addFleetOverlay, websiteDomain, searchRealBusinesses, ProspectSearchError };
 export type { PlaceResult };
