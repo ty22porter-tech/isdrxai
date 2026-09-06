@@ -7,7 +7,13 @@ import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
 import { enrichPerson } from "../lib/apollo";
 import { logger } from "../lib/logger";
-import { C4_VERIFIED_SELLER_CONTEXT, getC4IndustryProfile } from "../lib/c4Wraps";
+import {
+  genericOutreach,
+  industryMatch,
+  potentialNeedsForSeller,
+  sellerContext,
+  sellerIntelligenceProfile,
+} from "../lib/prospectMatching";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -15,25 +21,15 @@ router.use(requireAuth, requireEntitlement);
 function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect, client: typeof usersTable.$inferSelect | undefined, tone: string = "professional") {
   const { companyName, contactName, industry, city, state, squareFootage, employeeCount } = prospect;
   const firstName = contactName.split(" ")[0];
-  const senderName = client?.senderName?.trim() || client?.businessName?.trim() || "our team";
-  const businessName = client?.businessName?.trim() || "our company";
+  const seller = sellerIntelligenceProfile(client);
+  const senderName = client?.senderName?.trim() || seller.name || "our team";
+  const businessName = seller.name || "our team";
   const sq = squareFootage ? `${squareFootage.toLocaleString()} sq ft` : null;
   const emp = employeeCount ? `${employeeCount}-person` : null;
   const vertical = getVerticalConfig(client?.vertical).key;
 
-  const subjects = vertical === "it_services"
-    ? [
-        `Managed IT proposal for ${companyName}`,
-        `Keeping ${companyName} secure and supported — can we chat?`,
-        `IT services tailored for ${industry} businesses in ${city}`,
-        `Quick question about ${companyName}'s IT and security`,
-      ]
-    : [
-        `Commercial cleaning proposal for ${companyName}`,
-        `Keeping ${companyName} spotless — can we chat?`,
-        `Janitorial services tailored for ${industry} facilities in ${city}`,
-        `Quick question about ${companyName}'s facility maintenance`,
-      ];
+  const offering = seller.services[0] || seller.capabilities[0] || "a relevant solution";
+  const subjects = [`A question about ${companyName}`, `${companyName} and ${industry}`, `${offering} for ${companyName}`];
   const subject = subjects[Math.floor(Math.random() * subjects.length)];
 
   const openings = tone === "casual"
@@ -41,70 +37,18 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
     : [`Dear ${firstName},`, `Hello ${firstName},`];
   const opening = openings[Math.floor(Math.random() * openings.length)];
 
-  const facilityDetail = sq ? `your ${sq} facility` : `your ${city} location`;
-  const facilityMention = sq ? `a ${sq} facility in ${city}` : `a facility in ${city}`;
-  const companyDetail = emp ? `your ${emp} team` : `your team`;
-
-  if (vertical === "it_services") {
-    const teamMention = emp ? `a ${emp} team in ${city}` : `a team in ${city}`;
-    const body = `${opening}
-
-I hope this message finds you well. My name is ${senderName}, and I represent ${businessName} — a managed IT services provider working with ${industry} businesses across ${state}.
-
-I noticed ${companyName} operates ${teamMention}, and I wanted to reach out about how we can keep your technology secure, compliant, and running smoothly so ${companyDetail} can stay focused on what you do best.
-
-Here's what we bring to ${industry} companies like yours:
-• Cybersecurity — protection against ransomware, phishing, and data breaches
-• MS365 Licenses — right-sized licensing and full Microsoft 365 management
-• Managed IT Services — proactive support, monitoring, and fast helpdesk response
-• Managed Security Services — 24/7 threat monitoring and incident response
-• Mobile Device Management — secure every laptop, phone, and tablet your team uses
-
-We currently support several ${industry} businesses in ${city} and consistently receive 5-star reviews for responsiveness and reliability.
-
-I'd love to schedule an IT assessment for ${companyName} so we can put together a no-obligation recommendation tailored to your environment.
-
-Would you have 15 minutes this week for a quick call?`;
-    return { subject, body };
-  }
-
-  if (vertical === "fleet_wraps") {
-    const profile = getC4IndustryProfile(industry);
-    const subjectOptions = [
-      `Making every ${companyName} vehicle work harder`,
-      `${companyName}'s mobile brand presence`,
-      `A vehicle-branding idea for ${companyName}`,
-    ];
-    const fleetSubject = subjectOptions[Math.floor(Math.random() * subjectOptions.length)];
-    const body = `${opening}
-
-${profile.emailOpening(companyName, city)}
-
-For ${profile.label.toLowerCase()} organizations, ${profile.industryFit.charAt(0).toLowerCase()}${profile.industryFit.slice(1)} C4 Wraps helps businesses address that opportunity with ${profile.relevantCapabilities.slice(0, 2).join(" and ")}.
-
-C4's custom in-house design process helps carry a professional brand consistently across eligible vehicle types, using premium materials and professional installation. That can create ongoing local visibility from vehicles already in operation without assuming any specific fleet size or expansion plan.
-
-Would it be worth a quick conversation about how ${companyName} currently handles vehicle branding?`;
-    return { subject: fleetSubject, body };
-  }
-
+  const match = industryMatch(industry, vertical);
+  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
+  const claims = seller.ready
+    ? `${businessName} offers ${sellerOffers.slice(0, 3).join(", ")}.${seller.differentiators[0] ? ` ${seller.differentiators[0]}.` : ""}`
+    : "I’m reaching out with a brief, discovery-led question rather than assuming what solution would fit.";
   const body = `${opening}
 
-I hope this message finds you well. My name is ${senderName}, and I represent ${businessName} — a commercial cleaning company specializing in ${industry} facilities across ${state}.
+${match.operation} ${companyName}'s specific situation is something we'd want to understand rather than assume.
 
-I noticed ${companyName} operates ${facilityMention}, and I wanted to reach out about how we can help keep your workspace in top condition so ${companyDetail} can stay focused on what you do best.
+${claims}
 
-Here's what we bring to ${industry} companies like yours:
-• Customized cleaning schedules (nightly, weekly, or as-needed)
-• Fully bonded and insured crew with background checks
-• Green cleaning products available upon request
-• Dedicated account manager and 24/7 emergency response
-
-We currently service several ${industry} businesses in ${city} and consistently receive 5-star reviews for reliability and attention to detail.
-
-I'd love to schedule a free walkthrough of ${facilityDetail} so we can put together a no-obligation quote tailored to your specific needs.
-
-Would you have 15 minutes this week for a quick call or site visit?`;
+Would you be open to a short conversation about ${match.challenges[0]}${seller.ctas[0] ? ` — ${seller.ctas[0]}` : "?"}`;
 
   return { subject, body };
 }
@@ -303,21 +247,21 @@ function strRng(seed: string) {
 
 type BaseLead = ReturnType<typeof placeToLeadBase>;
 
-function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string, _compliancePriority?: string) {
+function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string, _compliancePriority?: string, client?: typeof usersTable.$inferSelect) {
   const rng = strRng(lead.companyName);
+  const seller = sellerIntelligenceProfile(client);
   const isCompliance = IT_COMPLIANCE_SENSITIVE.has(industry);
-  const complianceScore = isCompliance ? 20 : 6 + Math.floor(rng() * 6);
-  const managedItScore = 8 + Math.floor(rng() * 8);
-  const cyberScore = isCompliance ? 14 + Math.floor(rng() * 7) : 8 + Math.floor(rng() * 9);
+  const complianceScore = isCompliance ? 14 : 6 + Math.floor(rng() * 6);
+  const managedItScore = seller.ready ? 12 + Math.floor(rng() * 8) : 6 + Math.floor(rng() * 6);
+  const cyberScore = 8 + Math.floor(rng() * 9);
   const growthScore = Math.floor(rng() * 11);
   const opportunityScore = Math.min(100, 15 + complianceScore + managedItScore + cyberScore + growthScore);
   const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 40 ? "Possible Fit" : "Low Priority";
   const complianceConsideration = IT_COMPLIANCE[industry] ?? "Potential state privacy and cyber-insurance security requirements";
-  const needsPool = IT_NEEDS[industry] ?? IT_NEEDS["Commercial"];
-  const needStart = Math.floor(rng() * needsPool.length);
-  const potentialNeeds = [0, 1, 2].map((o) => needsPool[(needStart + o) % needsPool.length]);
-  const whyPool = IT_WHY[industry] ?? IT_WHY["Commercial"];
-  const whyTarget = whyPool[Math.floor(rng() * whyPool.length)];
+  const potentialNeeds = seller.ready
+    ? potentialNeedsForSeller(client, industry, "it_services")
+    : ["Confirm operational priorities", "Understand current support approach", "Determine whether a relevant seller solution is needed"];
+  const whyTarget = `${lead.companyName} is a verified ${industry} business. ${industryMatch(industry, "it_services").operation} ${seller.ready ? `${seller.name}'s configured capabilities may be relevant after discovery.` : "Seller capabilities are not configured, so no service fit is assumed."}`;
   const scoreExplanation = [
     `Real ${industry} business found via Google Places.`,
     isCompliance ? "Compliance-sensitive industry — elevated security scoring applied." : "Industry scoring based on typical IT needs.",
@@ -334,34 +278,35 @@ function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string,
     scoreExplanation,
     potentialNeeds,
     complianceConsideration,
-    recommendedOutreach: IT_OUTREACH[industry] ?? IT_OUTREACH["Commercial"],
+    recommendedOutreach: genericOutreach(client, industry, "it_services"),
   };
 }
 
-function addFleetOverlay(lead: BaseLead, industry: string) {
-  const profile = getC4IndustryProfile(industry);
+function addFleetOverlay(lead: BaseLead, industry: string, client?: typeof usersTable.$inferSelect) {
+  const seller = sellerIntelligenceProfile(client);
+  const match = industryMatch(industry, "fleet_wraps");
   const verifiedSignals = [
     lead.address ? `Google Places lists an operating address in ${lead.city}, ${lead.state}` : null,
     lead.website ? `Google Places lists the public website ${lead.website}` : null,
     lead.phone ? "Google Places lists a published business phone number" : null,
   ].filter(Boolean);
   const verificationScore = (lead.address ? 10 : 0) + (lead.website ? 8 : 0) + (lead.phone ? 6 : 0);
-  const opportunityScore = Math.min(100, 28 + profile.fitScore + verificationScore);
+  const opportunityScore = Math.min(100, 28 + (seller.ready ? 24 : 10) + verificationScore);
   const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 40 ? "Possible Fit" : "Low Priority";
   const verified = verifiedSignals.length ? verifiedSignals.join("; ") : "No direct operating, website, or phone signal was available in the Google Places result.";
-  const fleetBrandingSignal = `Verified: ${verified}. Industry Fit: ${profile.industryFit} Unverified: Actual vehicle ownership, fleet size, vehicle purchases, hiring, expansion, rebranding, location count, and current wrap status have not been confirmed.`;
-  const whyTarget = `${lead.companyName} is a verified ${lead.industry} business in ${lead.city}, ${lead.state}. ${profile.businessModel} ${profile.industryFit} C4 Wraps' ${profile.relevantCapabilities.slice(0, 2).join(" and ")} can address that business opportunity while turning confirmed commercial vehicles into professional, long-term brand assets. Actual vehicle ownership and fleet size remain unverified and should begin as discovery questions.`;
+  const fleetBrandingSignal = `Verified: ${verified}. Industry Fit: ${match.operation} Unverified: Actual vehicle ownership, fleet size, vehicle purchases, hiring, expansion, rebranding, location count, and current wrap status have not been confirmed.`;
+  const whyTarget = `${lead.companyName} is a verified ${lead.industry} business in ${lead.city}, ${lead.state}. ${match.operation} ${seller.ready ? `${seller.name}'s ${seller.capabilities.concat(seller.services).slice(0, 2).join(" and ")} may be relevant if discovery confirms a need.` : "Seller capabilities have not been configured, so begin with discovery rather than a product claim."}`;
 
   return {
     ...lead,
     vertical: "fleet_wraps" as const,
     opportunityScore,
     scoreLabel,
-    scoreExplanation: `Fleet Wrap Opportunity Score is based only on C4 service fit for the selected industry and verified Google Places business signals. Fleet size, vehicle purchases, hiring, expansion, rebranding, and current vehicle-wrap status are not assumed.`,
+    scoreExplanation: `Fleet opportunity score is based only on the selected industry's potential fit, the configured seller profile when available, and verified Google Places signals. Fleet size, vehicle purchases, hiring, expansion, rebranding, and current vehicle-wrap status are not assumed.`,
     whyTarget,
-    potentialNeeds: profile.potentialNeeds,
+    potentialNeeds: potentialNeedsForSeller(client, industry, "fleet_wraps"),
     fleetBrandingSignal,
-    recommendedOutreach: profile.outreachAngle(lead.companyName, lead.city),
+    recommendedOutreach: genericOutreach(client, industry, "fleet_wraps"),
   };
 }
 
@@ -486,22 +431,22 @@ interface ProspectInsight {
   why: string;
   /** 0-100 likelihood this account engages with and buys the client's service. */
   score: number;
+  potentialNeeds: string[];
+  recommendedOutreach: string;
 }
 
 async function generateWhyTargets(
   leads: BaseLead[],
   vertical: string,
   searchIndustry: string,
+  client?: typeof usersTable.$inferSelect,
 ): Promise<ProspectInsight[] | null> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
   const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
   if (!baseURL || !apiKey || !leads.length) return null;
 
-  const sellerDesc = vertical === "it_services"
-    ? "managed IT services, cybersecurity, and IT support"
-    : vertical === "fleet_wraps"
-      ? "fleet graphics and commercial vehicle wraps"
-      : "recurring commercial trade services (cleaning, maintenance, facility upkeep)";
+  const seller = sellerIntelligenceProfile(client);
+  const sellerDesc = seller.ready ? seller.services.concat(seller.capabilities).join(", ") : "a seller whose services have not yet been configured";
 
   const companyLines = leads.map((l, i) => JSON.stringify({
     i,
@@ -516,16 +461,13 @@ async function generateWhyTargets(
   const messages = [
     {
       role: "system",
-      content: vertical === "fleet_wraps"
-        ? `You are a B2B sales researcher working specifically for C4 Wraps. ${C4_VERIFIED_SELLER_CONTEXT}
+      content: `You are a B2B sales researcher. ${sellerContext(client, searchIndustry, vertical)}
 For EACH business below:
-1. Write a 1-2 sentence "why target" insight that connects the prospect's verified business identity and well-known industry business model to one relevant C4 Wraps capability and business outcome.
-2. Score 0-100 how likely the account is to fit and engage, based only on industry relevance and the verified Google Places signals supplied.
-The selected search industry is "${searchIndustry}". Never write a generic explanation of vehicle wraps. Never claim the prospect owns vehicles or has a particular fleet size, vehicle count, purchase, hiring plan, expansion, rebrand, location count, marketing problem, sales decline, advertising spend, or current wrap provider unless that fact is supplied. State uncertainty naturally where it matters. Do not cite a portfolio example or customer result because none is supplied here. Return ONLY a JSON array of objects {"why": string, "score": number}, one per business, in the same order, no markdown.`
-        : `You are a B2B sales researcher for a company that sells ${sellerDesc}. For EACH business below:
-1. Write a 1-2 sentence "why target this account" insight for the salesperson. Be specific to that company's industry, likely facility/operations profile, and location — what their type of business typically needs from a vendor like ours and what buying signals the data shows.
-2. Score 0-100 how likely this account is to engage with outreach and actually buy ${sellerDesc}. Consider: how strongly their industry depends on these services, whether they look like an established operation (website, phone), and whether the business type typically outsources vs handles it in-house. Be discriminating — use the full range, don't cluster everything at 70-80.
-Ground every claim in the provided data or in well-known traits of that industry; NEVER invent facts like employee counts, revenue, or specific equipment. No fluff like "great opportunity". Return ONLY a JSON array of objects {"why": string, "score": number}, one per business, in the same order, no markdown.`,
+1. Write a 1-2 sentence "why target this account" insight that combines verified prospect data, industry fit, one relevant configured seller capability, and a potential business outcome. When seller intelligence is limited, use discovery language instead of a seller claim.
+2. Score 0-100 how likely this account is to fit and engage with ${sellerDesc}. Use seller-to-prospect fit, industry relevance, and only verified Google Places signals. Be discriminating.
+3. Write 2-3 potentialNeeds entries, each following BUSINESS CHALLENGE → SELLER SOLUTION → POTENTIAL BUSINESS OUTCOME. Use only configured seller capabilities and outcomes. When seller intelligence is limited, recommend discovery instead of naming a seller-specific solution.
+4. Write recommendedOutreach as "Lead with [configured seller capability] because [verified prospect situation or clearly labeled industry fit] creates an opportunity around [business outcome]." When seller intelligence is limited, recommend a discovery question.
+Ground every claim in supplied prospect data, configured Seller Intelligence, or clearly labeled industry traits. Never invent employee counts, revenue, equipment, locations, current providers, certifications, services, results, fleet size, vehicle ownership, purchases, hiring, expansion, rebranding, ad spend, ROI, or portfolio examples. Return ONLY a JSON array of objects {"why": string, "score": number, "potentialNeeds": string[], "recommendedOutreach": string}, one per business, in the same order, no markdown.`,
     },
     { role: "user", content: companyLines.join("\n") },
   ];
@@ -545,9 +487,18 @@ Ground every claim in the provided data or in well-known traits of that industry
     if (!Array.isArray(parsed) || parsed.length !== leads.length) return null;
     if (!parsed.every((o) =>
       o && typeof o.why === "string" && o.why.trim().length > 20 && o.why.length < 600 &&
-      typeof o.score === "number" && o.score >= 0 && o.score <= 100
+      typeof o.score === "number" && o.score >= 0 && o.score <= 100 &&
+      Array.isArray(o.potentialNeeds) && o.potentialNeeds.length >= 2 && o.potentialNeeds.length <= 3 &&
+      o.potentialNeeds.every((need: unknown) => typeof need === "string" && need.length >= 20 && need.length <= 500) &&
+      typeof o.recommendedOutreach === "string" &&
+      o.recommendedOutreach.length >= 20 && o.recommendedOutreach.length <= 700
     )) return null;
-    return parsed.map((o: any) => ({ why: o.why.trim(), score: Math.round(o.score) }));
+    return parsed.map((o: any) => ({
+      why: o.why.trim(),
+      score: Math.round(o.score),
+      potentialNeeds: o.potentialNeeds.map((need: string) => need.trim()),
+      recommendedOutreach: o.recommendedOutreach.trim(),
+    }));
   } catch (err: any) {
     logger.warn({ err: err?.message }, "AI why-target generation failed — using signal-based fallback");
     return null;
@@ -574,19 +525,26 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
 
     // AI research pass: company-specific "why target" insights (falls back to
     // the signal-based template already on each lead when AI is unavailable).
-    const insights = await generateWhyTargets(bases, vertical, body.industry);
+    const insights = await generateWhyTargets(bases, vertical, body.industry, client);
 
     const leads = bases.map((base, i) => {
       const lead = vertical === "it_services"
-        ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined)
+        ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined, client)
         : vertical === "fleet_wraps"
-          ? addFleetOverlay(base, body.industry)
+          ? addFleetOverlay(base, body.industry, client)
           : base;
       if (!insights) return lead; // AI unavailable — keep signal-based why + confidence.
-      const { why, score } = insights[i];
+      const { why, score, potentialNeeds, recommendedOutreach } = insights[i];
       // Engagement-likelihood score drives the fit label and result ordering.
       const confidence: "high" | "medium" | "low" = score >= 70 ? "high" : score >= 45 ? "medium" : "low";
-      return { ...lead, whyTarget: why, confidence, engagementScore: score };
+      return {
+        ...lead,
+        whyTarget: why,
+        potentialNeeds,
+        recommendedOutreach,
+        confidence,
+        engagementScore: score,
+      };
     });
 
     // Likeliest-to-engage accounts first.

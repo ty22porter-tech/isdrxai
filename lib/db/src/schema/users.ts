@@ -2,6 +2,29 @@ import { pgTable, text, boolean, timestamp, jsonb, integer } from "drizzle-orm/p
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
+export interface SellerIntelligenceProfile {
+  status: "ready" | "limited";
+  sellerCompanyName: string | null;
+  sellerWebsite: string;
+  sellerIndustry: string;
+  sellerServices: string[];
+  sellerProducts: string[];
+  sellerCapabilities: string[];
+  sellerDifferentiators: string[];
+  sellerCertifications: string[];
+  sellerIndustriesServed: string[];
+  sellerBusinessOutcomes: string[];
+  sellerProblemsSolved: string[];
+  sellerProofPoints: string[];
+  sellerPortfolioExamples: string[];
+  sellerValuePropositions: string[];
+  sellerCTAs: string[];
+  sourcePages: string[];
+  websiteLastAnalyzed: string;
+  websiteAnalysisStatus: "ready" | "limited";
+  analysisError?: string;
+}
+
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email"),
@@ -26,6 +49,8 @@ export const usersTable = pgTable("users", {
   vertical: text("vertical").notNull().default("janitorial"),
   verticalSelected: boolean("vertical_selected").notNull().default(true),
   website: text("website"),
+  /** Derived only from the account holder's public company website. */
+  sellerIntelligenceProfile: jsonb("seller_intelligence_profile").$type<SellerIntelligenceProfile | null>(),
   mobilePhone: text("mobile_phone"),
   companyLogoPath: text("company_logo_path"),
   profilePhotoPath: text("profile_photo_path"),

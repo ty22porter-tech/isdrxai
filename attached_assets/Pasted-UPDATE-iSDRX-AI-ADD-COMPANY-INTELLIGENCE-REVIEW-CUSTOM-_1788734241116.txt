@@ -1,0 +1,573 @@
+UPDATE iSDRX AI — ADD COMPANY INTELLIGENCE REVIEW, CUSTOM DIFFERENTIATORS,
+AND AI EMAIL RELEVANCE QUALITY CHECK
+
+IMPORTANT:
+
+This update should EXTEND the existing Seller Intelligence system that uses
+the Company Website entered in Settings.
+
+Do not remove or break:
+- Existing industry profiles
+- Company Website field
+- Seller Intelligence Profile
+- Prospect Search
+- Prospect result cards
+- Lead scoring
+- Pipeline
+- Email campaigns
+- Engagement tracking
+- Existing email generation
+
+The goal is to improve accuracy, customization, and email quality.
+
+
+====================================================
+1. COMPANY INTELLIGENCE REVIEW SCREEN
+====================================================
+
+After the Company Website is analyzed and the Seller Intelligence Profile is
+created, allow the user to REVIEW what iSDRX AI learned about their company.
+
+Add a section under Settings called:
+
+Company Intelligence
+
+If the website has been successfully analyzed, show:
+
+✓ Company Intelligence Ready
+
+Include buttons:
+
+- View Company Intelligence
+- Refresh Company Intelligence
+
+
+When the user selects View Company Intelligence, display an editable summary
+of the Seller Intelligence Profile.
+
+Show sections such as:
+
+Company Name
+
+Website
+
+Services
+
+Products
+
+Capabilities
+
+Strengths / Differentiators
+
+Certifications
+
+Industries Served
+
+Problems Solved
+
+Business Outcomes
+
+Proof Points
+
+Portfolio / Case Study Experience
+
+Typical Customers
+
+Relevant Calls to Action
+
+
+====================================================
+2. ALLOW USER TO EDIT COMPANY INTELLIGENCE
+====================================================
+
+The user should be able to:
+
+- Add items
+- Edit items
+- Remove inaccurate items
+- Save changes
+
+Do not require the user to accept everything the AI extracted from the
+website.
+
+This is important because the website may not fully explain the company's
+real sales strengths.
+
+User-edited intelligence should override or supplement website-generated
+intelligence.
+
+Store the final approved intelligence profile and use it throughout the app.
+
+
+====================================================
+3. ADD "WHAT MAKES US DIFFERENT?" FIELD
+====================================================
+
+Under Settings, add a new optional field:
+
+What makes your company different?
+
+Helper text:
+
+"Tell iSDRX AI about strengths, guarantees, processes, services, experience,
+or advantages that may not be obvious from your website. This information
+will be used to improve prospect matching and email personalization."
+
+Allow the user to enter free-form text.
+
+Example:
+
+"We provide 48-hour installation, handle design in-house, use certified
+installers, and offer fleet pricing for larger vehicle programs."
+
+
+====================================================
+4. ADD "KEY SERVICES / PRIORITIES" FIELD
+====================================================
+
+Also add an optional field:
+
+What services or solutions do you want iSDRX AI to prioritize?
+
+Helper text:
+
+"Enter the services you most want to sell. iSDRX AI will prioritize these
+when matching prospect needs and generating outreach."
+
+Example:
+
+"Fleet wraps, commercial van graphics, trailer wraps"
+
+or
+
+"Industrial janitorial, warehouse cleaning, floor care"
+
+or
+
+"Managed IT, cybersecurity, cloud migration"
+
+
+====================================================
+5. SELLER INTELLIGENCE SOURCE PRIORITY
+====================================================
+
+When building the final Seller Intelligence Profile, combine:
+
+1. Company Website analysis
+2. User-entered "What makes your company different?"
+3. User-entered "Key Services / Priorities"
+4. User edits made in Company Intelligence
+5. Existing industry profile
+
+Use this priority order when information conflicts:
+
+USER-EDITED INTELLIGENCE
+        ↓
+USER-ENTERED DIFFERENTIATORS
+        ↓
+USER-ENTERED SERVICE PRIORITIES
+        ↓
+WEBSITE-GENERATED INTELLIGENCE
+        ↓
+GENERIC INDUSTRY PROFILE
+
+
+====================================================
+6. COMPANY INTELLIGENCE STATUS
+====================================================
+
+Display one of the following statuses:
+
+Company Intelligence Ready
+
+Company Intelligence Needs Review
+
+Company Intelligence Limited
+
+Company Website Not Added
+
+
+Definitions:
+
+Ready:
+Website analyzed successfully and seller intelligence exists.
+
+Needs Review:
+Website was analyzed but important information may be incomplete or
+uncertain.
+
+Limited:
+Website could not be fully analyzed.
+
+Not Added:
+No company website exists.
+
+
+====================================================
+7. SHOW WHEN INTELLIGENCE WAS LAST UPDATED
+====================================================
+
+Display:
+
+Last analyzed: [date/time]
+
+If the user edits the profile, also show:
+
+Last updated by user: [date/time]
+
+
+====================================================
+8. DO NOT RE-CRAWL WEBSITE FOR EVERY EMAIL
+====================================================
+
+Continue using the cached Seller Intelligence Profile.
+
+Website analysis should only occur when:
+
+- Company Website is first saved
+- Company Website changes
+- User clicks Refresh Company Intelligence
+
+Prospect Search and email generation should use the stored Seller
+Intelligence Profile.
+
+This is required for speed and cost control.
+
+
+====================================================
+9. EMAIL PERSONALIZATION MUST USE APPROVED COMPANY INTELLIGENCE
+====================================================
+
+ALL AI-generated emails should use the FINAL approved Seller Intelligence
+Profile.
+
+The email generation process should be:
+
+SELLER INTELLIGENCE
++
+PROSPECT RESEARCH
++
+VERIFIED SIGNALS
++
+BUSINESS CHALLENGE
+        ↓
+BEST SELLER CAPABILITY
+        ↓
+BEST SELLER DIFFERENTIATOR
+        ↓
+BUSINESS VALUE
+        ↓
+EMAIL ANGLE
+        ↓
+ENGAGEMENT-FOCUSED EMAIL
+
+
+Do not use every seller strength in every email.
+
+Choose only the most relevant strength or capability for that specific
+prospect.
+
+
+====================================================
+10. AI EMAIL RELEVANCE QUALITY CHECK
+====================================================
+
+Before accepting an AI-generated email, perform an internal relevance check.
+
+Evaluate:
+
+1. Does the email clearly relate to this specific prospect?
+
+2. Does it use a verified signal OR a legitimate business-model connection?
+
+3. Does it connect the prospect's situation to a real seller capability?
+
+4. Does it communicate a business outcome or value?
+
+5. Does it use a relevant differentiator from the Seller Intelligence
+Profile?
+
+6. Does it avoid unsupported claims?
+
+7. Does the opening feel relevant enough to make the recipient continue
+reading?
+
+8. Does it sound human and professional?
+
+9. Is the CTA easy to respond to?
+
+10. Could this same email be sent unchanged to 100 unrelated companies?
+
+
+====================================================
+11. AUTO-REGENERATE LOW-QUALITY EMAILS
+====================================================
+
+If the answer to:
+
+"Could this same email be sent unchanged to 100 unrelated companies?"
+
+is YES,
+
+the email should FAIL the relevance check.
+
+Automatically regenerate the email with stronger personalization.
+
+Also regenerate if:
+
+- No seller capability is connected to the prospect
+- No business challenge is identified
+- The email is mostly generic service descriptions
+- The opening is generic
+- The CTA is overly sales-heavy
+- Unsupported claims are present
+
+
+====================================================
+12. EMAIL QUALITY SCORE
+====================================================
+
+Create an internal Email Relevance Score from 0–100.
+
+Suggested scoring:
+
++20 = strong prospect-specific opening
++20 = verified or legitimate prospect signal/context
++20 = clear seller capability match
++15 = relevant seller differentiator
++15 = clear business value/outcome
++10 = strong low-friction CTA
+
+Suggested thresholds:
+
+90–100 = Excellent
+80–89 = Strong
+70–79 = Acceptable
+Below 70 = Regenerate
+
+The score does not need to be shown to the user unless useful for debugging
+or future admin functionality.
+
+Do not allow weak generic emails to move forward automatically if they score
+below the configured threshold.
+
+
+====================================================
+13. EMAIL OPENING RULES
+====================================================
+
+Continue enforcing:
+
+Do NOT start with:
+
+"I noticed..."
+"I came across..."
+"I wanted to reach out..."
+"I hope this email finds you well..."
+"My name is..."
+"We are a leading..."
+
+Start with a business-relevant statement.
+
+The opening should be based on:
+
+- Prospect situation
+- Prospect industry
+- Verified growth signal
+- Operational challenge
+- Facility context
+- Technology context
+- Fleet context
+- Hiring context
+- Expansion context
+- Relevant business outcome
+
+
+====================================================
+14. EMAIL SHOULD ENCOURAGE ENGAGEMENT
+====================================================
+
+The objective is not simply to describe the seller.
+
+The reader should feel:
+
+"This is relevant to my company."
+
+The email should encourage a reply or conversation.
+
+Use low-friction CTAs such as:
+
+"Would it be worth comparing how you're handling this today?"
+
+"Is this something your team is evaluating?"
+
+"Would a quick conversation around this make sense?"
+
+"Would it be useful to compare your current approach?"
+
+"How are you handling this today?"
+
+Vary CTA wording.
+
+Do not repeat the same CTA for every prospect.
+
+
+====================================================
+15. USER REVIEW OPTION
+====================================================
+
+If the existing workflow includes email preview, show the generated email as
+usual.
+
+Optionally add a small label:
+
+Personalized using:
+✓ Company Intelligence
+✓ Prospect Research
+✓ Buying Signals
+
+This should only display if those sources were actually used.
+
+
+====================================================
+16. INDUSTRY MODEL REMAINS REUSABLE
+====================================================
+
+Do NOT hard-code:
+
+Whitlock Building Services
+C4 Wraps
+or any future customer
+
+The system should work for any customer.
+
+The industry profile determines:
+
+WHO TO TARGET
+WHAT SIGNALS MATTER
+WHAT RESEARCH TO PERFORM
+
+The Seller Intelligence Profile determines:
+
+WHAT THIS CUSTOMER SELLS
+WHAT MAKES THEM DIFFERENT
+WHAT VALUE THEY CAN OFFER
+
+The prospect research determines:
+
+WHAT IS HAPPENING AT THIS COMPANY
+WHAT CHALLENGE OR OPPORTUNITY MAY EXIST
+
+The AI then determines:
+
+WHY THIS SELLER IS RELEVANT
+WHAT TO LEAD WITH
+HOW TO WRITE THE EMAIL
+
+
+====================================================
+17. EXAMPLE — TWO JANITORIAL CUSTOMERS
+====================================================
+
+Customer A website:
+Focuses heavily on healthcare cleaning and disinfection.
+
+Customer B website:
+Focuses on warehouses and industrial floor care.
+
+Both select:
+
+Janitorial
+
+They should NOT receive the same prospect intelligence or email messaging.
+
+Customer A should receive stronger healthcare/disinfection value matching
+where appropriate.
+
+Customer B should receive stronger warehouse/industrial value matching where
+appropriate.
+
+
+====================================================
+18. EXAMPLE — TWO FLEET WRAP CUSTOMERS
+====================================================
+
+Customer A:
+Emphasizes fleet programs, in-house design, premium materials.
+
+Customer B:
+Emphasizes fast turnaround and small-business vehicle wraps.
+
+Both select:
+
+Fleet & Commercial Vehicle Wraps
+
+The same prospect may receive different outreach depending on which seller is
+using iSDRX AI.
+
+
+====================================================
+19. ACCURACY RULE
+====================================================
+
+Never invent seller-specific claims.
+
+Never invent:
+
+- Certifications
+- Guarantees
+- Pricing
+- Experience
+- Customers
+- Case-study results
+- ROI
+- Locations
+- Services
+- Awards
+- Turnaround time
+
+Only use seller-specific claims supported by:
+
+- Company website
+- User-entered information
+- User-approved Company Intelligence
+
+
+====================================================
+20. FINAL IMPLEMENTATION GOAL
+====================================================
+
+The intended behavior is:
+
+Industry Profile
+        ↓
+Seller Website + User Intelligence
+        ↓
+Seller Intelligence Profile
+        ↓
+Prospect Research
+        ↓
+Signal Analysis
+        ↓
+Seller-to-Prospect Value Match
+        ↓
+Why Target
+        ↓
+Potential Needs
+        ↓
+Recommended Outreach
+        ↓
+Personalized Email
+        ↓
+Email Relevance Check
+        ↓
+Regenerate if Generic
+        ↓
+Campaign
+
+
+Do not redesign the entire app.
+
+Extend the existing Settings, Prospect Search, prospect intelligence, and
+email-generation architecture using the application's current design and
+database patterns.

@@ -1,0 +1,568 @@
+UPDATE iSDRX AI TO USE THE USER'S COMPANY WEBSITE AS THE SELLER INTELLIGENCE SOURCE
+
+IMPORTANT ARCHITECTURE CHANGE:
+
+Do not hard-code specific companies such as Whitlock Building Services,
+C4 Wraps, or any future customer into an industry profile.
+
+Instead, use the Company Website entered by the user under:
+
+Settings → Company Website
+
+as the primary source for creating a dynamic Seller Intelligence Profile.
+
+The industry selected under:
+
+Settings → Your Industry
+
+should determine the prospecting framework.
+
+The Company Website should determine:
+
+- What the user's company sells
+- Services offered
+- Capabilities
+- Differentiators
+- Certifications
+- Industries served
+- Value propositions
+- Business outcomes
+- Proof points
+- Relevant terminology
+- Competitive positioning
+- Calls to action
+- Relevant portfolio/examples where available
+
+This allows every customer in the same industry to use the same iSDRX AI
+industry model without requiring custom code.
+
+
+====================================================
+CORE ARCHITECTURE
+====================================================
+
+The workflow should be:
+
+USER SELECTS INDUSTRY
+        ↓
+USER ENTERS COMPANY WEBSITE
+        ↓
+ANALYZE COMPANY WEBSITE
+        ↓
+CREATE SELLER INTELLIGENCE PROFILE
+        ↓
+SAVE SELLER INTELLIGENCE PROFILE
+        ↓
+PROSPECT SEARCH
+        ↓
+RESEARCH PROSPECT
+        ↓
+COMPARE SELLER VALUE TO PROSPECT BUSINESS
+        ↓
+IDENTIFY POTENTIAL BUSINESS CHALLENGE
+        ↓
+MATCH SELLER CAPABILITY TO PROSPECT NEED
+        ↓
+SCORE FIT
+        ↓
+WHY TARGET
+        ↓
+POTENTIAL NEEDS
+        ↓
+RECOMMENDED OUTREACH
+        ↓
+PERSONALIZED EMAIL CAMPAIGN
+
+
+====================================================
+INDUSTRY PROFILE VS SELLER PROFILE
+====================================================
+
+Keep these two concepts separate.
+
+INDUSTRY PROFILE
+
+The user's selected industry determines:
+
+- Which types of companies to search
+- Relevant target industries
+- Relevant job titles
+- Industry buying signals
+- Search filters
+- Industry-specific opportunity scoring
+- Typical business challenges
+- Relevant research categories
+
+Examples:
+
+IT Services:
+Cybersecurity, compliance, infrastructure, IT hiring, cloud, technology
+change, managed services opportunities.
+
+Janitorial:
+Facility type, building operations, expansion, occupancy, property
+management, RFPs, construction, facility needs.
+
+Fleet & Commercial Vehicle Wraps:
+Fleet-dependent businesses, field technicians, drivers, vehicle growth,
+territory expansion, branding, locations, commercial vehicles.
+
+The industry profile SHOULD NOT define the exact seller's capabilities.
+
+
+SELLER INTELLIGENCE PROFILE
+
+The seller profile should be dynamically created from the website entered
+under Settings → Company Website.
+
+The seller profile determines:
+
+- Seller company name
+- Services
+- Products
+- Capabilities
+- Differentiators
+- Certifications
+- Industries served
+- Value proposition
+- Problems solved
+- Business outcomes
+- Proof points
+- Portfolio examples
+- Customer types
+- Relevant calls to action
+- Seller terminology
+
+
+====================================================
+WEBSITE ANALYSIS
+====================================================
+
+When a valid Company Website is saved:
+
+Analyze the publicly accessible website.
+
+Where possible review relevant pages such as:
+
+- Homepage
+- About
+- Services
+- Solutions
+- Industries
+- Products
+- Portfolio
+- Gallery
+- Case Studies
+- Testimonials
+- Certifications
+- Why Us
+- FAQ
+
+Do not rely only on the homepage if other relevant public pages are
+available.
+
+Extract and summarize the information into a structured Seller Intelligence
+Profile.
+
+
+====================================================
+SELLER INTELLIGENCE PROFILE DATA
+====================================================
+
+Create a reusable stored profile containing fields such as:
+
+sellerCompanyName
+sellerWebsite
+sellerIndustry
+
+sellerServices[]
+sellerProducts[]
+sellerCapabilities[]
+sellerDifferentiators[]
+sellerCertifications[]
+sellerIndustriesServed[]
+sellerBusinessOutcomes[]
+sellerProblemsSolved[]
+sellerProofPoints[]
+sellerPortfolioExamples[]
+sellerValuePropositions[]
+sellerCTAs[]
+
+websiteLastAnalyzed
+websiteAnalysisStatus
+
+
+The exact database structure may follow the application's current architecture.
+
+Reuse existing database patterns where possible.
+
+
+====================================================
+WEBSITE PROFILE REFRESH
+====================================================
+
+Do NOT analyze the seller website during every prospect search.
+
+This is important for speed and API cost.
+
+Instead:
+
+1. Analyze the website when the user saves or changes the Company Website.
+
+2. Create the Seller Intelligence Profile.
+
+3. Save/cached the intelligence profile.
+
+4. Prospect Search should use the stored intelligence profile.
+
+5. Re-analyze only when:
+   - Website URL changes
+   - User manually selects Refresh Company Intelligence
+   - Profile has not previously been analyzed
+   - A future scheduled refresh feature is implemented
+
+This prevents unnecessary repeated website research and AI costs.
+
+
+====================================================
+SETTINGS UI
+====================================================
+
+Keep the existing:
+
+Company Website (optional)
+
+field.
+
+When a website is entered and successfully analyzed, display something such
+as:
+
+✓ Company Intelligence Ready
+
+Optionally provide:
+
+View Company Intelligence
+Refresh Company Intelligence
+
+Do not require the user to manually enter all services and value propositions
+if they have provided a usable website.
+
+
+====================================================
+PROSPECT VALUE MATCHING
+====================================================
+
+For every prospect, compare:
+
+SELLER INTELLIGENCE PROFILE
+        ↓
+PROSPECT BUSINESS
+        ↓
+VERIFIED PROSPECT SIGNALS
+        ↓
+POTENTIAL BUSINESS CHALLENGE
+        ↓
+RELEVANT SELLER CAPABILITY
+        ↓
+BUSINESS VALUE
+        ↓
+SALES ANGLE
+
+
+The AI should answer:
+
+1. Why is this prospect relevant to THIS seller?
+
+2. What business challenge may exist?
+
+3. Which seller capability could address it?
+
+4. What business outcome could the seller potentially provide?
+
+5. What is the strongest sales angle?
+
+6. Which seller differentiator is most relevant?
+
+7. What should the email say?
+
+
+====================================================
+WHY TARGET
+====================================================
+
+Why Target should no longer be based only on the generic industry profile.
+
+It should combine:
+
+Prospect information
++
+Industry fit
++
+Seller intelligence
++
+Relevant business challenge
++
+Seller capability
+
+
+Example structure:
+
+Why Target:
+
+[Prospect] operates in [business/facility context], creating a potential need
+around [business challenge].
+
+[Seller] provides [specific capability from seller website], which aligns
+with this environment by helping organizations [relevant business outcome].
+
+This creates a strong potential fit because [specific connection].
+
+
+====================================================
+POTENTIAL NEEDS
+====================================================
+
+Potential Needs should NOT simply list generic products or services.
+
+Use:
+
+BUSINESS CHALLENGE
+→
+SELLER SOLUTION
+→
+BUSINESS OUTCOME
+
+
+Example:
+
+Brand visibility →
+The seller's fleet graphics capability could turn vehicles already traveling
+through the service area into additional local brand exposure.
+
+Facility consistency →
+The seller's customized janitorial program could provide structured cleaning
+around the facility's operating schedule.
+
+Cybersecurity exposure →
+The seller's managed security services could help strengthen endpoint,
+network, and data protection.
+
+
+====================================================
+RECOMMENDED OUTREACH
+====================================================
+
+Recommended Outreach should explain which part of the SELLER'S actual value
+proposition the salesperson should lead with.
+
+Do not generate:
+
+"Offer cleaning services."
+
+"Offer fleet wraps."
+
+"Offer IT services."
+
+Instead:
+
+"Lead with [specific seller capability] because [verified prospect situation]
+creates an opportunity around [business outcome]."
+
+
+====================================================
+PERSONALIZED EMAIL GENERATION
+====================================================
+
+Every outreach email should use the Seller Intelligence Profile.
+
+The AI should generate the email from:
+
+PROSPECT BUSINESS
++
+VERIFIED SIGNAL
++
+BUSINESS CHALLENGE
++
+SELLER CAPABILITY
++
+SELLER DIFFERENTIATOR
++
+BUSINESS OUTCOME
++
+CTA
+
+
+Emails should sound like they were written by a salesperson who understands:
+
+- The seller's company
+- The seller's services
+- The prospect's company
+- The prospect's industry
+- The relevant business challenge
+
+
+Do NOT start emails with:
+
+"I noticed..."
+"I came across..."
+"I wanted to reach out..."
+"I hope this email finds you well."
+
+
+Instead use a relevant business-value opening.
+
+
+====================================================
+EXAMPLE — JANITORIAL
+====================================================
+
+User selects:
+
+Janitorial
+
+Website:
+
+www.whitlockservices.com
+
+iSDRX AI analyzes Whitlock's website and creates the seller profile.
+
+Prospect:
+
+Large warehouse
+
+The system should compare the warehouse's operations to Whitlock's actual
+services and differentiators and explain why Whitlock may be relevant.
+
+If another janitorial customer signs up and enters:
+
+www.differentcleaningcompany.com
+
+the SAME Janitorial industry model should analyze that company's website and
+use THEIR services, differentiators, capabilities, and value proposition.
+
+Do not continue using Whitlock's value proposition for the new customer.
+
+
+====================================================
+EXAMPLE — FLEET WRAPS
+====================================================
+
+User selects:
+
+Fleet & Commercial Vehicle Wraps
+
+Website:
+
+www.goc4wraps.com
+
+Use C4's seller intelligence.
+
+If another wrap business later signs up and enters its own website, use that
+company's value proposition automatically.
+
+Do not require a new Fleet Wrap profile or custom code.
+
+
+====================================================
+FALLBACK WHEN WEBSITE IS MISSING
+====================================================
+
+Because Company Website is currently optional:
+
+If no website is provided:
+
+Use the generic industry profile and existing industry-based prospect
+intelligence.
+
+Do NOT invent seller-specific services or differentiators.
+
+The system may display:
+
+"Add your company website in Settings to improve seller-specific prospect
+intelligence and email personalization."
+
+
+====================================================
+FALLBACK WHEN WEBSITE CANNOT BE ANALYZED
+====================================================
+
+If the website is unavailable, blocked, invalid, or contains insufficient
+information:
+
+Do not fail Prospect Search.
+
+Continue using the generic industry profile.
+
+Clearly mark the seller intelligence status as:
+
+Company Intelligence Limited
+
+Do not fabricate information from the seller's website.
+
+
+====================================================
+ACCURACY
+====================================================
+
+Never invent:
+
+- Certifications
+- Services
+- Clients
+- Awards
+- Guarantees
+- Pricing
+- ROI
+- Case study results
+- Customer outcomes
+- Years in business
+- Locations
+- Capabilities
+
+Only use seller-specific claims supported by the website or other approved
+seller profile information.
+
+
+====================================================
+IMPORTANT COST / PERFORMANCE REQUIREMENT
+====================================================
+
+Website analysis should happen primarily during profile setup or refresh.
+
+Do NOT repeatedly crawl and analyze the seller website for each prospect.
+
+Store the resulting Seller Intelligence Profile and reuse it for:
+
+- Prospect qualification
+- Why Target
+- Potential Needs
+- Opportunity scoring
+- Recommended Outreach
+- Email personalization
+- Campaign creation
+
+This architecture is required to minimize unnecessary AI/API costs and
+improve response speed.
+
+
+====================================================
+DO NOT BREAK EXISTING FUNCTIONALITY
+====================================================
+
+Do not remove or break:
+
+- Industry radio buttons
+- Existing IT Services model
+- Existing Janitorial model
+- Fleet & Commercial Vehicle Wraps model
+- Prospect Search
+- Lead generation
+- Apollo/enrichment integrations
+- Prospect cards
+- Pipeline
+- Email campaigns
+- Signatures
+- Engagement tracking
+- Lead scoring
+
+This should EXTEND the current intelligence system rather than replace it.

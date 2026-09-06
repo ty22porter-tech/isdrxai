@@ -7,10 +7,10 @@ describe("composeEmail clean tracked-link display", () => {
     const result = composeEmail(
       "Thanks for your interest.",
       {
-        businessName: "Whitlock Building Services",
-        senderName: "Ty Porter",
-        outreachEmail: "tporter@whitlockservices.com",
-        website: "www.whitlockservices.com",
+        businessName: "Acme Facility Services",
+        senderName: "Alex Morgan",
+        outreachEmail: "alex@example.com",
+        website: "www.example.com",
         businessAddress: "123 Main St, Dallas, TX",
       },
       { companyName: "Prospect Co", unsubscribeToken: "unsubscribe-token" },
@@ -22,7 +22,7 @@ describe("composeEmail clean tracked-link display", () => {
     );
 
     expect(result.text).toContain("Click here to schedule appointment");
-    expect(result.text).toContain("Website: www.whitlockservices.com");
+    expect(result.text).toContain("Website: www.example.com");
     expect(result.text).not.toContain("/api/t/l/");
     expect(result.html).toContain(">Click here to schedule appointment</a>");
     expect(result.html).toContain('href="https://');

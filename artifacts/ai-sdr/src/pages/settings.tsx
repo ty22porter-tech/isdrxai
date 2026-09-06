@@ -4,7 +4,8 @@ import { useUser } from "@clerk/react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { useUpload } from "@workspace/object-storage-web";
-import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox, ImageIcon, Camera, Paperclip, Trash2, FileText, Upload } from "lucide-react";
+import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox, ImageIcon, Camera, Paperclip, Trash2, FileText, Upload, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -23,6 +24,46 @@ function formatSize(bytes: number) {
   if (!bytes) return "";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function intelligenceFieldLabel(key: string) {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function IntelligenceValue({ value }: { value: unknown }) {
+  if (value === null || value === undefined || value === "") return <span className="text-muted-foreground">Not available</span>;
+
+  if (Array.isArray(value)) {
+    return (
+      <ul className="list-disc space-y-1 pl-4">
+        {value.map((item, index) => (
+          <li key={index}>
+            {typeof item === "object" && item !== null
+              ? <IntelligenceValue value={item} />
+              : String(item)}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (typeof value === "object") {
+    return (
+      <dl className="space-y-2">
+        {Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => (
+          <div key={key}>
+            <dt className="font-medium text-foreground">{intelligenceFieldLabel(key)}</dt>
+            <dd className="mt-0.5 text-muted-foreground"><IntelligenceValue value={nestedValue} /></dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
+  return <>{String(value)}</>;
 }
 
 function SingleFileCard({
@@ -187,6 +228,8 @@ export default function SettingsPage() {
   const [attachErr, setAttachErr] = useState<string | null>(null);
   const attachInputRef = useRef<HTMLInputElement>(null);
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [intelligenceOpen, setIntelligenceOpen] = useState(false);
+  const [intelligenceMsg, setIntelligenceMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const pendingFileRef = useRef<File | null>(null);
   const attachUpload = useUpload({
@@ -279,8 +322,14 @@ export default function SettingsPage() {
         }),
       }),
     onSuccess: () => {
+      const websiteWasChanged = website.trim() !== (me?.website ?? "").trim();
       qc.invalidateQueries({ queryKey: ["me"] });
-      setSaveMsg({ type: "ok", text: "Settings saved!" });
+      setSaveMsg({
+        type: "ok",
+        text: websiteWasChanged
+          ? "Settings saved. Company website analysis is complete."
+          : "Settings saved!",
+      });
       setTimeout(() => setSaveMsg(null), 3000);
     },
     onError: (err: Error) => {
@@ -288,7 +337,32 @@ export default function SettingsPage() {
     },
   });
 
+  const refreshIntelligenceMutation = useMutation({
+    mutationFn: () => apiFetch("/users/company-intelligence/refresh", { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me"] });
+      setIntelligenceMsg({ type: "ok", text: "Company intelligence refresh is complete." });
+    },
+    onError: (err: Error) => setIntelligenceMsg({ type: "err", text: err.message }),
+  });
+
   const allSet = !!(me?.platformEmailReady && me?.outreachEmail);
+  const savedWebsite = (me?.website ?? "").trim();
+  const websiteChanged = website.trim() !== savedWebsite;
+  const sellerIntelligenceProfile = me?.sellerIntelligenceProfile as Record<string, unknown> | null | undefined;
+  const intelligenceStatus = String(
+    sellerIntelligenceProfile?.status
+      ?? sellerIntelligenceProfile?.analysisStatus
+      ?? sellerIntelligenceProfile?.state
+      ?? "",
+  ).toLowerCase();
+  const intelligenceIsAnalyzing = refreshIntelligenceMutation.isPending || /analy[sz]|pending|queued|processing|refresh/.test(intelligenceStatus);
+  const intelligenceIsLimited = /limited|partial|fail|error|unavailable/.test(intelligenceStatus);
+  const intelligenceIsReady = !!sellerIntelligenceProfile && !intelligenceIsAnalyzing && !intelligenceIsLimited
+    && !/not.?analy[sz]|missing|none/.test(intelligenceStatus);
+  const intelligenceDisplayFields = sellerIntelligenceProfile
+    ? Object.entries(sellerIntelligenceProfile).filter(([key]) => !["status", "analysisStatus", "state", "error", "lastError"].includes(key))
+    : [];
 
   const {
     data: deliverability,
@@ -517,6 +591,95 @@ export default function SettingsPage() {
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             <p className="text-xs text-muted-foreground">Shown as "Website" in your email signature when provided.</p>
+
+            <div
+              className={`rounded-lg border p-3 space-y-3 ${
+                intelligenceIsAnalyzing
+                  ? "border-blue-500/30 bg-blue-500/10"
+                  : intelligenceIsReady
+                    ? "border-emerald-500/30 bg-emerald-500/10"
+                    : intelligenceIsLimited
+                      ? "border-amber-500/30 bg-amber-500/10"
+                      : "border-border bg-card"
+              }`}
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2.5">
+                {intelligenceIsAnalyzing ? (
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-blue-400" />
+                ) : intelligenceIsReady ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                ) : intelligenceIsLimited ? (
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                ) : (
+                  <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <div className="min-w-0">
+                  <p className={`text-xs font-semibold ${
+                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
+                  }`}>
+                    Company Intelligence: {intelligenceIsAnalyzing ? "Analyzing" : intelligenceIsReady ? "Ready" : intelligenceIsLimited ? "Limited" : "Not analyzed"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {intelligenceIsAnalyzing
+                      ? "Your website is being analyzed. This can take a few moments; the intelligence below will update when it is ready."
+                      : intelligenceIsReady
+                        ? "Your company profile is ready to help tailor prospect research and outreach."
+                        : intelligenceIsLimited
+                          ? "We found limited company information. Refresh after updating your website for a more complete profile."
+                          : savedWebsite
+                            ? "Your saved website has not been analyzed yet. Refresh to create company intelligence."
+                            : "Add and save your company website to create company intelligence."}
+                  </p>
+                </div>
+              </div>
+
+              {intelligenceDisplayFields.length > 0 && (
+                <Collapsible open={intelligenceOpen} onOpenChange={setIntelligenceOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm" className="h-auto px-0 py-1 text-xs">
+                      <ChevronDown className={`mr-1.5 h-3.5 w-3.5 transition-transform ${intelligenceOpen ? "rotate-180" : ""}`} />
+                      {intelligenceOpen ? "Hide Company Intelligence" : "View Company Intelligence"}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-2">
+                    <dl className="space-y-3 rounded-md border border-border/70 bg-background/60 p-3 text-xs">
+                      {intelligenceDisplayFields.map(([key, value]) => (
+                        <div key={key}>
+                          <dt className="font-semibold">{intelligenceFieldLabel(key)}</dt>
+                          <dd className="mt-1 break-words"><IntelligenceValue value={value} /></dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!savedWebsite || refreshIntelligenceMutation.isPending}
+                  onClick={() => {
+                    setIntelligenceMsg(null);
+                    refreshIntelligenceMutation.mutate();
+                  }}
+                >
+                  {refreshIntelligenceMutation.isPending ? (
+                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Refreshing…</>
+                  ) : (
+                    <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh Company Intelligence</>
+                  )}
+                </Button>
+                {!savedWebsite && <span className="text-xs text-muted-foreground">Save a website first to refresh.</span>}
+              </div>
+              {intelligenceMsg && (
+                <p className={`text-xs ${intelligenceMsg.type === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+                  {intelligenceMsg.text}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -876,7 +1039,9 @@ export default function SettingsPage() {
             disabled={mutation.isPending || isLoading}
             onClick={() => mutation.mutate()}
           >
-            {mutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : "Save Settings"}
+            {mutation.isPending ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {websiteChanged ? "Saving & starting analysis…" : "Saving…"}</>
+            ) : "Save Settings"}
           </Button>
         </div>
 

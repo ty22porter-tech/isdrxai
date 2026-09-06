@@ -120,25 +120,30 @@ interface CampaignForm {
 }
 
 const IT_FORM_OVERRIDES: Partial<Record<typeof FOLLOW_UP_KEYS[number], SequenceStep>> = {
+  followUp1: {
+    dayDelay: 3,
+    subject: "Following up — {{companyName}}",
+    body: "Hi {{contactName}},\n\nFor {{industry}} organizations in {{city}}, technology reliability and security can be worth reviewing. Whether that applies to {{companyName}} is something to confirm rather than assume.\n\nWould a brief discovery conversation be useful?\n\nBest,\nYour SDR Team",
+  },
   followUp2: {
     dayDelay: 4,
     subject: "Quick question for {{companyName}}",
-    body: "Hi {{contactName}},\n\nI wanted to share that we recently helped a similar {{industry}} company in {{city}} cut their Microsoft 365 licensing costs by 25% while tightening their security.\n\nWorth a quick chat?\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\n{{industry}} organizations sometimes review licensing costs and security together, but {{companyName}}'s current environment is unverified.\n\nWould it be useful to compare notes on the current approach?\n\nBest,\nYour SDR Team",
   },
   followUp3: {
     dayDelay: 5,
     subject: "{{companyName}} — a thought",
-    body: "Hi {{contactName}},\n\nMost {{industry}} businesses we talk to face one of two problems: slow IT support when things break, or growing security risks nobody is watching.\n\nWe solve both — Cybersecurity, Managed IT, Managed Security, MS365, and Mobile Device Management under one roof. Can I show you how in 10 minutes?\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\n{{industry}} organizations often balance support responsiveness with security risk. I don't want to assume either is a current issue for {{companyName}}.\n\nIs there an IT priority worth discussing?\n\nBest,\nYour SDR Team",
   },
   followUp4: {
     dayDelay: 7,
     subject: "Still thinking about {{companyName}}",
-    body: "Hi {{contactName}},\n\nI know you're busy — I'll keep this short. We specialize in IT for {{industry}} businesses in {{city}} and have availability to take on a new client this month.\n\nIf you'd like an IT assessment, we can do most of it remotely.\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\nI'll keep this short. If technology reliability or security is a current priority for {{companyName}}, a discovery conversation may be useful.\n\nWould you like to compare notes on the current approach?\n\nBest,\nYour SDR Team",
   },
   followUp5: {
     dayDelay: 10,
     subject: "One more thought for {{companyName}}",
-    body: "Hi {{contactName}},\n\nI've reached out a few times — I promise this isn't spam. I genuinely think we could save {{companyName}} money and headaches on IT, licensing, and security.\n\nIf now isn't the right time, would you mind letting me know? Happy to follow up in 3 months instead.\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\nI'll keep this brief. If technology reliability, licensing, or security is a current priority for {{companyName}}, a discovery conversation may be useful.\n\nIf now isn't the right time, just let me know.\n\nBest,\nYour SDR Team",
   },
   followUp6: {
     dayDelay: 14,
@@ -152,12 +157,12 @@ function blankForm(vertical: ClientVertical): CampaignForm {
   if (vertical === "fleet_wraps") {
     return {
       ...BLANK_FORM,
-      followUp1: { dayDelay: 3, subject: "Following up on {{companyName}}'s vehicle branding", body: "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can support recognition throughout {{city}}. C4 Wraps pairs custom in-house design with commercial fleet graphics to keep that brand presence professional and consistent.\n\nWould a quick conversation about how {{companyName}} currently handles vehicle branding be useful?" },
-      followUp2: { dayDelay: 4, subject: "A mobile-visibility idea for {{companyName}}", body: "Hi {{contactName}},\n\nCommercial vehicles can keep a {{industry}} brand visible while crews, technicians, or drivers are already on the road. C4 Wraps can match the confirmed need with full wraps, partial wraps, or lettering rather than a one-size-fits-all package.\n\nIs vehicle branding something {{companyName}} is reviewing?" },
-      followUp3: { dayDelay: 5, subject: "{{companyName}} — consistent fleet graphics", body: "Hi {{contactName}},\n\nC4 Wraps handles design and professional installation in one process, using premium materials to help approved graphics stay consistent across eligible vehicle types.\n\nWould it help to compare that approach with how {{companyName}} currently manages its commercial vehicle branding?" },
-      followUp4: { dayDelay: 7, subject: "A practical branding question for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} businesses in {{city}}, recognizable commercial vehicles can support both professional arrival and ongoing local visibility. C4 Wraps builds that around the actual vehicles and brand standards involved.\n\nDoes {{companyName}} operate customer-facing vehicles today?" },
-      followUp5: { dayDelay: 10, subject: "Keeping vehicle branding repeatable", body: "Hi {{contactName}},\n\nWhen a vehicle is replaced or added, reproducing approved graphics can become an operational challenge. If that need applies to {{companyName}}, C4 Wraps can create a repeatable design and installation process without assuming a particular fleet size or growth plan.\n\nWorth a brief conversation?" },
-      followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI'll close the loop after this. If {{companyName}} wants to explore commercial wraps, fleet graphics, or vehicle lettering, C4 Wraps can match the format to the confirmed business need and vehicles involved.\n\nWould a future fleet-branding conversation be useful?" },
+      followUp1: { dayDelay: 3, subject: "Following up on {{companyName}}'s vehicle branding", body: "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can support recognition throughout {{city}}. Whether that opportunity applies to {{companyName}} is still unverified.\n\nWould a quick conversation about how {{companyName}} currently handles vehicle branding be useful?" },
+      followUp2: { dayDelay: 4, subject: "A mobile-visibility question for {{companyName}}", body: "Hi {{contactName}},\n\nCommercial vehicles can sometimes keep a {{industry}} brand visible while crews, technicians, or drivers are already on the road. Before suggesting a solution, it would be useful to understand whether {{companyName}} operates customer-facing vehicles.\n\nIs vehicle branding something {{companyName}} is reviewing?" },
+      followUp3: { dayDelay: 5, subject: "{{companyName}} — a fleet-branding question", body: "Hi {{contactName}},\n\nConsistent vehicle branding can matter when an organization has multiple customer-facing vehicle types, but I don't want to assume that applies to {{companyName}}.\n\nWould it help to compare notes on your current approach?" },
+      followUp4: { dayDelay: 7, subject: "A practical branding question for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} businesses in {{city}}, recognizable commercial vehicles can support both professional arrival and local visibility. That is an industry-fit hypothesis, not a claim about {{companyName}}.\n\nDoes {{companyName}} operate customer-facing vehicles today?" },
+      followUp5: { dayDelay: 10, subject: "Keeping vehicle branding repeatable", body: "Hi {{contactName}},\n\nWhen a vehicle is replaced or added, reproducing approved graphics can become an operational challenge. If that need applies to {{companyName}}, it may be worth reviewing the current process without assuming a particular fleet size or growth plan.\n\nWorth a brief conversation?" },
+      followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI'll close the loop after this. If vehicle branding becomes a priority for {{companyName}}, a short discovery conversation can clarify the vehicles, brand standards, and business outcome involved before any solution is recommended.\n\nWould a future conversation be useful?" },
     };
   }
   return BLANK_FORM;
@@ -168,27 +173,27 @@ const BLANK_FORM: CampaignForm = {
   followUp1: {
     dayDelay: 3,
     subject: "Following up — {{companyName}}",
-    body: "Hi {{contactName}},\n\nJust following up on my previous email. We work with {{industry}} businesses in {{city}} and I'd love to see if we're a fit.\n\nDo you have 15 minutes this week?\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\nFor {{industry}} organizations in {{city}}, facility consistency can be worth reviewing. Whether that applies to {{companyName}} is something to confirm rather than assume.\n\nWould a brief discovery conversation be useful?\n\nBest,\nYour SDR Team",
   },
   followUp2: {
     dayDelay: 4,
     subject: "Quick question for {{companyName}}",
-    body: "Hi {{contactName}},\n\nI wanted to share that we recently helped a similar {{industry}} company in {{city}} cut their cleaning costs by 25% while improving reliability.\n\nWorth a quick chat?\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\n{{industry}} organizations sometimes review cleaning consistency and vendor responsiveness together, but {{companyName}}'s current situation is unverified.\n\nWould it be useful to compare notes on the current approach?\n\nBest,\nYour SDR Team",
   },
   followUp3: {
     dayDelay: 5,
     subject: "{{companyName}} — a thought",
-    body: "Hi {{contactName}},\n\nMost {{industry}} facilities we talk to face one of two problems: inconsistent service or hidden costs that creep up over time.\n\nWe solve both. Can I show you how in 10 minutes?\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\n{{industry}} organizations often manage service consistency and vendor responsiveness. I don't want to assume either is a current issue for {{companyName}}.\n\nIs there a facility-service priority worth discussing?\n\nBest,\nYour SDR Team",
   },
   followUp4: {
     dayDelay: 7,
     subject: "Still thinking about {{companyName}}",
-    body: "Hi {{contactName}},\n\nI know you're busy — I'll keep this short. We specialize in {{industry}} facilities in {{city}} and have availability to take on a new client this month.\n\nIf you'd like a free walkthrough and quote, I can come to you.\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\nI'll keep this short. If facility consistency or vendor responsiveness is a current priority for {{companyName}}, a discovery conversation may be useful.\n\nWould you like to compare notes on the current approach?\n\nBest,\nYour SDR Team",
   },
   followUp5: {
     dayDelay: 10,
     subject: "One more thought for {{companyName}}",
-    body: "Hi {{contactName}},\n\nI've reached out a few times — I promise this isn't spam. I genuinely think we could save {{companyName}} money and headaches on facility cleaning.\n\nIf now isn't the right time, would you mind letting me know? Happy to follow up in 3 months instead.\n\nBest,\nYour SDR Team",
+    body: "Hi {{contactName}},\n\nI'll keep this brief. If facility service becomes a priority for {{companyName}}, a discovery conversation may be useful.\n\nIf now isn't the right time, just let me know.\n\nBest,\nYour SDR Team",
   },
   followUp6: {
     dayDelay: 14,
@@ -605,7 +610,7 @@ export default function Campaigns() {
         companyName: "{{companyName}}",
         contactName: "{{contactName}}",
         city: "{{city}}",
-      }, vertical);
+      }, vertical, me?.sellerIntelligenceProfile);
       applyResult(fallback.subject, fallback.body);
       trackEvent("ai_email_generated", {
         sequence_step: stepNum,
@@ -688,7 +693,7 @@ export default function Campaigns() {
             rows={4}
             placeholder={vertical === "fleet_wraps"
               ? "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can create ongoing visibility throughout {{city}}..."
-              : "Hi {{contactName}},\n\nI noticed {{companyName}} is a growing {{industry}} company in {{city}}..."}
+              : "Hi {{contactName}},\n\nFor {{industry}} organizations in {{city}}, an operational challenge may be worth reviewing..."}
             value={form.emailTemplate}
             onChange={e => setForm({ ...form, emailTemplate: e.target.value })}
             className="font-mono text-xs"

@@ -1,0 +1,459 @@
+====================================================
+AI EMAIL GENERATION — SELLER VALUE MATCHING
+====================================================
+
+CRITICAL REQUIREMENT:
+
+ALL AI-generated prospecting emails must use the Seller Intelligence Profile
+created from the Company Website entered in Settings.
+
+The Company Website is not only for the user's email signature.
+
+It is a primary intelligence source that teaches iSDRX AI:
+
+- What the user's company does
+- What it sells
+- What services it provides
+- What problems it solves
+- Its strongest differentiators
+- Its certifications
+- Its areas of expertise
+- Industries it serves
+- Business outcomes it can provide
+- Relevant proof points
+- Portfolio/case-study experience where available
+- How it positions itself in the market
+
+Use this intelligence to determine WHY the seller is relevant to each
+individual prospect.
+
+
+====================================================
+EMAIL VALUE-MATCHING PROCESS
+====================================================
+
+Before generating an outreach email, perform this reasoning:
+
+SELLER INTELLIGENCE
+        +
+PROSPECT COMPANY RESEARCH
+        +
+VERIFIED PROSPECT SIGNALS
+        ↓
+IDENTIFY RELEVANT BUSINESS CHALLENGE / OPPORTUNITY
+        ↓
+SELECT MOST RELEVANT SELLER CAPABILITY
+        ↓
+SELECT MOST RELEVANT SELLER DIFFERENTIATOR
+        ↓
+IDENTIFY POTENTIAL BUSINESS VALUE
+        ↓
+DETERMINE BEST SALES ANGLE
+        ↓
+WRITE PERSONALIZED EMAIL
+        ↓
+CREATE ENGAGEMENT-FOCUSED CTA
+
+
+The email should NOT attempt to communicate every service the seller offers.
+
+Select the 1–2 seller capabilities that are MOST relevant to the specific
+prospect and signal.
+
+
+====================================================
+PROSPECT SIGNAL → SELLER VALUE
+====================================================
+
+The AI must compare prospect signal intelligence directly against the
+seller's capabilities.
+
+Examples:
+
+Prospect Signal:
+Company is hiring additional HVAC technicians.
+
+Seller Website:
+Seller specializes in commercial fleet wraps and consistent fleet branding.
+
+Email Angle:
+As additional technicians and service vehicles are added, maintaining
+consistent vehicle branding can help the company extend its local visibility
+and present a professional brand across its service territory.
+
+
+Prospect Signal:
+Company is opening a new distribution facility.
+
+Seller Website:
+Seller specializes in industrial janitorial and warehouse cleaning.
+
+Email Angle:
+A new distribution operation creates an opportunity to establish a cleaning
+program around warehouse traffic, floors, employee areas, restrooms and
+operating schedules before routines become difficult to change.
+
+
+Prospect Signal:
+Healthcare organization is expanding locations.
+
+Seller Website:
+IT provider specializes in cybersecurity, compliance and multi-location
+managed IT.
+
+Email Angle:
+Expansion can increase the number of endpoints, users, locations and systems
+an IT team must secure and support. Position the seller's relevant managed IT
+and cybersecurity capabilities around supporting that growth.
+
+
+====================================================
+EMAIL OBJECTIVE
+====================================================
+
+The primary purpose of every email is to CREATE ENGAGEMENT.
+
+The email should make the recipient think:
+
+"This is relevant to what our business is doing."
+
+NOT:
+
+"This company is trying to sell me something."
+
+Emails should be:
+
+- Relevant
+- Concise
+- Professional
+- Human
+- Consultative
+- Business-outcome focused
+- Specific enough to demonstrate research
+- Easy to respond to
+
+Avoid sounding overly promotional or AI-generated.
+
+
+====================================================
+EMAIL OPENING
+====================================================
+
+Do NOT begin emails with:
+
+"I noticed..."
+"I came across..."
+"I wanted to reach out..."
+"I hope this email finds you well..."
+"My name is..."
+"We are a leading..."
+"Are you looking for..."
+
+Do not begin by introducing the seller.
+
+Start with the PROSPECT'S business situation, challenge, opportunity or
+relevant business outcome.
+
+The opening should give the reader a reason to continue reading.
+
+
+Examples:
+
+Fleet Wraps:
+
+"Every service vehicle your technicians put on the road can create additional
+brand visibility in the same neighborhoods you're already serving."
+
+
+Janitorial:
+
+"Keeping a growing distribution operation consistently clean without
+interrupting daily workflow requires a different approach than standard
+office cleaning."
+
+
+IT Services:
+
+"Adding locations can quickly increase the number of users, endpoints and
+systems an IT team has to secure and support."
+
+
+These are examples of the approach, not templates to repeat.
+
+
+====================================================
+EMAIL BODY
+====================================================
+
+After establishing relevance, connect the prospect's situation to the
+seller's specific value proposition.
+
+Use:
+
+PROSPECT SITUATION
+→
+BUSINESS CHALLENGE
+→
+SELLER CAPABILITY
+→
+SELLER DIFFERENTIATOR
+→
+POTENTIAL BUSINESS OUTCOME
+
+Do not dump a list of services.
+
+Do not write paragraphs describing the seller's entire company.
+
+Explain only the capabilities that matter to THIS prospect.
+
+
+====================================================
+USE SELLER STRENGTHS INTELLIGENTLY
+====================================================
+
+If the Seller Intelligence Profile contains strengths such as:
+
+- Certifications
+- Specialized expertise
+- Proprietary process
+- Industry experience
+- Technology
+- Quality-control systems
+- Warranty
+- In-house capabilities
+- Fast turnaround
+- Multi-location support
+- Custom programs
+- Dedicated account management
+- Case studies
+- Portfolio experience
+
+select ONLY the differentiator most relevant to the prospect.
+
+Example:
+
+If a janitorial seller has CIMS certification and the prospect is a large
+facility with strong quality-control requirements, CIMS may be highly
+relevant.
+
+If the prospect is primarily concerned with post-construction cleaning,
+another seller capability may be more important.
+
+Do not force the same differentiator into every email.
+
+
+====================================================
+VERIFIED SIGNALS
+====================================================
+
+Use verified prospect signals when available, including:
+
+- Hiring
+- New locations
+- Expansion
+- New facilities
+- New contracts
+- Acquisitions
+- Leadership changes
+- Construction
+- RFP activity
+- Technology initiatives
+- Regulatory requirements
+- Rebranding
+- Fleet growth
+- Relevant job openings
+- Other industry-specific signals
+
+Signals should provide CONTEXT for the outreach.
+
+Do not simply write:
+
+"I saw that you're hiring."
+
+Instead interpret WHY the signal could create a relevant business challenge.
+
+
+Example:
+
+Weak:
+"I noticed you're hiring HVAC technicians."
+
+Better:
+"Adding field technicians can also mean putting more service vehicles into
+the market, making consistent fleet branding increasingly important as the
+operation grows."
+
+
+====================================================
+WHEN NO STRONG SIGNAL EXISTS
+====================================================
+
+Do not fabricate a signal.
+
+Use the prospect's verified business model, industry, facility type, market,
+or operational characteristics to establish relevance.
+
+The AI should be able to generate a strong email without pretending that a
+trigger event occurred.
+
+
+====================================================
+EMAIL CTA
+====================================================
+
+CTAs should encourage ENGAGEMENT rather than immediately pushing for a sale.
+
+Use low-friction, conversational questions.
+
+Examples:
+
+"Would it be worth comparing how you're handling this today?"
+
+"Is this something your team is currently evaluating?"
+
+"Would a quick conversation around your current approach make sense?"
+
+"Would it be useful to see how other organizations are approaching this?"
+
+"Is fleet branding something your team manages internally or with an outside
+partner?"
+
+"Would it make sense to compare your current cleaning program against another
+approach?"
+
+Vary the CTA based on the prospect and campaign stage.
+
+Do not use the exact same CTA for every email.
+
+
+====================================================
+CAMPAIGN SEQUENCE
+====================================================
+
+Apply Seller Intelligence throughout the ENTIRE email campaign.
+
+Do not personalize only Email #1.
+
+For a multi-step campaign:
+
+EMAIL 1:
+Lead with the strongest business challenge / value match.
+
+EMAIL 2:
+Introduce another relevant seller capability or business outcome.
+
+EMAIL 3:
+Use a relevant differentiator, proof point, portfolio example, certification
+or industry expertise when available.
+
+EMAIL 4:
+Approach the problem from another business angle.
+
+EMAIL 5:
+Use relevant educational insight, case study, attachment, video or supporting
+content if available.
+
+EMAIL 6:
+Short engagement-focused follow-up based on the previous value propositions.
+
+FINAL EMAIL:
+Professional breakup email that gives the prospect an easy opportunity to
+respond or indicate timing.
+
+Do not generate seven versions of essentially the same email.
+
+
+====================================================
+ENGAGEMENT-BASED FOLLOW-UP
+====================================================
+
+Where the existing iSDRX AI engagement system provides information such as:
+
+- Email opened
+- Multiple opens
+- Website clicked
+- Attachment opened
+- Video clicked
+- Calendar clicked
+- Previous response
+
+use that information to help determine the appropriate next outreach message
+when the existing application architecture supports it.
+
+Higher engagement should allow the messaging to become more direct while
+remaining professional.
+
+
+====================================================
+SELLER-SPECIFIC EMAIL RULE
+====================================================
+
+Two customers using the same iSDRX AI industry profile should NOT
+automatically receive the same messaging.
+
+Example:
+
+Janitorial Customer A:
+Website emphasizes healthcare cleaning, compliance and disinfection.
+
+Janitorial Customer B:
+Website emphasizes industrial facilities, warehouses and floor care.
+
+Both use the Janitorial industry profile.
+
+However, their prospect scoring, value matching, recommended outreach and
+emails should reflect THEIR individual Seller Intelligence Profiles.
+
+The industry tells iSDRX AI HOW TO PROSPECT.
+
+The company website tells iSDRX AI HOW THIS PARTICULAR CUSTOMER CAN HELP THE
+PROSPECT.
+
+
+====================================================
+EMAIL QUALITY CHECK
+====================================================
+
+Before accepting an AI-generated email, internally verify:
+
+1. Is this email clearly relevant to this specific prospect?
+
+2. Did it use a verified signal or legitimate business-model connection?
+
+3. Did it connect that situation to an actual seller capability?
+
+4. Did it communicate business VALUE rather than just list services?
+
+5. Did it use an appropriate seller differentiator?
+
+6. Did it avoid unsupported claims?
+
+7. Does the opening make the recipient want to continue reading?
+
+8. Does it sound human rather than AI-generated?
+
+9. Is the CTA easy to answer?
+
+10. Could this same email be sent unchanged to 100 unrelated companies?
+
+If the answer to #10 is YES, the email is not personalized enough and should
+be regenerated.
+
+
+====================================================
+CRITICAL COST / PERFORMANCE RULE
+====================================================
+
+Do NOT re-analyze the seller's website every time an email is generated.
+
+Use the cached Seller Intelligence Profile created when:
+
+- Company Website is entered
+- Company Website changes
+- User selects Refresh Company Intelligence
+
+Prospect research + stored Seller Intelligence should be combined during
+email generation.
+
+This prevents unnecessary website crawling, AI calls and cost while
+maintaining seller-specific personalization.

@@ -3,6 +3,7 @@
  * IT-services scoring overlay, and missing/invalid key error handling.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { genericOutreach, sellerIntelligenceProfile } from "../lib/prospectMatching";
 
 // ── Mocks must be hoisted before imports ──────────────────────────────────────
 vi.mock("@workspace/db", () => ({
@@ -20,6 +21,34 @@ vi.mock("../lib/verticals", () => ({
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
+
+describe("seller intelligence fallback", () => {
+  it("uses only configured seller facts and keeps a limited profile discovery-led", () => {
+    const ready = sellerIntelligenceProfile({
+      sellerIntelligenceProfile: {
+        status: "ready",
+        websiteAnalysisStatus: "ready",
+        sellerCompanyName: "Northstar Graphics",
+        sellerServices: ["fleet lettering"],
+        sellerProducts: [],
+        sellerCapabilities: ["on-site installation"],
+        sellerDifferentiators: ["certified installers"],
+        sellerCertifications: [],
+        sellerIndustriesServed: [],
+        sellerBusinessOutcomes: ["consistent field branding"],
+        sellerProblemsSolved: [],
+        sellerProofPoints: ["50 local projects"],
+        sellerPortfolioExamples: [],
+        sellerValuePropositions: [],
+        sellerCTAs: ["compare your current vehicle graphics"],
+      },
+    } as any);
+    expect(ready.ready).toBe(true);
+    expect(ready.name).toBe("Northstar Graphics");
+    expect(genericOutreach({ sellerIntelligenceProfile: { sellerCompanyName: "Northstar Graphics" } } as any, "HVAC", "fleet_wraps"))
+      .toMatch(/seller-specific capabilities are unavailable/i);
+  });
+});
 
 import {
   placeToLeadBase,
@@ -183,9 +212,9 @@ describe("addFleetOverlay", () => {
     expect(lead.opportunityScore).toBeLessThanOrEqual(100);
     expect(lead.potentialNeeds.length).toBeGreaterThan(0);
     expect(lead.fleetBrandingSignal).toMatch(/Unverified:/i);
-    expect(lead.whyTarget).toMatch(/C4 Wraps/i);
-    expect(lead.potentialNeeds.every((need) => need.includes("→ C4"))).toBe(true);
-    expect(lead.recommendedOutreach).toMatch(/C4's ability/i);
+    expect(lead.whyTarget).toMatch(/Seller capabilities have not been configured/i);
+    expect(lead.potentialNeeds.join(" ")).not.toMatch(/C4|wraps/i);
+    expect(lead.recommendedOutreach).toMatch(/seller-specific capabilities are unavailable/i);
     expect(lead.scoreExplanation).toMatch(/not assumed/i);
   });
 
@@ -201,21 +230,21 @@ describe("addFleetOverlay", () => {
     expect(lead.whyTarget).toContain("Chicago, IL");
   });
 
-  it("matches different industries to different C4 capabilities and business outcomes", () => {
+  it("uses the generic industry fallback without inventing seller capabilities", () => {
     const hvac = addFleetOverlay(placeToLeadBase(PLACE, "Dallas", "TX", "HVAC", "fleet_wraps"), "HVAC");
     const roofing = addFleetOverlay(placeToLeadBase(PLACE, "Dallas", "TX", "Roofing", "fleet_wraps"), "Roofing");
 
-    expect(hvac.potentialNeeds.join(" ")).toMatch(/technician arrival/i);
-    expect(roofing.potentialNeeds.join(" ")).toMatch(/job-site/i);
-    expect(hvac.recommendedOutreach).not.toBe(roofing.recommendedOutreach);
+    expect(hvac.potentialNeeds.join(" ")).not.toMatch(/C4|wrap/i);
+    expect(roofing.potentialNeeds.join(" ")).not.toMatch(/C4|wrap/i);
+    expect(hvac.whyTarget).toMatch(/unverified/i);
   });
 
   it("uses discovery language instead of inventing fleet facts for a generic business", () => {
     const base = placeToLeadBase(PLACE, "Chicago", "IL", "Commercial", "fleet_wraps");
     const lead = addFleetOverlay(base, "Commercial");
 
-    expect(lead.whyTarget).toMatch(/remain unverified/i);
-    expect(lead.recommendedOutreach).toMatch(/ask whether/i);
+    expect(lead.whyTarget).toMatch(/unverified/i);
+    expect(lead.recommendedOutreach).toMatch(/discovery/i);
     const verifiedSection = lead.fleetBrandingSignal.split("Industry Fit:")[0];
     expect(verifiedSection).not.toMatch(/fleet size/i);
   });

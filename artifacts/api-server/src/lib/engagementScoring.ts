@@ -46,7 +46,7 @@ export const DEFAULT_ENGAGEMENT_SETTINGS = {
     subject: "Quick conversation, {{companyName}}?",
     body:
       "Hi {{contactName}},\n\n" +
-      "I noticed you've had a chance to look over the emails I sent about {{companyName}} — I hope they were helpful.\n\n" +
+      "Thanks for taking a look at the information I sent about {{companyName}}.\n\n" +
       "Rather than trade more emails, would you be open to a quick call? Would a morning or afternoon next week be easier? You can choose a time using the link below, or simply reply with a preferred time and we'll coordinate it.\n\n" +
       "Looking forward to it.",
   },

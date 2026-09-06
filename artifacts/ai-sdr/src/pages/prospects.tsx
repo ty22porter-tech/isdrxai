@@ -41,14 +41,11 @@ function defaultSubject(campaignName: string, vertical: string = "janitorial") {
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
-function fallbackBody(p: any, vertical: string = "janitorial") {
-  if (vertical === "it_services") {
-    return `Hi ${p.contactName},\n\nWe provide managed IT services — cybersecurity, MS365, managed security, and mobile device management — for ${p.industry} companies in ${p.city}. I'd love to schedule an IT assessment for ${p.companyName}.`;
-  }
+function fallbackBody(p: any, vertical: string = "janitorial", sellerProfile?: any) {
   if (vertical === "fleet_wraps") {
-    return generateIntroEmail(p, "fleet_wraps").body;
+    return generateIntroEmail(p, "fleet_wraps", sellerProfile).body;
   }
-  return `Hi ${p.contactName},\n\nWe provide janitorial services for ${p.industry} companies in ${p.city}. I'd love to schedule a walkthrough at ${p.companyName}.`;
+  return generateIntroEmail(p, vertical === "it_services" ? "it_services" : "janitorial", sellerProfile).body;
 }
 
 function isCompleteFilterDate(value: string): boolean {
@@ -1154,7 +1151,7 @@ export default function Prospects() {
       await new Promise<void>(resolve => {
         const body = selectedCampaign.emailTemplate
           ? mergeTpl(selectedCampaign.emailTemplate, p)
-          : fallbackBody(p, vertical);
+          : fallbackBody(p, vertical, me?.sellerIntelligenceProfile);
         const subject = defaultSubject(selectedCampaign.name, vertical);
         createEmail.mutate(
           { data: { prospectId: p.id, campaignId: selectedCampaign.id, subject, body, status: "sent" } },
@@ -1311,7 +1308,7 @@ export default function Prospects() {
                         <Separator />
                         <EmailPreview
                           subject={previewSubject}
-                          body={previewBody || fallbackBody(preview, vertical)}
+                          body={previewBody || fallbackBody(preview, vertical, me?.sellerIntelligenceProfile)}
                           recipientName={preview.contactName}
                           recipientCompany={preview.companyName}
                           recipientEmail={preview.email}

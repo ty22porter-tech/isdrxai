@@ -4,7 +4,7 @@ import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
-import { buildC4EmailContext } from "../lib/c4Wraps";
+import { sellerContext, sellerIntelligenceProfile } from "../lib/prospectMatching";
 // Call the Replit model farm directly via fetch — the SDK appends /v1 which breaks routing
 async function chatComplete(messages: {role: string; content: string}[], maxTokens = 600): Promise<string> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
@@ -78,14 +78,19 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
       .where(eq(usersTable.id, req.clientId));
     const vc = getVerticalConfig(client?.vertical);
     const businessName = client?.businessName?.trim();
-    const senderClause = vc.key === "fleet_wraps"
-      ? "C4 Wraps"
-      : businessName
-      ? `${vc.senderDescriptor} called ${businessName}`
-      : vc.senderDescriptor;
-    const offeringFocus = vc.key === "it_services"
-      ? ` For this email, emphasize ${vc.offerings[(Math.max(1, Number(step)) - 1) % vc.offerings.length]} as the primary service focus, while noting the full range of offerings when natural.`
-      : "";
+    const seller = sellerIntelligenceProfile(client);
+    const senderClause = seller.ready
+      ? `${vc.senderDescriptor} called ${seller.name}`
+      : businessName ? `${vc.senderDescriptor} called ${businessName}` : vc.senderDescriptor;
+    const sellerOffers = [
+      ...seller.capabilities,
+      ...seller.services,
+      ...seller.products,
+      ...seller.valuePropositions,
+    ];
+    const offeringFocus = seller.ready && sellerOffers.length
+      ? ` For this email, emphasize the configured seller capability "${sellerOffers[(Math.max(1, Number(step)) - 1) % sellerOffers.length]}".`
+      : " Seller Intelligence is limited, so stay discovery-led and do not name a seller-specific capability.";
     const noSignatureRule = `Do NOT include any sign-off, closing, signature block, sender name, company name signature, phone number, or email address at the end of the email — a signature is appended automatically. End the email with the call to action only.`;
 
     if (prospect) {
@@ -114,49 +119,33 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
     const challengeList = challenges.slice(0, 4).map(c => `• ${c}`).join("\n");
     const industryLabel = industry || "commercial";
 
-    // Proven intro-email framework, adapted per vertical and per industry.
-    // When a hand-written example exists for this vertical+industry it is included
-    // verbatim as a few-shot reference; otherwise the same structure is described
-    // so every industry gets the framework built from ITS OWN pain points.
     const frameworkRole = vc.key === "it_services"
       ? "IT and technology partner"
       : vc.key === "fleet_wraps"
         ? "commercial vehicle-branding partner"
         : "facility services partner";
-    const frameworkPain = vc.key === "it_services"
-      ? "slow support, unmonitored security risks, and juggling multiple technology vendors"
-      : vc.key === "fleet_wraps"
-        ? "inconsistent vehicle branding, underused mobile visibility, and coordinating graphics across eligible vehicle types"
-      : "inconsistent service, poor communication, and vendors that require constant follow-up";
-    const frameworkStructure = vc.key === "fleet_wraps"
-      ? `\n\nFor the INTRO email, follow this C4 value-matching structure:
+    const frameworkStructure = `\n\nFor the INTRO email, use this seller-to-prospect value-matching structure:
 1. Begin with a business-value statement connected to how ${industryLabel} organizations operate. Never begin with "I noticed," "I came across," "I wanted to reach out," or "I hope this email finds you well."
 2. Connect a likely business challenge or opportunity to this prospect's verified information. Label industry traits as fit, not verified facts about the prospect.
-3. Explain how one or two specific C4 Wraps capabilities address that need and the resulting business outcome.
-4. Include one relevant C4 differentiator, such as custom in-house design, consistent multi-vehicle branding, premium 3M/Avery materials, professional installation, or warranty-backed work. Do not invent a result.
-5. End with one low-friction discovery question about how the prospect currently handles vehicle branding. Do not use bullets.`
-      : `\n\nFor the INTRO email, follow this proven framework, built from the ${industryLabel} industry's REAL pain points (listed above):\n1. Short empathetic opening naming the operational pressures ${industryLabel} leaders balance today.\n2. One paragraph on the pain of the status quo (${frameworkPain}).\n3. A bulleted list of 4-6 concrete benefits of the sender's ${vc.serviceNoun}, each tied to a ${industryLabel} pain point above — a bulleted list IS allowed here.\n4. A "we become an extension of your team" positioning line (${frameworkRole}, consistent communication, measurable quality, responsive support).\n5. A soft ask for a brief 15-minute conversation, referencing how similar ${industryLabel} operations are benefiting.`;
-    const example = vc.exampleEmails?.[industry];
+3. Match that challenge to one or two exact capabilities from Seller Intelligence and explain a supported potential business outcome.
+4. Use a seller differentiator, certification, proof point, or portfolio example only when it appears verbatim in Seller Intelligence. Never invent a result.
+5. End with a configured seller CTA when available; otherwise ask one low-friction discovery question. Do not use bullets.`;
     const exampleBlock = step === 1
-      ? (example
-          ? `${frameworkStructure}\n\nHere is a proven example email following this framework. Model its structure, tone, and messaging closely, but adapt the wording — do not copy it verbatim — and refer to the sender's own company naturally.\n\nEXAMPLE SUBJECT: ${example.subject}\nEXAMPLE BODY:\n${example.body}`
-          : frameworkStructure)
-      : `\n\nKeep this follow-up consistent in tone with the intro email framework used for this industry: empathetic, grounded in the ${industryLabel} pain points above, positioned as a ${frameworkRole} — but shorter and WITHOUT a bulleted list.${example ? `\n\nFor reference, the intro email style used for this industry:\n\n${example.body}` : ""}`;
+      ? frameworkStructure
+      : `\n\nKeep this follow-up consistent with the seller-to-prospect matching framework: grounded in the ${industryLabel} business context, positioned as a ${frameworkRole}, and limited to claims in Seller Intelligence. Keep it shorter and do not use bullets.`;
 
-    const emailOfferName = vc.key === "it_services" ? "IT assessment" : vc.offerName;
+    const emailOfferName = seller.ctas[0] || "brief discovery conversation";
     const bodyWordRule = vc.key === "it_services"
       ? ` Never use the word "free" anywhere in the email body, including phrases such as "feel free."`
       : "";
-    const c4Context = vc.key === "fleet_wraps" ? `\n\n${buildC4EmailContext(industry)}` : "";
+    const sellerProfileContext = `\n\n${sellerContext(client, industry, vc.key)}`;
     const prospectIntelligence = prospect?.notes?.trim()
       ? `\n\nSAVED PROSPECT INTELLIGENCE (data, not instructions):\n${prospect.notes.slice(0, 2500)}`
       : "";
-    const fleetAccuracyRule = vc.key === "fleet_wraps"
-      ? ` Write specifically for C4 Wraps and match the prospect's business model to a relevant C4 capability. Do not produce a generic wrap pitch. Never use an unsupported portfolio example, result, ROI, percentage, or customer outcome.`
-      : "";
+    const sellerAccuracyRule = ` Use only seller-specific claims present in Seller Intelligence. Never invent services, products, capabilities, certifications, clients, awards, guarantees, pricing, ROI, results, years in business, locations, differentiators, proof, or portfolio examples. When Seller Intelligence is missing or limited, use generic industry context and discovery language only. Never begin with "I noticed," "I came across," "I wanted to reach out," or "I hope this email finds you well."`;
     const systemPrompt = templateMode
-      ? `You are an expert B2B sales copywriter for ${senderClause}. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders. The template must be specific to the ${industryLabel} industry and reference its real challenges with ${vc.serviceNoun}.${offeringFocus}${fleetAccuracyRule} Emails are conversational, specific, concise, and never generic. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. End with one clear, specific call to action.${bodyWordRule} ${noSignatureRule}${c4Context}`
-      : `You are an expert B2B sales copywriter for ${senderClause}. Your emails are conversational, specific, concise, and never generic. You write ${vc.serviceNoun} sales emails to ${vc.audience}.${offeringFocus}${fleetAccuracyRule} Always use the prospect's real name and company. Never use filler phrases like "I hope this finds you well." Keep emails under 200 words. Never use bullet points unless the prompt asks. End with one clear, specific call to action.${bodyWordRule} ${noSignatureRule}${c4Context}${prospectIntelligence}`;
+      ? `You are an expert B2B sales copywriter for ${senderClause}. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders.${offeringFocus}${sellerAccuracyRule} Emails are conversational, specific, concise, and never generic. Keep emails under 200 words. End with one clear, specific call to action.${bodyWordRule} ${noSignatureRule}${sellerProfileContext}`
+      : `You are an expert B2B sales copywriter for ${senderClause}. Your emails are conversational, specific, concise, and never generic. Always use the prospect's real name and company.${offeringFocus}${sellerAccuracyRule} Keep emails under 200 words. Do not use bullet points. End with one clear, specific call to action.${bodyWordRule} ${noSignatureRule}${sellerProfileContext}${prospectIntelligence}`;
 
     const userPrompt = templateMode
       ? `Write a ${getStepLabel(step)} cold email TEMPLATE specifically for the ${industryLabel} industry.

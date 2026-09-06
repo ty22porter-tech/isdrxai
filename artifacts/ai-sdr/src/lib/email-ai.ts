@@ -384,12 +384,8 @@ const DEFAULT_FLEET_PROFILE: IndustryProfile = {
     "Worn or outdated fleet graphics",
     "Missed mobile-advertising opportunities",
   ],
-  valueProps: [
-    "professional full and partial commercial vehicle wraps",
-    "consistent fleet graphics and vehicle lettering",
-    "a repeatable process for replacement vehicles and fleet additions",
-  ],
-  closingLine: "Consistent fleet graphics help every vehicle look professional and work as mobile advertising.",
+  valueProps: [],
+  closingLine: "Confirm vehicle ownership, branding goals, and the current process before recommending a solution.",
 };
 
 const FLEET_INDUSTRY_PROFILES: Record<string, IndustryProfile> = {
@@ -397,89 +393,121 @@ const FLEET_INDUSTRY_PROFILES: Record<string, IndustryProfile> = {
     label: "Home Services",
     painPoints: ["using customer-facing vehicles to build local visibility", "making technician arrivals look recognizable and professional", "keeping branding consistent across vehicle types"],
     challenges: ["Local brand visibility", "Professional technician arrival", "Fleet brand consistency"],
-    valueProps: ["C4 commercial wraps that turn eligible service vehicles into mobile advertising", "C4's custom in-house design for consistent fleet graphics", "professional installation using premium materials"],
-    closingLine: "C4 Wraps helps home-service businesses turn vehicles already on the road into consistent, professional local brand assets.",
+    valueProps: [],
+    closingLine: "Confirm whether customer-facing vehicles are part of the operation before recommending a solution.",
   },
   HVAC: {
     label: "HVAC",
     painPoints: ["building recognition across a local service area", "presenting a professional technician arrival", "keeping service-vehicle branding consistent"],
     challenges: ["Local visibility", "Professional technician arrival", "Consistent fleet branding"],
-    valueProps: ["C4 commercial service-vehicle wraps for mobile visibility", "C4's in-house design for consistent graphics across eligible vans and trucks", "professional installation using premium materials"],
-    closingLine: "C4 Wraps can help an HVAC brand make each confirmed service vehicle work harder throughout the local market.",
+    valueProps: [],
+    closingLine: "Confirm whether service vehicles and local visibility are priorities before recommending a solution.",
   },
   Plumbing: {
     label: "Plumbing",
     painPoints: ["making service vehicles recognizable at customer properties", "building local visibility between jobs", "maintaining consistent vehicle branding"],
     challenges: ["Customer recognition", "Mobile local advertising", "Fleet brand consistency"],
-    valueProps: ["C4 commercial wraps for customer-facing service vehicles", "C4's custom fleet graphics and die-cut lettering", "a repeatable in-house design system for eligible vans and trucks"],
-    closingLine: "C4 Wraps connects professional service-vehicle branding with recognition throughout a plumbing company's service area.",
+    valueProps: [],
+    closingLine: "Confirm the prospect's vehicle-branding process before recommending a solution.",
   },
   Roofing: {
     label: "Roofing",
     painPoints: ["building neighborhood visibility near active work", "making trucks and trailers recognizable at job sites", "keeping field branding consistent"],
     challenges: ["Neighborhood visibility", "Job-site exposure", "Truck-and-trailer consistency"],
-    valueProps: ["C4 truck wraps for neighborhood brand exposure", "C4 trailer graphics for job-site identification", "custom in-house design across eligible field vehicles"],
-    closingLine: "C4 Wraps can help roofing companies turn confirmed trucks and trailers into consistent job-site and neighborhood brand assets.",
+    valueProps: [],
+    closingLine: "Confirm vehicle types and job-site branding goals before recommending a solution.",
   },
   Electrical: {
     label: "Electrical",
     painPoints: ["making technician vehicles easy to identify", "presenting a professional field-service brand", "building local awareness"],
     challenges: ["Technician identification", "Professional field presence", "Local awareness"],
-    valueProps: ["C4 service-vehicle wraps and lettering", "C4's custom in-house design for professional field branding", "consistent commercial graphics across eligible vehicles"],
-    closingLine: "C4 Wraps can help electrical contractors present a recognizable, consistent brand wherever technicians work.",
+    valueProps: [],
+    closingLine: "Confirm whether technician vehicles and field recognition matter before recommending a solution.",
   },
   Construction: {
     label: "Construction",
     painPoints: ["reinforcing the company brand across job sites", "coordinating graphics across trucks and trailers", "making field vehicles recognizable"],
     challenges: ["Job-site branding", "Fleet consistency", "Company recognition"],
-    valueProps: ["C4 truck and trailer graphics for job-site visibility", "C4's in-house design for consistent multi-vehicle branding", "professional commercial wrap installation"],
-    closingLine: "C4 Wraps can carry one professional construction brand across confirmed trucks, trailers, and other field vehicles.",
+    valueProps: [],
+    closingLine: "Confirm field vehicle types and brand standards before recommending a solution.",
   },
   Landscaping: {
     label: "Landscaping",
     painPoints: ["building recognition along recurring neighborhood routes", "coordinating truck and trailer graphics", "making crews recognizable at customer properties"],
     challenges: ["Neighborhood visibility", "Truck-and-trailer consistency", "Local brand recognition"],
-    valueProps: ["C4 truck wraps for repeated route visibility", "C4 trailer graphics coordinated by an in-house design team", "consistent commercial fleet branding"],
-    closingLine: "C4 Wraps can help landscaping companies turn confirmed route vehicles into coordinated local brand assets.",
+    valueProps: [],
+    closingLine: "Confirm route vehicles and local-branding priorities before recommending a solution.",
   },
   "Pest Control": {
     label: "Pest Control",
     painPoints: ["making technician vehicles recognizable", "building awareness along recurring routes", "keeping service-vehicle branding consistent"],
     challenges: ["Technician recognition", "Recurring-route advertising", "Fleet consistency"],
-    valueProps: ["C4 commercial wraps for recognizable service vehicles", "C4 fleet graphics for recurring local exposure", "custom in-house design across eligible vehicles"],
-    closingLine: "C4 Wraps can help pest-control companies build recognition on the routes technicians already travel.",
+    valueProps: [],
+    closingLine: "Confirm recurring routes and technician-vehicle branding before recommending a solution.",
   },
   "Car Dealerships": {
     label: "Car Dealerships",
     painPoints: ["extending the dealership brand beyond the lot", "coordinating courtesy or promotional vehicle graphics", "keeping dealer-group branding consistent"],
     challenges: ["Promotional visibility", "Dealer-group consistency", "Service-vehicle identification"],
-    valueProps: ["C4 promotional and commercial vehicle wraps", "C4's custom in-house design for dealer-group consistency", "vehicle lettering and graphics for eligible dealership vehicles"],
-    closingLine: "C4 Wraps can help dealerships extend a consistent showroom brand to confirmed courtesy, service, or promotional vehicles.",
+    valueProps: [],
+    closingLine: "Confirm vehicle programs and dealer-group standards before recommending a solution.",
   },
   "Delivery & Logistics": {
     label: "Logistics / Delivery",
     painPoints: ["keeping multi-vehicle branding consistent", "making operating vehicles recognizable", "reproducing approved graphics when vehicles change"],
     challenges: ["Fleet consistency", "Route visibility", "Replacement vehicle branding"],
-    valueProps: ["C4 multi-vehicle fleet graphics", "C4's repeatable in-house design process", "commercial wraps and lettering across eligible vehicle types"],
-    closingLine: "C4 Wraps can help logistics and delivery organizations carry one consistent brand across confirmed operating vehicles.",
+    valueProps: [],
+    closingLine: "Confirm operating vehicles and replacement-branding needs before recommending a solution.",
   },
   Municipal: {
     label: "Municipalities",
     painPoints: ["making departments and field vehicles clear to the public", "coordinating approved municipal graphics", "reproducing graphics for replacement vehicles"],
     challenges: ["Fleet identification", "Department consistency", "Replacement graphics"],
-    valueProps: ["C4 department-specific vehicle lettering and graphics", "C4's in-house design for approved fleet consistency", "repeatable replacement-vehicle graphics"],
-    closingLine: "C4 Wraps can support clear, consistent identification across confirmed municipal service vehicles.",
+    valueProps: [],
+    closingLine: "Confirm department vehicle requirements and approval standards before recommending a solution.",
   },
   "Higher Education": {
     label: "Higher Education",
     painPoints: ["carrying campus standards across department vehicles", "making service vehicles easy to identify", "coordinating facilities, transportation, or promotional graphics"],
     challenges: ["Campus brand consistency", "Department identification", "Promotional visibility"],
-    valueProps: ["C4 campus fleet and department graphics", "C4's custom in-house design for institutional brand standards", "commercial wraps for eligible promotional vehicles"],
-    closingLine: "C4 Wraps can help extend a campus identity across confirmed facilities, transportation, service, or promotional vehicles.",
+    valueProps: [],
+    closingLine: "Confirm campus vehicle use and institutional standards before recommending a solution.",
   },
 };
 
 export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps";
+
+export interface SellerFallbackProfile {
+  status?: "ready" | "limited";
+  websiteAnalysisStatus?: "ready" | "limited";
+  sellerCompanyName?: string | null;
+  sellerServices?: string[];
+  sellerProducts?: string[];
+  sellerCapabilities?: string[];
+  sellerBusinessOutcomes?: string[];
+  sellerValuePropositions?: string[];
+  sellerCTAs?: string[];
+}
+
+function getSeller(profile?: SellerFallbackProfile | null) {
+  const offers = [
+    ...(profile?.sellerCapabilities ?? []),
+    ...(profile?.sellerServices ?? []),
+    ...(profile?.sellerProducts ?? []),
+    ...(profile?.sellerValuePropositions ?? []),
+  ].map(value => value.trim()).filter(Boolean);
+  const ready = profile?.status === "ready" &&
+    profile.websiteAnalysisStatus === "ready" &&
+    Boolean(profile.sellerCompanyName?.trim()) &&
+    offers.length > 0;
+  return {
+    ready,
+    name: profile?.sellerCompanyName?.trim() || "the sender",
+    offers,
+    outcomes: (profile?.sellerBusinessOutcomes ?? []).map(value => value.trim()).filter(Boolean),
+    ctas: (profile?.sellerCTAs ?? []).map(value => value.trim()).filter(Boolean),
+  };
+}
 
 function getProfile(industry: string, vertical: ClientVertical = "janitorial"): IndustryProfile {
   if (vertical === "it_services") return IT_INDUSTRY_PROFILES[industry] ?? DEFAULT_IT_PROFILE;
@@ -514,16 +542,20 @@ export function generateIntroEmail(prospect: {
   companyName?: string;
   industry?: string;
   city?: string;
-}, vertical: ClientVertical = "janitorial"): { subject: string; body: string } {
+}, vertical: ClientVertical = "janitorial", sellerProfile?: SellerFallbackProfile | null): { subject: string; body: string } {
   const p = getProfile(prospect.industry ?? "", vertical);
-  const w = WORDING[vertical];
   const painPoint = pick(p.painPoints);
-  const challenge = pick(p.challenges);
-  const valueProp1 = p.valueProps[0];
-  const valueProp2 = p.valueProps[1];
+  const seller = getSeller(sellerProfile);
+  const company = prospect.companyName ?? "{{companyName}}";
+  const contact = prospect.contactName ?? "{{contactName}}";
+  const configuredMatch = seller.ready
+    ? `${seller.name}'s ${seller.offers[0]} may be relevant if that challenge is confirmed.${seller.outcomes[0] ? ` The potential outcome is ${seller.outcomes[0]}.` : ""}`
+    : "Seller-specific capabilities are not available yet, so the right first step is to understand the current approach before recommending a solution.";
+  const cta = seller.ready && seller.ctas[0]
+    ? seller.ctas[0]
+    : `Would a brief conversation about how ${company} handles this today be useful?`;
 
   if (vertical === "fleet_wraps") {
-    const company = prospect.companyName ?? "{{companyName}}";
     const city = prospect.city ?? "{{city}}";
     const openingByIndustry: Record<string, string> = {
       HVAC: `For HVAC operators, service vehicles can do more than move technicians between jobs—they can keep a brand visible throughout ${city}.`,
@@ -540,11 +572,9 @@ export function generateIntroEmail(prospect: {
 
 ${fleetOpening}
 
-For ${p.label.toLowerCase()} organizations, ${painPoint} can directly affect how the business is recognized in the field. C4 Wraps addresses that opportunity with ${valueProp1} and ${valueProp2}.
+For ${p.label.toLowerCase()} organizations, ${painPoint} can affect how the business is recognized in the field. ${configuredMatch}
 
-${p.closingLine}
-
-Would it be worth a quick conversation about how ${company} currently handles vehicle branding?`,
+${cta}`,
     };
   }
 
@@ -553,23 +583,13 @@ Would it be worth a quick conversation about how ${company} currently handles ve
     : "Janitorial services";
   const subject = `${subjectPrefix} for ${prospect.companyName ?? p.label + " businesses"} — quick question`;
 
-  const body = `Hi ${prospect.contactName ?? "there"},
+  const body = `Hi ${contact},
 
-I work with ${p.label.toLowerCase()} businesses like ${prospect.companyName ?? "yours"} in ${prospect.city ?? "your area"}, and one challenge I keep hearing is ${painPoint}.
+${p.label} organizations often have to manage ${painPoint}. For ${company}, that is only an industry-fit hypothesis until it is confirmed.
 
-We help solve this by offering ${valueProp1} and ${valueProp2}.
+${configuredMatch}
 
-A few business challenges we specifically address for ${p.label.toLowerCase()} companies:
-• ${p.challenges[0]}
-• ${p.challenges[1]}
-• ${p.challenges[2] ?? p.challenges[0]}
-
-${p.closingLine}
-
-Would you be open to a 15-minute call this week? I'd love to ${w.offerAction} ${prospect.companyName ?? (vertical === "janitorial" ? "your facility" : "your business")} and put together a custom quote.
-
-Best,
-Your SDR Team`;
+${cta}`;
 
   return { subject, body };
 }
@@ -579,38 +599,25 @@ export function generateFollowUpEmail(prospect: {
   companyName?: string;
   industry?: string;
   city?: string;
-}, vertical: ClientVertical = "janitorial"): { subject: string; body: string } {
+}, vertical: ClientVertical = "janitorial", sellerProfile?: SellerFallbackProfile | null): { subject: string; body: string } {
   const p = getProfile(prospect.industry ?? "", vertical);
-  const w = WORDING[vertical];
-  const valueProp = pick(p.valueProps);
+  const seller = getSeller(sellerProfile);
+  const company = prospect.companyName ?? "{{companyName}}";
+  const challenge = pick(p.painPoints);
+  const subject = vertical === "fleet_wraps"
+    ? `A vehicle-branding question for ${company}`
+    : `A quick question for ${company}`;
+  const sellerMatch = seller.ready
+    ? `${seller.name}'s ${seller.offers[0]} may be relevant if ${challenge} is an active priority.${seller.outcomes[0] ? ` A potential outcome is ${seller.outcomes[0]}.` : ""}`
+    : `Before suggesting a solution, it would be useful to learn whether ${challenge} is actually a priority.`;
+  const cta = seller.ready && seller.ctas[0]
+    ? seller.ctas[0]
+    : `Would a brief conversation about ${company}'s current approach be useful?`;
+  const body = `Hi ${prospect.contactName ?? "{{contactName}}"},
 
-  if (vertical === "fleet_wraps") {
-    const company = prospect.companyName ?? "{{companyName}}";
-    return {
-      subject: `A vehicle-branding idea for ${company}`,
-      body: `Hi ${prospect.contactName ?? "{{contactName}}"},
+For ${p.label.toLowerCase()} organizations, ${challenge} can be worth reviewing. ${sellerMatch}
 
-For ${p.label.toLowerCase()} organizations, ${pick(p.painPoints)} can make commercial vehicles more valuable than transportation alone.
-
-C4 Wraps can help with ${valueProp}, connecting the vehicle graphics to a real business outcome rather than applying a generic wrap package.
-
-Would a brief conversation about how ${company} currently handles vehicle branding be useful?`,
-    };
-  }
-
-  const subject = `Following up — ${prospect.companyName ?? p.label}`;
-  const body = `Hi ${prospect.contactName ?? "there"},
-
-I wanted to follow up on my previous note about ${w.serviceNoun} for ${prospect.companyName ?? (vertical === "janitorial" ? "your facility" : "your business")}.
-
-Given that ${pick(p.challenges).toLowerCase()} is a real concern for ${p.label.toLowerCase()} operations, I thought it was worth reaching out again.
-
-We offer ${valueProp} — and we work with several ${p.label.toLowerCase()} businesses in ${prospect.city ?? "your area"} who've seen immediate results.
-
-Would a quick 10-minute call work this week? I can also send over a sample proposal if that's easier.
-
-Best,
-Your SDR Team`;
+${cta}`;
 
   return { subject, body };
 }
@@ -619,23 +626,19 @@ export function generateBreakupEmail(prospect: {
   contactName?: string;
   companyName?: string;
   industry?: string;
-}, vertical: ClientVertical = "janitorial"): { subject: string; body: string } {
+}, vertical: ClientVertical = "janitorial", sellerProfile?: SellerFallbackProfile | null): { subject: string; body: string } {
   const p = getProfile(prospect.industry ?? "", vertical);
-  const w = WORDING[vertical];
+  const seller = getSeller(sellerProfile);
+  const company = prospect.companyName ?? "{{companyName}}";
 
-  const subject = `Last note — ${prospect.companyName ?? p.label}`;
-  const body = `Hi ${prospect.contactName ?? "there"},
+  const subject = `Last note — ${company}`;
+  const body = `Hi ${prospect.contactName ?? "{{contactName}}"},
 
-I've reached out a couple of times about ${w.serviceNoun} for ${prospect.companyName ?? (vertical === "janitorial" ? "your facility" : "your business")}, and I don't want to keep filling your inbox if the timing isn't right.
+I'll close the loop after this note. ${p.label} organizations sometimes review ${p.painPoints[0]}, but whether that matters for ${company} is still unverified.
 
-If ${p.challenges[0].toLowerCase()} ever becomes a priority, we'd love to help — ${p.valueProps[0]} is something we do really well for ${p.label.toLowerCase()} businesses.
+${seller.ready ? `If it becomes relevant, ${seller.name}'s ${seller.offers[0]} may be worth discussing.` : "I won't assume a specific solution without first understanding the need."}
 
-I'll leave the door open. If you'd like to revisit this down the road, you can reply to this email.
-
-Wishing you a great rest of the year!
-
-Best,
-Your SDR Team`;
+If you would like to revisit it later, a reply is all it takes.`;
 
   return { subject, body };
 }
@@ -643,9 +646,10 @@ Your SDR Team`;
 export function generateEmailForStep(
   step: number,
   prospect: { contactName?: string; companyName?: string; industry?: string; city?: string },
-  vertical: ClientVertical = "janitorial"
+  vertical: ClientVertical = "janitorial",
+  sellerProfile?: SellerFallbackProfile | null,
 ): { subject: string; body: string } {
-  if (step === 1) return generateIntroEmail(prospect, vertical);
-  if (step >= 7) return generateBreakupEmail(prospect, vertical);
-  return generateFollowUpEmail(prospect, vertical);
+  if (step === 1) return generateIntroEmail(prospect, vertical, sellerProfile);
+  if (step >= 7) return generateBreakupEmail(prospect, vertical, sellerProfile);
+  return generateFollowUpEmail(prospect, vertical, sellerProfile);
 }
