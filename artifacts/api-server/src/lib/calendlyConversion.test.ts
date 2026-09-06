@@ -1,19 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   LOW_FRICTION_CTA_LABEL,
+  CALENDLY_CLICK_FOLLOW_UP_DELAY_MS,
+  calendlyClickFollowUpTime,
   clickFollowUpCopy,
   isSchedulingDestination,
-  nextBusinessDayMorning,
   suggestedSchedulingWindows,
 } from "./calendlyConversion";
 
 describe("Calendly conversion helpers", () => {
-  it("queues Friday clicks for Monday morning in the client's timezone", () => {
-    const scheduled = nextBusinessDayMorning(
-      new Date("2026-09-04T20:00:00Z"),
-      "America/Chicago",
-    );
-    expect(scheduled.toISOString()).toBe("2026-09-07T14:00:00.000Z");
+  it("queues scheduling-click follow-ups exactly four hours after the click", () => {
+    const scheduled = calendlyClickFollowUpTime(new Date("2026-09-04T20:00:00Z"));
+    expect(scheduled.toISOString()).toBe("2026-09-05T00:00:00.000Z");
+    expect(CALENDLY_CLICK_FOLLOW_UP_DELAY_MS).toBe(14_400_000);
   });
 
   it("offers two distinct business-day windows and a reply alternative", () => {

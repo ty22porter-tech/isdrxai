@@ -1,9 +1,9 @@
-import { db, automationRunsTable, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, automationRunsTable } from "@workspace/db";
 import { logger } from "./logger";
 
 export const LOW_FRICTION_CTA_LABEL = "Find a quick time";
 export const CALENDLY_CLICK_FOLLOW_UP_TYPE = "calendly_click_follow_up";
+export const CALENDLY_CLICK_FOLLOW_UP_DELAY_MS = 4 * 60 * 60 * 1000;
 
 function zonedDateTimeToUtc(
   year: number,
@@ -67,12 +67,8 @@ function addBusinessDays(date: Date, count: number, timeZone: string): Date {
   );
 }
 
-export function nextBusinessDayMorning(from: Date, timeZone = "America/New_York"): Date {
-  try {
-    return addBusinessDays(from, 1, timeZone);
-  } catch {
-    return addBusinessDays(from, 1, "America/New_York");
-  }
+export function calendlyClickFollowUpTime(from: Date): Date {
+  return new Date(from.getTime() + CALENDLY_CLICK_FOLLOW_UP_DELAY_MS);
 }
 
 export function suggestedSchedulingWindows(from: Date, timeZone = "America/New_York"): string {
@@ -121,11 +117,6 @@ export async function queueCalendlyClickFollowUp(input: {
 }): Promise<void> {
   if (!isSchedulingDestination(input.destination)) return;
   try {
-    const [client] = await db
-      .select({ timezone: usersTable.timezone })
-      .from(usersTable)
-      .where(eq(usersTable.id, input.clientId))
-      .limit(1);
     const clickedAt = input.clickedAt ?? new Date();
     await db.insert(automationRunsTable).values({
       clientId: input.clientId,
@@ -135,7 +126,7 @@ export async function queueCalendlyClickFollowUp(input: {
       status: "pending",
       triggerReason: "Verified human scheduling-link click without a booking",
       validOpensAtTrigger: 0,
-      scheduledFor: nextBusinessDayMorning(clickedAt, client?.timezone ?? "America/New_York"),
+      scheduledFor: calendlyClickFollowUpTime(clickedAt),
     }).onConflictDoNothing();
   } catch (err) {
     logger.error({ err, prospectId: input.prospectId }, "Failed to queue Calendly click follow-up");
