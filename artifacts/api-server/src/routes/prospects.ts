@@ -19,7 +19,7 @@ import { enrichPerson } from "../lib/apollo";
 import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import { deriveOpportunityForPersistence } from "../lib/opportunityIntelligence";
+import { deriveOpportunityForPersistence, refreshStoredOpportunityForRead } from "../lib/opportunityIntelligence";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -34,6 +34,25 @@ function clientVertical(client?: typeof usersTable.$inferSelect): string {
 async function currentClient(clientId: string) {
   const [client] = await db.select().from(usersTable).where(eq(usersTable.id, clientId));
   return client;
+}
+
+async function repairLegacyFleetScores<T extends typeof prospectsTable.$inferSelect>(
+  prospects: T[],
+  client?: typeof usersTable.$inferSelect,
+): Promise<T[]> {
+  return Promise.all(prospects.map(async prospect => {
+    const refreshed = refreshStoredOpportunityForRead(
+      { ...prospect, contactTitle: prospect.title, vertical: prospect.vertical || clientVertical(client) },
+      client,
+    );
+    if (!refreshed.changed) return prospect;
+    const [updated] = await db
+      .update(prospectsTable)
+      .set({ opportunityIntelligence: refreshed.intelligence })
+      .where(and(eq(prospectsTable.id, prospect.id), eq(prospectsTable.clientId, prospect.clientId)))
+      .returning();
+    return (updated || { ...prospect, opportunityIntelligence: refreshed.intelligence }) as T;
+  }));
 }
 
 async function trustedProspectValues(
@@ -110,7 +129,13 @@ router.get("/", async (req, res) => {
   }
 
   const prospects = await db.select().from(prospectsTable).where(and(...conditions)).orderBy(sql`${prospectsTable.createdAt} desc`);
-  res.json(prospects.map(p => ({
+  const hasLegacyOpportunityScore = prospects.some(prospect =>
+    prospect.opportunityIntelligence && prospect.opportunityIntelligence.version !== 2,
+  );
+  const repairedProspects = hasLegacyOpportunityScore
+    ? await repairLegacyFleetScores(prospects, await currentClient(req.clientId))
+    : prospects;
+  res.json(repairedProspects.map(p => ({
     ...p,
     lastContactedAt: p.lastContactedAt?.toISOString() ?? null,
     enrichedAt: p.enrichedAt?.toISOString() ?? null,
@@ -277,7 +302,13 @@ router.get("/:id", async (req, res) => {
   const { id } = GetProspectParams.parse({ id: parseInt(req.params.id) });
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  const [repairedProspect] = await repairLegacyFleetScores(
+    [prospect],
+    prospect.opportunityIntelligence?.version !== 2
+      ? await currentClient(req.clientId)
+      : undefined,
+  );
+  return res.json({ ...repairedProspect, lastContactedAt: repairedProspect.lastContactedAt?.toISOString() ?? null, enrichedAt: repairedProspect.enrichedAt?.toISOString() ?? null, createdAt: repairedProspect.createdAt.toISOString() });
 });
 
 router.patch("/:id", async (req, res) => {

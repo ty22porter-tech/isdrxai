@@ -61,6 +61,7 @@ export type OpportunityIntelligenceVersion = typeof OpportunityIntelligenceVersi
 
 export const OpportunityIntelligenceVersion = {
   NUMBER_1: 1,
+  NUMBER_2: 2,
 } as const;
 
 export type OpportunityIntelligenceLabel = typeof OpportunityIntelligenceLabel[keyof typeof OpportunityIntelligenceLabel];
@@ -68,6 +69,8 @@ export type OpportunityIntelligenceLabel = typeof OpportunityIntelligenceLabel[k
 
 export const OpportunityIntelligenceLabel = {
   High_Priority: 'High Priority',
+  Strong_Opportunity: 'Strong Opportunity',
+  Moderate_Opportunity: 'Moderate Opportunity',
   Strong_Fit: 'Strong Fit',
   Possible_Fit: 'Possible Fit',
   Low_Priority: 'Low Priority',

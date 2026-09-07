@@ -13,4 +13,10 @@ On prospect cards, keep Opportunity Intelligence in the compact legacy-style for
 
 **Why:** The inline report overwhelmed each prospect card and consumed most of the page. Users need quick positive relevance cues while scanning results, with detail revealed only when requested.
 
-**How to apply:** Limit compact rows and text length, show at most the strongest positive evidence, and skip to the next available item when a category has no useful result.
+**How to apply:** Limit compact rows and text length, show at most the strongest positive evidence, and skip empty secondary categories. Keep an explicit weak-fit or no-current-signal conclusion in “Why target” so missing evidence is never hidden.
+
+“Why target” must explain why this specific seller should spend time on the prospect. Lead with the strongest current verified buying signal, then verified operating-model relevance, approved seller capability fit, qualified ICP fit, and potential value. Company identity/contactability evidence must never be the primary reason.
+
+**Why:** Address, website, phone, and business-listing verification prove that a prospect is real and reachable, but they do not establish urgency or sales relevance. Industry categories are also only hypotheses until the prospect's own official source verifies its operating model.
+
+**How to apply:** Keep contactability weight minimal. Label industry-only reasoning as unverified. Historical or undated events may be context but must not be called timely. Fleet presence proves an operating model, not vehicle purchasing; only sourced, dated change events such as purchases, new routes, fleet expansion, or rebrands count as buying signals.

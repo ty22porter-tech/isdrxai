@@ -1492,14 +1492,14 @@ components:
       properties:
         version:
           type: integer
-          enum: [1]
+          enum: [1, 2]
         score:
           type: integer
           minimum: 0
           maximum: 100
         label:
           type: string
-          enum: [High Priority, Strong Fit, Possible Fit, Low Priority]
+          enum: [High Priority, Strong Opportunity, Moderate Opportunity, Strong Fit, Possible Fit, Low Priority]
         scoreConfidence:
           type: string
           enum: [high, medium, low]

@@ -103,6 +103,8 @@ const FLEET_INDUSTRIES = [
 
 const SCORE_COLORS: Record<string, string> = {
   "High Priority": "bg-green-100 text-green-800 border-green-200",
+  "Strong Opportunity": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Moderate Opportunity": "bg-blue-50 text-blue-700 border-blue-200",
   "Strong Fit": "bg-emerald-50 text-emerald-700 border-emerald-200",
   "Possible Fit": "bg-yellow-100 text-yellow-800 border-yellow-200",
   "Low Priority": "bg-gray-100 text-gray-600 border-gray-200",
@@ -1077,7 +1079,7 @@ export default function Prospecting() {
                             variant="outline"
                             className={`text-xs font-medium ${CONFIDENCE_COLORS[lead.confidence]}`}
                           >
-                            {lead.confidence} fit
+                            Data confidence: {lead.confidence}
                           </Badge>
                           {skipped.has(idx) && !added.has(idx) && (
                             <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-200">

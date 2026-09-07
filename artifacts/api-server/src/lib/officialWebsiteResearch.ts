@@ -315,8 +315,46 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       points: 0,
     });
   }
+  let foundBusinessModel = false;
   for (const page of pages) {
     const text = stripHtml(page.html);
+    if (!foundBusinessModel) {
+      const modelPatterns = [
+        {
+          pattern: /\b(?:premium|luxury|scheduled|intercity|inter-city|passenger|charter)\s+(?:bus|coach|motorcoach|shuttle|transportation|travel|service)s?\b/i,
+          description: "a customer-facing passenger transportation service where commercial vehicles are central to service delivery",
+        },
+        {
+          pattern: /\b(?:chauffeur|limousine|limo|taxi|ride service|private car service)s?\b/i,
+          description: "a customer-facing transportation service where vehicles are central to the customer experience",
+        },
+        {
+          pattern: /\b(?:courier|delivery fleet|delivery vehicles?|trucking fleet|moving trucks?|service fleet|mobile service|field service technicians?)\b/i,
+          description: "a vehicle-dependent field, delivery, or mobile service operation",
+        },
+      ];
+      const model = modelPatterns.find(candidate => candidate.pattern.test(text));
+      if (model) {
+        const evidence = text.match(model.pattern);
+        signals.push({
+          signalType: "business_model_evidence",
+          signalTitle: "Verified vehicle-centered operating model",
+          signalDescription: `${companyName}'s official website describes ${model.description}.`,
+          signalClassification: "verified",
+          confidenceLevel: "high",
+          freshness: "unknown",
+          sourceName: "Official company website",
+          sourceURL: page.url.toString(),
+          dateDiscovered: checkedAt,
+          dateVerified: checkedAt,
+          supportingEvidence: normalizeText(
+            text.slice(Math.max(0, (evidence?.index ?? 0) - 140), (evidence?.index ?? 0) + (evidence?.[0].length ?? 0) + 180),
+          ),
+          points: 0,
+        });
+        foundBusinessModel = true;
+      }
+    }
     const vehicle = text.match(/(?:company[- ]provided vehicle|company vehicle (?:is )?provided|take-home vehicle|company (?:van|truck) provided)/i);
     if (vehicle) signals.push({
       signalType: "fleet_vehicle_evidence", signalTitle: "Company vehicle evidence",
@@ -325,7 +363,7 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       sourceName: "Official company website", sourceURL: page.url.toString(), dateDiscovered: checkedAt, dateVerified: checkedAt,
       supportingEvidence: normalizeText(text.slice(Math.max(0, vehicle.index! - 120), vehicle.index! + vehicle[0].length + 120)), points: 0,
     });
-    const eventPattern = /(?:acquired|acquisition of|rebrand(?:ed|ing)?|changed (?:its|our) name|new location|opened (?:a|our) new|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched)/i;
+    const eventPattern = /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)|new fleet|fleet expansion|new [^.!?]{0,60} route|added (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between|new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded service|service expansion|new service|new (?:facility|terminal|depot|branch|office)|opened (?:a|our) new|acquired|acquisition of|rebrand(?:ed|ing)?|new logo|changed (?:its|our) (?:name|logo)|new location|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched/i;
     const metadataDate = htmlDate(page.html);
     for (const event of text.split(/(?<=[.!?])\s+/).filter(sentence =>
       eventPattern.test(sentence) && (sentence.toLowerCase().includes(companyName.toLowerCase()) || /\b(?:we|our company)\b/i.test(sentence)),
@@ -334,17 +372,48 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
         || event.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
       const date = sentenceDate || (/\b(?:founded|formed|established)\b/i.test(event) ? undefined : metadataDate);
       if (!date) continue;
+      const signalType =
+        /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)/i.test(event)
+          ? "vehicle_purchase"
+          : /new fleet|fleet expansion/i.test(event)
+            ? "fleet_expansion"
+            : /new [^.!?]{0,60} route|added (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between/i.test(event)
+              ? "new_route"
+              : /new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded into/i.test(event)
+                ? "new_market"
+                : /expanded service|service expansion|new service/i.test(event)
+                  ? "service_expansion"
+                  : /new (?:facility|terminal|depot|branch|office)/i.test(event)
+                    ? "new_facility"
+                    : /new logo|changed (?:its|our) logo/i.test(event)
+                      ? "logo_change"
+                      : /acqui/i.test(event)
+                        ? "acquisition"
+                        : /rebrand|changed (?:its|our) name/i.test(event)
+                          ? "rebrand"
+                          : /location|open/i.test(event)
+                            ? "new_location"
+                            : /founded|formed|established|launched/i.test(event)
+                              ? "company_launch"
+                              : "expansion";
+      const signalTitle: Record<string, string> = {
+        vehicle_purchase: "Verified vehicle purchase",
+        fleet_expansion: "Verified fleet expansion",
+        new_route: "Verified new route",
+        new_market: "Verified market expansion",
+        service_expansion: "Verified service expansion",
+        new_facility: "Verified new facility",
+        logo_change: "Verified logo change",
+        acquisition: "Verified acquisition",
+        rebrand: "Verified rebrand",
+        new_location: "Verified new location",
+        company_launch: "Verified company launch",
+        expansion: "Verified expansion",
+      };
       signals.push({
-      signalType: /acqui/i.test(event)
-        ? "acquisition"
-        : /rebrand|name/i.test(event)
-          ? "rebrand"
-          : /location|open/i.test(event)
-            ? "new_location"
-            : /founded|formed|established|launched/i.test(event)
-              ? "company_launch"
-              : "expansion",
-      signalTitle: "Dated official company announcement", signalDescription: normalizeText(event).slice(0, 400),
+      signalType,
+      signalTitle: signalTitle[signalType] || "Dated official company announcement",
+      signalDescription: normalizeText(event).slice(0, 400),
       signalClassification: "verified", confidenceLevel: "high", freshness: freshness(date),
       sourceName: "Official company announcement", sourceURL: page.url.toString(), sourceDate: date,
       dateDiscovered: checkedAt, dateVerified: checkedAt, supportingEvidence: normalizeText(event).slice(0, 500), points: 0,

@@ -77,9 +77,9 @@ export const ListProspectsResponseItem = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(listProspectsResponseOpportunityIntelligenceOneScoreMin).max(listProspectsResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -155,9 +155,9 @@ export const CreateProspectBody = zod.object({
   "address": zod.string().optional(),
   "notes": zod.string().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(createProspectBodyOpportunityIntelligenceScoreMin).max(createProspectBodyOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -225,9 +225,9 @@ export const CreateProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(createProspectResponseOpportunityIntelligenceOneScoreMin).max(createProspectResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -303,9 +303,9 @@ export const BulkCreateProspectsBody = zod.object({
   "address": zod.string().optional(),
   "notes": zod.string().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMin).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -384,9 +384,9 @@ export const BulkCreateProspectsResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMin).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -504,9 +504,9 @@ export const GetProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(getProspectResponseOpportunityIntelligenceOneScoreMin).max(getProspectResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -601,9 +601,9 @@ export const UpdateProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(updateProspectResponseOpportunityIntelligenceOneScoreMin).max(updateProspectResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
@@ -1098,9 +1098,9 @@ export const ProspectSearchResponseItem = zod.object({
   "recommendedOutreach": zod.string().optional(),
   "fleetBrandingSignal": zod.string().optional().describe('Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly'),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(prospectSearchResponseOpportunityIntelligenceScoreMin).max(prospectSearchResponseOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({

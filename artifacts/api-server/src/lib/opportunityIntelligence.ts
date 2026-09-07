@@ -5,7 +5,6 @@ import type {
 } from "@workspace/db";
 import type { usersTable } from "@workspace/db";
 import {
-  genericOutreach,
   industryMatch,
   potentialNeedsForSeller,
   sellerIntelligenceProfile,
@@ -31,8 +30,26 @@ interface PersistedOpportunityInput extends OpportunityLead {
   opportunityIntelligence?: unknown;
 }
 
-const scoreLabel = (score: number): OpportunityIntelligence["label"] =>
-  score >= 80 ? "High Priority" : score >= 60 ? "Strong Fit" : score >= 40 ? "Possible Fit" : "Low Priority";
+export const OPPORTUNITY_MODEL_VERSION = 2 as const;
+
+const scoreLabel = (score: number, vertical: string): OpportunityIntelligence["label"] =>
+  vertical === "fleet_wraps"
+    ? score >= 85
+      ? "High Priority"
+      : score >= 70
+        ? "Strong Opportunity"
+        : score >= 55
+          ? "Moderate Opportunity"
+          : score >= 40
+            ? "Possible Fit"
+            : "Low Priority"
+    : score >= 80
+      ? "High Priority"
+      : score >= 60
+        ? "Strong Fit"
+        : score >= 40
+          ? "Possible Fit"
+          : "Low Priority";
 
 const bounded = (value: number, max: number) => Math.max(0, Math.min(max, Math.round(value)));
 
@@ -44,6 +61,215 @@ const safeSourceUrl = (website?: string | null) => {
     return undefined;
   }
 };
+
+type BusinessModelFit = {
+  description: string;
+  points: number;
+  strength: "strong" | "possible" | "weak";
+  basis: "verified" | "industry_hypothesis";
+};
+
+const FLEET_CENTERED_INDUSTRY =
+  /\b(?:transport(?:ation)?|bus|motorcoach|shuttle|charter|limousine|limo|chauffeur|taxi|courier|delivery|trucking|logistics|moving|towing|waste|rental car)\b/i;
+const FIELD_SERVICE_INDUSTRY =
+  /\b(?:hvac|plumb|electric|roof|landscap|pest|restoration|home health|field service|mobile service|maintenance|utility|construction)\b/i;
+const FACILITY_CENTERED_INDUSTRY =
+  /\b(?:manufactur|warehouse|distribution|healthcare|hospital|clinic|school|education|hotel|hospitality|retail|office|facility|industrial|property management)\b/i;
+const TECHNOLOGY_CRITICAL_INDUSTRY =
+  /\b(?:healthcare|finance|financial|insurance|legal|manufactur|logistics|technology|software|education|government|professional services)\b/i;
+
+function businessModelFit(
+  lead: OpportunityLead,
+  vertical: string,
+  researchedSignals: OpportunitySignal[],
+): BusinessModelFit {
+  const verifiedModel = researchedSignals.find(signal =>
+    signal.signalClassification === "verified"
+    && (signal.signalType === "business_model_evidence" || signal.signalType === "fleet_vehicle_evidence"),
+  );
+
+  if (vertical === "fleet_wraps") {
+    if (verifiedModel) {
+      return {
+        description: verifiedModel.signalDescription,
+        points: 20,
+        strength: "strong",
+        basis: "verified",
+      };
+    }
+    if (FLEET_CENTERED_INDUSTRY.test(lead.industry)) {
+      return {
+        description: `The selected ${lead.industry} category suggests that ${lead.companyName} may rely on commercial vehicles for service delivery and brand visibility, but that operating model has not been verified on an official source.`,
+        points: 10,
+        strength: "possible",
+        basis: "industry_hypothesis",
+      };
+    }
+    if (FIELD_SERVICE_INDUSTRY.test(lead.industry)) {
+      return {
+        description: `The selected ${lead.industry} category suggests possible use of customer-facing field-service vehicles, but ${lead.companyName}'s vehicle-dependent operations have not been verified.`,
+        points: 8,
+        strength: "possible",
+        basis: "industry_hypothesis",
+      };
+    }
+    return {
+      description: `${lead.companyName}'s operating model has not been verified as vehicle-dependent or customer-facing.`,
+      points: 3,
+      strength: "weak",
+      basis: "industry_hypothesis",
+    };
+  }
+
+  if (vertical === "it_services") {
+    const strong = TECHNOLOGY_CRITICAL_INDUSTRY.test(lead.industry);
+    return {
+      description: `The selected ${lead.industry} category suggests that reliable and secure technology ${strong ? "may be important to core operations" : "could support daily operations"}, but ${lead.companyName}'s current technology priorities have not been verified.`,
+      points: strong ? 12 : 7,
+      strength: "possible",
+      basis: "industry_hypothesis",
+    };
+  }
+
+  const strong = FACILITY_CENTERED_INDUSTRY.test(lead.industry);
+  return {
+    description: `The selected ${lead.industry} category suggests that ${strong ? "occupied or operational facilities may require consistent upkeep" : "facility-service relevance is possible"}, but ${lead.companyName}'s current cleaning scope has not been verified.`,
+    points: strong ? 12 : 6,
+    strength: "possible",
+    basis: "industry_hypothesis",
+  };
+}
+
+function noCurrentSignalCaveat(vertical: string): string {
+  if (vertical === "fleet_wraps") {
+    return "No current fleet expansion, vehicle purchase, rebrand, or other time-sensitive buying signal has been verified.";
+  }
+  if (vertical === "it_services") {
+    return "No current technology project, security event, provider change, or other time-sensitive buying signal has been verified.";
+  }
+  return "No current facility expansion, contract change, service issue, or other time-sensitive buying signal has been verified.";
+}
+
+const freshnessRank = (freshness: OpportunitySignal["freshness"]): number =>
+  freshness === "recent" ? 4
+    : freshness === "active" ? 3
+      : freshness === "older" ? 2
+        : freshness === "unknown" ? 1
+          : 0;
+
+const isCurrentBuyingSignal = (signal: OpportunitySignal): boolean =>
+  signal.signalType === "hiring_listing"
+  || signal.freshness === "recent"
+  || signal.freshness === "active";
+
+function rankBuyingSignals(signals: OpportunitySignal[]): OpportunitySignal[] {
+  const confidenceRank = (signal: OpportunitySignal) =>
+    signal.confidenceLevel === "high" ? 2 : signal.confidenceLevel === "medium" ? 1 : 0;
+  return [...signals].sort((a, b) =>
+    Number(isCurrentBuyingSignal(b)) - Number(isCurrentBuyingSignal(a))
+    || b.points - a.points
+    || freshnessRank(b.freshness) - freshnessRank(a.freshness)
+    || confidenceRank(b) - confidenceRank(a),
+  );
+}
+
+const FLEET_SELLER_CAPABILITY =
+  /\b(?:commercial|fleet|vehicle|van|truck|bus|motorcoach|wrap|graphic|letter|decal|branding|installation)\b/i;
+
+function fleetDecisionMakerScore(title?: string | null, industry = ""): { points: number; explanation: string } {
+  const normalized = title?.trim() || "";
+  if (!normalized || /pending|unknown|not found/i.test(normalized)) {
+    return { points: 0, explanation: "A relevant fleet, operations, procurement, or marketing decision-maker has not yet been verified." };
+  }
+  if (/\b(?:fleet (?:manager|director)|director of fleet|operations director|director of operations|procurement|purchasing|marketing director|director of marketing|chief marketing officer|cmo)\b/i.test(normalized)) {
+    return { points: 10, explanation: `${normalized} is a strong decision-maker match for fleet operations, purchasing, or brand execution.` };
+  }
+  if (/\b(?:chief operating officer|coo|general manager|operations manager|facilities manager)\b/i.test(normalized)) {
+    return { points: 8, explanation: `${normalized} is a relevant operational decision-maker, though fleet or brand ownership may still need confirmation.` };
+  }
+  if (/\b(?:owner|president)\b/i.test(normalized)) {
+    const points = FLEET_CENTERED_INDUSTRY.test(industry) || FIELD_SERVICE_INDUSTRY.test(industry) ? 9 : 6;
+    return {
+      points,
+      explanation: `${normalized} may own the decision${points === 9 ? " in this fleet or field-service business" : ""}, but direct fleet responsibility is not verified.`,
+    };
+  }
+  if (/\b(?:office manager|human resources|hr manager|administrator|administrative)\b/i.test(normalized)) {
+    return { points: 5, explanation: `${normalized} is a real contact with possible influence, but is not the strongest fleet, operations, procurement, or marketing decision-maker.` };
+  }
+  return { points: 2, explanation: `${normalized} was identified, but the role has weak or unclear ownership of fleet branding decisions.` };
+}
+
+function signalAgeDays(signal: OpportunitySignal, asOf: string): number | undefined {
+  if (!signal.sourceDate) return undefined;
+  const sourceTime = new Date(signal.sourceDate).getTime();
+  const asOfTime = new Date(asOf).getTime();
+  if (!Number.isFinite(sourceTime) || !Number.isFinite(asOfTime) || sourceTime > asOfTime) return undefined;
+  return (asOfTime - sourceTime) / 86_400_000;
+}
+
+function signalFreshnessPoints(signal: OpportunitySignal, asOf: string): number {
+  const age = signalAgeDays(signal, asOf);
+  if (age !== undefined) {
+    if (age <= 30) return 10;
+    if (age <= 90) return 8;
+    if (age <= 180) return 6;
+    if (age <= 365) return 3;
+    return 1;
+  }
+  // A live official job page verifies that the role is active now even when
+  // the posting date is unavailable. It does not prove when hiring began.
+  return signal.signalType === "hiring_listing" ? 8 : 0;
+}
+
+function uniqueResearchSignals(researchedSignals: OpportunitySignal[]): OpportunitySignal[] {
+  const seen = new Set<string>();
+  return researchedSignals.filter(signal => {
+    const key = [
+      signal.signalType,
+      (signal.sourceURL || "").toLowerCase(),
+      signal.signalType === "hiring_listing"
+        ? (signal.signalTitle || "").toLowerCase().replace(/\s+/g, " ").trim()
+        : (signal.supportingEvidence || signal.signalDescription || "").toLowerCase().replace(/\s+/g, " ").trim(),
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function fleetHiringPoints(signals: OpportunitySignal[]): { points: number; awardedSignal?: OpportunitySignal } {
+  const roleScore = (signal: OpportunitySignal) => {
+    const text = `${signal.signalTitle} ${signal.signalDescription} ${signal.supportingEvidence || ""}`;
+    if (/\b(?:accountant|accounting|office administrator|administrative assistant|bookkeeper)\b/i.test(text)) return 0;
+    if (/\b(?:fleet manager|fleet director|director of fleet)\b/i.test(text)) return 7;
+    if (/\b(?:driver|cdl|chauffeur|mechanic|route|delivery|service technician|field service|mobile technician|maintenance technician|hvac|plumb|electric|install|roof|restoration|pest control|landscap|utility field|field sales(?: representative)?|crew)\b/i.test(text)) return 6;
+    return 0;
+  };
+  const relevant = signals
+    .filter(signal => signal.signalType === "hiring_listing")
+    .map(signal => ({ signal, rolePoints: roleScore(signal) }))
+    .filter(item => item.rolePoints > 0)
+    .sort((a, b) => b.rolePoints - a.rolePoints);
+  if (!relevant.length) return { points: 0 };
+
+  const openingCount = relevant.reduce((total, { signal }) => {
+    const text = `${signal.signalTitle} ${signal.signalDescription} ${signal.supportingEvidence || ""}`;
+    const explicit = text.match(/\b(\d{1,3})\s+(?:current\s+|open\s+)?[\w/&-]+(?:\s+[\w/&-]+){0,8}\s+(?:openings?|roles?|positions?|jobs?)\b/i)
+      || text.match(/\b(?:openings?|roles?|positions?|jobs?)\s*:?\s*(\d{1,3})\b/i);
+    return total + (explicit ? Number(explicit[1]) : 1);
+  }, 0);
+  const vehicleMention = relevant.some(({ signal }) =>
+    /company[- ]provided vehicle|company vehicle|take-home vehicle|company (?:van|truck)/i.test(
+      `${signal.signalDescription} ${signal.supportingEvidence || ""}`,
+    ),
+  );
+  const countBonus = openingCount >= 8 ? 2 : openingCount >= 3 ? 1 : 0;
+  return {
+    points: Math.min(9, relevant[0].rolePoints + countBonus + (vehicleMention ? 1 : 0)),
+    awardedSignal: relevant[0].signal,
+  };
+}
 
 function category(
   key: OpportunityScoreCategory["key"],
@@ -65,8 +291,8 @@ export function buildOpportunityIntelligence(
   const generatedAt = new Date().toISOString();
   const seller = sellerIntelligenceProfile(client);
   const match = industryMatch(lead.industry, vertical);
+  const uniqueResearched = uniqueResearchSignals(researchedSignals);
   const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
-  const sellerCapability = sellerOffers[0];
   const sellerOutcome = seller.outcomes[0] || seller.valuePropositions[0];
   const priorities = (client?.sellerServicePriorities ?? "")
     .split(/[\n,;]+/)
@@ -75,6 +301,14 @@ export function buildOpportunityIntelligence(
   const relevantPriority = priorities.find(priority =>
     sellerOffers.some(offer => offer.toLowerCase().includes(priority.toLowerCase()) || priority.toLowerCase().includes(offer.toLowerCase())),
   );
+  const sellerCapability = (
+    relevantPriority
+      ? sellerOffers.find(offer =>
+          offer.toLowerCase().includes(relevantPriority.toLowerCase())
+          || relevantPriority.toLowerCase().includes(offer.toLowerCase()),
+        )
+      : undefined
+  ) ?? sellerOffers[0];
   const sellerIndustryMatch = seller.industriesServed.some(value =>
     value.toLowerCase().includes(lead.industry.toLowerCase()) || lead.industry.toLowerCase().includes(value.toLowerCase()),
   );
@@ -82,6 +316,7 @@ export function buildOpportunityIntelligence(
     lead.contactTitle?.trim() &&
     !/pending|unknown|owner$/i.test(lead.contactTitle.trim()),
   );
+  const fleetDecisionMaker = fleetDecisionMakerScore(lead.contactTitle, lead.industry);
 
   const signals: OpportunitySignal[] = [{
     signalType: "business_listing",
@@ -156,15 +391,16 @@ export function buildOpportunityIntelligence(
   });
 
   const rolePatterns: Record<string, RegExp> = {
-    fleet_wraps: /\b(?:hvac|field(?: service)?|mobile|maintenance|pest control|restoration|home health|utility|landscap|roof|plumb|electric|install|technician|(?:service|route|delivery|cdl) driver|driver|crew)\b/i,
+    fleet_wraps: /\b(?:fleet (?:manager|director)|director of fleet|chauffeur|mechanic|hvac|field(?: service| sales(?: representative)?)?|mobile|maintenance|pest control|restoration|home health|utility|landscap|roof|plumb|electric|install|technician|(?:service|route|delivery|cdl) driver|driver|crew)\b/i,
     janitorial: /\b(?:facility|facilities|property|operations?|plant|warehouse|environmental services|production)\b/i,
     it_services: /\b(?:it manager|information technology|systems? administrator|help desk|cyber|network engineer|cloud engineer|information security|compliance|technology (?:director|manager))\b/i,
   };
   const hiringPattern = rolePatterns[vertical] ?? rolePatterns.janitorial;
   const buyingEvidence: OpportunitySignal[] = [];
-  const datedBuyingEvidence: OpportunitySignal[] = [];
+  const freshnessEvidence: OpportunitySignal[] = [];
   let relevantHiringVerified = false;
-  for (const researched of researchedSignals) {
+  const fleetHiring = vertical === "fleet_wraps" ? fleetHiringPoints(uniqueResearched) : { points: 0 };
+  for (const researched of uniqueResearched) {
     if (!researched.sourceURL || !researched.supportingEvidence) continue;
     if (researched.signalClassification !== "verified") {
       signals.push({ ...researched, points: 0 });
@@ -172,29 +408,43 @@ export function buildOpportunityIntelligence(
     }
     const isHiring = researched.signalType === "hiring_listing";
     const relevantHiring = isHiring && hiringPattern.test(`${researched.signalTitle} ${researched.signalDescription}`);
-    const rawPoints = researched.signalType === "fleet_vehicle_evidence"
-      ? (vertical === "fleet_wraps" ? 14 : 2)
-      : researched.signalType === "acquisition" || researched.signalType === "rebrand"
+    const rawPoints = researched.signalType === "vehicle_purchase" || researched.signalType === "fleet_expansion"
+      ? (vertical === "fleet_wraps" ? 14 : 3)
+      : researched.signalType === "new_route"
+        ? (vertical === "fleet_wraps" ? 11 : 3)
+        : researched.signalType === "acquisition" || researched.signalType === "rebrand" || researched.signalType === "logo_change"
         ? 9
-        : researched.signalType === "new_location" || researched.signalType === "expansion" || researched.signalType === "company_launch"
+        : researched.signalType === "new_location"
+          || researched.signalType === "new_market"
+          || researched.signalType === "service_expansion"
+          || researched.signalType === "new_facility"
+          || researched.signalType === "expansion"
+          || researched.signalType === "company_launch"
           ? 8
-          : relevantHiring
-            ? 6
+           : relevantHiring
+             ? vertical === "fleet_wraps"
+               ? researched === fleetHiring.awardedSignal ? fleetHiring.points : 0
+               : 6
             : 0;
-    const recencyMultiplier = researched.freshness === "stale"
-      ? 0.25
-      : researched.freshness === "older"
-        ? 0.6
-        : researched.freshness === "active"
-          ? 0.8
-          : 1;
+    const agePoints = signalFreshnessPoints(researched, generatedAt);
+    const recencyMultiplier = agePoints >= 10
+      ? 1
+      : agePoints >= 8
+        ? 0.9
+        : agePoints >= 6
+          ? 0.75
+          : agePoints >= 3
+            ? 0.5
+            : agePoints >= 1
+              ? 0.15
+              : 0.5;
     const confidenceMultiplier = researched.confidenceLevel === "high" ? 1 : researched.confidenceLevel === "medium" ? 0.75 : 0;
     const basePoints = Math.round(rawPoints * recencyMultiplier * confidenceMultiplier);
     const scored = { ...researched, points: basePoints };
     signals.push(scored);
     if (basePoints > 0) {
       buyingEvidence.push(scored);
-      if (scored.freshness !== "unknown" && scored.freshness !== "stale") datedBuyingEvidence.push(scored);
+      if (agePoints > 0) freshnessEvidence.push(scored);
     }
     if (relevantHiring) {
       relevantHiringVerified = true;
@@ -226,14 +476,28 @@ export function buildOpportunityIntelligence(
     : vertical === "it_services"
       ? ["Current IT provider", "Cybersecurity problems or incidents", "Technology contract timing and budget"]
       : ["Current janitorial provider", "Contract expiration or replacement plans", "Cleaning budget and service gaps"];
-  const verifiedTypes = new Set(researchedSignals.filter(signal => signal.signalClassification === "verified").map(signal => signal.signalType));
+  const verifiedTypes = new Set(uniqueResearched.filter(signal => signal.signalClassification === "verified").map(signal => signal.signalType));
   const unknowns = defaultUnknowns.filter(title => {
-    if (/vehicle purchase|fleet size/i.test(title) && verifiedTypes.has("fleet_vehicle_evidence")) return true;
-    if (/expansion/i.test(title) && (verifiedTypes.has("expansion") || verifiedTypes.has("new_location"))) return false;
-    if (/acquisition|launch|rebrand/i.test(title) && (verifiedTypes.has("acquisition") || verifiedTypes.has("company_launch") || verifiedTypes.has("rebrand"))) return false;
+    if (/fleet size/i.test(title)) return true;
+    if (/vehicle purchase/i.test(title) && (verifiedTypes.has("vehicle_purchase") || verifiedTypes.has("fleet_expansion"))) return false;
+    if (/expansion/i.test(title) && (
+      verifiedTypes.has("expansion")
+      || verifiedTypes.has("new_location")
+      || verifiedTypes.has("new_market")
+      || verifiedTypes.has("new_route")
+      || verifiedTypes.has("service_expansion")
+      || verifiedTypes.has("new_facility")
+      || verifiedTypes.has("fleet_expansion")
+    )) return false;
+    if (/acquisition|launch|rebrand/i.test(title) && (
+      verifiedTypes.has("acquisition")
+      || verifiedTypes.has("company_launch")
+      || verifiedTypes.has("rebrand")
+      || verifiedTypes.has("logo_change")
+    )) return false;
     return true;
   });
-  if (!relevantHiringVerified && !researchedSignals.some(signal => signal.signalType === "hiring_research_status")) {
+  if (!relevantHiringVerified && !uniqueResearched.some(signal => signal.signalType === "hiring_research_status")) {
     unknowns.push("Current relevant hiring activity");
   }
   for (const title of unknowns) {
@@ -249,29 +513,68 @@ export function buildOpportunityIntelligence(
     });
   }
 
-  const companyFitPoints = 18 + (lead.address ? 4 : 0) + (lead.website ? 3 : 0);
-  const sellerMatchPoints = seller.ready
-    ? 12 + (sellerIndustryMatch ? 4 : 0) + (relevantPriority ? 3 : 0) + (sellerOutcome ? 1 : 0)
-    : 0;
-  const businessNeedPoints = 3 + (seller.ready ? 2 : 0);
+  const modelFit = businessModelFit(lead, vertical, uniqueResearched);
+  const fleetSellerCapability = sellerOffers.some(offer => FLEET_SELLER_CAPABILITY.test(offer));
+  // Google Places identity, address, website, phone, and category details never
+  // add Opportunity points. Only operating-model relevance contributes here.
+  const companyFitPoints = vertical === "fleet_wraps"
+    ? Math.min(20, modelFit.points)
+    : Math.min(25, modelFit.points + (lead.website ? 2 : 1));
+  const sellerMatchPoints = vertical === "fleet_wraps"
+    ? !seller.ready || !fleetSellerCapability || modelFit.strength === "weak"
+      ? 0
+      : Math.min(
+          20,
+          (modelFit.basis === "verified" ? 12 : 7)
+            + (sellerIndustryMatch ? 3 : 0)
+            + (relevantPriority ? 3 : 0)
+            + (sellerOutcome ? 2 : 0),
+        )
+    : seller.ready
+      ? 12 + (sellerIndustryMatch ? 4 : 0) + (relevantPriority ? 3 : 0) + (sellerOutcome ? 1 : 0)
+      : 0;
+  const businessNeedPoints = vertical === "fleet_wraps"
+    ? modelFit.strength === "weak"
+      ? 0
+      : modelFit.basis === "verified"
+        ? sellerMatchPoints >= 10 ? 10 : 7
+        : sellerMatchPoints >= 10 ? 7 : 4
+    : 3 + (seller.ready ? 2 : 0);
   const buyingPoints = Math.min(30, buyingEvidence.reduce((sum, signal) => sum + signal.points, 0));
-  const freshnessWeight = (value: OpportunitySignal["freshness"]) =>
-    value === "recent" ? 10 : value === "active" ? 7 : value === "older" ? 3 : 0;
-  const freshnessPoints = Math.min(10, Math.max(0, ...datedBuyingEvidence.map(signal => freshnessWeight(signal.freshness))));
-  const effectiveFreshnessPoints = datedBuyingEvidence.length ? freshnessPoints : 0;
+  const rankedBuyingEvidence = rankBuyingSignals(buyingEvidence);
+  const freshnessPoints = Math.min(10, Math.max(0, ...freshnessEvidence.map(signal => signalFreshnessPoints(signal, generatedAt))));
+  const effectiveFreshnessPoints = freshnessEvidence.length ? freshnessPoints : 0;
+  const decisionMakerPoints = vertical === "fleet_wraps" ? fleetDecisionMaker.points : decisionMakerKnown ? 10 : 0;
+  const officialModelVerified = modelFit.basis === "verified";
+  const companyVerificationCount = signals.filter(signal =>
+    signal.signalClassification === "verified"
+    && /^(?:business_listing|operating_address|company_website|published_phone)$/.test(signal.signalType)
+  ).length;
+  const reliableBuyingSignalCount = buyingEvidence.filter(signal => signal.confidenceLevel === "high").length;
   const scoreConfidence: OpportunityIntelligence["scoreConfidence"] =
-    buyingPoints >= 18 && datedBuyingEvidence.length >= 2 ? "high" : buyingPoints > 0 ? "medium" : "low";
+    vertical === "fleet_wraps"
+      ? officialModelVerified && sellerMatchPoints >= 12 && decisionMakerPoints >= 5 && reliableBuyingSignalCount >= 2 && effectiveFreshnessPoints >= 6
+        ? "high"
+        : officialModelVerified && sellerMatchPoints > 0
+          || reliableBuyingSignalCount > 0
+          || companyVerificationCount >= 3 && decisionMakerPoints >= 5 && seller.ready
+            ? "medium"
+            : "low"
+      : buyingPoints >= 18 && freshnessEvidence.length >= 2 ? "high" : buyingPoints > 0 ? "medium" : "low";
+  const companyFitMax = vertical === "fleet_wraps" ? 20 : 25;
+  const businessNeedMax = vertical === "fleet_wraps" ? 10 : 5;
   const breakdown = [
     category(
       "company_industry_fit",
-      "Company / Industry Fit",
+      vertical === "fleet_wraps" ? "Company / ICP Fit" : "Company / Industry Fit",
       companyFitPoints,
-      25,
-      "This score reflects the selected target industry and verified public business information. General industry fit is not treated as a company-specific buying event.",
+      companyFitMax,
+      vertical === "fleet_wraps"
+        ? "Only verified operating-model evidence or a clearly qualified ICP hypothesis contributes. Google Places, address, website, phone, and company existence add zero Opportunity points."
+        : "This score reflects business-model relevance to the seller. Public listing details contribute only minimal identity and contactability weight.",
       [
-        `${lead.companyName} was returned for the selected ${lead.industry} search.`,
-        ...(lead.address ? ["A public operating address is available."] : []),
-        ...(lead.website ? ["A public company website is available."] : []),
+        modelFit.description,
+        "Company verification is supporting information only and is not a reason to pursue the account.",
       ],
     ),
     category(
@@ -283,7 +586,7 @@ export function buildOpportunityIntelligence(
         ? "Points are awarded only for sourced, company-specific official evidence; hiring receives points only when the listed role is relevant to this seller vertical."
         : "No relevant hiring, expansion, acquisition, rebrand, vehicle, or other buying event was verified by the official sources inspected.",
       buyingEvidence.length
-        ? buyingEvidence.map(signal => `${signal.signalTitle} (+${signal.points})`)
+        ? rankedBuyingEvidence.map(signal => `${signal.signalTitle} (+${signal.points})`)
         : ["Business listing details confirm identity and contactability, but they are not buying signals."],
     ),
     category(
@@ -305,29 +608,41 @@ export function buildOpportunityIntelligence(
     category(
       "decision_maker_match",
       "Decision-Maker Match",
-      decisionMakerKnown ? 10 : 0,
+      decisionMakerPoints,
       10,
-      decisionMakerKnown
-        ? "A named, relevant contact was identified."
-        : "A relevant decision-maker has not yet been verified.",
-      [decisionMakerKnown ? `Contact role: ${lead.contactTitle}.` : "Contact enrichment is pending or did not verify a decision-maker."],
+      vertical === "fleet_wraps"
+        ? fleetDecisionMaker.explanation
+        : decisionMakerKnown
+          ? "A named, relevant contact was identified."
+          : "A relevant decision-maker has not yet been verified.",
+      [decisionMakerPoints ? `Contact role: ${lead.contactTitle}.` : "Contact enrichment is pending or did not verify a decision-maker."],
     ),
     category(
       "signal_freshness",
       "Signal Freshness",
       effectiveFreshnessPoints,
       10,
-      effectiveFreshnessPoints
-        ? "Freshness points reflect the most recent non-stale, dated verified buying evidence."
+      effectiveFreshnessPoints >= 6
+        ? "Freshness points reflect the age of the most recent current, company-specific verified buying signal."
+        : effectiveFreshnessPoints
+          ? "Only older verified buying evidence was found, so freshness receives limited credit."
         : "No current, explicitly dated buying signal was verified. Discovery time alone earns no freshness points.",
-      datedBuyingEvidence.length ? datedBuyingEvidence.map(signal => `${signal.signalTitle}: ${signal.freshness}`) : ["No dated buying signal was verified."],
+      freshnessEvidence.length
+        ? freshnessEvidence.map(signal => `${signal.signalTitle}: ${signalFreshnessPoints(signal, generatedAt)} freshness points based on source age.`)
+        : ["No dated or currently active buying signal was verified."],
     ),
     category(
       "business_need_potential",
       "Business Need Potential",
       businessNeedPoints,
-      5,
-      "Industry context creates a reasonable possibility of need, but this remains an implication until discovery or a verified signal confirms it.",
+      businessNeedMax,
+      vertical === "fleet_wraps"
+        ? modelFit.basis === "verified"
+          ? "Verified vehicle-centered operations create legitimate potential for fleet-branding consistency, but do not prove an active purchase."
+          : modelFit.strength === "weak"
+            ? "No credible fleet or commercial-vehicle need has been established."
+            : "Industry context suggests a possible vehicle-branding need, but the prospect's operating model remains unverified."
+        : "Industry context creates a reasonable possibility of need, but this remains an implication until discovery or a verified signal confirms it.",
       [
         match.operation,
         ...(sellerCapability ? [`Potential seller connection: ${sellerCapability}.`] : []),
@@ -340,24 +655,36 @@ export function buildOpportunityIntelligence(
     .map(need => /^(potential|if|confirm|understand|determine|explore)/i.test(need)
       ? need
       : `Potential opportunity: ${need.charAt(0).toLowerCase()}${need.slice(1)}`);
-  const verifiedSummary = [
-    `${lead.companyName} was returned by Google Places for the selected ${lead.industry} search in ${lead.city}, ${lead.state}`,
-    ...(lead.address ? ["a public operating address is listed"] : []),
-    ...(lead.website ? ["a public website is listed"] : []),
-  ].join("; ");
-  const whyTarget = `Verified: ${verifiedSummary}. Potential implication: ${match.operation} ${
-    seller.ready && sellerCapability
-      ? `${seller.name}'s ${sellerCapability} may be relevant if discovery confirms a matching need.`
-      : "No seller-specific need is assumed until Company Intelligence and discovery support it."
-  }`;
-  const recommendedOutreach = buyingEvidence.length
-    ? `Lead with the verified ${buyingEvidence[0].signalTitle.toLowerCase()} and describe only its supported potential implication. ${genericOutreach(client, lead.industry, vertical)}`
-    : `No strong company-specific buying signal has been verified. Use discovery-led messaging and do not imply hiring, expansion, fleet growth, purchases, or provider dissatisfaction. ${genericOutreach(client, lead.industry, vertical)}`;
+  const strongestBuyingSignal = rankedBuyingEvidence[0];
+  const sellerFit = seller.ready && sellerCapability
+    ? `This creates ${modelFit.strength === "strong" ? "a potentially strong" : "a possible"} fit for ${seller.name}'s ${sellerCapability}${sellerOutcome ? `, which may support ${sellerOutcome}` : ""}.`
+    : "";
+  const signalRelevance = strongestBuyingSignal
+    ? strongestBuyingSignal.signalType === "hiring_listing"
+      ? `${strongestBuyingSignal.signalDescription} This current official listing may indicate sustained or increasing operating capacity, but it does not verify a purchase, expansion, or provider change.`
+      : isCurrentBuyingSignal(strongestBuyingSignal)
+        ? `${strongestBuyingSignal.signalDescription} This current verified event creates a timely reason to explore whether ${sellerCapability || "the seller's services"} may be relevant.`
+        : strongestBuyingSignal.freshness === "older" || strongestBuyingSignal.freshness === "stale"
+          ? `${strongestBuyingSignal.signalDescription} This is verified historical context, not a current buying signal. ${noCurrentSignalCaveat(vertical)}`
+          : `${strongestBuyingSignal.signalDescription} The event is verified, but its date is not; it should not be treated as timely. ${noCurrentSignalCaveat(vertical)}`
+    : noCurrentSignalCaveat(vertical);
+  const whyTarget = !seller.ready || (!strongestBuyingSignal && modelFit.strength === "weak")
+    ? `No strong seller-specific reason to prioritize ${lead.companyName} has been identified yet. ${noCurrentSignalCaveat(vertical)}`
+    : strongestBuyingSignal
+      ? `${signalRelevance} ${modelFit.description} ${sellerFit}`
+      : `${modelFit.description} ${sellerFit} ${signalRelevance}`;
+  const recommendedOutreach = strongestBuyingSignal
+    ? isCurrentBuyingSignal(strongestBuyingSignal)
+      ? `Lead with the verified ${strongestBuyingSignal.signalTitle.toLowerCase()}, connect it to ${sellerCapability || "the relevant seller capability"}, and ask whether the related operational priority is current.`
+      : `Use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} only as background context and ask whether a related priority exists now; do not present the event as current.`
+    : modelFit.strength === "weak"
+      ? "Keep this prospect low priority until discovery or new evidence establishes a seller-specific reason to engage."
+      : `Lead with the business-model relevance described above and ask about ${match.challenges[0]}. Use discovery-oriented messaging because no current buying event has been verified.`;
 
   return {
-    version: 1,
+    version: OPPORTUNITY_MODEL_VERSION,
     score,
-    label: scoreLabel(score),
+    label: scoreLabel(score, vertical),
     scoreConfidence,
     definition: OPPORTUNITY_SCORE_DEFINITION,
     breakdown,
@@ -366,6 +693,38 @@ export function buildOpportunityIntelligence(
     potentialNeeds,
     recommendedOutreach,
     generatedAt,
+  };
+}
+
+const STORED_RESEARCH_SIGNAL =
+  /^(?:hiring_listing|hiring_research_status|business_model_evidence|fleet_vehicle_evidence|vehicle_purchase|fleet_expansion|new_route|new_market|service_expansion|new_facility|logo_change|acquisition|rebrand|new_location|expansion|company_launch)$/;
+
+export function refreshStoredOpportunityForRead(
+  prospect: PersistedOpportunityInput & { vertical?: string | null },
+  client?: typeof usersTable.$inferSelect,
+): { intelligence: OpportunityIntelligence | null | undefined; changed: boolean } {
+  const existing = prospect.opportunityIntelligence as OpportunityIntelligence | null | undefined;
+  const vertical = prospect.vertical || "janitorial";
+  if (!existing || vertical !== "fleet_wraps" || existing.version === OPPORTUNITY_MODEL_VERSION) {
+    return { intelligence: existing, changed: false };
+  }
+  const retainedResearch = (existing.signals || []).filter(signal =>
+    STORED_RESEARCH_SIGNAL.test(signal.signalType)
+    && Boolean(signal.sourceURL)
+    && Boolean(signal.supportingEvidence),
+  );
+  return {
+    intelligence: buildOpportunityIntelligence({
+      companyName: prospect.companyName,
+      contactTitle: prospect.title ?? prospect.contactTitle,
+      industry: prospect.industry,
+      city: prospect.city,
+      state: prospect.state,
+      address: prospect.address,
+      website: prospect.website,
+      phone: prospect.phone,
+    }, vertical, client, retainedResearch),
+    changed: true,
   };
 }
 
@@ -396,7 +755,7 @@ export async function deriveOpportunityForPersistence(
     if (
       signal.signalClassification !== "verified"
       || currentTypes.has(signal.signalType)
-      || !/^(?:acquisition|rebrand|new_location|expansion|company_launch)$/.test(signal.signalType)
+      || !/^(?:vehicle_purchase|fleet_expansion|new_route|new_market|service_expansion|new_facility|logo_change|acquisition|rebrand|new_location|expansion|company_launch)$/.test(signal.signalType)
       || !signal.sourceURL
       || !websiteHost
     ) return false;

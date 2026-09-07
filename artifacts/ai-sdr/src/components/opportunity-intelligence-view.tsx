@@ -31,6 +31,8 @@ const NO_BUYING_SIGNAL = "No meaningful company-specific buying signal found yet
 
 const SCORE_COLORS: Record<string, string> = {
   "High Priority": "bg-primary/10 text-primary border-primary/20",
+  "Strong Opportunity": "bg-primary/10 text-primary border-primary/20",
+  "Moderate Opportunity": "bg-primary/10 text-primary border-primary/20",
   "Strong Fit": "bg-primary/10 text-primary border-primary/20",
   "Possible Fit": "bg-accent text-accent-foreground border-primary/10",
   "Low Priority": "bg-muted text-muted-foreground border-border",
@@ -62,9 +64,8 @@ const COMPANY_INFORMATION_TYPES = new Set([
 export function isVerifiedCompanyInformation(signal: OpportunitySignal): boolean {
   const type = (signal.signalType || "").toLowerCase().replace(/[\s-]+/g, "_");
   if (COMPANY_INFORMATION_TYPES.has(type)) return true;
-  return /(?:google|business|company).*(?:listing|profile|verification)|(?:public|operating).*(?:address|website|phone)/i.test(
-    `${signal.signalTitle || ""} ${signal.signalDescription || ""}`,
-  );
+  const text = `${signal.signalTitle || ""} ${signal.signalDescription || ""}`;
+  return /(?:google|business|company)(?:\s+places)?\s+(?:listing|profile|verification)|(?:public|published)\s+(?:operating\s+)?(?:address|website|phone)|operating\s+(?:address|location)/i.test(text);
 }
 
 export function sanitizeOpportunityLanguage(value?: string): string {
@@ -78,12 +79,12 @@ export function sanitizeOpportunityLanguage(value?: string): string {
 const NON_RESULT_LANGUAGE =
   /\b(?:no meaningful|no (?:verified|relevant|company-specific)|not found|none found|unverified|unknown|insufficient|unable to|could not|no evidence)\b/i;
 
-function compactPositiveText(value?: string, maxLength = 210): string {
+function compactPositiveText(value?: string, maxLength = 210, omitNonResults = true): string {
   const sentences = sanitizeOpportunityLanguage(value)
     .split(/(?<=[.!?])\s+/)
     .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence && !NON_RESULT_LANGUAGE.test(sentence));
-  const text = sentences.slice(0, 2).join(" ");
+    .filter((sentence) => sentence && (!omitNonResults || !NON_RESULT_LANGUAGE.test(sentence)));
+  const text = sentences.slice(0, omitNonResults ? 2 : 3).join(" ");
   if (!text || text.length <= maxLength) return text;
   const shortened = text.slice(0, maxLength + 1).replace(/\s+\S*$/, "").replace(/[,:;.\s]+$/, "");
   return `${shortened || text.slice(0, maxLength)}…`;
@@ -157,13 +158,14 @@ function EvidenceDetails({ signal, id }: { signal: OpportunitySignal; id: string
 type SignalSectionProps = {
   title: string;
   signals: OpportunitySignal[];
-  kind: "company" | "verified" | "implication" | "unconfirmed";
+  kind: "company" | "model" | "verified" | "implication" | "unconfirmed";
   emptyMessage?: string;
 };
 
 function SignalSection({ title, signals, kind, emptyMessage }: SignalSectionProps) {
   const icon =
     kind === "company" ? <Building2 className="h-4 w-4 text-primary" /> :
+    kind === "model" ? <BriefcaseBusiness className="h-4 w-4 text-primary" /> :
     kind === "verified" ? <CheckCircle2 className="h-4 w-4 text-green-600" /> :
     kind === "implication" ? <Lightbulb className="h-4 w-4 text-primary" /> :
     <HelpCircle className="h-4 w-4 text-muted-foreground" />;
@@ -196,8 +198,12 @@ function SignalSection({ title, signals, kind, emptyMessage }: SignalSectionProp
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="inline-flex items-center gap-1 capitalize">{getFreshnessIcon(signal.freshness)}{signal.freshness || "unknown"}</span>
+                    {(kind === "company" || kind === "model" || kind === "verified") && (
+                      <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">Verified</Badge>
+                    )}
                     {kind === "verified" && signal.points > 0 && <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">+{signal.points} pts</Badge>}
-                    {kind !== "verified" && <Badge variant="outline" className="text-muted-foreground">Unconfirmed</Badge>}
+                    {kind === "implication" && <Badge variant="outline" className="text-muted-foreground">Implication</Badge>}
+                    {kind === "unconfirmed" && <Badge variant="outline" className="text-muted-foreground">Unconfirmed</Badge>}
                   </div>
                 </div>
                 <EvidenceDetails signal={signal} id={id} />
@@ -245,9 +251,33 @@ export function OpportunityIntelligenceView({
   const companyInformation = signals.filter(
     (signal) => signal.signalClassification === "verified" && isVerifiedCompanyInformation(signal),
   );
-  const verifiedBuyingSignals = signals.filter(
-    (signal) => signal.signalClassification === "verified" && !isVerifiedCompanyInformation(signal) && signal.points > 0,
+  const verifiedBusinessModel = signals.filter(
+    (signal) =>
+      signal.signalClassification === "verified"
+      && (signal.signalType === "business_model_evidence" || signal.signalType === "fleet_vehicle_evidence"),
   );
+  const verifiedBuyingSignals = signals.filter(
+    (signal) =>
+      signal.signalClassification === "verified"
+      && !isVerifiedCompanyInformation(signal)
+      && !verifiedBusinessModel.includes(signal)
+      && signal.points > 0,
+  ).sort((a, b) => {
+    const current = (signal: OpportunitySignal) =>
+      signal.signalType === "hiring_listing" || signal.freshness === "recent" || signal.freshness === "active";
+    const freshness = (signal: OpportunitySignal) =>
+      signal.freshness === "recent" ? 4
+        : signal.freshness === "active" ? 3
+          : signal.freshness === "older" ? 2
+            : signal.freshness === "unknown" ? 1
+              : 0;
+    const confidence = (signal: OpportunitySignal) =>
+      signal.confidenceLevel === "high" ? 2 : signal.confidenceLevel === "medium" ? 1 : 0;
+    return Number(current(b)) - Number(current(a))
+      || b.points - a.points
+      || freshness(b) - freshness(a)
+      || confidence(b) - confidence(a);
+  });
   const implications = signals.filter((signal) => signal.signalClassification === "implication");
   const unconfirmed = signals.filter((signal) => signal.signalClassification === "unconfirmed");
   const hiringSignals = signals.filter((signal) =>
@@ -261,7 +291,9 @@ export function OpportunityIntelligenceView({
   const scoreLabelColor = SCORE_COLORS[intelligence?.label] || "bg-muted text-muted-foreground border-border";
 
   if (compact) {
-    const whyTarget = compactPositiveText(intelligence?.whyTarget);
+    // Why Target must retain an explicit "no current signal" caveat rather
+    // than hiding weak evidence behind generic company verification.
+    const whyTarget = compactPositiveText(intelligence?.whyTarget, 300, false);
     const positiveOpportunities = potentialOpportunities
       .map((opportunity) => compactPositiveText(opportunity, 105))
       .filter(Boolean)
@@ -275,7 +307,7 @@ export function OpportunityIntelligenceView({
       : "";
     const recommendedOutreach = compactPositiveText(intelligence?.recommendedOutreach);
     const rows = [
-      { label: "Why target", value: whyTarget },
+      { label: "Why target", value: whyTarget, className: "line-clamp-3" },
       { label: "Potential needs", value: positiveOpportunities.join("; ") },
       { label: "Verified signal", value: verifiedSignal },
       { label: "Recommended outreach", value: recommendedOutreach },
@@ -286,7 +318,7 @@ export function OpportunityIntelligenceView({
     return (
       <div className={`space-y-1.5 ${className}`} data-testid="section-opportunity-intelligence-compact">
         {rows.map((row) => (
-          <p key={row.label} className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          <p key={row.label} className={`${row.className || "line-clamp-2"} text-xs leading-relaxed text-muted-foreground`}>
             <span className="font-medium text-foreground">{row.label}: </span>
             {row.value}
           </p>
@@ -340,6 +372,16 @@ export function OpportunityIntelligenceView({
                     </div>
                     <Progress value={category.maxPoints > 0 ? (category.points / category.maxPoints) * 100 : 0} className="h-1.5" />
                     <p className="text-xs leading-relaxed text-muted-foreground">{sanitizeOpportunityLanguage(category.explanation)}</p>
+                     {Array.isArray(category.evidence) && category.evidence.length > 0 && (
+                       <ul className="space-y-1 text-xs text-muted-foreground">
+                         {category.evidence.map((item, evidenceIndex) => (
+                           <li key={evidenceIndex} className="flex gap-1.5">
+                             <span className="text-primary">•</span>
+                             <span>{sanitizeOpportunityLanguage(item)}</span>
+                           </li>
+                         ))}
+                       </ul>
+                     )}
                   </div>
                 ))}
               </div>
@@ -356,6 +398,7 @@ export function OpportunityIntelligenceView({
 
       <div className="grid grid-cols-1 gap-5">
         <SignalSection title="Verified Company Information" signals={companyInformation} kind="company" />
+        <SignalSection title="Verified Business Model" signals={verifiedBusinessModel} kind="model" />
         <SignalSection title="Verified Buying Signals" signals={verifiedBuyingSignals} kind="verified" emptyMessage={NO_BUYING_SIGNAL} />
         <SignalSection title="Potential Implications" signals={implications} kind="implication" />
         <SignalSection title="Unconfirmed" signals={unconfirmed} kind="unconfirmed" />
