@@ -5,6 +5,7 @@ import {
   buildSellerIntelligenceContext,
   equivalentWebsite,
   extractPublicText,
+  fetchPublicHtml,
   isSafelySameCompanyWebsite,
   normalizeWebsite,
 } from "./sellerIntelligence";
@@ -28,6 +29,30 @@ describe("seller intelligence helpers", () => {
   });
   it("rejects non-http websites", () => expect(() => normalizeWebsite("file:///etc/passwd")).toThrow());
   it("extracts readable text without executable content", () => expect(extractPublicText("<script>secret()</script><h1>Acme &amp; Co</h1>")).toBe("Acme & Co"));
+  it("uses the validated public reader when a website blocks the production crawler", async () => {
+    const requests: string[] = [];
+    const result = await fetchPublicHtml("https://example.com/", {
+      validateUrl: async value => new URL(value),
+      fetcher: (async input => {
+        const url = input.toString();
+        requests.push(url);
+        if (url === "https://example.com/") {
+          return new Response("Forbidden", { status: 403, headers: { "Content-Type": "text/html" } });
+        }
+        return new Response("Title: Example\n\nManaged IT and cloud security services.", {
+          status: 200,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }) as typeof fetch,
+    });
+
+    expect(requests).toEqual([
+      "https://example.com/",
+      "https://r.jina.ai/https://example.com/",
+    ]);
+    expect(result.url.toString()).toBe("https://example.com/");
+    expect(result.html).toContain("Managed IT and cloud security services.");
+  });
   it("does not put failed analysis in seller context", () => {
     const profile = buildGenericSellerProfile("https://example.com/", "it_services", "unavailable");
     expect(buildSellerIntelligenceContext(profile)).toBe("");

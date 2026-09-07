@@ -10,6 +10,12 @@ const MAX_HTML_BYTES = 300_000;
 const MAX_TEXT_CHARS = 18_000;
 const REQUEST_TIMEOUT_MS = 7_000;
 const RELEVANT_PATH = /(?:about|service|solution|industr|who-we-serve|customer|market|product|portfolio|gallery|case-stud|testimonial|certif|why-us|faq)/i;
+const PUBLIC_READER_ORIGIN = "https://r.jina.ai";
+const WEBSITE_REQUEST_HEADERS = {
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "User-Agent": "Mozilla/5.0 (compatible; iSDRX-CompanyIntelligence/1.0)",
+};
 
 export const SellerIntelligenceEditableSchema = z.object({
   sellerCompanyName: z.string().trim().min(1).max(160).nullable().default(null),
@@ -177,37 +183,82 @@ function linksFromHtml(html: string, pageUrl: URL, homeOrigin: string): string[]
   return [...found].slice(0, MAX_PAGES - 1);
 }
 
-async function fetchPublicHtml(rawUrl: string): Promise<{ url: URL; html: string }> {
-  let url = await assertPublicUrl(rawUrl);
+async function readBoundedBody(response: Response): Promise<string> {
+  const length = Number(response.headers.get("content-length") || 0);
+  if (length > MAX_HTML_BYTES) throw new Error("Website page is too large to analyze.");
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Website returned no content.");
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > MAX_HTML_BYTES) {
+      await reader.cancel();
+      throw new Error("Website page is too large to analyze.");
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
+function publicReaderUrl(url: URL): string {
+  return `${PUBLIC_READER_ORIGIN}/${url.toString()}`;
+}
+
+type PublicHtmlDependencies = {
+  validateUrl?: typeof assertPublicUrl;
+  fetcher?: typeof fetch;
+};
+
+export async function fetchPublicHtml(
+  rawUrl: string,
+  dependencies: PublicHtmlDependencies = {},
+): Promise<{ url: URL; html: string }> {
+  const validateUrl = dependencies.validateUrl ?? assertPublicUrl;
+  const fetcher = dependencies.fetcher ?? fetch;
+  let url = await validateUrl(rawUrl);
   for (let redirects = 0; redirects <= 3; redirects++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const response = await fetch(url, {
+      const response = await fetcher(url, {
         redirect: "manual", signal: controller.signal,
-        headers: { Accept: "text/html,application/xhtml+xml" },
+        headers: WEBSITE_REQUEST_HEADERS,
       });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         const location = response.headers.get("location");
         if (!location) throw new Error("Website redirect did not include a destination.");
-        url = await assertPublicUrl(new URL(location, url).toString());
+        url = await validateUrl(new URL(location, url).toString());
         continue;
+      }
+      if (response.status === 403 || response.status === 429) {
+        await response.body?.cancel();
+        const fallbackController = new AbortController();
+        const fallbackTimer = setTimeout(() => fallbackController.abort(), REQUEST_TIMEOUT_MS);
+        try {
+          const fallback = await fetcher(publicReaderUrl(url), {
+            redirect: "error",
+            signal: fallbackController.signal,
+            headers: {
+              Accept: "text/plain;charset=utf-8",
+              "User-Agent": "iSDRX-CompanyIntelligence/1.0",
+            },
+          });
+          if (!fallback.ok) throw new Error(`Website reader returned HTTP ${fallback.status}.`);
+          const type = fallback.headers.get("content-type")?.toLowerCase() || "";
+          if (!type.includes("text/plain") && !type.includes("text/markdown")) {
+            throw new Error("Website reader did not return readable text.");
+          }
+          return { url, html: await readBoundedBody(fallback) };
+        } finally {
+          clearTimeout(fallbackTimer);
+        }
       }
       if (!response.ok) throw new Error(`Website returned HTTP ${response.status}.`);
       if (!response.headers.get("content-type")?.toLowerCase().includes("text/html")) throw new Error("Website did not return HTML.");
-      const length = Number(response.headers.get("content-length") || 0);
-      if (length > MAX_HTML_BYTES) throw new Error("Website page is too large to analyze.");
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("Website returned no content.");
-      const chunks: Uint8Array[] = []; let bytes = 0;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        bytes += value.byteLength;
-        if (bytes > MAX_HTML_BYTES) { await reader.cancel(); throw new Error("Website page is too large to analyze."); }
-        chunks.push(value);
-      }
-      return { url, html: new TextDecoder().decode(Buffer.concat(chunks)) };
+      return { url, html: await readBoundedBody(response) };
     } finally { clearTimeout(timer); }
   }
   throw new Error("Website redirected too many times.");

@@ -33,4 +33,5 @@
 - [Temporary TypeScript smoke tests](temporary-tsx-smoke-tests.md) — run /tmp TS scripts through the DB package's tsx and wrap top-level async work.
 - [Seller intelligence approval](seller-intelligence-approval.md) — Needs Review stays discovery-only; preserve per-field user approvals over live lower-priority sources.
 - [Seller intelligence analysis state](seller-intelligence-analysis-state.md) — serialize analysis decisions; persist failed attempts separately from active cached profile status.
+- [Protected seller websites](protected-seller-websites.md) — production egress may get 403/429 when dev succeeds; keep SSRF checks and use the bounded public-reader fallback.
 - [Opportunity intelligence integrity](opportunity-intelligence-integrity.md) — server-derived score snapshots; listing facts are not buying signals; stay independent from engagement.
