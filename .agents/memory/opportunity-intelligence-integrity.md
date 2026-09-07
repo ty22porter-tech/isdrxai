@@ -7,7 +7,7 @@ Opportunity Intelligence is a server-derived snapshot. Never trust client-suppli
 
 **Why:** Client snapshots can be stale or tampered with, while search-listing facts establish business identity and contactability but do not prove purchases, hiring, expansion, budgets, provider changes, or other buying events.
 
-**How to apply:** Keep verified facts, implications, and unconfirmed signals separate. Verified buying signals get full weight, implications limited weight, and unknowns zero. Keep the Opportunity Score completely independent from engagement score and Hot/Medium/Low behavior. Factual email clauses must each be grounded in verified evidence or explicitly conditional.
+**How to apply:** Keep verified facts, implications, and unconfirmed signals separate. Only verified, sourced buying evidence can earn buying points; implications and unknowns earn zero. Keep the Opportunity Score completely independent from engagement score and Hot/Medium/Low behavior. Factual email clauses must each be grounded in verified evidence or explicitly conditional.
 
 On prospect cards, keep Opportunity Intelligence in the compact legacy-style format: short labeled rows for why target, potential needs, the strongest verified signal, and recommended outreach. Omit empty, negative, unknown, and unverified findings instead of rendering “no result” sections; the full evidence report belongs only in the score-breakdown dialog.
 
@@ -19,4 +19,10 @@ On prospect cards, keep Opportunity Intelligence in the compact legacy-style for
 
 **Why:** Address, website, phone, and business-listing verification prove that a prospect is real and reachable, but they do not establish urgency or sales relevance. Industry categories are also only hypotheses until the prospect's own official source verifies its operating model.
 
-**How to apply:** Keep contactability weight minimal. Label industry-only reasoning as unverified. Historical or undated events may be context but must not be called timely. Fleet presence proves an operating model, not vehicle purchasing; only sourced, dated change events such as purchases, new routes, fleet expansion, or rebrands count as buying signals.
+**How to apply:** Keep contactability weight minimal. Label industry-only reasoning as unverified. Undated verified events may receive reduced buying credit but zero freshness; events older than one year remain visible historical evidence and earn zero buying/freshness points. Active undated hiring may earn bounded hiring credit but zero freshness. Fleet presence proves an operating model, not vehicle purchasing; only sourced change events such as purchases, new routes, fleet expansion, or rebrands count as buying signals.
+
+Contact enrichment and Opportunity Intelligence must describe the same evidence snapshot. A real email or named contact is not automatically a decision-maker; award decision-maker points by role relevance, and rebuild the score immediately when enrichment verifies or changes that role.
+
+**Why:** Showing an enriched IT Director beside a score calculated from the earlier placeholder makes materially different prospects look identical and undermines the category breakdown.
+
+**How to apply:** Keep enrichment race guards, but apply the refreshed contact, category points, headline score, confidence, and narratives atomically. Persistence must still recompute independently on the server.

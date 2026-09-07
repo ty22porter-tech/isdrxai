@@ -1316,6 +1316,18 @@ components:
                 type: string
               website:
                 type: string
+              contactTitle:
+                type: string
+              phone:
+                type: string
+              industry:
+                type: string
+              city:
+                type: string
+              state:
+                type: string
+              address:
+                type: string
 
     EnrichLeadsResult:
       type: object
@@ -1351,6 +1363,20 @@ components:
                 type: string
               employeeCount:
                 type: integer
+              opportunityScore:
+                type: integer
+              scoreLabel:
+                type: string
+              whyTarget:
+                type: string
+              potentialNeeds:
+                type: array
+                items:
+                  type: string
+              recommendedOutreach:
+                type: string
+              opportunityIntelligence:
+                $ref: "#/components/schemas/OpportunityIntelligence"
               error:
                 type: string
 
@@ -1422,6 +1448,8 @@ components:
       type: object
       required: [signalType, signalTitle, signalDescription, signalClassification, confidenceLevel, freshness, dateDiscovered, points]
       properties:
+        signalId:
+          type: string
         signalType:
           type: string
         signalTitle:
@@ -1457,6 +1485,22 @@ components:
           type: string
         potentialBusinessImpact:
           type: string
+        pointReason:
+          type: string
+        corroboratingSources:
+          type: array
+          items:
+            type: object
+            required: [sourceURL]
+            properties:
+              sourceName:
+                type: string
+              sourceURL:
+                type: string
+                format: uri
+              sourceDate:
+                type: string
+                format: date-time
         points:
           type: integer
           minimum: 0
@@ -1492,7 +1536,7 @@ components:
       properties:
         version:
           type: integer
-          enum: [1, 2]
+          enum: [1, 2, 3]
         score:
           type: integer
           minimum: 0
@@ -1503,6 +1547,8 @@ components:
         scoreConfidence:
           type: string
           enum: [high, medium, low]
+        scoreConfidenceReason:
+          type: string
         definition:
           type: string
         breakdown:
@@ -1523,6 +1569,93 @@ components:
             type: string
         recommendedOutreach:
           type: string
+        hiringResearch:
+          type: object
+          required: [status, roles, locations, count, sources, confidence, evidence]
+          properties:
+            status:
+              type: string
+              enum: [VERIFIED_ACTIVE_HIRING, RECENT_HIRING_SIGNAL, NO_ACTIVE_HIRING_FOUND, UNKNOWN]
+            roles:
+              type: array
+              items:
+                type: string
+            locations:
+              type: array
+              items:
+                type: string
+            count:
+              type: integer
+              nullable: true
+              minimum: 0
+            sources:
+              type: array
+              items:
+                type: object
+                required: [sourceURL]
+                properties:
+                  sourceName:
+                    type: string
+                  sourceURL:
+                    type: string
+                    format: uri
+                  sourceDate:
+                    type: string
+                    format: date-time
+            confidence:
+              type: string
+              enum: [high, medium, low]
+            evidence:
+              type: array
+              items:
+                type: string
+        scoringInputs:
+          type: object
+          required: [vertical, companyName, industry, contactTitle, businessModelBasis, sellerProfileStatus, sellerCapabilitiesConsidered, sellerPriorityConsidered]
+          properties:
+            vertical:
+              type: string
+            companyName:
+              type: string
+            industry:
+              type: string
+            contactTitle:
+              type: string
+              nullable: true
+            businessModelBasis:
+              type: string
+              enum: [verified, industry_hypothesis]
+            sellerProfileStatus:
+              type: string
+              enum: [ready, limited]
+            sellerCapabilitiesConsidered:
+              type: array
+              items:
+                type: string
+            sellerPriorityConsidered:
+              type: string
+              nullable: true
+        integrity:
+          type: object
+          required: [status, calculatedTotal, categoryMaxTotal, checks]
+          properties:
+            status:
+              type: string
+              enum: [passed]
+            calculatedTotal:
+              type: integer
+            categoryMaxTotal:
+              type: integer
+            checks:
+              type: array
+              items:
+                type: object
+                required: [name, passed]
+                properties:
+                  name:
+                    type: string
+                  passed:
+                    type: boolean
         generatedAt:
           type: string
           format: date-time

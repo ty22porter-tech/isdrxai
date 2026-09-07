@@ -497,6 +497,12 @@ type EnrichLeadResult = {
   phone?: string;
   linkedinUrl?: string;
   employeeCount?: number;
+  opportunityScore?: number;
+  scoreLabel?: string;
+  whyTarget?: string;
+  potentialNeeds?: string[];
+  recommendedOutreach?: string;
+  opportunityIntelligence?: ReturnType<typeof buildOpportunityIntelligence>;
   error?: string;
 };
 
@@ -538,6 +544,23 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
       results.push({ index, status: "not_found" });
       return;
     }
+    const enrichedLead = {
+      companyName: lead.companyName,
+      contactTitle: p.title ?? lead.contactTitle ?? null,
+      industry: lead.industry || "Local business",
+      city: lead.city || "",
+      state: lead.state || "",
+      address: lead.address ?? null,
+      website: lead.website ?? null,
+      phone: p.phone ?? lead.phone ?? null,
+    };
+    const researchedSignals = await researchOfficialWebsite(enrichedLead);
+    const refreshedIntelligence = buildOpportunityIntelligence(
+      enrichedLead,
+      vertical,
+      client,
+      researchedSignals,
+    );
     results.push({
       index,
       status: "enriched",
@@ -547,6 +570,12 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
       phone: p.phone ?? undefined,
       linkedinUrl: p.linkedinUrl ?? undefined,
       employeeCount: p.employeeCount ?? undefined,
+      opportunityScore: refreshedIntelligence.score,
+      scoreLabel: refreshedIntelligence.label,
+      whyTarget: refreshedIntelligence.whyTarget,
+      potentialNeeds: refreshedIntelligence.potentialNeeds,
+      recommendedOutreach: refreshedIntelligence.recommendedOutreach,
+      opportunityIntelligence: refreshedIntelligence,
     });
   };
 

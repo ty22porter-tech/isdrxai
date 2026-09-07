@@ -35,3 +35,4 @@
 - [Seller intelligence analysis state](seller-intelligence-analysis-state.md) — serialize analysis decisions; persist failed attempts separately from active cached profile status.
 - [Protected seller websites](protected-seller-websites.md) — production egress may get 403/429 when dev succeeds; keep SSRF checks and use the bounded public-reader fallback.
 - [Opportunity intelligence integrity](opportunity-intelligence-integrity.md) — server-derived score snapshots; listing facts are not buying signals; stay independent from engagement.
+- [Node pinned DNS lookups](node-pinned-dns-lookups.md) — SSRF-safe pinned requests must support Node's scalar and options.all callback shapes.

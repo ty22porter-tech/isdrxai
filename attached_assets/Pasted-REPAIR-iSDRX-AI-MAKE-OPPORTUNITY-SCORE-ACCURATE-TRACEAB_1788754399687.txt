@@ -1,0 +1,1184 @@
+REPAIR iSDRX AI — MAKE OPPORTUNITY SCORE ACCURATE, TRACEABLE, AND EVIDENCE-BASED
+
+CRITICAL:
+
+The current Opportunity Score may not be accurately reflecting verified buying
+signals, seller fit, decision-maker quality, and signal freshness.
+
+Do NOT just change the displayed wording.
+
+Inspect and repair the ACTUAL score calculation.
+
+Preserve all unrelated working functionality, including:
+
+- Prospect Search
+- Apollo/enrichment
+- Google Places
+- Seller / Company Intelligence
+- Industry Profiles
+- Prospect cards
+- 7-step campaign automation
+- collateral scheduling
+- Hot / Medium / Low engagement scoring
+- Calendly click tracking
+- 4-hour Calendly follow-up
+- dashboard engagement metrics
+
+Opportunity Score must remain COMPLETELY SEPARATE from Hot / Medium / Low.
+
+
+========================================================
+1. PURPOSE OF OPPORTUNITY SCORE
+========================================================
+
+The Opportunity Score must answer:
+
+"How worthwhile is this company for THIS seller to pursue RIGHT NOW?"
+
+It is NOT:
+
+- a probability of purchase
+- an engagement score
+- a Google Places quality score
+- a generic company score
+
+It is a seller-specific, research-based opportunity assessment.
+
+
+========================================================
+2. USE A 100-POINT MODEL
+========================================================
+
+Use this structure unless an existing equivalent structure already exists:
+
+A. COMPANY / ICP FIT
+MAX 20
+
+B. VERIFIED BUYING SIGNALS
+MAX 30
+
+C. SELLER → PROSPECT MATCH
+MAX 20
+
+D. DECISION-MAKER MATCH
+MAX 10
+
+E. SIGNAL FRESHNESS
+MAX 10
+
+F. BUSINESS NEED POTENTIAL
+MAX 10
+
+TOTAL
+100
+
+
+========================================================
+3. COMPANY / ICP FIT — MAX 20
+========================================================
+
+Question:
+
+"Is this fundamentally the type of company the seller should target?"
+
+For Fleet & Commercial Vehicle Wraps:
+
+18–20:
+Commercial vehicles are central to the business model.
+
+Examples:
+- transportation
+- logistics
+- delivery
+- moving
+- HVAC
+- plumbing
+- electrical
+- roofing
+- pest control
+- restoration
+- landscaping
+- field-service company
+
+14–17:
+Strong likelihood of customer-facing or mobile service vehicles.
+
+8–13:
+Potential fit, but vehicle relevance is less clear.
+
+0–7:
+Weak or unclear fleet relevance.
+
+
+DO NOT award ICP points simply because:
+
+- Google Places found the company
+- company has a website
+- company has an address
+- company has a phone number
+
+
+========================================================
+4. VERIFIED BUYING SIGNALS — MAX 30
+========================================================
+
+Only VERIFIED company-specific events can earn points here.
+
+Examples:
+
+CONFIRMED FLEET / VEHICLE PURCHASE
+up to +15
+
+CONFIRMED FLEET EXPANSION
+up to +15
+
+REBRAND / BRAND REFRESH
+up to +15
+
+ACTIVE RELEVANT HIRING
+up to +10
+
+NEW LOCATION
+up to +10
+
+NEW TERRITORY / ROUTE
+up to +10
+
+ACQUISITION
+up to +10
+
+BUSINESS EXPANSION ANNOUNCEMENT
+up to +10
+
+COMPANY-PROVIDED VEHICLE MENTIONED IN JOB POSTING
+up to +8
+
+NEW SERVICE LINE REQUIRING MOBILE OPERATIONS
+up to +8
+
+
+CAP VERIFIED BUYING SIGNALS AT 30.
+
+
+========================================================
+5. COMPANY VERIFICATION MUST NOT COUNT AS BUYING SIGNAL
+========================================================
+
+The following are COMPANY VERIFICATION ONLY:
+
+- Google Places result
+- public operating address
+- website
+- public phone
+- category
+- active business listing
+
+These may improve:
+
+DATA CONFIDENCE
+
+but they must contribute:
+
+ZERO
+
+to VERIFIED BUYING SIGNALS.
+
+
+========================================================
+6. VERIFIED VS INFERRED VS UNKNOWN
+========================================================
+
+Every signal must be classified before scoring.
+
+Use:
+
+VERIFIED
+POTENTIAL_IMPLICATION
+UNCONFIRMED
+
+
+Example:
+
+VERIFIED:
+Hiring 10 HVAC service technicians
+
+POTENTIAL IMPLICATION:
+Additional field staffing may increase future vehicle requirements
+
+UNCONFIRMED:
+Company is buying 10 new vans
+
+
+Scoring:
+
+Hiring:
+points allowed
+
+Potential implication:
+no Verified Buying Signal points
+
+Unconfirmed van purchase:
+0 points
+
+
+========================================================
+7. NEVER CONVERT AN INFERENCE INTO A FACT
+========================================================
+
+Do not say:
+
+"Company is expanding its fleet"
+
+based only on:
+
+"Company is hiring technicians."
+
+
+Correct:
+
+"Current technician hiring may indicate increasing or sustained field-service
+capacity. Additional vehicle purchases have not been verified."
+
+
+========================================================
+8. RESEARCH HIRING BEFORE FINAL SCORE
+========================================================
+
+Hiring must be a formal research category.
+
+Check available public sources such as:
+
+- company careers page
+- company ATS page
+- public job boards
+- public LinkedIn job information where supported
+- Indeed/public job listings where available
+- public hiring announcements
+- press releases
+- other existing research sources
+
+
+Store:
+
+hiringStatus
+hiringRoles[]
+hiringLocations[]
+hiringCount
+hiringSource
+hiringSourceURL
+hiringDate
+hiringConfidence
+hiringEvidence
+
+
+Possible status:
+
+VERIFIED_ACTIVE_HIRING
+RECENT_HIRING_SIGNAL
+NO_ACTIVE_HIRING_FOUND
+UNKNOWN
+
+
+Important:
+
+"No jobs found" does NOT mean:
+
+"Company is not hiring."
+
+Use:
+
+"No active hiring signal found from available sources."
+
+
+========================================================
+9. HIRING RELEVANCE MUST DEPEND ON INDUSTRY PROFILE
+========================================================
+
+For Fleet & Commercial Vehicle Wraps, high-value roles include:
+
+- Driver
+- CDL Driver
+- Route Driver
+- Delivery Driver
+- Service Technician
+- HVAC Technician
+- Plumbing Technician
+- Electrician
+- Installer
+- Field Service Technician
+- Mobile Technician
+- Maintenance Technician
+- Restoration Technician
+- Roofing field roles
+- Pest Control Technician
+- Landscaping technician/crew
+- Utility field employee
+- other mobile/field roles
+
+
+Example:
+
+1 Accountant
+=
+0 Fleet hiring points
+
+
+10 Service Technicians
+=
+strong Fleet hiring signal
+
+
+8 Drivers
+=
+strong Fleet hiring signal
+
+
+========================================================
+10. DEDUPLICATE HIRING SIGNALS
+========================================================
+
+Do not count the same job multiple times because it appears on:
+
+- company site
+- Indeed
+- LinkedIn
+- aggregator
+
+
+Deduplicate by:
+
+company
+job title
+location
+job ID
+URL
+posting date
+semantic similarity
+
+
+Keep corroborating sources as evidence, not separate openings.
+
+
+========================================================
+11. SELLER → PROSPECT MATCH — MAX 20
+========================================================
+
+This category must use the active Seller / Company Intelligence Profile.
+
+Question:
+
+"How directly does what THIS seller provides align with this prospect?"
+
+Use:
+
+- seller services
+- seller capabilities
+- seller differentiators
+- priority services
+- industries served
+- business outcomes
+- proof points
+
+
+Example:
+
+Seller:
+C4 Wraps
+
+Capabilities:
+- commercial vehicle wraps
+- fleet graphics
+- fleet-brand consistency
+- custom design
+- commercial branding
+
+
+Prospect:
+customer-facing transportation company
+
+Result:
+strong seller-prospect match
+
+
+Do not give high points simply because the prospect belongs to a broad target
+industry.
+
+
+========================================================
+12. DECISION-MAKER MATCH — MAX 10
+========================================================
+
+Score the actual contact found.
+
+For Fleet selling:
+
+10:
+- Fleet Director
+- Fleet Manager
+- Director of Operations
+- Owner / President for smaller companies
+- Marketing Director / CMO when branding is relevant
+- Procurement / Purchasing when appropriate
+
+7–9:
+- COO
+- General Manager
+- Operations Manager
+
+4–6:
+- Office Manager
+- HR Manager
+- Administrative manager
+
+0–3:
+- unrelated or low-authority contact
+
+
+"Real contact found" alone must NOT produce full points.
+
+
+========================================================
+13. SIGNAL FRESHNESS — MAX 10
+========================================================
+
+Only use dates from VERIFIED buying signals.
+
+Suggested scale:
+
+0–30 days
+10 points
+
+31–90 days
+8 points
+
+91–180 days
+5–6 points
+
+181–365 days
+2–4 points
+
+365+ days
+0–1 points
+
+
+If there is NO verified buying signal:
+
+Signal Freshness should be:
+
+0
+
+
+Do not award freshness based on:
+
+- Google listing update
+- website availability
+- phone verification
+
+
+========================================================
+14. BUSINESS NEED POTENTIAL — MAX 10
+========================================================
+
+This category may use legitimate business-model reasoning.
+
+Question:
+
+"If no direct buying signal exists, how naturally could this seller's service
+apply to this company's operations?"
+
+Examples for Fleet:
+
+Transportation company:
+high potential
+
+HVAC field-service company:
+high potential
+
+Generic professional office:
+low potential
+
+Business organization with unknown vehicle usage:
+low-to-moderate potential
+
+
+This category must not be used to disguise an unverified buying signal.
+
+
+========================================================
+15. DO NOT DOUBLE COUNT SIGNALS
+========================================================
+
+One piece of evidence cannot create multiple full-point signals.
+
+Example:
+
+Source says:
+
+"Company is hiring 12 HVAC technicians."
+
+
+Correct:
+
+Hiring signal:
++8
+
+
+Potential implication:
+field capacity may increase
+
++0
+
+
+Fleet expansion:
+UNCONFIRMED
++0
+
+
+Vehicle purchases:
+UNCONFIRMED
++0
+
+
+Do not award:
+
++8 hiring
++8 growth
++8 expansion
++8 fleet expansion
+
+from the same evidence.
+
+
+========================================================
+16. MULTIPLE INDEPENDENT SIGNALS MAY EACH CONTRIBUTE
+========================================================
+
+Example:
+
+VERIFIED:
+Hiring 12 technicians
+
+VERIFIED:
+Opened new Fort Worth location
+
+VERIFIED:
+Job posting says company vehicle provided
+
+
+These are three separate pieces of evidence and may each contribute, subject
+to the 30-point category cap.
+
+
+========================================================
+17. SCORE BREAKDOWN MUST EXACTLY MATCH TOTAL
+========================================================
+
+"View Score Breakdown" must show the actual calculation.
+
+Example:
+
+Company / ICP Fit               18 / 20
+
+Verified Buying Signals         18 / 30
+✓ Hiring 10 technicians          +8
+✓ New location                   +7
+✓ Company vehicle in job post    +3
+? Vehicle purchases              +0
+
+Seller → Prospect Match         18 / 20
+
+Decision-Maker Match             8 / 10
+
+Signal Freshness                 8 / 10
+
+Business Need Potential          9 / 10
+
+TOTAL                            79 / 100
+
+
+The displayed total MUST equal the sum of the components.
+
+
+========================================================
+18. DO NOT ALLOW HIDDEN BASE POINTS
+========================================================
+
+Audit for:
+
+- hard-coded base scores
+- default 30 or 40 point starting values
+- fallback scoring
+- AI-generated unexplained score boosts
+
+
+Every point must belong to a visible score category.
+
+No invisible score contribution.
+
+
+========================================================
+19. OPPORTUNITY SCORE LABELS
+========================================================
+
+Use one consistent set of labels:
+
+85–100
+HIGH PRIORITY
+
+70–84
+STRONG OPPORTUNITY
+
+55–69
+MODERATE OPPORTUNITY
+
+40–54
+POSSIBLE FIT
+
+0–39
+LOW PRIORITY
+
+
+Do not use conflicting score labels in different parts of the UI.
+
+
+========================================================
+20. SEPARATE ICP FIT FROM OPPORTUNITY SCORE
+========================================================
+
+If the existing green label "high fit" refers to industry / ICP fit, rename it:
+
+ICP Fit: High
+
+or:
+
+Industry Fit: High
+
+
+Do not display:
+
+"high fit"
+
+next to:
+
+"Opportunity Score: 43 — Possible Fit"
+
+without explaining the difference.
+
+
+Correct example:
+
+ICP Fit:
+HIGH
+
+Fleet Wrap Opportunity Score:
+43 — POSSIBLE FIT
+
+
+Meaning:
+
+The company is the right TYPE of prospect but there is limited current buying
+evidence.
+
+
+========================================================
+21. SCORE CONFIDENCE
+========================================================
+
+Add or preserve:
+
+Score Confidence:
+HIGH / MEDIUM / LOW
+
+
+Score Confidence answers:
+
+"How much reliable evidence supports this Opportunity Score?"
+
+
+HIGH:
+- multiple verified signals
+- reliable sources
+- current evidence
+- good company data
+- relevant decision maker
+
+MEDIUM:
+- strong business fit
+- some verified data
+- limited direct buying signals
+
+LOW:
+- mostly industry fit
+- limited company-specific evidence
+- weak or stale sources
+
+
+Do NOT let Score Confidence alter the Opportunity Score total.
+
+It is a separate indicator.
+
+
+========================================================
+22. WHY TARGET MUST USE THE SAME EVIDENCE
+========================================================
+
+WHY TARGET must be generated from the exact evidence used in the score.
+
+Priority:
+
+1. Verified buying signals
+2. Business-model / ICP fit
+3. Seller-prospect match
+4. Potential need
+5. Company verification only as supporting context
+
+
+Never use:
+
+"Google Places returned this company"
+
+as the primary reason to target.
+
+
+========================================================
+23. WHY TARGET EXAMPLE WITH NO CURRENT SIGNAL
+========================================================
+
+Acceptable:
+
+"Vonlane operates a customer-facing transportation model where branded
+vehicles are central to the customer experience, creating a strong
+business-model fit for C4 Wraps' fleet graphics capabilities. No current fleet
+purchase, expansion, or rebranding signal has been verified."
+
+
+========================================================
+24. WHY TARGET EXAMPLE WITH CURRENT HIRING SIGNAL
+========================================================
+
+Acceptable:
+
+"ABC HVAC is actively hiring service technicians, creating a timely field-
+operations growth signal. Because the company operates a mobile service model,
+C4 Wraps' fleet-branding capabilities may become increasingly relevant as
+field capacity changes. Additional vehicle purchases have not been verified."
+
+
+========================================================
+25. POTENTIAL NEEDS MUST NOT SAY "CONFIRMED NEED"
+========================================================
+
+Unless a direct source confirms the actual need, never use:
+
+"confirmed need"
+
+
+Use:
+
+- Potential opportunity
+- Potential need
+- May become relevant
+- Could support
+- If discovery confirms
+- May benefit from
+
+
+========================================================
+26. COMPANY VERIFICATION SECTION
+========================================================
+
+Keep Google Places and similar information under:
+
+VERIFIED COMPANY INFORMATION
+
+
+Example:
+
+✓ Active business listing
+✓ Houston, TX location
+✓ Public website
+✓ Published phone
+
+
+This supports data quality.
+
+It does not explain the sales opportunity.
+
+
+========================================================
+27. OPPORTUNITY SCORE MUST BE SELLER-SPECIFIC
+========================================================
+
+The same prospect may have different scores for different customers.
+
+Example:
+
+Prospect:
+Large transportation company
+
+
+Seller A:
+Fleet wrap company
+
+Opportunity:
+High
+
+
+Seller B:
+Managed IT company
+
+Opportunity:
+May be moderate depending on IT signals
+
+
+Seller C:
+Commercial janitorial company
+
+Opportunity:
+Different again
+
+
+Use Seller Intelligence in every calculation.
+
+
+========================================================
+28. DO NOT MIX ENGAGEMENT INTO OPPORTUNITY SCORE
+========================================================
+
+CRITICAL:
+
+Do not use:
+
+- email opens
+- repeated opens
+- link clicks
+- attachment views
+- Calendly clicks
+- meeting activity
+
+inside Opportunity Score.
+
+
+Those belong to the existing:
+
+HOT / MEDIUM / LOW
+
+engagement system.
+
+
+Opportunity Score:
+"Should we pursue them?"
+
+Hot / Medium / Low:
+"Are they responding?"
+
+
+========================================================
+29. DATABASE / TRACEABILITY
+========================================================
+
+Store enough detail to reconstruct every score.
+
+Suggested structure:
+
+opportunityScoreTotal
+opportunityScoreVersion
+
+icpFitScore
+verifiedSignalScore
+sellerMatchScore
+decisionMakerScore
+signalFreshnessScore
+businessNeedPotentialScore
+
+scoreConfidence
+
+scoreReasons[]
+verifiedSignalsUsed[]
+potentialImplications[]
+unconfirmedFacts[]
+
+scoreCalculatedAt
+
+
+For each signal used:
+
+signalId
+signalType
+classification
+pointsAwarded
+confidence
+sourceName
+sourceURL
+sourceDate
+dateVerified
+freshness
+
+
+========================================================
+30. SCORE VERSIONING
+========================================================
+
+Add a scoring model version if one does not exist.
+
+Example:
+
+opportunityScoreVersion = "v2"
+
+
+This allows future score changes without losing track of which model created
+older scores.
+
+
+========================================================
+31. RECALCULATION RULES
+========================================================
+
+Recalculate Opportunity Score when:
+
+- new verified signal is discovered
+- signal becomes stale
+- seller Company Intelligence changes
+- priority service changes
+- decision maker changes
+- prospect company data changes materially
+- industry profile changes
+
+
+Do NOT recalculate simply because:
+
+- Settings page opened
+- card rendered
+- email opened
+- link clicked
+
+
+========================================================
+32. SIGNAL EXPIRATION / STALENESS
+========================================================
+
+A signal should not remain equally valuable forever.
+
+Example:
+
+Hiring from 14 months ago should not continue providing current hiring points.
+
+Store freshness and reduce or expire points according to the freshness model.
+
+
+========================================================
+33. TEST CURRENT PROSPECTS AFTER REPAIR
+========================================================
+
+Re-run the score for examples already appearing in Fleet Prospect Search,
+including:
+
+- TC Energy
+- Vonlane
+- Dallas Metropolitan SBDC
+
+
+Do not force a specific target score.
+
+Calculate from actual evidence.
+
+
+Expected behavior:
+
+DALLAS METROPOLITAN SBDC
+
+Google Places verification only:
+NO Verified Buying Signal points
+
+If vehicle/business-model fit is weak:
+low Opportunity Score
+
+
+VONLANE
+
+Strong transportation business-model fit:
+good ICP points
+
+If no current expansion/hiring/fleet signal:
+limited Verified Signal points
+
+Opportunity should reflect strong fit but weak timing.
+
+
+TC ENERGY
+
+Score based on actual:
+- fleet/business relevance
+- hiring
+- operational signals
+- expansion
+- decision maker
+- seller match
+
+NOT simply Google verification.
+
+
+========================================================
+34. TEST SIX SCENARIOS
+========================================================
+
+TEST A:
+Google Places verified company only
+
+Expected:
+0 Verified Buying Signal points
+
+
+TEST B:
+Strong fleet industry, no current signal
+
+Expected:
+High ICP Fit
+Moderate Opportunity Score
+
+
+TEST C:
+Strong fleet industry + 10 relevant field openings
+
+Expected:
+Higher Verified Signal score
+
+
+TEST D:
+Strong fleet industry + confirmed vehicle purchases
+
+Expected:
+Very strong Verified Signal score
+
+
+TEST E:
+Strong fleet industry + rebrand + expansion
+
+Expected:
+High Priority if seller match is strong
+
+
+TEST F:
+Strong company + irrelevant contact
+
+Expected:
+Reduced Decision-Maker score
+
+
+========================================================
+35. ADD DEBUG MODE FOR ADMIN / DEVELOPMENT
+========================================================
+
+During testing, create an internal/debug view that shows:
+
+RAW SCORE INPUTS
+
+RAW SIGNALS FOUND
+
+CLASSIFICATION
+
+POINTS AWARDED
+
+SOURCE
+
+FRESHNESS
+
+FINAL SCORE
+
+
+Example:
+
+Hiring Service Technicians
+VERIFIED
+Source: Careers Page
+Age: 12 days
+Points: +8
+
+
+Website exists
+COMPANY VERIFICATION
+Points: +0 Buying Signal
+
+
+Fleet growth
+UNCONFIRMED
+Points: +0
+
+
+This debug view does not need to be visible to normal customers.
+
+
+========================================================
+36. QUALITY VALIDATION BEFORE SAVING SCORE
+========================================================
+
+Before saving a score, validate:
+
+1. Does every point have a named category?
+2. Does every Verified Buying Signal point have evidence?
+3. Are implications receiving zero Verified Signal points?
+4. Are unconfirmed claims receiving zero points?
+5. Is Google Places contributing zero Buying Signal points?
+6. Has relevant hiring been researched?
+7. Are duplicate signals removed?
+8. Is seller intelligence actually being used?
+9. Is contact relevance being evaluated?
+10. Is freshness tied to verified signals?
+11. Does breakdown sum exactly to total?
+12. Is WHY TARGET consistent with the same evidence?
+13. Is the Opportunity Score separate from engagement?
+14. Are stale signals reduced appropriately?
+
+If any validation fails:
+
+DO NOT save the score until corrected.
+
+
+========================================================
+37. FINAL PRODUCT PRINCIPLE
+========================================================
+
+The Opportunity Score should behave like a competent Virtual Sales Development
+Employee explaining its prioritization to a manager.
+
+The employee should be able to say:
+
+"I gave this company an 82 because it strongly matches our ICP, I verified two
+recent growth signals, the prospect aligns with our priority services, and I
+found a relevant Operations Director."
+
+It should NEVER effectively say:
+
+"I gave this company a high score because Google confirmed it exists."
+
+
+========================================================
+38. IMPLEMENTATION REQUIREMENT
+========================================================
+
+Before coding:
+
+Inspect all existing:
+
+- Opportunity Score functions
+- fit-score functions
+- AI scoring prompts
+- Google Places scoring
+- signal extraction
+- hiring research
+- seller intelligence
+- industry profiles
+- decision-maker logic
+- freshness logic
+- Why Target generation
+- score breakdown UI
+- database fields
+
+
+Repair the current system.
+
+DO NOT build a second competing Opportunity Score engine.
+
+After implementation, show the internal score breakdown for TC Energy,
+Vonlane, and Dallas Metropolitan SBDC so the repaired calculation can be
+reviewed.

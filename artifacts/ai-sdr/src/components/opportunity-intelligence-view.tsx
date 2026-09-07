@@ -133,6 +133,8 @@ function EvidenceDetails({ signal, id }: { signal: OpportunitySignal; id: string
         <div><dt className="font-semibold text-foreground">Date verified</dt><dd className="text-muted-foreground">{verifiedDate || "Not provided"}</dd></div>
         <div><dt className="font-semibold text-foreground">Confidence</dt><dd className="capitalize text-muted-foreground">{signal.confidenceLevel || "Not provided"}</dd></div>
         <div><dt className="font-semibold text-foreground">Freshness</dt><dd className="capitalize text-muted-foreground">{signal.freshness || "Unknown"}</dd></div>
+        {signal.signalId && <div><dt className="font-semibold text-foreground">Signal ID</dt><dd className="font-mono text-muted-foreground">{signal.signalId}</dd></div>}
+        {signal.pointReason && <div className="sm:col-span-2"><dt className="font-semibold text-foreground">Point rule</dt><dd className="break-words text-muted-foreground">{signal.pointReason}</dd></div>}
         <div className="sm:col-span-2"><dt className="font-semibold text-foreground">Evidence</dt><dd className="break-words text-muted-foreground">{evidence || "Not provided"}</dd></div>
         {signal.sourceURL && (
           <div className="sm:col-span-2">
@@ -147,6 +149,18 @@ function EvidenceDetails({ signal, id }: { signal: OpportunitySignal; id: string
               >
                 {sanitizeOpportunityLanguage(signal.sourceName) || "Open source"} <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
               </a>
+            </dd>
+          </div>
+        )}
+        {Array.isArray(signal.corroboratingSources) && signal.corroboratingSources.length > 0 && (
+          <div className="sm:col-span-2">
+            <dt className="font-semibold text-foreground">Corroborating sources</dt>
+            <dd className="space-y-1 text-muted-foreground">
+              {signal.corroboratingSources.map((source, index) => (
+                <a key={`${source.sourceURL}-${index}`} href={source.sourceURL} target="_blank" rel="noreferrer" className="block break-all text-primary hover:underline">
+                  {source.sourceName || source.sourceURL}
+                </a>
+              ))}
             </dd>
           </div>
         )}
@@ -278,6 +292,14 @@ export function OpportunityIntelligenceView({
       || freshness(b) - freshness(a)
       || confidence(b) - confidence(a);
   });
+  const verifiedHistoricalSignals = signals.filter(
+    (signal) =>
+      signal.signalClassification === "verified"
+      && !isVerifiedCompanyInformation(signal)
+      && !verifiedBusinessModel.includes(signal)
+      && signal.points === 0
+      && Boolean(signal.sourceURL),
+  );
   const implications = signals.filter((signal) => signal.signalClassification === "implication");
   const unconfirmed = signals.filter((signal) => signal.signalClassification === "unconfirmed");
   const hiringSignals = signals.filter((signal) =>
@@ -287,6 +309,29 @@ export function OpportunityIntelligenceView({
   );
   const potentialOpportunities = Array.isArray(intelligence?.potentialNeeds) ? intelligence.potentialNeeds.filter(Boolean) : [];
   const breakdown = Array.isArray(intelligence?.breakdown) ? intelligence.breakdown.filter(Boolean) : [];
+  const breakdownTotal = breakdown.reduce((sum, category) => sum + category.points, 0);
+  const categoryMaxTotal = breakdown.reduce((sum, category) => sum + category.maxPoints, 0);
+  const expectedCategoryMaxima: Record<string, number> = {
+    company_industry_fit: 20,
+    verified_buying_signals: 30,
+    seller_prospect_match: 20,
+    decision_maker_match: 10,
+    signal_freshness: 10,
+    business_need_potential: 10,
+  };
+  const categoryKeys = breakdown.map(category => category.key);
+  const hasExactCategoryContract = breakdown.length === Object.keys(expectedCategoryMaxima).length
+    && new Set(categoryKeys).size === Object.keys(expectedCategoryMaxima).length
+    && breakdown.every(category => expectedCategoryMaxima[category.key] === category.maxPoints);
+  const integrityPasses = intelligence?.version !== 3
+    || (intelligence.integrity?.status === "passed"
+      && intelligence.integrity.calculatedTotal === intelligence.score
+      && intelligence.integrity.categoryMaxTotal === 100
+      && intelligence.integrity.checks.every(check => check.passed));
+  const scoreReconciles = hasExactCategoryContract
+    && categoryMaxTotal === 100
+    && breakdownTotal === intelligence?.score
+    && integrityPasses;
   const generatedAt = formatDate(intelligence?.generatedAt);
   const scoreLabelColor = SCORE_COLORS[intelligence?.label] || "bg-muted text-muted-foreground border-border";
 
@@ -334,8 +379,8 @@ export function OpportunityIntelligenceView({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-xl font-bold" data-testid="text-opportunity-score">Opportunity Score: {intelligence?.score ?? "—"}</h3>
-                {intelligence?.label && <Badge variant="outline" className={`font-semibold ${scoreLabelColor}`}>{intelligence.label}</Badge>}
+                <h3 className="text-xl font-bold" data-testid="text-opportunity-score">Opportunity Score: {scoreReconciles ? intelligence?.score : "Unavailable"}</h3>
+                {scoreReconciles && intelligence?.label && <Badge variant="outline" className={`font-semibold ${scoreLabelColor}`}>{intelligence.label}</Badge>}
               </div>
               <p className="flex items-start gap-1 text-sm text-muted-foreground">
                 <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -349,9 +394,23 @@ export function OpportunityIntelligenceView({
                   </span>
                 )}
                 {generatedAt && <span className="flex items-center gap-1.5 text-muted-foreground"><History className="h-3.5 w-3.5" /> Generated: {generatedAt}</span>}
+                {intelligence?.version && <span className="text-muted-foreground">Model v{intelligence.version}</span>}
               </div>
+              {intelligence?.scoreConfidenceReason && (
+                <p className="text-xs leading-relaxed text-muted-foreground" data-testid="text-score-confidence-reason">
+                  {intelligence.scoreConfidenceReason}
+                </p>
+              )}
             </div>
           </div>
+
+          {!scoreReconciles && (
+            <Card className="border-destructive/40 bg-destructive/5 shadow-none" data-testid="alert-score-integrity">
+              <CardContent className="pt-4 text-sm text-destructive">
+                This score is hidden because its category totals do not reconcile to a complete 100-point model.
+              </CardContent>
+            </Card>
+          )}
 
           {intelligence?.whyTarget && (
             <Card className="border-primary/15 bg-primary/5 shadow-none">
@@ -385,6 +444,10 @@ export function OpportunityIntelligenceView({
                   </div>
                 ))}
               </div>
+              <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3 text-sm font-semibold" data-testid="text-score-reconciliation">
+                <span>Category total</span>
+                <span className="font-mono">{breakdownTotal} / {categoryMaxTotal} pts{scoreReconciles ? " — matches headline" : " — mismatch"}</span>
+              </div>
             </section>
           )}
         </>
@@ -400,9 +463,57 @@ export function OpportunityIntelligenceView({
         <SignalSection title="Verified Company Information" signals={companyInformation} kind="company" />
         <SignalSection title="Verified Business Model" signals={verifiedBusinessModel} kind="model" />
         <SignalSection title="Verified Buying Signals" signals={verifiedBuyingSignals} kind="verified" emptyMessage={NO_BUYING_SIGNAL} />
+        <SignalSection title="Verified Historical / Non-scoring Evidence" signals={verifiedHistoricalSignals} kind="verified" />
         <SignalSection title="Potential Implications" signals={implications} kind="implication" />
         <SignalSection title="Unconfirmed" signals={unconfirmed} kind="unconfirmed" />
       </div>
+
+      {import.meta.env.DEV && import.meta.env.MODE !== "test" && (
+        <details className="rounded-lg border border-dashed bg-muted/15" data-testid="section-opportunity-score-audit">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Development score audit</summary>
+          <div className="space-y-4 border-t px-4 py-4 text-xs">
+            <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div><dt className="font-semibold">Model</dt><dd>v{intelligence.version}</dd></div>
+              <div><dt className="font-semibold">Recalculated total</dt><dd>{breakdownTotal} / {categoryMaxTotal}</dd></div>
+              <div><dt className="font-semibold">Integrity gate</dt><dd>{intelligence.integrity?.status || (scoreReconciles ? "legacy record reconciles" : "failed")}</dd></div>
+              {intelligence.scoringInputs && (
+                <>
+                  <div><dt className="font-semibold">Vertical</dt><dd>{intelligence.scoringInputs.vertical}</dd></div>
+                  <div><dt className="font-semibold">Industry input</dt><dd>{intelligence.scoringInputs.industry}</dd></div>
+                  <div><dt className="font-semibold">Contact title input</dt><dd>{intelligence.scoringInputs.contactTitle || "Not verified"}</dd></div>
+                  <div><dt className="font-semibold">Business-model basis</dt><dd>{intelligence.scoringInputs.businessModelBasis}</dd></div>
+                  <div><dt className="font-semibold">Seller Intelligence</dt><dd>{intelligence.scoringInputs.sellerProfileStatus}</dd></div>
+                  <div><dt className="font-semibold">Seller priority</dt><dd>{intelligence.scoringInputs.sellerPriorityConsidered || "None"}</dd></div>
+                </>
+              )}
+              {intelligence.hiringResearch && (
+                <>
+                  <div><dt className="font-semibold">Hiring research</dt><dd>{intelligence.hiringResearch.status}</dd></div>
+                  <div><dt className="font-semibold">Hiring count</dt><dd>{intelligence.hiringResearch.count ?? "Unknown"}</dd></div>
+                  <div><dt className="font-semibold">Hiring confidence</dt><dd>{intelligence.hiringResearch.confidence}</dd></div>
+                </>
+              )}
+            </dl>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left">
+                <thead><tr className="border-b"><th className="py-2 pr-3">Signal ID</th><th className="pr-3">Classification</th><th className="pr-3">Signal</th><th className="pr-3">Source date</th><th className="pr-3">Freshness</th><th>Points</th></tr></thead>
+                <tbody>
+                  {signals.map((signal, index) => (
+                    <tr key={signal.signalId || index} className="border-b border-border/60 align-top">
+                      <td className="py-2 pr-3 font-mono">{signal.signalId || "legacy"}</td>
+                      <td className="pr-3 capitalize">{signal.signalClassification}</td>
+                      <td className="max-w-sm pr-3">{signal.signalTitle}<span className="mt-1 block text-muted-foreground">{signal.pointReason}</span></td>
+                      <td className="pr-3">{formatDate(signal.sourceDate) || "Not dated"}</td>
+                      <td className="pr-3 capitalize">{signal.freshness}</td>
+                      <td className="font-mono">{signal.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      )}
 
       {potentialOpportunities.length > 0 && (
         <Card className="border-primary/20 bg-primary/5 shadow-none">

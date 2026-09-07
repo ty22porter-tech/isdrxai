@@ -259,4 +259,40 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.queryByText("Official job listing: Office Administrator")).not.toBeInTheDocument();
     expect(screen.queryByText("Hiring signal")).not.toBeInTheDocument();
   });
+
+  it("renders a valid version-3 backend score with the exact category contract", () => {
+    const breakdown = [
+      ["company_industry_fit", "Company / ICP Fit", 20, 20],
+      ["verified_buying_signals", "Verified Buying Signals", 8, 30],
+      ["seller_prospect_match", "Seller-to-Prospect Match", 20, 20],
+      ["decision_maker_match", "Decision-Maker Match", 0, 10],
+      ["signal_freshness", "Signal Freshness", 6, 10],
+      ["business_need_potential", "Business Need Potential", 10, 10],
+    ].map(([key, label, points, maxPoints]) => ({
+      key,
+      label,
+      points,
+      maxPoints,
+      explanation: `${label} explanation`,
+      evidence: [],
+    }));
+    const score = breakdown.reduce((total, category) => total + Number(category.points), 0);
+
+    render(<OpportunityIntelligenceView intelligence={{
+      ...intelligence([]),
+      version: 3,
+      score,
+      label: "Moderate Opportunity",
+      breakdown,
+      integrity: {
+        status: "passed",
+        calculatedTotal: score,
+        categoryMaxTotal: 100,
+        checks: [{ name: "valid backend score", passed: true }],
+      },
+    } as OpportunityIntelligence} />);
+
+    expect(screen.getByTestId("text-opportunity-score")).toHaveTextContent(`Opportunity Score: ${score}`);
+    expect(screen.queryByText(/score integrity check failed/i)).not.toBeInTheDocument();
+  });
 });

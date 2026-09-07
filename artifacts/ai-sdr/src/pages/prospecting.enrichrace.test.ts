@@ -19,13 +19,28 @@ const lead = (companyName: string, email: string): ProspectLead =>
 
 describe("applyEnrichmentResults — stale-run safety", () => {
   it("applies enrichment when the current lead matches the enriched snapshot", () => {
-    const snapshot = [lead("Acme Cleaning", "contact@acme.invalid")];
+    const snapshot = [{
+      ...lead("Acme Cleaning", "contact@acme.invalid"),
+      opportunityScore: 36,
+      opportunityIntelligence: { score: 36 } as ProspectLead["opportunityIntelligence"],
+    }];
+    const refreshedIntelligence = { score: 46 } as ProspectLead["opportunityIntelligence"];
     const out = applyEnrichmentResults(snapshot, snapshot, [
-      { index: 0, status: "enriched", contactName: "Jane Doe", email: "jane@acme.com", title: "Facilities Manager" },
+      {
+        index: 0,
+        status: "enriched",
+        contactName: "Jane Doe",
+        email: "jane@acme.com",
+        title: "Facilities Manager",
+        opportunityScore: 46,
+        opportunityIntelligence: refreshedIntelligence,
+      },
     ]);
     expect(out[0].contactName).toBe("Jane Doe");
     expect(out[0].email).toBe("jane@acme.com");
     expect(out[0].contactTitle).toBe("Facilities Manager");
+    expect(out[0].opportunityScore).toBe(46);
+    expect(out[0].opportunityIntelligence).toBe(refreshedIntelligence);
   });
 
   it("never writes search A's contacts onto search B's leads (index collision)", () => {

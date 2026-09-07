@@ -5,8 +5,11 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { OpportunityIntelligenceHiringResearch } from './opportunityIntelligenceHiringResearch';
+import type { OpportunityIntelligenceIntegrity } from './opportunityIntelligenceIntegrity';
 import type { OpportunityIntelligenceLabel } from './opportunityIntelligenceLabel';
 import type { OpportunityIntelligenceScoreConfidence } from './opportunityIntelligenceScoreConfidence';
+import type { OpportunityIntelligenceScoringInputs } from './opportunityIntelligenceScoringInputs';
 import type { OpportunityIntelligenceVersion } from './opportunityIntelligenceVersion';
 import type { OpportunityScoreCategory } from './opportunityScoreCategory';
 import type { OpportunitySignal } from './opportunitySignal';
@@ -20,6 +23,7 @@ export interface OpportunityIntelligence {
   score: number;
   label: OpportunityIntelligenceLabel;
   scoreConfidence: OpportunityIntelligenceScoreConfidence;
+  scoreConfidenceReason?: string;
   definition: string;
   /**
      * @minItems 6
@@ -30,5 +34,8 @@ export interface OpportunityIntelligence {
   whyTarget: string;
   potentialNeeds: string[];
   recommendedOutreach: string;
+  hiringResearch?: OpportunityIntelligenceHiringResearch;
+  scoringInputs?: OpportunityIntelligenceScoringInputs;
+  integrity?: OpportunityIntelligenceIntegrity;
   generatedAt: Date;
 }

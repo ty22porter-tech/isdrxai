@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import type { OpportunitySignal } from "@workspace/db";
+import { logger } from "./logger";
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const FAILURE_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -121,7 +122,11 @@ async function pinnedRequest(url: URL, pinned: PinnedHost): Promise<{ status: nu
       method: "GET",
       headers: { "user-agent": "iSDRX-public-research/1.0", accept: "text/html,application/xhtml+xml" },
       servername: url.hostname,
-      lookup: (_hostname, _options, callback) => callback(null, pinned.address, pinned.family),
+      lookup: (_hostname, options, callback) => {
+        const done = callback as unknown as (...args: unknown[]) => void;
+        if (typeof options === "object" && options.all) done(null, [pinned]);
+        else done(null, pinned.address, pinned.family);
+      },
     }, response => {
       const contentType = String(response.headers["content-type"] || "").toLowerCase();
       const declared = Number(response.headers["content-length"] || 0);
@@ -176,12 +181,12 @@ function linksFrom(html: string, base: URL): URL[] {
   for (const match of html.matchAll(pattern)) {
     try {
       const url = new URL(match[1], base);
-      if (url.origin === base.origin && /(?:career|jobs?|news|press|about|media)/i.test(url.pathname) && !found.some(item => item.href === url.href)) found.push(url);
+      if (url.origin === base.origin && /(?:career|jobs?|news|press|about|media|updates?)/i.test(url.pathname) && !found.some(item => item.href === url.href)) found.push(url);
     } catch { /* malformed public link */ }
   }
   return found
     .sort((left, right) => {
-      const rank = (url: URL) => /career|jobs?/i.test(url.pathname) ? 0 : /news|press|media/i.test(url.pathname) ? 1 : 2;
+      const rank = (url: URL) => /career|jobs?/i.test(url.pathname) ? 0 : /news|press|media|updates?/i.test(url.pathname) ? 1 : 2;
       return rank(left) - rank(right);
     })
     .slice(0, MAX_PAGES - 1);
@@ -215,7 +220,7 @@ export function deduplicateJobListings(listings: JobListing[]): JobListing[] {
   return listings.filter(listing => {
     const id = listing.id?.toLowerCase();
     const url = listing.url?.toLowerCase();
-    const descriptionKey = [listing.title, listing.location || "", listing.date || ""]
+    const descriptionKey = [listing.title, listing.location || ""]
       .map(value => normalizeText(value).toLowerCase()).join("|");
     if (id ? (seenIds.has(id) || Boolean(url && seenUrls.has(url))) : (Boolean(url && seenUrls.has(url)) || seenDescriptions.has(descriptionKey))) return false;
     if (id) seenIds.add(id);
@@ -299,6 +304,27 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
     supportingEvidence: job.description?.slice(0, 300) || `Structured JobPosting data names the role ${job.title}.`,
     points: 0,
   }));
+  const vehicleProvidedPattern =
+    /\b(?:company[- ]provided|employer[- ]provided|assigned|take-home|work|fleet)\s+(?:vehicle|van|truck)\b|\b(?:vehicle|van|truck)\s+(?:is\s+)?provided\b|\buse of (?:a\s+)?company (?:vehicle|van|truck)\b/i;
+  for (const job of listings) {
+    const vehicleMention = job.description?.match(vehicleProvidedPattern);
+    if (!vehicleMention || !job.url) continue;
+    signals.push({
+      signalType: "company_vehicle_job_mention",
+      signalTitle: "Company-provided vehicle mentioned in job listing",
+      signalDescription: `${companyName}'s official ${job.title} listing mentions "${vehicleMention[0]}".`,
+      signalClassification: "verified",
+      confidenceLevel: job.confidence ?? "medium",
+      freshness: freshness(job.date),
+      sourceName: "Official company careers page",
+      sourceURL: job.url,
+      sourceDate: job.date,
+      dateDiscovered: checkedAt,
+      dateVerified: checkedAt,
+      supportingEvidence: job.description!.slice(0, 300),
+      points: 0,
+    });
+  }
   if (!listings.length && pages.length) {
     signals.push({
       signalType: "hiring_research_status",
@@ -321,7 +347,7 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
     if (!foundBusinessModel) {
       const modelPatterns = [
         {
-          pattern: /\b(?:premium|luxury|scheduled|intercity|inter-city|passenger|charter)\s+(?:bus|coach|motorcoach|shuttle|transportation|travel|service)s?\b/i,
+           pattern: /\b(?:premium|luxury|scheduled|intercity|inter-city|passenger|charter)\s+(?:bus|coach|motor\s*coach|shuttle|transportation|travel|service)s?\b/i,
           description: "a customer-facing passenger transportation service where commercial vehicles are central to service delivery",
         },
         {
@@ -355,7 +381,7 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
         foundBusinessModel = true;
       }
     }
-    const vehicle = text.match(/(?:company[- ]provided vehicle|company vehicle (?:is )?provided|take-home vehicle|company (?:van|truck) provided)/i);
+    const vehicle = text.match(vehicleProvidedPattern);
     if (vehicle) signals.push({
       signalType: "fleet_vehicle_evidence", signalTitle: "Company vehicle evidence",
       signalDescription: `${companyName}'s official website states "${vehicle[0]}".`,
@@ -363,21 +389,26 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       sourceName: "Official company website", sourceURL: page.url.toString(), dateDiscovered: checkedAt, dateVerified: checkedAt,
       supportingEvidence: normalizeText(text.slice(Math.max(0, vehicle.index! - 120), vehicle.index! + vehicle[0].length + 120)), points: 0,
     });
-    const eventPattern = /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)|new fleet|fleet expansion|new [^.!?]{0,60} route|added (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between|new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded service|service expansion|new service|new (?:facility|terminal|depot|branch|office)|opened (?:a|our) new|acquired|acquisition of|rebrand(?:ed|ing)?|new logo|changed (?:its|our) (?:name|logo)|new location|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched/i;
+    const eventPattern = /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)|new fleet|fleet expansion|new\s+(?:[^.!?]{1,60}\s+)?route|(?:added|relaunch(?:ed|es|ing)?) (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between|new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded service|service expansion|new service|new (?:facility|terminal|depot|branch|office)|opened (?:a|our) new|acquired|acquisition of|rebrand(?:ed|ing)?|new logo|changed (?:its|our) (?:name|logo)|new location|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched/i;
     const metadataDate = htmlDate(page.html);
     for (const event of text.split(/(?<=[.!?])\s+/).filter(sentence =>
       eventPattern.test(sentence) && (sentence.toLowerCase().includes(companyName.toLowerCase()) || /\b(?:we|our company)\b/i.test(sentence)),
     )) {
-      const sentenceDate = event.match(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2}\b/i)?.[0]
+       const eventIndex = text.indexOf(event);
+       const dateContext = text.slice(Math.max(0, eventIndex), eventIndex + event.length + 180);
+       const sentenceDate = dateContext.match(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}\s*(?:st|nd|rd|th)?\s*,?\s+20\d{2}\b/i)?.[0]
         || event.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
-      const date = sentenceDate || (/\b(?:founded|formed|established)\b/i.test(event) ? undefined : metadataDate);
+       const normalizedSentenceDate = sentenceDate
+         ? new Date(sentenceDate.replace(/(\d)\s*(?:st|nd|rd|th)\b/i, "$1").replace(/\s+/g, " ")).toISOString()
+         : undefined;
+       const date = normalizedSentenceDate || (/\b(?:founded|formed|established)\b/i.test(event) ? undefined : metadataDate);
       if (!date) continue;
       const signalType =
         /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)/i.test(event)
           ? "vehicle_purchase"
           : /new fleet|fleet expansion/i.test(event)
             ? "fleet_expansion"
-            : /new [^.!?]{0,60} route|added (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between/i.test(event)
+          : /new\s+(?:[^.!?]{1,60}\s+)?route|(?:added|relaunch(?:ed|es|ing)?) (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between/i.test(event)
               ? "new_route"
               : /new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded into/i.test(event)
                 ? "new_market"
@@ -420,11 +451,15 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       });
     }
   }
-  const seenNonHiringTypes = new Set<string>();
+  const seenEvidence = new Set<string>();
   return signals.filter(signal => {
-    if (signal.signalType === "hiring_listing") return true;
-    if (seenNonHiringTypes.has(signal.signalType)) return false;
-    seenNonHiringTypes.add(signal.signalType);
+    const key = [
+      signal.signalType,
+      normalizeText(signal.supportingEvidence || signal.signalDescription).toLowerCase(),
+      signal.sourceDate ? new Date(signal.sourceDate).toISOString().slice(0, 10) : "",
+    ].join("|");
+    if (seenEvidence.has(key)) return false;
+    seenEvidence.add(key);
     return true;
   });
 }
@@ -496,7 +531,13 @@ export async function researchOfficialWebsite(lead: ResearchLead): Promise<Oppor
        }));
        pages.push(...atsPages.filter((page): page is { url: URL; html: string } => page !== null));
        signals = extractOfficialResearchSignals(lead.companyName, pages, new Date().toISOString());
-    } catch { /* all network/research failures degrade to UNKNOWN (no verified signal) */ }
+    } catch (error) {
+      logger.warn({
+        err: error instanceof Error ? error.message : String(error),
+        companyName: lead.companyName,
+        website: lead.website,
+      }, "Official website research failed");
+    }
     cache.set(key, { expiresAt: Date.now() + (signals.length ? CACHE_TTL_MS : FAILURE_CACHE_TTL_MS), signals });
     return signals.map(signal => ({ ...signal }));
   });

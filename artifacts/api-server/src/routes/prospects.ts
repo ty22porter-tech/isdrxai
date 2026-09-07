@@ -19,7 +19,11 @@ import { enrichPerson } from "../lib/apollo";
 import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import { deriveOpportunityForPersistence, refreshStoredOpportunityForRead } from "../lib/opportunityIntelligence";
+import {
+  deriveOpportunityForPersistence,
+  refreshStoredOpportunityForRead,
+  shouldRefreshStoredOpportunity,
+} from "../lib/opportunityIntelligence";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -130,7 +134,7 @@ router.get("/", async (req, res) => {
 
   const prospects = await db.select().from(prospectsTable).where(and(...conditions)).orderBy(sql`${prospectsTable.createdAt} desc`);
   const hasLegacyOpportunityScore = prospects.some(prospect =>
-    prospect.opportunityIntelligence && prospect.opportunityIntelligence.version !== 2,
+    shouldRefreshStoredOpportunity(prospect.opportunityIntelligence),
   );
   const repairedProspects = hasLegacyOpportunityScore
     ? await repairLegacyFleetScores(prospects, await currentClient(req.clientId))
@@ -304,7 +308,7 @@ router.get("/:id", async (req, res) => {
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
   const [repairedProspect] = await repairLegacyFleetScores(
     [prospect],
-    prospect.opportunityIntelligence?.version !== 2
+    shouldRefreshStoredOpportunity(prospect.opportunityIntelligence)
       ? await currentClient(req.clientId)
       : undefined,
   );

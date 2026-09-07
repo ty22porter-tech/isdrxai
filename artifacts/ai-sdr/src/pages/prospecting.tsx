@@ -177,6 +177,12 @@ type EnrichLeadResult = {
   email?: string;
   title?: string;
   phone?: string;
+  opportunityScore?: number;
+  scoreLabel?: string;
+  whyTarget?: string;
+  potentialNeeds?: string[];
+  recommendedOutreach?: string;
+  opportunityIntelligence?: ProspectLead["opportunityIntelligence"];
 };
 
 // Apply Apollo enrichment results to the current lead list. `snapshot` is the
@@ -202,6 +208,12 @@ export function applyEnrichmentResults(
       contactTitle: r.title ?? "Decision maker",
       email: r.email ?? lead.email,
       phone: r.phone || lead.phone,
+      opportunityScore: r.opportunityScore ?? lead.opportunityScore,
+      scoreLabel: r.scoreLabel ?? lead.scoreLabel,
+      whyTarget: r.whyTarget ?? lead.whyTarget,
+      potentialNeeds: r.potentialNeeds ?? lead.potentialNeeds,
+      recommendedOutreach: r.recommendedOutreach ?? lead.recommendedOutreach,
+      opportunityIntelligence: r.opportunityIntelligence ?? lead.opportunityIntelligence,
     };
   });
 }
@@ -283,6 +295,12 @@ export default function Prospecting() {
             contactName: l.contactName,
             email: l.email,
             website: l.website,
+            contactTitle: l.contactTitle,
+            phone: l.phone,
+            industry: l.industry,
+            city: l.city,
+            state: l.state,
+            address: l.address,
           })),
         },
       },
@@ -1098,7 +1116,7 @@ export default function Prospecting() {
                           )}
                           {enrichment.get(idx) === "enriched" && (
                             <Badge variant="outline" className="text-xs font-medium bg-green-100 text-green-800 border-green-200">
-                              <Check className="mr-1 h-3 w-3" /> Real contact found
+                              <Check className="mr-1 h-3 w-3" /> Contact record found
                             </Badge>
                           )}
                           {enrichment.get(idx) === "not_found" && (

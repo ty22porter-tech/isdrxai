@@ -4,6 +4,8 @@ import {
   deriveOpportunityForPersistence,
   opportunityEmailContext,
   refreshStoredOpportunityForRead,
+  shouldRefreshStoredOpportunity,
+  validateOpportunityIntelligence,
 } from "./opportunityIntelligence";
 import { deduplicateJobListings, extractOfficialResearchSignals, isBlockedResearchAddress } from "./officialWebsiteResearch";
 
@@ -54,6 +56,24 @@ describe("opportunity intelligence", () => {
     expect(intelligence.breakdown.map(item => item.maxPoints)).toEqual([20, 30, 20, 10, 10, 10]);
     expect(intelligence.breakdown.reduce((sum, item) => sum + item.maxPoints, 0)).toBe(100);
     expect(intelligence.breakdown.reduce((sum, item) => sum + item.points, 0)).toBe(intelligence.score);
+    expect(intelligence.integrity?.status).toBe("passed");
+    expect(intelligence.integrity?.checks).toHaveLength(14);
+    expect(intelligence.signals.every(item => item.signalId && item.pointReason)).toBe(true);
+  });
+
+  it("rejects a malformed score trace before it can be trusted", () => {
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
+    const malformed = {
+      ...intelligence,
+      signals: intelligence.signals.map((item, index) => index === 0
+        ? { ...item, signalClassification: "implication" as const, points: 5 }
+        : item),
+    };
+
+    const result = validateOpportunityIntelligence(malformed, "fleet_wraps");
+
+    expect(result.passed).toBe(false);
+    expect(result.checks.find(check => check.name === "implications and unconfirmed facts earn zero points")?.passed).toBe(false);
   });
 
   it("calculates the required fleet prospect scenarios from actual evidence", () => {
@@ -133,11 +153,11 @@ describe("opportunity intelligence", () => {
     expect(fleetWithHiring.score).toBe(76);
     expect(fleetWithHiring.label).toBe("Strong Opportunity");
 
-    expect(points(fleetWithPurchase, "verified_buying_signals")).toBe(14);
-    expect(fleetWithPurchase.score).toBe(82);
+    expect(points(fleetWithPurchase, "verified_buying_signals")).toBe(15);
+    expect(fleetWithPurchase.score).toBe(83);
 
-    expect(points(fleetWithGrowth, "verified_buying_signals")).toBe(17);
-    expect(fleetWithGrowth.score).toBe(85);
+    expect(points(fleetWithGrowth, "verified_buying_signals")).toBe(22);
+    expect(fleetWithGrowth.score).toBe(90);
     expect(fleetWithGrowth.label).toBe("High Priority");
 
     expect(points(googleOnly, "verified_buying_signals")).toBe(0);
@@ -335,6 +355,48 @@ describe("opportunity intelligence", () => {
     expect(fleetManager.score - officeManager.score).toBe(5);
   });
 
+  it("scores an IT Director above a placeholder contact for otherwise identical companies", () => {
+    const itSeller = {
+      sellerServicePriorities: "Cloud and Infrastructure",
+      sellerIntelligenceProfile: {
+        status: "ready",
+        websiteAnalysisStatus: "ready",
+        sellerCompanyName: "CloudScale365",
+        sellerServices: ["managed IT services", "Cloud and Infrastructure"],
+        sellerProducts: [],
+        sellerCapabilities: ["technology reliability", "security"],
+        sellerDifferentiators: [],
+        sellerCertifications: [],
+        sellerIndustriesServed: ["Healthcare"],
+        sellerBusinessOutcomes: ["improved technology reliability"],
+        sellerProblemsSolved: [],
+        sellerProofPoints: [],
+        sellerPortfolioExamples: [],
+        sellerValuePropositions: [],
+        sellerCTAs: [],
+      },
+    } as any;
+    const base = {
+      ...lead,
+      companyName: "Healthcare Example",
+      industry: "Healthcare",
+    };
+    const director = buildOpportunityIntelligence(
+      { ...base, contactTitle: "IT Director" },
+      "it_services",
+      itSeller,
+    );
+    const placeholder = buildOpportunityIntelligence(
+      { ...base, contactTitle: "Decision maker (pending enrichment)" },
+      "it_services",
+      itSeller,
+    );
+
+    expect(director.breakdown.find(item => item.key === "decision_maker_match")?.points).toBe(10);
+    expect(placeholder.breakdown.find(item => item.key === "decision_maker_match")?.points).toBe(0);
+    expect(director.score - placeholder.score).toBe(10);
+  });
+
   it.each([
     "Fleet Manager",
     "Chauffeur",
@@ -408,9 +470,15 @@ describe("opportunity intelligence", () => {
     }, readySeller);
 
     expect(refreshed.changed).toBe(true);
-    expect(refreshed.intelligence?.version).toBe(2);
+    expect(refreshed.intelligence?.version).toBe(3);
     expect(refreshed.intelligence?.score).not.toBe(43);
     expect(refreshed.intelligence?.whyTarget).not.toMatch(/Google Places|public website/i);
+  });
+
+  it("marks version-2 Fleet scores for lazy version-3 repair", () => {
+    expect(shouldRefreshStoredOpportunity({ version: 2 } as any)).toBe(true);
+    expect(shouldRefreshStoredOpportunity({ version: 3 } as any)).toBe(false);
+    expect(shouldRefreshStoredOpportunity(null)).toBe(false);
   });
 
   it("keeps legacy and manual prospects nullable", async () => {
@@ -476,7 +544,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.whyTarget).toContain("does not verify a purchase, expansion, or provider change");
   });
 
-  it("gives stale and undated events limited buying weight and only source-age freshness", () => {
+  it("excludes stale events, limits undated events, and uses only source-age freshness", () => {
     const events = ["acquisition", "rebrand"].map((signalType, index) => ({
       signalType, signalTitle: signalType, signalDescription: `Official ${signalType} announcement`,
       signalClassification: "verified", confidenceLevel: "high",
@@ -486,7 +554,31 @@ describe("opportunity intelligence", () => {
     })) as any;
     const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, events);
     expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(6);
-    expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBe(1);
+    expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBe(0);
+    expect(intelligence.signals.find(item => item.freshness === "stale")?.points).toBe(0);
+  });
+
+  it("preserves separately dated events even when their official wording is identical", () => {
+    const today = new Date().toISOString();
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+    const events = [today, yesterday].map((sourceDate, index) => ({
+      signalType: "vehicle_purchase",
+      signalTitle: "Verified vehicle purchase",
+      signalDescription: "Northwind purchased new service vans.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company announcement",
+      sourceURL: `https://northwind.example/news/vans-${index}`,
+      sourceDate,
+      dateDiscovered: today,
+      supportingEvidence: "Northwind purchased new service vans.",
+      points: 0,
+    })) as any;
+
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, events);
+    expect(intelligence.signals.filter(item => item.signalType === "vehicle_purchase")).toHaveLength(2);
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(30);
   });
 
   it("derives freshness from source age rather than trusting a supplied label", () => {
@@ -507,7 +599,77 @@ describe("opportunity intelligence", () => {
     }] as any);
 
     expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBe(8);
-    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(13);
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(14);
+  });
+
+  it("does not score generic infrastructure expansion without fleet-relevant operating evidence", () => {
+    const intelligence = buildOpportunityIntelligence(
+      { ...lead, companyName: "Pipeline Example", industry: "Energy infrastructure", contactTitle: null },
+      "fleet_wraps",
+      readySeller,
+      [{
+        signalType: "expansion",
+        signalTitle: "Verified expansion",
+        signalDescription: "Pipeline Example approved a new natural-gas pipeline expansion project.",
+        signalClassification: "verified",
+        confidenceLevel: "high",
+        freshness: "recent",
+        sourceName: "Official company announcement",
+        sourceURL: "https://pipeline.example/news/expansion",
+        sourceDate: new Date().toISOString(),
+        dateDiscovered: new Date().toISOString(),
+        supportingEvidence: "Approved a natural-gas pipeline expansion project.",
+        points: 0,
+      }] as any,
+    );
+
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(0);
+    expect(intelligence.signals.find(item => item.signalType === "expansion")?.pointReason).toContain("no fleet-relevant operating model");
+  });
+
+  it("awards no freshness points to an undated live hiring page", () => {
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, [{
+      signalType: "hiring_listing",
+      signalTitle: "Official job listing: Fleet Manager",
+      signalDescription: "Northwind lists Fleet Manager on its official careers page.",
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Official company careers page",
+      sourceURL: "https://northwind.example/jobs/fleet-manager",
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "The live page names Fleet Manager and includes an Apply action.",
+      points: 0,
+    }] as any);
+
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBeGreaterThan(0);
+    expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBe(0);
+    expect(intelligence.hiringResearch?.status).toBe("VERIFIED_ACTIVE_HIRING");
+  });
+
+  it("deduplicates a cross-source job and retains the corroborating source", () => {
+    const base = {
+      signalType: "hiring_listing",
+      signalTitle: "Official job listing: Fleet Manager",
+      signalDescription: "Northwind lists Fleet Manager in Dallas on its official careers page.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceDate: new Date().toISOString(),
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Fleet Manager — Dallas",
+      points: 0,
+    };
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, [
+      { ...base, sourceName: "Official careers page", sourceURL: "https://northwind.example/jobs/123" },
+      { ...base, sourceName: "Public job board", sourceURL: "https://jobs.example/northwind/123" },
+    ] as any);
+    const listings = intelligence.signals.filter(item => item.signalType === "hiring_listing");
+
+    expect(listings).toHaveLength(1);
+    expect(listings[0].corroboratingSources).toEqual([
+      expect.objectContaining({ sourceURL: "https://jobs.example/northwind/123" }),
+    ]);
   });
 
   it("deduplicates official job listings by identifiers, URLs, or role/location/date", () => {
@@ -577,6 +739,20 @@ describe("opportunity intelligence", () => {
       expect.objectContaining({ signalType: "new_route", sourceDate: "2026-08-12T09:00:00Z" }),
       expect.objectContaining({ signalType: "vehicle_purchase", sourceDate: "2026-08-12T09:00:00Z" }),
       expect.objectContaining({ signalType: "new_facility", sourceDate: "2026-08-12T09:00:00Z" }),
+    ]));
+  });
+
+  it("binds an ordinal date to an adjacent official route-update headline", () => {
+    const signals = extractOfficialResearchSignals("Vonlane", [{
+      url: new URL("https://vonlane.example/index/updates"),
+      html: "<section><a>Luxury bus service Vonlane adds new route from Austin to The Woodlands.</a><span>Culture Map April 7th, 2026</span></section>",
+    }], new Date().toISOString());
+
+    expect(signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        signalType: "new_route",
+        sourceDate: expect.stringMatching(/^2026-04-07T/),
+      }),
     ]));
   });
 
