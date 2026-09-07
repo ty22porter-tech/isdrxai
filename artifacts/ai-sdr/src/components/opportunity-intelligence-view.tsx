@@ -78,6 +78,9 @@ export function sanitizeOpportunityLanguage(value?: string): string {
 const NON_RESULT_LANGUAGE =
   /\b(?:no meaningful|no (?:verified|relevant|company-specific)|not found|none found|unverified|unknown|insufficient|unable to|could not|no evidence)\b/i;
 
+const LEGACY_DEMOGRAPHIC_FALLBACK =
+  /\b(?:sourced company-size profile as|sourced profile indicates|verified profile as) a \d+-employee organization\b/i;
+
 function compactPositiveText(value?: string): string {
   return sanitizeOpportunityLanguage(value)
     .split(/(?<=[.!?])\s+/)
@@ -85,6 +88,15 @@ function compactPositiveText(value?: string): string {
     .filter((sentence) => sentence && !NON_RESULT_LANGUAGE.test(sentence))
     .slice(0, 5)
     .join(" ");
+}
+
+function conciseOutreachText(value?: string): string {
+  const text = compactPositiveText(value);
+  const legacyMatch = text.match(
+    /^For (.+?), tailor the approach to its verified profile as a (\d+)-employee organization\b/i,
+  );
+  if (!legacyMatch) return text;
+  return `For ${legacyMatch[1]}, ask how its ${legacyMatch[2]}-person team handles onboarding, support, identity access, endpoint management, and security.`;
 }
 
 function formatDate(value?: string): string | null {
@@ -257,11 +269,19 @@ export function OpportunityIntelligenceView({
   const breakdown = Array.isArray(intelligence?.breakdown) ? intelligence.breakdown.filter(Boolean) : [];
   const generatedAt = formatDate(intelligence?.generatedAt);
   const scoreLabelColor = SCORE_COLORS[intelligence?.label] || "bg-muted text-muted-foreground border-border";
+  const displayWhyTarget = LEGACY_DEMOGRAPHIC_FALLBACK.test(intelligence?.whyTarget || "")
+    ? ""
+    : compactPositiveText(intelligence?.whyTarget);
+  const displayPotentialOpportunities = potentialOpportunities
+    .filter(opportunity => !LEGACY_DEMOGRAPHIC_FALLBACK.test(opportunity))
+    .map(opportunity => compactPositiveText(opportunity))
+    .filter(Boolean)
+    .slice(0, 5);
+  const displayRecommendedOutreach = conciseOutreachText(intelligence?.recommendedOutreach);
 
   if (compact) {
-    const whyTarget = compactPositiveText(intelligence?.whyTarget);
     const positiveOpportunities = compactPositiveText(
-      potentialOpportunities
+      displayPotentialOpportunities
         .map(opportunity => /[.!?]$/.test(opportunity.trim()) ? opportunity.trim() : `${opportunity.trim()}.`)
         .join(" "),
     );
@@ -271,12 +291,11 @@ export function OpportunityIntelligenceView({
           [strongestSignal.signalTitle, strongestSignal.signalDescription].filter(Boolean).join(": "),
         )
       : "";
-    const recommendedOutreach = compactPositiveText(intelligence?.recommendedOutreach);
     const rows = [
-      { label: "Why target", value: whyTarget },
+      { label: "Why target", value: displayWhyTarget },
       { label: "Potential needs", value: positiveOpportunities },
       { label: "Verified signal", value: verifiedSignal },
-      { label: "Recommended outreach", value: recommendedOutreach },
+      { label: "Recommended outreach", value: displayRecommendedOutreach },
     ].filter((row) => row.value);
 
     if (rows.length === 0) return null;
@@ -319,10 +338,10 @@ export function OpportunityIntelligenceView({
             </div>
           </div>
 
-          {intelligence?.whyTarget && (
+          {displayWhyTarget && (
             <Card className="border-primary/15 bg-primary/5 shadow-none">
               <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Why Target</CardTitle></CardHeader>
-              <CardContent><p className="text-sm leading-relaxed text-foreground/90">{sanitizeOpportunityLanguage(intelligence.whyTarget)}</p></CardContent>
+              <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayWhyTarget}</p></CardContent>
             </Card>
           )}
 
@@ -369,22 +388,22 @@ export function OpportunityIntelligenceView({
         <SignalSection title="Unconfirmed" signals={unconfirmed} kind="unconfirmed" />
       </div>
 
-      {potentialOpportunities.length > 0 && (
+      {displayPotentialOpportunities.length > 0 && (
         <Card className="border-primary/20 bg-primary/5 shadow-none">
           <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Lightbulb className="h-4 w-4 text-primary" /> Potential Opportunities</CardTitle></CardHeader>
           <CardContent>
             <ul className="space-y-1.5 text-sm text-foreground/90">
-              {potentialOpportunities.map((opportunity, index) => <li key={index} className="flex gap-2"><span className="text-primary">→</span><span>{sanitizeOpportunityLanguage(opportunity)}</span></li>)}
+              {displayPotentialOpportunities.map((opportunity, index) => <li key={index} className="flex gap-2"><span className="text-primary">→</span><span>{opportunity}</span></li>)}
             </ul>
             <p className="mt-3 text-xs text-muted-foreground">Unconfirmed — validate during discovery before presenting these as prospect requirements.</p>
           </CardContent>
         </Card>
       )}
 
-      {intelligence?.recommendedOutreach && (
+      {displayRecommendedOutreach && (
         <Card className="border-primary/20 bg-primary/5 shadow-none">
           <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Recommended Outreach</CardTitle></CardHeader>
-          <CardContent><p className="text-sm leading-relaxed text-foreground/90">{sanitizeOpportunityLanguage(intelligence.recommendedOutreach)}</p></CardContent>
+          <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayRecommendedOutreach}</p></CardContent>
         </Card>
       )}
     </div>

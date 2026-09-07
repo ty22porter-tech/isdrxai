@@ -512,11 +512,6 @@ export function buildOpportunityIntelligence(
         `${signal.signalTitle}: ${challenge}. ${seller.name}'s ${offer} may support ${outcome}.`,
       );
     }
-    if (demographic && demographicOffer) {
-      potentialNeeds.push(
-        `${lead.companyName}'s sourced profile indicates a ${demographic}. ${seller.name}'s ${demographicOffer} may support ${sellerOutcome || match.outcome}.`,
-      );
-    }
   }
   potentialNeeds.splice(3);
   const strongestBuyingSignal = buyingEvidence[0];
@@ -532,15 +527,13 @@ export function buildOpportunityIntelligence(
     : demographic;
   const whyTargetOffer = strongestBuyingSignal
     ? matchingSellerOffer(sellerOffers, whyTargetChallenge || "")
-    : demographicOffer;
+    : undefined;
   const sellerFit = seller.ready && whyTargetOffer
     ? `${seller.name}'s ${whyTargetOffer} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
     : "";
   const whyTarget = strongestBuyingSignal
     ? `${strongestBuyingSignal.signalTitle}. This may indicate ${whyTargetChallenge!.charAt(0).toLowerCase()}${whyTargetChallenge!.slice(1)}${/[.!?]$/.test(whyTargetChallenge!) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
-    : demographic && sellerFit
-      ? `${lead.companyName} has a sourced company-size profile as a ${demographic}. ${sellerFit}`
-      : "";
+    : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
     : demographic
@@ -562,7 +555,7 @@ export function buildOpportunityIntelligence(
       : strongestBuyingSignal
         ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : demographic
-          ? `For ${lead.companyName}, tailor the approach to its verified profile as a ${demographic}. Lead with ${seller.name}'s ${outreachOffer} to address the most relevant operational gap${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          ? `For ${lead.companyName}, ask how its ${lead.employeeCount}-person team handles onboarding, support, identity access, endpoint management, and security. Position ${seller.name}'s ${outreachOffer} around the gaps they confirm; then ${outreachCta}.`
           : compliance
             ? `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} in the context of ${compliance.requirement.toLowerCase()}. Frame this as an applicability and readiness review—not an assertion that ${lead.companyName} is noncompliant—and ${outreachCta}.`
             : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;

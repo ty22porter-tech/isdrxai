@@ -46,6 +46,42 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.queryByText(/…/)).not.toBeInTheDocument();
   });
 
+  it("removes repeated legacy employee-profile copy and keeps one concise outreach", () => {
+    render(
+      <OpportunityIntelligenceView
+        compact
+        intelligence={{
+          ...intelligence([]),
+          whyTarget: "American Healthcare Services has a sourced company-size profile as a 63-employee organization where scalable support may become important.",
+          potentialNeeds: ["American Healthcare Services's sourced profile indicates a 63-employee organization where scalable support may become important."],
+          recommendedOutreach: "For American Healthcare Services, tailor the approach to its verified profile as a 63-employee organization where scalable support, onboarding, identity, endpoint, and security processes may become increasingly important. Lead with managed IT services.",
+        }}
+      />,
+    );
+
+    expect(screen.queryByText("Why target:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Potential needs:")).not.toBeInTheDocument();
+    expect(screen.getByText(/ask how its 63-person team handles onboarding/)).toBeInTheDocument();
+    expect(screen.queryByText(/tailor the approach/)).not.toBeInTheDocument();
+  });
+
+  it("removes repeated legacy employee-profile copy from the expanded view", () => {
+    render(
+      <OpportunityIntelligenceView
+        intelligence={{
+          ...intelligence([]),
+          whyTarget: "American Healthcare Services has a sourced company-size profile as a 63-employee organization where scalable support may become important.",
+          potentialNeeds: ["American Healthcare Services's sourced profile indicates a 63-employee organization where scalable support may become important."],
+          recommendedOutreach: "For American Healthcare Services, tailor the approach to its verified profile as a 63-employee organization where scalable support may become important.",
+        }}
+      />,
+    );
+
+    expect(screen.queryByText("Why Target")).not.toBeInTheDocument();
+    expect(screen.queryByText("Potential Opportunities")).not.toBeInTheDocument();
+    expect(screen.getByText(/ask how its 63-person team handles onboarding/)).toBeInTheDocument();
+  });
+
   it("shows the prospect criteria that earned score points", () => {
     render(
       <OpportunityIntelligenceView

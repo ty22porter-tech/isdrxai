@@ -229,15 +229,11 @@ describe("opportunity intelligence", () => {
         signalDescription: expect.stringContaining("84 employees"),
       }),
     ]));
-    expect(intelligence.recommendedOutreach).toContain("84-employee organization");
     expect(intelligence.recommendedOutreach).toContain("SecurePath IT");
     expect(intelligence.recommendedOutreach).toContain("schedule a technology readiness review");
-    expect(intelligence.potentialNeeds).toHaveLength(1);
-    expect(intelligence.potentialNeeds[0]).toContain("Northwind Mechanical");
-    expect(intelligence.potentialNeeds[0]).toContain("84-employee organization");
-    expect(intelligence.whyTarget).toContain("Northwind Mechanical");
-    expect(intelligence.whyTarget).toContain("84-employee organization");
-    expect(intelligence.whyTarget).toContain("endpoint and identity management");
+    expect(intelligence.recommendedOutreach).toContain("ask how its 84-person team handles");
+    expect(intelligence.potentialNeeds).toEqual([]);
+    expect(intelligence.whyTarget).toBe("");
   });
 
   it("does not turn generic industry compliance context into Why Target", () => {

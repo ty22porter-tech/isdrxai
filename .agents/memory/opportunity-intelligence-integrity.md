@@ -19,13 +19,13 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **Why:** Identity and contactability explain why a record is credible, not why the seller should pursue the account.
 
-**How to apply:** Keep Google validation facts in the company-fit breakdown and evidence model. Build **Why Target** only from a positive company-specific buying signal or sourced company demographic, connected to a semantically relevant approved seller offer. Never use listing availability or generic industry/compliance context as the fallback; omit Why Target when no individualized basis exists.
+**How to apply:** Keep Google validation facts and sourced demographics in the company-fit breakdown and evidence model. Build **Why Target** only from a positive company-specific buying signal connected to a semantically relevant approved seller offer. Never use listing availability, employee count alone, or generic industry/compliance context as the fallback; omit Why Target when no individualized basis exists.
 
 **Potential Needs** must originate from verified prospect research signals, then state the possible business challenge and connect it to an approved seller offer and outcome. Do not manufacture a generic list when research finds nothing.
 
 **Why:** A generic industry issue is not evidence that a specific prospect has that need, and a seller priority is not proof the seller can solve it.
 
-**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. Sourced company demographics may also create a conditional need. Generic industry compliance or cybersecurity context must never create a Potential Need by itself; omit the row when no individualized basis exists.
+**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. Employee count, generic industry compliance, or cybersecurity context must never create a Potential Need by itself; omit the row when no individualized basis exists.
 
 **Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, explain the evidence-based timing or verified demographic fit, and end with an approved seller CTA. Never replace this with a generic no-signal warning.
 
