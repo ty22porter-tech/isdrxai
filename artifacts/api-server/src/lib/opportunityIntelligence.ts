@@ -5,11 +5,11 @@ import type {
 } from "@workspace/db";
 import type { usersTable } from "@workspace/db";
 import {
-  genericOutreach,
   industryMatch,
   sellerIntelligenceProfile,
 } from "./prospectMatching";
 import { researchOfficialWebsite } from "./officialWebsiteResearch";
+import { researchPublicBreachRecords } from "./publicBreachResearch";
 
 export const OPPORTUNITY_SCORE_DEFINITION =
   "The Opportunity Score measures how strongly this prospect matches your company, target customer profile, verified signals, and potential business need. It does not represent the probability that the prospect will make a purchase.";
@@ -17,6 +17,10 @@ export const OPPORTUNITY_SCORE_DEFINITION =
 interface OpportunityLead {
   companyName: string;
   contactTitle?: string | null;
+  employeeCount?: number | null;
+  employeeCountSource?: string | null;
+  employeeCountSourceURL?: string | null;
+  employeeCountEvidence?: string | null;
   industry: string;
   city: string;
   state: string;
@@ -73,9 +77,12 @@ const IT_COMPLIANCE_BY_INDUSTRY: Array<{ pattern: RegExp; requirement: string; c
 ];
 
 const SECURITY_OFFER_PATTERN =
-  /\b(?:cyber|security|compliance|risk|managed it|information technology|network|backup|disaster recovery|identity|access|microsoft 365|cloud)\b/i;
+  /\b(?:cyber(?:security)?|security|compliance|risk|managed it|information technology|network|backup|disaster recovery|incident|recovery|resilience|identity|access|microsoft 365|cloud)\b/i;
 
 function signalChallenge(signal: OpportunitySignal, vertical: string): string {
+  if (signal.signalType === "security_incident") {
+    return "validating incident remediation, strengthening security controls, improving resilience, and documenting readiness without assuming the disclosed issue remains unresolved";
+  }
   if (signal.signalType === "hiring_listing") {
     return vertical === "it_services"
       ? "scaling user support, onboarding, access, devices, infrastructure, and security as staffing changes"
@@ -113,8 +120,42 @@ function signalChallenge(signal: OpportunitySignal, vertical: string): string {
 function matchingSellerOffer(offers: string[], challenge: string, requireSecurity = false): string | undefined {
   const eligible = requireSecurity ? offers.filter(offer => SECURITY_OFFER_PATTERN.test(offer)) : offers;
   if (!eligible.length) return undefined;
-  const keywords = challenge.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 4);
-  return eligible.find(offer => keywords.some(keyword => offer.toLowerCase().includes(keyword))) || eligible[0];
+  const groups = [
+    ["cyber", "security", "breach", "incident", "risk", "ransomware"],
+    ["compliance", "hipaa", "hitech", "glba", "safeguard", "pci", "ferpa", "cmmc", "nist", "audit"],
+    ["network", "infrastructure", "location", "integration", "cloud"],
+    ["support", "helpdesk", "help desk", "managed it", "technology"],
+    ["backup", "recovery", "resilience", "continuity"],
+    ["identity", "access", "microsoft 365", "email", "device", "endpoint"],
+  ];
+  const normalizedChallenge = challenge.toLowerCase();
+  const directKeywords = normalizedChallenge.split(/[^a-z0-9]+/).filter(word => word.length > 4);
+  const score = (offer: string) => {
+    const normalizedOffer = offer.toLowerCase();
+    const direct = directKeywords.filter(keyword => normalizedOffer.includes(keyword)).length * 3;
+    const semantic = groups.reduce((total, group) =>
+      group.some(term => normalizedChallenge.includes(term)) && group.some(term => normalizedOffer.includes(term))
+        ? total + 2
+        : total, 0);
+    return direct + semantic;
+  };
+  return eligible
+    .map((offer, index) => ({ offer, index, score: score(offer) }))
+    .sort((left, right) => right.score - left.score || left.index - right.index)[0]?.offer;
+}
+
+function employeeDemographic(employeeCount?: number | null): string | undefined {
+  if (!employeeCount || employeeCount < 1) return undefined;
+  if (employeeCount <= 20) {
+    return `${employeeCount}-employee organization that may benefit from external expertise and coverage without building every IT function internally`;
+  }
+  if (employeeCount <= 100) {
+    return `${employeeCount}-employee organization where scalable support, onboarding, identity, endpoint, and security processes may become increasingly important`;
+  }
+  if (employeeCount <= 500) {
+    return `${employeeCount}-employee organization where standardized support, security controls, resilience, and compliance coordination may reduce operational complexity`;
+  }
+  return `${employeeCount}-employee organization where specialized security, compliance, resilience, or infrastructure support may complement internal IT`;
 }
 
 function category(
@@ -168,6 +209,24 @@ export function buildOpportunityIntelligence(
     supportingEvidence: "Direct business record returned by the Google Places API.",
     points: 0,
   }];
+  if (lead.employeeCount && lead.employeeCount > 0) {
+    signals.push({
+      signalType: "company_size",
+      signalTitle: "Verified company-size enrichment",
+      signalDescription: `${lead.companyName} has an estimated ${lead.employeeCount.toLocaleString()} employees.`,
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: lead.employeeCountSource || "Company data enrichment",
+      sourceURL: lead.employeeCountSourceURL || undefined,
+      dateDiscovered: generatedAt,
+      dateVerified: generatedAt,
+      supportingEvidence: lead.employeeCountEvidence
+        || "The employee estimate was returned by the configured company-data enrichment provider.",
+      potentialBusinessImpact: employeeDemographic(lead.employeeCount),
+      points: 0,
+    });
+  }
   if (lead.address) {
     signals.push({
       signalType: "operating_address",
@@ -246,6 +305,8 @@ export function buildOpportunityIntelligence(
     const relevantHiring = isHiring && hiringPattern.test(`${researched.signalTitle} ${researched.signalDescription}`);
     const rawPoints = researched.signalType === "fleet_vehicle_evidence"
       ? (vertical === "fleet_wraps" ? 14 : 2)
+      : researched.signalType === "security_incident"
+        ? (vertical === "it_services" ? 12 : 0)
       : researched.signalType === "acquisition" || researched.signalType === "rebrand"
         ? 9
         : researched.signalType === "new_location" || researched.signalType === "expansion" || researched.signalType === "company_launch"
@@ -408,6 +469,9 @@ export function buildOpportunityIntelligence(
   ] satisfies OpportunityScoreCategory[];
   const score = breakdown.reduce((sum, item) => sum + item.points, 0);
   const potentialNeeds: string[] = [];
+  const compliance = vertical === "it_services"
+    ? IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry))
+    : undefined;
   if (seller.ready) {
     for (const signal of buyingEvidence.slice(0, 2)) {
       const challenge = signalChallenge(signal, vertical);
@@ -418,15 +482,16 @@ export function buildOpportunityIntelligence(
         `${signal.signalTitle} → Potential challenge: ${challenge} → ${seller.name}'s ${offer} may help support ${outcome}.`,
       );
     }
-    if (vertical === "it_services") {
-      const compliance = IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry));
-      if (compliance) {
-        const offer = matchingSellerOffer(sellerOffers, compliance.challenge, true);
-        if (offer) {
-          potentialNeeds.push(
-            `${compliance.requirement} → Potential challenge: ${compliance.challenge} → ${seller.name}'s ${offer} may help assess and support the applicable requirements.`,
-          );
-        }
+    if (compliance) {
+      const offer = matchingSellerOffer(
+        sellerOffers,
+        `${compliance.requirement}. ${compliance.challenge}`,
+        true,
+      );
+      if (offer) {
+        potentialNeeds.push(
+          `${compliance.requirement} → Potential challenge: ${compliance.challenge} → ${seller.name}'s ${offer} may help assess and support the applicable requirements.`,
+        );
       }
     }
   }
@@ -448,9 +513,32 @@ export function buildOpportunityIntelligence(
     : sellerFit
       ? `Potential fit to validate: ${possibleChallenge}${/[.!?]$/.test(possibleChallenge) ? "" : "."} ${sellerFit}`
       : "";
-  const recommendedOutreach = buyingEvidence.length
-    ? `Lead with the verified ${buyingEvidence[0].signalTitle.toLowerCase()} and describe only its supported potential implication. ${genericOutreach(client, lead.industry, vertical)}`
-    : `No strong company-specific buying signal has been verified. Use discovery-led messaging and do not imply hiring, expansion, fleet growth, purchases, or provider dissatisfaction. ${genericOutreach(client, lead.industry, vertical)}`;
+  const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
+  const outreachChallenge = strongestBuyingSignal
+    ? signalChallenge(strongestBuyingSignal, vertical)
+    : demographic
+      || compliance?.challenge
+      || match.challenges[0];
+  const outreachOffer = seller.ready
+    ? matchingSellerOffer(
+        sellerOffers,
+        outreachChallenge,
+        strongestBuyingSignal?.signalType === "security_incident" || Boolean(!strongestBuyingSignal && compliance),
+      ) || matchingSellerOffer(sellerOffers, outreachChallenge)
+    : undefined;
+  const outreachOutcome = sellerOutcome || match.outcome;
+  const outreachCta = seller.ctas[0] || "recommend a brief, focused assessment of the relevant environment";
+  const recommendedOutreach = !seller.ready || !outreachOffer
+    ? ""
+    : strongestBuyingSignal?.signalType === "security_incident"
+      ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${seller.name}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+      : strongestBuyingSignal
+        ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+        : demographic
+          ? `For ${lead.companyName}, tailor the approach to its verified profile as a ${demographic}. Lead with ${seller.name}'s ${outreachOffer} to address the most relevant operational gap${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          : compliance
+            ? `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} in the context of ${compliance.requirement.toLowerCase()}. Frame this as an applicability and readiness review—not an assertion that ${lead.companyName} is noncompliant—and ${outreachCta}.`
+            : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
 
   return {
     version: 1,
@@ -483,8 +571,13 @@ export async function deriveOpportunityForPersistence(
     address: input.address,
     website: input.website,
     phone: input.phone,
+    employeeCount: input.employeeCount,
   };
-  const researched = await researchOfficialWebsite(lead);
+  const [officialSignals, publicBreachSignals] = await Promise.all([
+    researchOfficialWebsite(lead),
+    researchPublicBreachRecords(lead),
+  ]);
+  const researched = [...officialSignals, ...publicBreachSignals];
   // A transient research failure must not erase prior server-verified business
   // events. Hiring is intentionally not retained as active: without a fresh
   // listing it remains unconfirmed and earns no points.
@@ -494,7 +587,7 @@ export async function deriveOpportunityForPersistence(
     if (
       signal.signalClassification !== "verified"
       || currentTypes.has(signal.signalType)
-      || !/^(?:acquisition|rebrand|new_location|expansion|company_launch)$/.test(signal.signalType)
+      || !/^(?:acquisition|rebrand|new_location|expansion|company_launch|security_incident)$/.test(signal.signalType)
       || !signal.sourceURL
       || !websiteHost
     ) return false;

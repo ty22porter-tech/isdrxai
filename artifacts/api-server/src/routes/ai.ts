@@ -15,6 +15,8 @@ import {
 } from "../lib/prospectMatching";
 import { buildOpportunityIntelligence } from "../lib/opportunityIntelligence";
 import { researchOfficialWebsite } from "../lib/officialWebsiteResearch";
+import { researchPublicBreachRecords } from "../lib/publicBreachResearch";
+import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -456,7 +458,11 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
         : vertical === "fleet_wraps"
           ? addFleetOverlay(base, body.industry, client)
           : base;
-      const researchedSignals = await researchOfficialWebsite(lead);
+      const [officialSignals, publicBreachSignals] = await Promise.all([
+        researchOfficialWebsite(lead),
+        researchPublicBreachRecords(lead),
+      ]);
+      const researchedSignals = [...officialSignals, ...publicBreachSignals];
       const opportunityIntelligence = buildOpportunityIntelligence(lead, vertical, client, researchedSignals);
       return {
         ...lead,
@@ -497,6 +503,7 @@ type EnrichLeadResult = {
   phone?: string;
   linkedinUrl?: string;
   employeeCount?: number;
+  opportunityIntelligence?: ReturnType<typeof buildOpportunityIntelligence>;
   error?: string;
 };
 
@@ -534,19 +541,50 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
     const p = result.person;
     // "Enriched" requires at least a real name or a real email — anything less
     // is a not-found so the UI never claims a contact it doesn't have.
-    if (!p || (!p.contactName && !p.email)) {
-      results.push({ index, status: "not_found" });
-      return;
+    const contactFound = Boolean(p && (p.contactName || p.email));
+    const demographicResearch = p?.employeeCount
+      ? undefined
+      : await researchCompanyDemographics({
+          companyName: lead.companyName,
+          website: lead.website,
+          city: lead.city,
+          state: lead.state,
+          industry: lead.industry,
+        });
+    const employeeCount = p?.employeeCount ?? demographicResearch?.employeeCount;
+    let opportunityIntelligence: ReturnType<typeof buildOpportunityIntelligence> | undefined;
+    if (lead.industry && lead.city && lead.state) {
+      const intelligenceLead = {
+        companyName: lead.companyName,
+        contactTitle: p?.title ?? null,
+        employeeCount,
+        employeeCountSource: demographicResearch ? "AI-assisted public web research" : "Apollo company enrichment",
+        employeeCountSourceURL: demographicResearch?.sourceUrls[0],
+        employeeCountEvidence: demographicResearch?.explanation,
+        industry: lead.industry,
+        city: lead.city,
+        state: lead.state,
+        address: lead.address ?? null,
+        website: lead.website ?? null,
+        phone: p?.phone ?? lead.phone ?? null,
+      };
+      const [officialSignals, publicBreachSignals] = await Promise.all([
+        researchOfficialWebsite(intelligenceLead),
+        researchPublicBreachRecords(intelligenceLead),
+      ]);
+      const researchedSignals = [...officialSignals, ...publicBreachSignals];
+      opportunityIntelligence = buildOpportunityIntelligence(intelligenceLead, vertical, client, researchedSignals);
     }
     results.push({
       index,
-      status: "enriched",
-      contactName: p.contactName ?? undefined,
-      email: p.email ?? undefined,
-      title: p.title ?? undefined,
-      phone: p.phone ?? undefined,
-      linkedinUrl: p.linkedinUrl ?? undefined,
-      employeeCount: p.employeeCount ?? undefined,
+      status: contactFound ? "enriched" : "not_found",
+      contactName: p?.contactName ?? undefined,
+      email: p?.email ?? undefined,
+      title: p?.title ?? undefined,
+      phone: p?.phone ?? undefined,
+      linkedinUrl: p?.linkedinUrl ?? undefined,
+      employeeCount,
+      opportunityIntelligence,
     });
   };
 

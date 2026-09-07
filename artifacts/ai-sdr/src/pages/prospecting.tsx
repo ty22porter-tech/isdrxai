@@ -175,6 +175,8 @@ type EnrichLeadResult = {
   email?: string;
   title?: string;
   phone?: string;
+  employeeCount?: number;
+  opportunityIntelligence?: ProspectLead["opportunityIntelligence"];
 };
 
 // Apply Apollo enrichment results to the current lead list. `snapshot` is the
@@ -190,16 +192,24 @@ export function applyEnrichmentResults(
 ): ProspectLead[] {
   return current.map((lead, i) => {
     const r = results.find((x) => x.index === i);
-    if (!r || r.status !== "enriched") return lead;
+    if (!r || r.status === "failed") return lead;
+    if (r.status === "not_found" && !r.employeeCount && !r.opportunityIntelligence) return lead;
     const snap = snapshot[i];
     // Identity check: the lead we enriched must still be the lead at this slot.
     if (!snap || snap.companyName !== lead.companyName || snap.email !== lead.email) return lead;
     return {
       ...lead,
-      contactName: r.contactName ?? lead.contactName,
-      contactTitle: r.title ?? "Decision maker",
-      email: r.email ?? lead.email,
-      phone: r.phone || lead.phone,
+      contactName: r.status === "enriched" ? r.contactName ?? lead.contactName : lead.contactName,
+      contactTitle: r.status === "enriched" ? r.title ?? "Decision maker" : lead.contactTitle,
+      email: r.status === "enriched" ? r.email ?? lead.email : lead.email,
+      phone: r.status === "enriched" ? r.phone || lead.phone : lead.phone,
+      estimatedEmployees: r.employeeCount ?? lead.estimatedEmployees,
+      opportunityIntelligence: r.opportunityIntelligence ?? lead.opportunityIntelligence,
+      opportunityScore: r.opportunityIntelligence?.score ?? lead.opportunityScore,
+      scoreLabel: r.opportunityIntelligence?.label ?? lead.scoreLabel,
+      whyTarget: r.opportunityIntelligence?.whyTarget ?? lead.whyTarget,
+      potentialNeeds: r.opportunityIntelligence?.potentialNeeds ?? lead.potentialNeeds,
+      recommendedOutreach: r.opportunityIntelligence?.recommendedOutreach ?? lead.recommendedOutreach,
     };
   });
 }
@@ -281,6 +291,11 @@ export default function Prospecting() {
             contactName: l.contactName,
             email: l.email,
             website: l.website,
+            industry: l.industry,
+            city: l.city,
+            state: l.state,
+            address: l.address,
+            phone: l.phone,
           })),
         },
       },

@@ -1316,6 +1316,16 @@ components:
                 type: string
               website:
                 type: string
+              industry:
+                type: string
+              city:
+                type: string
+              state:
+                type: string
+              address:
+                type: string
+              phone:
+                type: string
 
     EnrichLeadsResult:
       type: object
@@ -1351,6 +1361,8 @@ components:
                 type: string
               employeeCount:
                 type: integer
+              opportunityIntelligence:
+                $ref: "#/components/schemas/OpportunityIntelligence"
               error:
                 type: string
 

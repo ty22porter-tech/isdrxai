@@ -176,12 +176,19 @@ function linksFrom(html: string, base: URL): URL[] {
   for (const match of html.matchAll(pattern)) {
     try {
       const url = new URL(match[1], base);
-      if (url.origin === base.origin && /(?:career|jobs?|news|press|about|media)/i.test(url.pathname) && !found.some(item => item.href === url.href)) found.push(url);
+      if (
+        url.origin === base.origin
+        && /(?:career|jobs?|news|press|about|media|blog|insights?|resources?|updates?)/i.test(url.pathname)
+        && !found.some(item => item.href === url.href)
+      ) found.push(url);
     } catch { /* malformed public link */ }
   }
   return found
     .sort((left, right) => {
-      const rank = (url: URL) => /career|jobs?/i.test(url.pathname) ? 0 : /news|press|media/i.test(url.pathname) ? 1 : 2;
+      const rank = (url: URL) =>
+        /news|press|media|blog|updates?/i.test(url.pathname) ? 0
+          : /career|jobs?/i.test(url.pathname) ? 1
+            : 2;
       return rank(left) - rank(right);
     })
     .slice(0, MAX_PAGES - 1);
@@ -327,6 +334,35 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
     });
     const eventPattern = /(?:acquired|acquisition of|rebrand(?:ed|ing)?|changed (?:its|our) name|new location|opened (?:a|our) new|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched)/i;
     const metadataDate = htmlDate(page.html);
+    const securityIncidentPattern = /\b(?:data breach|cyber(?:security)? incident|security incident|ransomware|cyberattack|network intrusion|unauthorized access|data exposure)\b/i;
+    const incidentActionPattern = /\b(?:experienced|suffered|discovered|identified|detected|investigat(?:ed|ing)|respond(?:ed|ing)|contained|notified|affected|impacted)\b/i;
+    const incident = text.split(/(?<=[.!?])\s+/).find(sentence =>
+      securityIncidentPattern.test(sentence)
+      && incidentActionPattern.test(sentence)
+      && (sentence.toLowerCase().includes(companyName.toLowerCase()) || /\b(?:we|our company|our organization)\b/i.test(sentence)),
+    );
+    if (incident) {
+      const sentenceDate = incident.match(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2}\b/i)?.[0]
+        || incident.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
+      const date = sentenceDate || metadataDate;
+      if (date) {
+        signals.push({
+          signalType: "security_incident",
+          signalTitle: "Official cybersecurity incident disclosure",
+          signalDescription: normalizeText(incident).slice(0, 400),
+          signalClassification: "verified",
+          confidenceLevel: "high",
+          freshness: freshness(date),
+          sourceName: "Official company disclosure",
+          sourceURL: page.url.toString(),
+          sourceDate: date,
+          dateDiscovered: checkedAt,
+          dateVerified: checkedAt,
+          supportingEvidence: normalizeText(incident).slice(0, 500),
+          points: 0,
+        });
+      }
+    }
     for (const event of text.split(/(?<=[.!?])\s+/).filter(sentence =>
       eventPattern.test(sentence) && (sentence.toLowerCase().includes(companyName.toLowerCase()) || /\b(?:we|our company)\b/i.test(sentence)),
     )) {

@@ -1149,9 +1149,30 @@ export const EnrichLeadsBody = zod.object({
   "companyName": zod.string(),
   "contactName": zod.string().optional(),
   "email": zod.string(),
-  "website": zod.string().optional()
+  "website": zod.string().optional(),
+  "industry": zod.string().optional(),
+  "city": zod.string().optional(),
+  "state": zod.string().optional(),
+  "address": zod.string().optional(),
+  "phone": zod.string().optional()
 })).min(1).max(enrichLeadsBodyLeadsMax)
 })
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMin = 0;
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMax = 100;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMin = 0;
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMax = 30;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemMaxPointsMax = 30;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMin = 6;
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMax = 6;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMin = 0;
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMax = 30;
+
+
 
 export const EnrichLeadsResponse = zod.object({
   "planBlocked": zod.boolean().optional().describe('True when Apollo rejected the request because the account plan has no API access.'),
@@ -1165,6 +1186,42 @@ export const EnrichLeadsResponse = zod.object({
   "phone": zod.string().optional(),
   "linkedinUrl": zod.string().optional(),
   "employeeCount": zod.number().optional(),
+  "opportunityIntelligence": zod.object({
+  "version": zod.literal(1),
+  "score": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMax),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "scoreConfidence": zod.enum(['high', 'medium', 'low']),
+  "definition": zod.string(),
+  "breakdown": zod.array(zod.object({
+  "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
+  "label": zod.string(),
+  "points": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMax),
+  "maxPoints": zod.number().min(1).max(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemMaxPointsMax),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.string())
+})).min(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMax),
+  "signals": zod.array(zod.object({
+  "signalType": zod.string(),
+  "signalTitle": zod.string(),
+  "signalDescription": zod.string(),
+  "signalClassification": zod.enum(['verified', 'implication', 'unconfirmed']),
+  "confidenceLevel": zod.enum(['high', 'medium', 'low']),
+  "freshness": zod.enum(['recent', 'active', 'older', 'stale', 'unknown']),
+  "sourceName": zod.string().optional(),
+  "sourceURL": zod.string().url().optional(),
+  "sourceDate": zod.coerce.date().optional(),
+  "dateDiscovered": zod.coerce.date(),
+  "dateVerified": zod.coerce.date().optional(),
+  "supportingEvidence": zod.string().optional(),
+  "relatedSellerCapability": zod.string().optional(),
+  "potentialBusinessImpact": zod.string().optional(),
+  "points": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMax)
+})),
+  "whyTarget": zod.string(),
+  "potentialNeeds": zod.array(zod.string()),
+  "recommendedOutreach": zod.string(),
+  "generatedAt": zod.coerce.date()
+}).optional(),
   "error": zod.string().optional()
 }))
 })

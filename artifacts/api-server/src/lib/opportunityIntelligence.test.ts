@@ -182,6 +182,77 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds).toEqual([]);
   });
 
+  it("never uses the generic no-signal outreach warning", () => {
+    const intelligence = buildOpportunityIntelligence(lead, "it_services", readySeller);
+    expect(intelligence.recommendedOutreach).not.toContain("No strong company-specific buying signal has been verified");
+    expect(intelligence.recommendedOutreach).toContain("Northwind Mechanical");
+    expect(intelligence.recommendedOutreach).toContain("Northstar Graphics");
+    expect(intelligence.recommendedOutreach).toContain("on-site installation");
+  });
+
+  it("uses verified company demographics to tailor IT outreach", () => {
+    const seller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["managed IT services", "cybersecurity assessment"],
+        sellerCapabilities: ["endpoint and identity management"],
+        sellerBusinessOutcomes: ["more consistent and secure operations"],
+        sellerCTAs: ["schedule a technology readiness review"],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence(
+      { ...lead, industry: "Commercial", employeeCount: 84 },
+      "it_services",
+      seller,
+    );
+
+    expect(intelligence.signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        signalType: "company_size",
+        signalDescription: expect.stringContaining("84 employees"),
+      }),
+    ]));
+    expect(intelligence.recommendedOutreach).toContain("84-employee organization");
+    expect(intelligence.recommendedOutreach).toContain("SecurePath IT");
+    expect(intelligence.recommendedOutreach).toContain("schedule a technology readiness review");
+  });
+
+  it("turns a dated official breach disclosure into careful seller-specific outreach", () => {
+    const [incident] = extractOfficialResearchSignals("CornerStone Medical", [{
+      url: new URL("https://cornerstone.example/news/security-update"),
+      html: `<html><head><meta property="article:published_time" content="2026-08-15" /></head>
+        <body><p>CornerStone Medical identified a cybersecurity incident and responded by containing the affected systems.</p></body></html>`,
+    }], new Date().toISOString()).filter(signal => signal.signalType === "security_incident");
+    const seller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["cybersecurity assessment", "managed IT services"],
+        sellerCapabilities: ["incident recovery validation"],
+        sellerBusinessOutcomes: ["stronger security resilience"],
+        sellerCTAs: ["recommend a remediation-readiness review"],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence(
+      { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" },
+      "it_services",
+      seller,
+      [incident],
+    );
+
+    expect(incident).toMatchObject({
+      signalClassification: "verified",
+      sourceName: "Official company disclosure",
+    });
+    expect(intelligence.recommendedOutreach).toContain("CornerStone Medical");
+    expect(intelligence.recommendedOutreach).toContain("incident recovery validation");
+    expect(intelligence.recommendedOutreach).toMatch(/do not imply the issue remains unresolved/i);
+    expect(intelligence.recommendedOutreach).toContain("remediation-readiness review");
+  });
+
   it("changes seller-match points when approved seller intelligence changes", () => {
     const ready = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
     const limited = buildOpportunityIntelligence(lead, "fleet_wraps", undefined);

@@ -34,3 +34,4 @@
 - [Seller intelligence approval](seller-intelligence-approval.md) — Needs Review stays discovery-only; preserve per-field user approvals over live lower-priority sources.
 - [Seller intelligence analysis state](seller-intelligence-analysis-state.md) — serialize analysis decisions; persist failed attempts separately from active cached profile status.
 - [Opportunity intelligence integrity](opportunity-intelligence-integrity.md) — server-derived score snapshots; listing facts are not buying signals; stay independent from engagement.
+- [Company demographic research](company-demographic-research.md) — Apollo first; AI web research may fill missing company size only with cited medium/high-confidence evidence.

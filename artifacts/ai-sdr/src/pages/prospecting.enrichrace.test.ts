@@ -18,6 +18,28 @@ const lead = (companyName: string, email: string): ProspectLead =>
   }) as ProspectLead;
 
 describe("applyEnrichmentResults — stale-run safety", () => {
+  it("applies demographic intelligence when Apollo finds no contact", () => {
+    const snapshot = [lead("Acme Cleaning", "contact@acme.invalid")];
+    const intelligence = {
+      score: 64,
+      label: "Strong Fit",
+      whyTarget: "Size-specific fit",
+      potentialNeeds: ["Scalable support"],
+      recommendedOutreach: "Size-specific outreach",
+    } as any;
+    const out = applyEnrichmentResults(snapshot, snapshot, [{
+      index: 0,
+      status: "not_found",
+      employeeCount: 84,
+      opportunityIntelligence: intelligence,
+    }]);
+
+    expect(out[0].contactName).toBe("Owner");
+    expect(out[0].estimatedEmployees).toBe(84);
+    expect(out[0].recommendedOutreach).toBe("Size-specific outreach");
+    expect(out[0].opportunityIntelligence).toBe(intelligence);
+  });
+
   it("applies enrichment when the current lead matches the enriched snapshot", () => {
     const snapshot = [lead("Acme Cleaning", "contact@acme.invalid")];
     const out = applyEnrichmentResults(snapshot, snapshot, [

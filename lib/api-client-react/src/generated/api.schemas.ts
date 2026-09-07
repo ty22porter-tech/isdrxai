@@ -542,6 +542,11 @@ export type EnrichLeadsRequestLeadsItem = {
   contactName?: string;
   email: string;
   website?: string;
+  industry?: string;
+  city?: string;
+  state?: string;
+  address?: string;
+  phone?: string;
 };
 
 export interface EnrichLeadsRequest {
@@ -571,6 +576,7 @@ export type EnrichLeadsResultResultsItem = {
   phone?: string;
   linkedinUrl?: string;
   employeeCount?: number;
+  opportunityIntelligence?: OpportunityIntelligence;
   error?: string;
 };
 

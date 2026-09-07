@@ -21,6 +21,18 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **How to apply:** For each positive signal, render signal → conditional challenge → approved seller capability/outcome. Add an industry compliance or cybersecurity consideration only when plausibly applicable and the seller has a matching approved offer; phrase applicability conditionally.
 
+**Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, explain the evidence-based timing or verified demographic fit, and end with an approved seller CTA. Never replace this with a generic no-signal warning.
+
+**Why:** Users need an actionable course of action, while generic caution text neither differentiates the prospect nor identifies the seller's best relevant offer.
+
+**How to apply:** Prefer verified company events, then verified company size, then applicable industry/compliance context. Match offer relevance semantically rather than taking the first configured service.
+
+Public breach records require exact organization-name and state matching. Describe a government portal entry as a submitted public record and never imply the incident is unresolved.
+
+**Why:** Organization names collide, and a reported breach does not prove current exposure or incomplete remediation.
+
+**How to apply:** Cite the authoritative portal, submission date, reported type, and affected system/data context. A non-match means “not found in the records checked,” never “no breach.”
+
 On prospect cards, keep Opportunity Intelligence in the compact legacy-style format: short labeled rows for why target, potential needs, the strongest verified signal, and recommended outreach. Omit empty, negative, unknown, and unverified findings instead of rendering “no result” sections; the full evidence report belongs only in the score-breakdown dialog.
 
 **Why:** The inline report overwhelmed each prospect card and consumed most of the page. Users need quick positive relevance cues while scanning results, with detail revealed only when requested.
