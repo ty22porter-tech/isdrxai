@@ -59,3 +59,17 @@ mtime_ms = 1788647170776
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/7af43bbb-73c5-4f41-9cf5-ed52197e13e7/13f7e792-d1dd-40a9-9ef6-130c8de104a1"
 storage_version_token = "1788651311523506"
 content_type = "image/png"
+
+[[outputs]]
+id = "GsgWrdHZV-GJSjvhpF-6y"
+uri = "file://screenshots/compact-prospect-result.jpg"
+type = "image"
+title = "Compact Prospect Result Preview"
+description = "Screenshot of the shortened Opportunity Intelligence format inside a prospect card."
+logical_id = "c55cd29e-b077-40a5-9955-661fe3b4389d"
+content_hash = "sha256:0a1269d4bb02c5d160fe6589a1a5d387c849ef41d908ebf588b723e6e2999c48"
+size = 37080
+mtime_ms = 1788744433459
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/c55cd29e-b077-40a5-9955-661fe3b4389d/aef3e084-0ce0-4e35-b283-bc9a0d1ae6cb"
+storage_version_token = "1788744438712881"
+content_type = "image/jpeg"

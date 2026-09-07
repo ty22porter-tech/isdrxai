@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --background: 42 24% 95%;
+  --foreground: 208 32% 15%;
+  --border: 40 15% 86%;
+  --card: 42 33% 99%;
+  --card-foreground: 208 32% 15%;
+  --primary: 210 52% 32%;
+  --primary-foreground: 0 0% 100%;
+  --muted: 40 15% 91%;
+  --muted-foreground: 208 10% 43%;
+  --accent: 210 28% 92%;
+  --accent-foreground: 210 52% 27%;
+  --app-font-sans: "DM Sans", sans-serif;
+}
