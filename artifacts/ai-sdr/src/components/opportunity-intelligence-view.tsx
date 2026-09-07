@@ -340,6 +340,16 @@ export function OpportunityIntelligenceView({
                     </div>
                     <Progress value={category.maxPoints > 0 ? (category.points / category.maxPoints) * 100 : 0} className="h-1.5" />
                     <p className="text-xs leading-relaxed text-muted-foreground">{sanitizeOpportunityLanguage(category.explanation)}</p>
+                    {category.evidence?.length > 0 && (
+                      <ul className="space-y-1 border-t pt-2 text-xs leading-relaxed text-foreground/80">
+                        {category.evidence.map((item, evidenceIndex) => (
+                          <li key={`${category.key}-evidence-${evidenceIndex}`} className="flex gap-2">
+                            <span aria-hidden="true" className="text-primary">•</span>
+                            <span>{sanitizeOpportunityLanguage(item)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </div>

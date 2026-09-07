@@ -77,7 +77,7 @@ export const ListProspectsResponseItem = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(listProspectsResponseOpportunityIntelligenceOneScoreMin).max(listProspectsResponseOpportunityIntelligenceOneScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -155,7 +155,7 @@ export const CreateProspectBody = zod.object({
   "address": zod.string().optional(),
   "notes": zod.string().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(createProspectBodyOpportunityIntelligenceScoreMin).max(createProspectBodyOpportunityIntelligenceScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -225,7 +225,7 @@ export const CreateProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(createProspectResponseOpportunityIntelligenceOneScoreMin).max(createProspectResponseOpportunityIntelligenceOneScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -303,7 +303,7 @@ export const BulkCreateProspectsBody = zod.object({
   "address": zod.string().optional(),
   "notes": zod.string().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMin).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -384,7 +384,7 @@ export const BulkCreateProspectsResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMin).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -504,7 +504,7 @@ export const GetProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(getProspectResponseOpportunityIntelligenceOneScoreMin).max(getProspectResponseOpportunityIntelligenceOneScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -601,7 +601,7 @@ export const UpdateProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(updateProspectResponseOpportunityIntelligenceOneScoreMin).max(updateProspectResponseOpportunityIntelligenceOneScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -1098,7 +1098,7 @@ export const ProspectSearchResponseItem = zod.object({
   "recommendedOutreach": zod.string().optional(),
   "fleetBrandingSignal": zod.string().optional().describe('Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly'),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(prospectSearchResponseOpportunityIntelligenceScoreMin).max(prospectSearchResponseOpportunityIntelligenceScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
@@ -1187,7 +1187,7 @@ export const EnrichLeadsResponse = zod.object({
   "linkedinUrl": zod.string().optional(),
   "employeeCount": zod.number().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.literal(1),
+  "version": zod.union([zod.literal(1),zod.literal(2)]),
   "score": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMax),
   "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),

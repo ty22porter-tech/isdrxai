@@ -127,6 +127,8 @@ function matchingSellerOffer(offers: string[], challenge: string, requireSecurit
     ["support", "helpdesk", "help desk", "managed it", "technology"],
     ["backup", "recovery", "resilience", "continuity"],
     ["identity", "access", "microsoft 365", "email", "device", "endpoint"],
+    ["brand", "branding", "graphic", "lettering", "wrap", "signage", "vehicle"],
+    ["clean", "cleaning", "janitorial", "facility", "sanitation", "hygiene"],
   ];
   const normalizedChallenge = challenge.toLowerCase();
   const directKeywords = normalizedChallenge.split(/[^a-z0-9]+/).filter(word => word.length > 4);
@@ -141,6 +143,7 @@ function matchingSellerOffer(offers: string[], challenge: string, requireSecurit
   };
   return eligible
     .map((offer, index) => ({ offer, index, score: score(offer) }))
+    .filter(candidate => candidate.score > 0)
     .sort((left, right) => right.score - left.score || left.index - right.index)[0]?.offer;
 }
 
@@ -181,16 +184,6 @@ export function buildOpportunityIntelligence(
   const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
   const sellerCapability = sellerOffers[0];
   const sellerOutcome = seller.outcomes[0] || seller.valuePropositions[0];
-  const priorities = (client?.sellerServicePriorities ?? "")
-    .split(/[\n,;]+/)
-    .map(value => value.trim())
-    .filter(Boolean);
-  const relevantPriority = priorities.find(priority =>
-    sellerOffers.some(offer => offer.toLowerCase().includes(priority.toLowerCase()) || priority.toLowerCase().includes(offer.toLowerCase())),
-  );
-  const sellerIndustryMatch = seller.industriesServed.some(value =>
-    value.toLowerCase().includes(lead.industry.toLowerCase()) || lead.industry.toLowerCase().includes(value.toLowerCase()),
-  );
   const decisionMakerKnown = Boolean(
     lead.contactTitle?.trim() &&
     !/pending|unknown|owner$/i.test(lead.contactTitle.trim()),
@@ -382,11 +375,43 @@ export function buildOpportunityIntelligence(
     });
   }
 
-  const companyFitPoints = 18 + (lead.address ? 4 : 0) + (lead.website ? 3 : 0);
-  const sellerMatchPoints = seller.ready
-    ? 12 + (sellerIndustryMatch ? 4 : 0) + (relevantPriority ? 3 : 0) + (sellerOutcome ? 1 : 0)
-    : 0;
-  const businessNeedPoints = 3 + (seller.ready ? 2 : 0);
+  const companyFitEvidence = [
+    `${lead.companyName} has a verified public business identity. (+4)`,
+    ...(lead.address ? ["A published operating address is available. (+5)"] : []),
+    ...(lead.website ? ["A published company website is available. (+6)"] : []),
+    ...(lead.phone ? ["A published business phone is available. (+3)"] : []),
+    ...(lead.employeeCount ? [`A sourced employee estimate of ${lead.employeeCount.toLocaleString()} is available. (+7)`] : []),
+  ];
+  const companyFitPoints = 4
+    + (lead.address ? 5 : 0)
+    + (lead.website ? 6 : 0)
+    + (lead.phone ? 3 : 0)
+    + (lead.employeeCount ? 7 : 0);
+  const evidenceOfferMatches = seller.ready
+    ? buyingEvidence.flatMap(signal => {
+        const challenge = signalChallenge(signal, vertical);
+        const offer = matchingSellerOffer(sellerOffers, challenge);
+        return offer ? [{ signal, offer }] : [];
+      })
+    : [];
+  const demographicChallenge = employeeDemographic(lead.employeeCount);
+  const demographicOffer = seller.ready && demographicChallenge
+    ? matchingSellerOffer(sellerOffers, demographicChallenge)
+    : undefined;
+  const sellerMatchEvidence = [
+    ...evidenceOfferMatches.slice(0, 2).map(({ signal, offer }, index) =>
+      `${signal.signalTitle} maps to the approved seller offering “${offer}.” (+${index === 0 ? 10 : 5})`),
+    ...(demographicOffer
+      ? [`The sourced ${lead.employeeCount?.toLocaleString()}-employee estimate maps to “${demographicOffer}.” (+5)`]
+      : []),
+  ];
+  const sellerMatchPoints = Math.min(
+    20,
+    evidenceOfferMatches.slice(0, 2).reduce((sum, _, index) => sum + (index === 0 ? 10 : 5), 0)
+      + (demographicOffer ? 5 : 0),
+  );
+  const strongestMatchedSignalPoints = Math.max(0, ...evidenceOfferMatches.map(({ signal }) => signal.points));
+  const businessNeedPoints = strongestMatchedSignalPoints >= 8 ? 5 : strongestMatchedSignalPoints > 0 ? 3 : 0;
   const buyingPoints = Math.min(30, buyingEvidence.reduce((sum, signal) => sum + signal.points, 0));
   const freshnessWeight = (value: OpportunitySignal["freshness"]) =>
     value === "recent" ? 10 : value === "active" ? 7 : value === "older" ? 3 : 0;
@@ -400,12 +425,8 @@ export function buildOpportunityIntelligence(
       "Company / Industry Fit",
       companyFitPoints,
       25,
-      "This score reflects the selected target industry and verified public business information. General industry fit is not treated as a company-specific buying event.",
-      [
-        `${lead.companyName} was returned for the selected ${lead.industry} search.`,
-        ...(lead.address ? ["A public operating address is available."] : []),
-        ...(lead.website ? ["A public company website is available."] : []),
-      ],
+      "Points come only from this prospect’s verified public identity and demographic fields. Selected industry alone earns no points.",
+      companyFitEvidence,
     ),
     category(
       "verified_buying_signals",
@@ -424,16 +445,14 @@ export function buildOpportunityIntelligence(
       "Seller-to-Prospect Match",
       sellerMatchPoints,
       20,
-      seller.ready
-        ? "The score uses approved Company Intelligence to measure whether the seller has a plausible capability match. It does not assume the prospect currently needs that service."
-        : "Approved Company Intelligence is unavailable, so no seller-specific match points were awarded.",
-      seller.ready
-        ? [
-            `Relevant configured capability: ${sellerCapability}.`,
-            ...(relevantPriority ? [`Configured priority service considered: ${relevantPriority}.`] : []),
-            ...(sellerIndustryMatch ? [`The seller identifies ${lead.industry} among industries served.`] : []),
-          ]
-        : ["Complete or approve Company Intelligence to enable seller-specific scoring."],
+      sellerMatchPoints
+        ? "Points are awarded only when this prospect’s verified evidence or sourced demographics maps to an approved seller offering."
+        : seller.ready
+          ? "No prospect-specific verified evidence mapped to an approved seller offering; seller configuration and industry selection alone earn no points."
+          : "Approved Company Intelligence is unavailable, so no seller-specific match points were awarded.",
+      sellerMatchEvidence.length
+        ? sellerMatchEvidence
+        : ["No scored prospect evidence-to-offering match was established."],
     ),
     category(
       "decision_maker_match",
@@ -460,11 +479,15 @@ export function buildOpportunityIntelligence(
       "Business Need Potential",
       businessNeedPoints,
       5,
-      "Industry context creates a reasonable possibility of need, but this remains an implication until discovery or a verified signal confirms it.",
-      [
-        match.operation,
-        ...(sellerCapability ? [`Potential seller connection: ${sellerCapability}.`] : []),
-      ],
+      businessNeedPoints
+        ? "Points reflect the strongest verified prospect event that also maps to an approved seller offering."
+        : "Industry implications, compliance context, and seller capabilities alone do not establish a scored business need.",
+      businessNeedPoints
+        ? evidenceOfferMatches
+            .filter(({ signal }) => signal.points === strongestMatchedSignalPoints)
+            .slice(0, 1)
+            .map(({ signal, offer }) => `${signal.signalTitle} supports a possible need addressed by “${offer}.” (+${businessNeedPoints})`)
+        : ["No verified prospect event established a seller-addressable business need."],
     ),
   ] satisfies OpportunityScoreCategory[];
   const score = breakdown.reduce((sum, item) => sum + item.points, 0);
@@ -541,7 +564,7 @@ export function buildOpportunityIntelligence(
             : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
 
   return {
-    version: 1,
+    version: 2,
     score,
     label: scoreLabel(score),
     scoreConfidence,
@@ -598,6 +621,32 @@ export async function deriveOpportunityForPersistence(
     }
   });
   return buildOpportunityIntelligence(lead, vertical, client, [...researched, ...preserved]);
+}
+
+export function upgradeStoredOpportunityIntelligence(
+  input: PersistedOpportunityInput,
+  vertical: string,
+  client?: typeof usersTable.$inferSelect,
+  prior?: OpportunityIntelligence | null,
+): OpportunityIntelligence | undefined {
+  if (!prior || prior.version === 2) return prior ?? undefined;
+  const scoreableStoredSignals = prior.signals.filter(signal =>
+    signal.signalClassification === "verified"
+    && Boolean(signal.sourceURL)
+    && Boolean(signal.supportingEvidence)
+    && /^(?:hiring_listing|fleet_vehicle_evidence|security_incident|acquisition|rebrand|new_location|expansion|company_launch)$/.test(signal.signalType),
+  );
+  return buildOpportunityIntelligence({
+    companyName: input.companyName,
+    contactTitle: input.title,
+    industry: input.industry,
+    city: input.city,
+    state: input.state,
+    address: input.address,
+    website: input.website,
+    phone: input.phone,
+    employeeCount: input.employeeCount,
+  }, vertical, client, scoreableStoredSignals);
 }
 
 function comparableResearchHost(value: string): string {

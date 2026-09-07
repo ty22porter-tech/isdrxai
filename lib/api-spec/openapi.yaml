@@ -1504,7 +1504,7 @@ components:
       properties:
         version:
           type: integer
-          enum: [1]
+          enum: [1, 2]
         score:
           type: integer
           minimum: 0

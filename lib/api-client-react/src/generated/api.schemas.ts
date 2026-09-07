@@ -61,6 +61,7 @@ export type OpportunityIntelligenceVersion = typeof OpportunityIntelligenceVersi
 
 export const OpportunityIntelligenceVersion = {
   NUMBER_1: 1,
+  NUMBER_2: 2,
 } as const;
 
 export type OpportunityIntelligenceLabel = typeof OpportunityIntelligenceLabel[keyof typeof OpportunityIntelligenceLabel];

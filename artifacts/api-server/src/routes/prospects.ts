@@ -19,7 +19,7 @@ import { enrichPerson } from "../lib/apollo";
 import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import { deriveOpportunityForPersistence } from "../lib/opportunityIntelligence";
+import { deriveOpportunityForPersistence, upgradeStoredOpportunityIntelligence } from "../lib/opportunityIntelligence";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -110,8 +110,17 @@ router.get("/", async (req, res) => {
   }
 
   const prospects = await db.select().from(prospectsTable).where(and(...conditions)).orderBy(sql`${prospectsTable.createdAt} desc`);
+  const client = prospects.some(prospect => prospect.opportunityIntelligence?.version === 1)
+    ? await currentClient(req.clientId)
+    : undefined;
   res.json(prospects.map(p => ({
     ...p,
+    opportunityIntelligence: upgradeStoredOpportunityIntelligence(
+      p,
+      p.vertical || clientVertical(client),
+      client,
+      p.opportunityIntelligence,
+    ),
     lastContactedAt: p.lastContactedAt?.toISOString() ?? null,
     enrichedAt: p.enrichedAt?.toISOString() ?? null,
     createdAt: p.createdAt.toISOString(),
@@ -277,7 +286,16 @@ router.get("/:id", async (req, res) => {
   const { id } = GetProspectParams.parse({ id: parseInt(req.params.id) });
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  return res.json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
+  const client = prospect.opportunityIntelligence?.version === 1
+    ? await currentClient(req.clientId)
+    : undefined;
+  const opportunityIntelligence = upgradeStoredOpportunityIntelligence(
+    prospect,
+    prospect.vertical || clientVertical(client),
+    client,
+    prospect.opportunityIntelligence,
+  );
+  return res.json({ ...prospect, opportunityIntelligence, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
 router.patch("/:id", async (req, res) => {

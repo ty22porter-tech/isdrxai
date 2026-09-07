@@ -31,7 +31,7 @@ export interface OpportunityScoreCategory {
 }
 
 export interface OpportunityIntelligence {
-  version: 1;
+  version: 1 | 2;
   score: number;
   label: "High Priority" | "Strong Fit" | "Possible Fit" | "Low Priority";
   scoreConfidence: "high" | "medium" | "low";

@@ -30,6 +30,32 @@ const intelligence = (signals: OpportunitySignal[]): OpportunityIntelligence => 
 });
 
 describe("OpportunityIntelligenceView", () => {
+  it("shows the prospect criteria that earned score points", () => {
+    render(
+      <OpportunityIntelligenceView
+        intelligence={{
+          ...intelligence([]),
+          score: 15,
+          breakdown: [{
+            key: "company_industry_fit",
+            label: "Company / Industry Fit",
+            points: 15,
+            maxPoints: 25,
+            explanation: "Points come from verified prospect fields.",
+            evidence: [
+              "A published operating address is available. (+5)",
+              "A published company website is available. (+6)",
+            ],
+          }],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("15 / 25 pts")).toBeInTheDocument();
+    expect(screen.getByText("A published operating address is available. (+5)")).toBeInTheDocument();
+    expect(screen.getByText("A published company website is available. (+6)")).toBeInTheDocument();
+  });
+
   it("keeps the prospect-card view short and omits empty or negative findings", () => {
     render(
       <OpportunityIntelligenceView

@@ -9,6 +9,12 @@ Opportunity Intelligence is a server-derived snapshot. Never trust client-suppli
 
 **How to apply:** Keep verified facts, implications, and unconfirmed signals separate. Verified buying signals get full weight, implications limited weight, and unknowns zero. Keep the Opportunity Score completely independent from engagement score and Hot/Medium/Low behavior. Factual email clauses must each be grounded in verified evidence or explicitly conditional.
 
+Opportunity scoring must not award generic baseline points for selected industry, seller readiness, configured priorities, or an assumed business need. Every positive category must contain prospect-specific evidence showing exactly why the points were earned. Seller-match points require a semantic match between that evidence and an approved seller offer; a zero-relevance offer is not a match.
+
+**Why:** Generic baseline points cause unrelated prospects to receive identical “Possible Fit” scores and make the breakdown look individualized when it is not.
+
+**How to apply:** Preserve the 100-point category model, but calculate the total only from verified prospect identity/demographics, sourced buying evidence, evidence-to-offer matches, verified decision makers, signal freshness, and seller-addressable needs. Legitimate ties are acceptable when evidence is genuinely identical; never force uniqueness with random or name-derived points.
+
 Google Places listing, address, website, and phone facts are validation/scoring inputs only. Never include them in **Why Target**; that narrative must use target-worthy evidence, a possible business challenge, and an approved seller capability.
 
 **Why:** Identity and contactability explain why a record is credible, not why the seller should pursue the account.

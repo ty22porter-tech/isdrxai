@@ -648,7 +648,10 @@ export default function Prospecting() {
       const tooOld =
         typeof snap?.savedAt === "number" && Date.now() - snap.savedAt > SNAPSHOT_MAX_AGE_MS;
       const wrongVertical = (snap?.vertical ?? "janitorial") !== vertical;
-      if (stillUnadded && !tooOld && !wrongVertical) {
+      const outdatedScoring = snap?.leads?.some(
+        lead => lead.opportunityIntelligence && lead.opportunityIntelligence.version !== 2,
+      );
+      if (stillUnadded && !tooOld && !wrongVertical && !outdatedScoring) {
         restorePendingRef.current = true;
         setRestorable(snap);
       } else {

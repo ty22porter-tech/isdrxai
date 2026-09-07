@@ -3,6 +3,7 @@ import {
   buildOpportunityIntelligence,
   deriveOpportunityForPersistence,
   opportunityEmailContext,
+  upgradeStoredOpportunityIntelligence,
 } from "./opportunityIntelligence";
 import { deduplicateJobListings, extractOfficialResearchSignals, isBlockedResearchAddress } from "./officialWebsiteResearch";
 
@@ -182,12 +183,11 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds).toEqual([]);
   });
 
-  it("never uses the generic no-signal outreach warning", () => {
+  it("does not recommend an unrelated seller offer when prospect evidence has no relevant match", () => {
     const intelligence = buildOpportunityIntelligence(lead, "it_services", readySeller);
     expect(intelligence.recommendedOutreach).not.toContain("No strong company-specific buying signal has been verified");
-    expect(intelligence.recommendedOutreach).toContain("Northwind Mechanical");
-    expect(intelligence.recommendedOutreach).toContain("Northstar Graphics");
-    expect(intelligence.recommendedOutreach).toContain("on-site installation");
+    expect(intelligence.recommendedOutreach).toBe("");
+    expect(intelligence.breakdown.find(item => item.key === "seller_prospect_match")?.points).toBe(0);
   });
 
   it("uses verified company demographics to tailor IT outreach", () => {
@@ -253,14 +253,67 @@ describe("opportunity intelligence", () => {
     expect(intelligence.recommendedOutreach).toContain("remediation-readiness review");
   });
 
-  it("changes seller-match points when approved seller intelligence changes", () => {
-    const ready = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
-    const limited = buildOpportunityIntelligence(lead, "fleet_wraps", undefined);
+  it("awards seller-match points only when prospect evidence maps to an approved offer", () => {
+    const researched = [{
+      signalType: "rebrand",
+      signalTitle: "Official rebrand announcement",
+      signalDescription: "Northwind Mechanical announced a company rebrand.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company news",
+      sourceURL: "https://northwind.example/news/rebrand",
+      sourceDate: new Date().toISOString(),
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "The company announcement describes the rebrand.",
+      points: 0,
+    }] as any;
+    const ready = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, researched);
+    const noEvidence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
+    const limited = buildOpportunityIntelligence(lead, "fleet_wraps", undefined, researched);
     const readyMatch = ready.breakdown.find(item => item.key === "seller_prospect_match");
+    const noEvidenceMatch = noEvidence.breakdown.find(item => item.key === "seller_prospect_match");
     const limitedMatch = limited.breakdown.find(item => item.key === "seller_prospect_match");
 
     expect(readyMatch?.points).toBeGreaterThan(limitedMatch?.points ?? 0);
-    expect(ready.score).toBeGreaterThan(limited.score);
+    expect(noEvidenceMatch?.points).toBe(0);
+    expect(readyMatch?.evidence[0]).toMatch(/rebrand.+fleet lettering/i);
+  });
+
+  it("gives different scores when individual prospect criteria differ", () => {
+    const sparse = buildOpportunityIntelligence({
+      ...lead,
+      address: null,
+      website: null,
+      phone: null,
+    }, "fleet_wraps", readySeller);
+    const profiled = buildOpportunityIntelligence({
+      ...lead,
+      employeeCount: 84,
+    }, "fleet_wraps", readySeller);
+
+    expect(sparse.score).not.toBe(profiled.score);
+    expect(sparse.breakdown.find(item => item.key === "company_industry_fit")?.points).toBe(4);
+    expect(profiled.breakdown.find(item => item.key === "company_industry_fit")?.points).toBe(25);
+    expect(profiled.breakdown.filter(item => item.points > 0).every(item => item.evidence.length > 0)).toBe(true);
+  });
+
+  it("upgrades a stored legacy score using its prospect-specific evidence", () => {
+    const legacy = {
+      ...buildOpportunityIntelligence(lead, "fleet_wraps", readySeller),
+      version: 1 as const,
+      score: 77,
+    };
+    const upgraded = upgradeStoredOpportunityIntelligence(
+      { ...lead, title: lead.contactTitle, opportunityIntelligence: legacy },
+      "fleet_wraps",
+      readySeller,
+      legacy,
+    );
+
+    expect(upgraded?.version).toBe(2);
+    expect(upgraded?.score).not.toBe(77);
+    expect(upgraded?.score).toBe(upgraded?.breakdown.reduce((sum, item) => sum + item.points, 0));
   });
 
   it("keeps verified facts, implications, and unknowns separated for email prompts", () => {
