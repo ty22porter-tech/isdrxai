@@ -988,10 +988,10 @@ export function buildOpportunityIntelligence(
       ? `${signalRelevance} ${modelFit.description} ${sellerFit}`
       : `${modelFit.description} ${sellerFit} ${signalRelevance}`;
   const publicActivity = strongestNarrativeSignal
-    ? `Public activity reviewed: ${strongestNarrativeSignal.signalDescription}`
-    : `No public internet activity showing an active technology purchase, provider search, security project, or compliance initiative was verified.`;
+    ? `Official company website activity reviewed: ${strongestNarrativeSignal.signalDescription}`
+    : `The reviewed official company website pages did not provide a current, sourced buying event.`;
   const whyTarget = vertical === "it_services"
-    ? `${lead.companyName}'s website and available public activity were assessed against ${seller.ready ? `${seller.name}'s approved offerings` : "the user's Company Intelligence"}. ${publicActivity} ${baseWhyTarget}${compliance.selected ? ` Because “${lead.compliancePriority}” was selected, also consider that ${compliance.obligations}; potential issues include ${compliance.risk}. These are likely considerations to validate, not confirmed incidents.` : ""}`
+    ? `${lead.companyName}'s official website and linked careers or announcement pages were assessed against ${seller.ready ? `${seller.name}'s approved offerings` : "the user's Company Intelligence"}. ${publicActivity} ${baseWhyTarget}${compliance.selected ? ` Because “${lead.compliancePriority}” was selected, also consider that ${compliance.obligations}; potential issues include ${compliance.risk}. These are likely considerations to validate, not confirmed incidents.` : ""}`
     : baseWhyTarget;
   const baseRecommendedOutreach = strongestNarrativeSignal
     ? isCurrentBuyingSignal(strongestNarrativeSignal)

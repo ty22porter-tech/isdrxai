@@ -426,7 +426,7 @@ describe("opportunity intelligence", () => {
       compliancePriority: "Healthcare Compliance",
     }, "it_services", itSeller);
 
-    expect(intelligence.whyTarget).toMatch(/website and available public activity/i);
+    expect(intelligence.whyTarget).toMatch(/official website and linked careers or announcement pages/i);
     expect(intelligence.whyTarget).toMatch(/HIPAA|HITECH/i);
     expect(intelligence.whyTarget).toMatch(/not confirmed incidents/i);
     expect(intelligence.potentialNeeds.join(" ")).toMatch(/240 employees/i);
