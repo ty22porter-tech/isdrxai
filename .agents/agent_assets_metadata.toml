@@ -73,3 +73,17 @@ mtime_ms = 1788744433459
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/c55cd29e-b077-40a5-9955-661fe3b4389d/aef3e084-0ce0-4e35-b283-bc9a0d1ae6cb"
 storage_version_token = "1788744438712881"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "b-tfhRbUnAmGLzqaqED19"
+uri = "file://screenshots/wrap-opportunity-preview.jpg"
+type = "image"
+title = "Fleet Wrap Opportunity Card Preview"
+description = "Example of the expanded Why Target, Potential Needs, and Recommended Outreach fields using company-specific mobile-service evidence."
+logical_id = "bdbca617-1323-4f0f-808a-5d1efe8ee33d"
+content_hash = "sha256:f4ce03d1cfa694e1cd9b52c6da04c11167dd2ceef152e7fa3cd0ed9bd7500aee"
+size = 52861
+mtime_ms = 1788817525103
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/bdbca617-1323-4f0f-808a-5d1efe8ee33d/7ece1737-3c6a-4074-a31f-98433283b04c"
+storage_version_token = "1788817532101082"
+content_type = "image/jpeg"
