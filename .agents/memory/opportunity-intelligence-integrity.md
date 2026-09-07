@@ -25,7 +25,7 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **Why:** A generic industry issue is not evidence that a specific prospect has that need, and a seller priority is not proof the seller can solve it.
 
-**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. Employee count, generic industry compliance, or cybersecurity context must never create a Potential Need by itself; omit the row when no individualized basis exists.
+**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. For IT prospects, applicable industry compliance and plausible cyber threats may form a clearly conditional discovery hypothesis only when tied to a semantically relevant approved seller offering; they never become verified buying signals or scored business needs. Keep it to two natural sentences and do not reuse the same wording in Recommended Outreach.
 
 **Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, explain the evidence-based timing or verified demographic fit, and end with an approved seller CTA. Never replace this with a generic no-signal warning.
 

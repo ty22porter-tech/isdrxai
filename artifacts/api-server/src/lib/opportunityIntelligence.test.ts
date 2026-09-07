@@ -173,7 +173,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds[0]).toContain("multi-location network integration");
   });
 
-  it("does not turn generic healthcare compliance context into a Potential Need", () => {
+  it("turns applicable healthcare compliance and cyber risk into a seller-relevant discovery hypothesis", () => {
     const medicalLead = { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" };
     const securitySeller = {
       ...readySeller,
@@ -189,7 +189,13 @@ describe("opportunity intelligence", () => {
     const relevant = buildOpportunityIntelligence(medicalLead, "it_services", securitySeller);
     const unrelated = buildOpportunityIntelligence(medicalLead, "it_services", readySeller);
 
-    expect(relevant.potentialNeeds).toEqual([]);
+    expect(relevant.potentialNeeds).toHaveLength(1);
+    expect(relevant.potentialNeeds[0]).toContain("CornerStone Medical");
+    expect(relevant.potentialNeeds[0]).toMatch(/HIPAA and HITECH/i);
+    expect(relevant.potentialNeeds[0]).toMatch(/ransomware, account takeover, and third-party access failures/i);
+    expect(relevant.potentialNeeds[0]).toContain("HIPAA compliance support");
+    expect(relevant.recommendedOutreach).toContain("How are you testing access controls and recovery readiness");
+    expect(relevant.recommendedOutreach).not.toContain("CornerStone Medical's sourced profile");
     expect(unrelated.potentialNeeds).toEqual([]);
   });
 
@@ -236,7 +242,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.whyTarget).toBe("");
   });
 
-  it("does not turn generic industry compliance context into Why Target", () => {
+  it("keeps financial compliance and cyber risk in Potential Needs, not Why Target", () => {
     const financialLead = { ...lead, companyName: "Example Financial", industry: "Financial Services" };
     const securitySeller = {
       ...readySeller,
@@ -250,7 +256,11 @@ describe("opportunity intelligence", () => {
     } as any;
     const intelligence = buildOpportunityIntelligence(financialLead, "it_services", securitySeller);
 
-    expect(intelligence.potentialNeeds).toEqual([]);
+    expect(intelligence.potentialNeeds).toHaveLength(1);
+    expect(intelligence.potentialNeeds[0]).toMatch(/GLBA, the FTC Safeguards Rule/i);
+    expect(intelligence.potentialNeeds[0]).toMatch(/credential theft, business email compromise, and ransomware/i);
+    expect(intelligence.potentialNeeds[0]).toContain("GLBA readiness support");
+    expect(intelligence.recommendedOutreach).toContain("How confident are you that your current safeguards");
     expect(intelligence.whyTarget).toBe("");
   });
 

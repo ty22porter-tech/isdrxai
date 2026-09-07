@@ -48,36 +48,64 @@ const safeSourceUrl = (website?: string | null) => {
   }
 };
 
-const IT_COMPLIANCE_BY_INDUSTRY: Array<{ pattern: RegExp; requirement: string; challenge: string }> = [
+const IT_COMPLIANCE_BY_INDUSTRY: Array<{
+  pattern: RegExp;
+  requirement: string;
+  frameworks: string;
+  challenge: string;
+  threats: string;
+  controls: string;
+  discoveryQuestion: string;
+}> = [
   {
     pattern: /health|medical|dental|clinic|hospital/i,
     requirement: "Healthcare organizations may be subject to HIPAA and HITECH safeguards for protected health information",
+    frameworks: "HIPAA and HITECH safeguards",
     challenge: "maintaining appropriate security controls, access management, resilience, and audit readiness for systems handling patient information",
+    threats: "ransomware, account takeover, and third-party access failures that can interrupt care or expose patient information",
+    controls: "identity safeguards, endpoint protection, vendor access, backups, and recovery readiness",
+    discoveryQuestion: "How are you testing access controls and recovery readiness for systems that support patient care?",
   },
   {
     pattern: /financial|bank|credit|lending|mortgage|insurance/i,
     requirement: "Financial organizations may be subject to GLBA and the FTC Safeguards Rule, along with applicable state requirements",
+    frameworks: "GLBA, the FTC Safeguards Rule, and applicable state requirements",
     challenge: "protecting sensitive financial information and maintaining documented security controls",
+    threats: "credential theft, business email compromise, and ransomware that can expose customer data or disrupt financial operations",
+    controls: "email security, identity controls, endpoint protection, incident response, and documented risk reviews",
+    discoveryQuestion: "How confident are you that your current safeguards would hold up during an account-compromise attempt or a compliance review?",
   },
   {
     pattern: /retail|hospitality|restaurant|hotel|e-?commerce/i,
     requirement: "Organizations that process payment cards may need to maintain PCI DSS controls",
+    frameworks: "PCI DSS controls",
     challenge: "securing payment environments, user access, networks, and supporting systems",
+    threats: "payment credential theft, account takeover, and ransomware that can interrupt sales or expose cardholder data",
+    controls: "payment-system separation, access controls, endpoint security, monitoring, and recovery plans",
+    discoveryQuestion: "Where would a payment-system compromise or prolonged outage create the most disruption today?",
   },
   {
     pattern: /school|education|college|university/i,
     requirement: "Education organizations may have FERPA and other student-data privacy obligations",
+    frameworks: "FERPA and applicable student-data privacy requirements",
     challenge: "protecting student information while maintaining reliable access for staff and learners",
+    threats: "phishing, account takeover, and ransomware that can expose student data or interrupt instruction",
+    controls: "identity protection, device management, email security, backups, and incident recovery",
+    discoveryQuestion: "How are you balancing easy access for staff and students with protection against phishing and account takeover?",
   },
   {
     pattern: /manufactur|construction|aerospace|defen[cs]e|government contractor/i,
     requirement: "Organizations participating in government or defense supply chains may need NIST 800-171 or CMMC controls",
+    frameworks: "NIST 800-171 or CMMC controls when contract requirements apply",
     challenge: "determining applicability and maintaining required security controls for covered contract information",
+    threats: "ransomware, supplier-account compromise, and unauthorized remote access that can disrupt operations or expose contract information",
+    controls: "access control, network segmentation, endpoint security, supplier access, backups, and evidence of control performance",
+    discoveryQuestion: "How are you validating supplier access and recovery plans without slowing down day-to-day operations?",
   },
 ];
 
 const SECURITY_OFFER_PATTERN =
-  /\b(?:cyber(?:security)?|security|compliance|risk|managed it|information technology|network|backup|disaster recovery|incident|recovery|resilience|identity|access|microsoft 365|cloud)\b/i;
+  /\b(?:cyber(?:security)?|security|compliance|risk|managed it|information technology|network|backup|disaster recovery|incident|recovery|resilience|identity|access|microsoft 365|cloud|hipaa|hitech|glba|pci|ferpa|cmmc|nist)\b/i;
 
 function signalChallenge(signal: OpportunitySignal, vertical: string): string {
   if (signal.signalType === "security_incident") {
@@ -131,10 +159,21 @@ function matchingSellerOffer(offers: string[], challenge: string, requireSecurit
     ["clean", "cleaning", "janitorial", "facility", "sanitation", "hygiene"],
   ];
   const normalizedChallenge = challenge.toLowerCase();
-  const directKeywords = normalizedChallenge.split(/[^a-z0-9]+/).filter(word => word.length > 4);
+  const complianceAcronym = /^(?:hipaa|hitech|glba|pci|ferpa|cmmc|nist)$/;
+  const directKeywords = [...new Set(
+    normalizedChallenge
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length > 4 || complianceAcronym.test(word)),
+  )];
   const score = (offer: string) => {
     const normalizedOffer = offer.toLowerCase();
-    const direct = directKeywords.filter(keyword => normalizedOffer.includes(keyword)).length * 3;
+    const direct = directKeywords.reduce(
+      (total, keyword) =>
+        normalizedOffer.includes(keyword)
+          ? total + (complianceAcronym.test(keyword) ? 8 : 3)
+          : total,
+      0,
+    );
     const semantic = groups.reduce((total, group) =>
       group.some(term => normalizedChallenge.includes(term)) && group.some(term => normalizedOffer.includes(term))
         ? total + 2
@@ -512,6 +551,18 @@ export function buildOpportunityIntelligence(
         `${signal.signalTitle}: ${challenge}. ${seller.name}'s ${offer} may support ${outcome}.`,
       );
     }
+    if (compliance) {
+      const securityOffer = matchingSellerOffer(
+        sellerOffers,
+        `${compliance.requirement}. ${compliance.challenge}. ${compliance.threats}. ${compliance.controls}`,
+        true,
+      );
+      if (securityOffer) {
+        potentialNeeds.push(
+          `For ${lead.companyName}, a useful question is whether current practices align with ${compliance.frameworks} and are prepared for ${compliance.threats}. ${seller.name}'s ${securityOffer} could help review ${compliance.controls}${sellerOutcome ? ` and support ${sellerOutcome}` : ""}.`,
+        );
+      }
+    }
   }
   potentialNeeds.splice(3);
   const strongestBuyingSignal = buyingEvidence[0];
@@ -548,17 +599,24 @@ export function buildOpportunityIntelligence(
     : undefined;
   const outreachOutcome = sellerOutcome || match.outcome;
   const outreachCta = seller.ctas[0] || "recommend a brief, focused assessment of the relevant environment";
+  const contextualSecurityOffer = seller.ready && compliance
+    ? matchingSellerOffer(
+        sellerOffers,
+        `${compliance.requirement}. ${compliance.challenge}. ${compliance.threats}. ${compliance.controls}`,
+        true,
+      )
+    : undefined;
   const recommendedOutreach = !seller.ready || !outreachOffer
     ? ""
     : strongestBuyingSignal?.signalType === "security_incident"
       ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${seller.name}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
       : strongestBuyingSignal
         ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+        : compliance && contextualSecurityOffer
+          ? `Open with a practical question: “${compliance.discoveryQuestion}” If the answer reveals gaps, connect ${seller.name}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : demographic
           ? `For ${lead.companyName}, ask how its ${lead.employeeCount}-person team handles onboarding, support, identity access, endpoint management, and security. Position ${seller.name}'s ${outreachOffer} around the gaps they confirm; then ${outreachCta}.`
-          : compliance
-            ? `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} in the context of ${compliance.requirement.toLowerCase()}. Frame this as an applicability and readiness review—not an assertion that ${lead.companyName} is noncompliant—and ${outreachCta}.`
-            : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
+          : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
 
   return {
     version: 3,
