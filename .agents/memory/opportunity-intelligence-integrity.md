@@ -25,7 +25,7 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **Why:** A generic industry issue is not evidence that a specific prospect has that need, and a seller priority is not proof the seller can solve it.
 
-**How to apply:** For each positive signal, render signal → conditional challenge → approved seller capability/outcome. Add an industry compliance or cybersecurity consideration only when plausibly applicable and the seller has a matching approved offer; phrase applicability conditionally.
+**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. Sourced company demographics may also create a conditional need. Generic industry compliance or cybersecurity context must never create a Potential Need by itself; omit the row when no individualized basis exists.
 
 **Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, explain the evidence-based timing or verified demographic fit, and end with an approved seller CTA. Never replace this with a generic no-signal warning.
 

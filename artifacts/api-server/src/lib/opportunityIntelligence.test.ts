@@ -173,7 +173,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds[0]).toContain("multi-location network integration");
   });
 
-  it("adds applicable healthcare cybersecurity compliance only when the seller has a matching approved offer", () => {
+  it("does not turn generic healthcare compliance context into a Potential Need", () => {
     const medicalLead = { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" };
     const securitySeller = {
       ...readySeller,
@@ -189,11 +189,7 @@ describe("opportunity intelligence", () => {
     const relevant = buildOpportunityIntelligence(medicalLead, "it_services", securitySeller);
     const unrelated = buildOpportunityIntelligence(medicalLead, "it_services", readySeller);
 
-    expect(relevant.potentialNeeds).toEqual([
-      expect.stringMatching(/HIPAA and HITECH/i),
-    ]);
-    expect(relevant.potentialNeeds[0]).toContain("HIPAA compliance support");
-    expect(relevant.potentialNeeds[0]).toContain("applicable requirements");
+    expect(relevant.potentialNeeds).toEqual([]);
     expect(unrelated.potentialNeeds).toEqual([]);
   });
 
@@ -236,6 +232,9 @@ describe("opportunity intelligence", () => {
     expect(intelligence.recommendedOutreach).toContain("84-employee organization");
     expect(intelligence.recommendedOutreach).toContain("SecurePath IT");
     expect(intelligence.recommendedOutreach).toContain("schedule a technology readiness review");
+    expect(intelligence.potentialNeeds).toHaveLength(1);
+    expect(intelligence.potentialNeeds[0]).toContain("Northwind Mechanical");
+    expect(intelligence.potentialNeeds[0]).toContain("84-employee organization");
     expect(intelligence.whyTarget).toContain("Northwind Mechanical");
     expect(intelligence.whyTarget).toContain("84-employee organization");
     expect(intelligence.whyTarget).toContain("endpoint and identity management");
@@ -255,7 +254,7 @@ describe("opportunity intelligence", () => {
     } as any;
     const intelligence = buildOpportunityIntelligence(financialLead, "it_services", securitySeller);
 
-    expect(intelligence.potentialNeeds[0]).toMatch(/GLBA/i);
+    expect(intelligence.potentialNeeds).toEqual([]);
     expect(intelligence.whyTarget).toBe("");
   });
 

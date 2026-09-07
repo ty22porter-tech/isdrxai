@@ -501,6 +501,7 @@ export function buildOpportunityIntelligence(
   const compliance = vertical === "it_services"
     ? IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry))
     : undefined;
+  const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
   if (seller.ready) {
     for (const signal of buyingEvidence.slice(0, 2)) {
       const challenge = signalChallenge(signal, vertical);
@@ -508,20 +509,13 @@ export function buildOpportunityIntelligence(
       if (!offer) continue;
       const outcome = sellerOutcome || match.outcome;
       potentialNeeds.push(
-        `${signal.signalTitle} → Potential challenge: ${challenge} → ${seller.name}'s ${offer} may help support ${outcome}.`,
+        `${signal.signalTitle}: ${challenge}. ${seller.name}'s ${offer} may support ${outcome}.`,
       );
     }
-    if (compliance) {
-      const offer = matchingSellerOffer(
-        sellerOffers,
-        `${compliance.requirement}. ${compliance.challenge}`,
-        true,
+    if (demographic && demographicOffer) {
+      potentialNeeds.push(
+        `${lead.companyName}'s sourced profile indicates a ${demographic}. ${seller.name}'s ${demographicOffer} may support ${sellerOutcome || match.outcome}.`,
       );
-      if (offer) {
-        potentialNeeds.push(
-          `${compliance.requirement} → Potential challenge: ${compliance.challenge} → ${seller.name}'s ${offer} may help assess and support the applicable requirements.`,
-        );
-      }
     }
   }
   potentialNeeds.splice(3);
@@ -533,7 +527,6 @@ export function buildOpportunityIntelligence(
         && signal.sourceURL === strongestBuyingSignal.sourceURL,
       )?.potentialBusinessImpact
     : undefined;
-  const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
   const whyTargetChallenge = strongestBuyingSignal
     ? signalImplication || signalChallenge(strongestBuyingSignal, vertical)
     : demographic;
