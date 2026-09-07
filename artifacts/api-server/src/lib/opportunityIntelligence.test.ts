@@ -51,6 +51,14 @@ describe("opportunity intelligence", () => {
     const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
 
     expect(intelligence.breakdown).toHaveLength(6);
+    expect(Object.fromEntries(intelligence.breakdown.map(item => [item.key, item.maxPoints]))).toEqual({
+      company_industry_fit: 20,
+      verified_buying_signals: 30,
+      seller_prospect_match: 20,
+      decision_maker_match: 10,
+      signal_freshness: 10,
+      business_need_potential: 10,
+    });
     expect(intelligence.breakdown.reduce((sum, item) => sum + item.maxPoints, 0)).toBe(100);
     expect(intelligence.breakdown.reduce((sum, item) => sum + item.points, 0)).toBe(intelligence.score);
   });
@@ -293,8 +301,8 @@ describe("opportunity intelligence", () => {
     }, "fleet_wraps", readySeller);
 
     expect(sparse.score).not.toBe(profiled.score);
-    expect(sparse.breakdown.find(item => item.key === "company_industry_fit")?.points).toBe(4);
-    expect(profiled.breakdown.find(item => item.key === "company_industry_fit")?.points).toBe(25);
+    expect(sparse.breakdown.find(item => item.key === "company_industry_fit")?.points).toBe(3);
+    expect(profiled.breakdown.find(item => item.key === "company_industry_fit")?.points).toBe(20);
     expect(profiled.breakdown.filter(item => item.points > 0).every(item => item.evidence.length > 0)).toBe(true);
   });
 
@@ -311,7 +319,7 @@ describe("opportunity intelligence", () => {
       legacy,
     );
 
-    expect(upgraded?.version).toBe(2);
+    expect(upgraded?.version).toBe(3);
     expect(upgraded?.score).not.toBe(77);
     expect(upgraded?.score).toBe(upgraded?.breakdown.reduce((sum, item) => sum + item.points, 0));
   });

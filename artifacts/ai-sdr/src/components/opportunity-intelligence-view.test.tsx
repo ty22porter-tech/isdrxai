@@ -35,25 +35,25 @@ describe("OpportunityIntelligenceView", () => {
       <OpportunityIntelligenceView
         intelligence={{
           ...intelligence([]),
-          score: 15,
+          score: 12,
           breakdown: [{
             key: "company_industry_fit",
-            label: "Company / Industry Fit",
-            points: 15,
-            maxPoints: 25,
+            label: "Company / ICP Fit",
+            points: 12,
+            maxPoints: 20,
             explanation: "Points come from verified prospect fields.",
             evidence: [
-              "A published operating address is available. (+5)",
-              "A published company website is available. (+6)",
+              "A published operating address supports company identity and market fit. (+4)",
+              "A published company website supports company and industry fit. (+5)",
             ],
           }],
         }}
       />,
     );
 
-    expect(screen.getByText("15 / 25 pts")).toBeInTheDocument();
-    expect(screen.getByText("A published operating address is available. (+5)")).toBeInTheDocument();
-    expect(screen.getByText("A published company website is available. (+6)")).toBeInTheDocument();
+    expect(screen.getByText("12 / 20 pts")).toBeInTheDocument();
+    expect(screen.getByText("A published operating address supports company identity and market fit. (+4)")).toBeInTheDocument();
+    expect(screen.getByText("A published company website supports company and industry fit. (+5)")).toBeInTheDocument();
   });
 
   it("keeps the prospect-card view short and omits empty or negative findings", () => {

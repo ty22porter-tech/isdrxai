@@ -13,7 +13,7 @@ Opportunity scoring must not award generic baseline points for selected industry
 
 **Why:** Generic baseline points cause unrelated prospects to receive identical “Possible Fit” scores and make the breakdown look individualized when it is not.
 
-**How to apply:** Preserve the 100-point category model, but calculate the total only from verified prospect identity/demographics, sourced buying evidence, evidence-to-offer matches, verified decision makers, signal freshness, and seller-addressable needs. Legitimate ties are acceptable when evidence is genuinely identical; never force uniqueness with random or name-derived points.
+**How to apply:** Preserve this exact 100-point rubric: Company/ICP Fit 20, Verified Buying Signals 30, Seller-to-Prospect Match 20, Decision-Maker Match 10, Signal Freshness 10, Business Need Potential 10. Calculate points only from verified prospect identity/demographics, sourced buying evidence, evidence-to-offer matches, verified decision makers, signal freshness, and seller-addressable needs. Legitimate ties are acceptable when evidence is genuinely identical; never force uniqueness with random or name-derived points.
 
 Google Places listing, address, website, and phone facts are validation/scoring inputs only. Never include them in **Why Target**; that narrative must use target-worthy evidence, a possible business challenge, and an approved seller capability.
 

@@ -110,7 +110,7 @@ router.get("/", async (req, res) => {
   }
 
   const prospects = await db.select().from(prospectsTable).where(and(...conditions)).orderBy(sql`${prospectsTable.createdAt} desc`);
-  const client = prospects.some(prospect => prospect.opportunityIntelligence?.version === 1)
+  const client = prospects.some(prospect => prospect.opportunityIntelligence && prospect.opportunityIntelligence.version !== 3)
     ? await currentClient(req.clientId)
     : undefined;
   res.json(prospects.map(p => ({
@@ -286,7 +286,7 @@ router.get("/:id", async (req, res) => {
   const { id } = GetProspectParams.parse({ id: parseInt(req.params.id) });
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  const client = prospect.opportunityIntelligence?.version === 1
+  const client = prospect.opportunityIntelligence && prospect.opportunityIntelligence.version !== 3
     ? await currentClient(req.clientId)
     : undefined;
   const opportunityIntelligence = upgradeStoredOpportunityIntelligence(

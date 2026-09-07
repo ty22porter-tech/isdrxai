@@ -376,17 +376,17 @@ export function buildOpportunityIntelligence(
   }
 
   const companyFitEvidence = [
-    `${lead.companyName} has a verified public business identity. (+4)`,
-    ...(lead.address ? ["A published operating address is available. (+5)"] : []),
-    ...(lead.website ? ["A published company website is available. (+6)"] : []),
-    ...(lead.phone ? ["A published business phone is available. (+3)"] : []),
-    ...(lead.employeeCount ? [`A sourced employee estimate of ${lead.employeeCount.toLocaleString()} is available. (+7)`] : []),
+    `${lead.companyName} has a verified public business identity matching the target profile. (+3)`,
+    ...(lead.address ? ["A published operating address supports company identity and market fit. (+4)"] : []),
+    ...(lead.website ? ["A published company website supports company and industry fit. (+5)"] : []),
+    ...(lead.phone ? ["A published business phone supports active-company validation. (+2)"] : []),
+    ...(lead.employeeCount ? [`A sourced employee estimate of ${lead.employeeCount.toLocaleString()} supports ICP size fit. (+6)`] : []),
   ];
-  const companyFitPoints = 4
-    + (lead.address ? 5 : 0)
-    + (lead.website ? 6 : 0)
-    + (lead.phone ? 3 : 0)
-    + (lead.employeeCount ? 7 : 0);
+  const companyFitPoints = 3
+    + (lead.address ? 4 : 0)
+    + (lead.website ? 5 : 0)
+    + (lead.phone ? 2 : 0)
+    + (lead.employeeCount ? 6 : 0);
   const evidenceOfferMatches = seller.ready
     ? buyingEvidence.flatMap(signal => {
         const challenge = signalChallenge(signal, vertical);
@@ -411,7 +411,13 @@ export function buildOpportunityIntelligence(
       + (demographicOffer ? 5 : 0),
   );
   const strongestMatchedSignalPoints = Math.max(0, ...evidenceOfferMatches.map(({ signal }) => signal.points));
-  const businessNeedPoints = strongestMatchedSignalPoints >= 8 ? 5 : strongestMatchedSignalPoints > 0 ? 3 : 0;
+  const businessNeedPoints = strongestMatchedSignalPoints >= 10
+    ? 10
+    : strongestMatchedSignalPoints >= 7
+      ? 8
+      : strongestMatchedSignalPoints > 0
+        ? 5
+        : 0;
   const buyingPoints = Math.min(30, buyingEvidence.reduce((sum, signal) => sum + signal.points, 0));
   const freshnessWeight = (value: OpportunitySignal["freshness"]) =>
     value === "recent" ? 10 : value === "active" ? 7 : value === "older" ? 3 : 0;
@@ -422,10 +428,10 @@ export function buildOpportunityIntelligence(
   const breakdown = [
     category(
       "company_industry_fit",
-      "Company / Industry Fit",
+      "Company / ICP Fit",
       companyFitPoints,
-      25,
-      "Points come only from this prospect’s verified public identity and demographic fields. Selected industry alone earns no points.",
+      20,
+      "Measures whether this verified prospect is fundamentally the right type and size of company for the seller. Selected industry alone earns no points.",
       companyFitEvidence,
     ),
     category(
@@ -478,7 +484,7 @@ export function buildOpportunityIntelligence(
       "business_need_potential",
       "Business Need Potential",
       businessNeedPoints,
-      5,
+      10,
       businessNeedPoints
         ? "Points reflect the strongest verified prospect event that also maps to an approved seller offering."
         : "Industry implications, compliance context, and seller capabilities alone do not establish a scored business need.",
@@ -564,7 +570,7 @@ export function buildOpportunityIntelligence(
             : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
 
   return {
-    version: 2,
+    version: 3,
     score,
     label: scoreLabel(score),
     scoreConfidence,
@@ -629,7 +635,7 @@ export function upgradeStoredOpportunityIntelligence(
   client?: typeof usersTable.$inferSelect,
   prior?: OpportunityIntelligence | null,
 ): OpportunityIntelligence | undefined {
-  if (!prior || prior.version === 2) return prior ?? undefined;
+  if (!prior || prior.version === 3) return prior ?? undefined;
   const scoreableStoredSignals = prior.signals.filter(signal =>
     signal.signalClassification === "verified"
     && Boolean(signal.sourceURL)
