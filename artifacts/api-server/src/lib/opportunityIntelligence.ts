@@ -7,7 +7,6 @@ import type { usersTable } from "@workspace/db";
 import {
   genericOutreach,
   industryMatch,
-  potentialNeedsForSeller,
   sellerIntelligenceProfile,
 } from "./prospectMatching";
 import { researchOfficialWebsite } from "./officialWebsiteResearch";
@@ -44,6 +43,79 @@ const safeSourceUrl = (website?: string | null) => {
     return undefined;
   }
 };
+
+const IT_COMPLIANCE_BY_INDUSTRY: Array<{ pattern: RegExp; requirement: string; challenge: string }> = [
+  {
+    pattern: /health|medical|dental|clinic|hospital/i,
+    requirement: "Healthcare organizations may be subject to HIPAA and HITECH safeguards for protected health information",
+    challenge: "maintaining appropriate security controls, access management, resilience, and audit readiness for systems handling patient information",
+  },
+  {
+    pattern: /financial|bank|credit|lending|mortgage|insurance/i,
+    requirement: "Financial organizations may be subject to GLBA and the FTC Safeguards Rule, along with applicable state requirements",
+    challenge: "protecting sensitive financial information and maintaining documented security controls",
+  },
+  {
+    pattern: /retail|hospitality|restaurant|hotel|e-?commerce/i,
+    requirement: "Organizations that process payment cards may need to maintain PCI DSS controls",
+    challenge: "securing payment environments, user access, networks, and supporting systems",
+  },
+  {
+    pattern: /school|education|college|university/i,
+    requirement: "Education organizations may have FERPA and other student-data privacy obligations",
+    challenge: "protecting student information while maintaining reliable access for staff and learners",
+  },
+  {
+    pattern: /manufactur|construction|aerospace|defen[cs]e|government contractor/i,
+    requirement: "Organizations participating in government or defense supply chains may need NIST 800-171 or CMMC controls",
+    challenge: "determining applicability and maintaining required security controls for covered contract information",
+  },
+];
+
+const SECURITY_OFFER_PATTERN =
+  /\b(?:cyber|security|compliance|risk|managed it|information technology|network|backup|disaster recovery|identity|access|microsoft 365|cloud)\b/i;
+
+function signalChallenge(signal: OpportunitySignal, vertical: string): string {
+  if (signal.signalType === "hiring_listing") {
+    return vertical === "it_services"
+      ? "scaling user support, onboarding, access, devices, infrastructure, and security as staffing changes"
+      : vertical === "fleet_wraps"
+        ? "maintaining consistent identification and branding as field operations grow"
+        : "maintaining consistent facility service as staffing and operations change";
+  }
+  if (["acquisition", "expansion", "new_location"].includes(signal.signalType)) {
+    return vertical === "it_services"
+      ? "integrating locations, users, systems, security controls, and support during organizational change"
+      : vertical === "fleet_wraps"
+        ? "keeping branding and field assets consistent across an expanding organization"
+        : "coordinating consistent facility standards across a changing footprint";
+  }
+  if (signal.signalType === "company_launch") {
+    return vertical === "it_services"
+      ? "establishing reliable, secure, and supportable technology operations"
+      : vertical === "fleet_wraps"
+        ? "building a recognizable and consistent market presence"
+        : "establishing reliable facility service and operating standards";
+  }
+  if (signal.signalType === "rebrand") {
+    return vertical === "fleet_wraps"
+      ? "updating customer-facing field assets to maintain brand consistency"
+      : "keeping operations and customer-facing systems aligned through the rebrand";
+  }
+  if (signal.signalType === "fleet_vehicle_evidence") {
+    return "maintaining clear, consistent identification and branding across customer-facing vehicles";
+  }
+  return signal.potentialBusinessImpact
+    || signal.signalDescription
+    || "addressing the operational change indicated by this verified signal";
+}
+
+function matchingSellerOffer(offers: string[], challenge: string, requireSecurity = false): string | undefined {
+  const eligible = requireSecurity ? offers.filter(offer => SECURITY_OFFER_PATTERN.test(offer)) : offers;
+  if (!eligible.length) return undefined;
+  const keywords = challenge.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 4);
+  return eligible.find(offer => keywords.some(keyword => offer.toLowerCase().includes(keyword))) || eligible[0];
+}
 
 function category(
   key: OpportunityScoreCategory["key"],
@@ -335,11 +407,30 @@ export function buildOpportunityIntelligence(
     ),
   ] satisfies OpportunityScoreCategory[];
   const score = breakdown.reduce((sum, item) => sum + item.points, 0);
-  const potentialNeeds = potentialNeedsForSeller(client, lead.industry, vertical)
-    .slice(0, 3)
-    .map(need => /^(potential|if|confirm|understand|determine|explore)/i.test(need)
-      ? need
-      : `Potential opportunity: ${need.charAt(0).toLowerCase()}${need.slice(1)}`);
+  const potentialNeeds: string[] = [];
+  if (seller.ready) {
+    for (const signal of buyingEvidence.slice(0, 2)) {
+      const challenge = signalChallenge(signal, vertical);
+      const offer = matchingSellerOffer(sellerOffers, challenge);
+      if (!offer) continue;
+      const outcome = sellerOutcome || match.outcome;
+      potentialNeeds.push(
+        `${signal.signalTitle} → Potential challenge: ${challenge} → ${seller.name}'s ${offer} may help support ${outcome}.`,
+      );
+    }
+    if (vertical === "it_services") {
+      const compliance = IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry));
+      if (compliance) {
+        const offer = matchingSellerOffer(sellerOffers, compliance.challenge, true);
+        if (offer) {
+          potentialNeeds.push(
+            `${compliance.requirement} → Potential challenge: ${compliance.challenge} → ${seller.name}'s ${offer} may help assess and support the applicable requirements.`,
+          );
+        }
+      }
+    }
+  }
+  potentialNeeds.splice(3);
   const strongestBuyingSignal = buyingEvidence[0];
   const signalImplication = strongestBuyingSignal
     ? signals.find(signal =>

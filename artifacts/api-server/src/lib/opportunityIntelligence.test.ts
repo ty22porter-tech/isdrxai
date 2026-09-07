@@ -119,6 +119,69 @@ describe("opportunity intelligence", () => {
     expect(intelligence.whyTarget).not.toMatch(/Google Places|public operating address|public (?:company )?website/i);
   });
 
+  it("derives Potential Needs from verified research and connects them to an approved seller offer", () => {
+    const researched = [{
+      signalType: "expansion",
+      signalTitle: "Official expansion announcement",
+      signalDescription: "The company announced a second operating location.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company news",
+      sourceURL: "https://northwind.example/news/expansion",
+      sourceDate: new Date().toISOString(),
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "The official announcement names the new location.",
+      points: 0,
+    }] as any;
+    const seller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["managed IT services"],
+        sellerCapabilities: ["multi-location network integration"],
+        sellerBusinessOutcomes: ["consistent and secure operations across locations"],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence(lead, "it_services", seller, researched);
+
+    expect(intelligence.potentialNeeds).toHaveLength(1);
+    expect(intelligence.potentialNeeds[0]).toContain("Official expansion announcement");
+    expect(intelligence.potentialNeeds[0]).toContain("integrating locations, users, systems, security controls, and support");
+    expect(intelligence.potentialNeeds[0]).toContain("SecurePath IT");
+    expect(intelligence.potentialNeeds[0]).toContain("multi-location network integration");
+  });
+
+  it("adds applicable healthcare cybersecurity compliance only when the seller has a matching approved offer", () => {
+    const medicalLead = { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" };
+    const securitySeller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["managed IT services", "cybersecurity assessment"],
+        sellerCapabilities: ["HIPAA compliance support"],
+        sellerBusinessOutcomes: ["stronger security and audit readiness"],
+      },
+    } as any;
+
+    const relevant = buildOpportunityIntelligence(medicalLead, "it_services", securitySeller);
+    const unrelated = buildOpportunityIntelligence(medicalLead, "it_services", readySeller);
+
+    expect(relevant.potentialNeeds).toEqual([
+      expect.stringMatching(/HIPAA and HITECH/i),
+    ]);
+    expect(relevant.potentialNeeds[0]).toContain("HIPAA compliance support");
+    expect(relevant.potentialNeeds[0]).toContain("applicable requirements");
+    expect(unrelated.potentialNeeds).toEqual([]);
+  });
+
+  it("does not manufacture generic Potential Needs when research finds no signal", () => {
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
+    expect(intelligence.potentialNeeds).toEqual([]);
+  });
+
   it("changes seller-match points when approved seller intelligence changes", () => {
     const ready = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
     const limited = buildOpportunityIntelligence(lead, "fleet_wraps", undefined);

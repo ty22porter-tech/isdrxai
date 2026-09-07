@@ -15,6 +15,12 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **How to apply:** Keep Google validation facts in the company-fit breakdown and evidence model. Build **Why Target** from positive buying signals when available, otherwise from a clearly conditional seller-relevant challenge—never from listing availability.
 
+**Potential Needs** must originate from verified prospect research signals, then state the possible business challenge and connect it to an approved seller offer and outcome. Do not manufacture a generic list when research finds nothing.
+
+**Why:** A generic industry issue is not evidence that a specific prospect has that need, and a seller priority is not proof the seller can solve it.
+
+**How to apply:** For each positive signal, render signal → conditional challenge → approved seller capability/outcome. Add an industry compliance or cybersecurity consideration only when plausibly applicable and the seller has a matching approved offer; phrase applicability conditionally.
+
 On prospect cards, keep Opportunity Intelligence in the compact legacy-style format: short labeled rows for why target, potential needs, the strongest verified signal, and recommended outreach. Omit empty, negative, unknown, and unverified findings instead of rendering “no result” sections; the full evidence report belongs only in the score-breakdown dialog.
 
 **Why:** The inline report overwhelmed each prospect card and consumed most of the page. Users need quick positive relevance cues while scanning results, with detail revealed only when requested.
