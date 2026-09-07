@@ -27,11 +27,11 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. For IT prospects, applicable industry compliance and plausible cyber threats may form a clearly conditional discovery hypothesis only when tied to a semantically relevant approved seller offering; they never become verified buying signals or scored business needs. Keep it to two natural sentences and do not reuse the same wording in Recommended Outreach.
 
-For fleet-wrap prospects without a verified timing event, still show distinct Why Target, Potential Needs, and Recommended Outreach fields using an industry-specific discovery hypothesis tied to an approved seller offering. Explicitly say vehicle use and branding needs are unverified, and never invent fleet size, purchases, growth, or a current graphics problem.
+For fleet-wrap prospects, Why Target, Potential Needs, and Recommended Outreach must come from verified individual-company signals such as official mobile-service evidence, vehicle evidence, relevant hiring, rebrands, acquisitions, or expansion. Never create these narratives from the industry label alone.
 
-**Why:** Leaving the first two fields blank made every fleet prospect collapse into the same generic outreach text, which was not useful for discovery.
+**Why:** Industry-template fallbacks made different fleet prospects show the same outreach and needs, defeating the purpose of company intelligence.
 
-**How to apply:** Vary the operating-model rationale and discovery question by prospect industry. Keep Why Target about possible fit, Potential Needs about a conditional challenge and seller outcome, and Recommended Outreach about the question to ask next.
+**How to apply:** Why Target cites the company signal, Potential Needs interprets a distinct conditional challenge tied to an approved seller offering, and Recommended Outreach asks a separate evidence-led discovery question. If no company-specific signal exists, do not fabricate generic fleet narratives.
 
 **Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, explain the evidence-based timing or verified demographic fit, and end with an approved seller CTA. Never replace this with a generic no-signal warning.
 

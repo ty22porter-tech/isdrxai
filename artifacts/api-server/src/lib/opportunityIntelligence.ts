@@ -140,6 +140,9 @@ function signalChallenge(signal: OpportunitySignal, vertical: string): string {
   if (signal.signalType === "fleet_vehicle_evidence") {
     return "maintaining clear, consistent identification and branding across customer-facing vehicles";
   }
+  if (signal.signalType === "fleet_mobile_operations") {
+    return "evaluating whether vehicles used for the documented mobile or customer-site operation are clearly and consistently identified";
+  }
   return signal.potentialBusinessImpact
     || signal.signalDescription
     || "addressing the operational change indicated by this verified signal";
@@ -200,52 +203,14 @@ function employeeDemographic(employeeCount?: number | null): string | undefined 
   return `${employeeCount}-employee organization where specialized security, compliance, resilience, or infrastructure support may complement internal IT`;
 }
 
-function fleetDiscoveryContext(industry: string): {
-  operation: string;
-  challenge: string;
-  question: string;
-} {
-  const normalized = industry.toLowerCase();
-  if (/\b(?:home health|home care|healthcare|medical|hospice)\b/.test(normalized)) {
-    return {
-      operation: "mobile caregivers or service staff may travel between patient or client locations, making clear vehicle identification relevant to trust and recognition",
-      challenge: "added or replacement vehicles may create inconsistent identification across a mobile care team",
-      question: "Do any team members travel to patient or client locations in company vehicles, and how do you keep those vehicles consistently identified?",
-    };
-  }
-  if (/\b(?:hvac|plumb|electric|roof|pest|restoration|appliance|field service)\b/.test(normalized)) {
-    return {
-      operation: "technicians commonly travel to customer properties, where recognizable service vehicles can reinforce trust before they reach the door",
-      challenge: "vehicle additions, replacements, or repairs may leave field branding inconsistent",
-      question: "How do you handle graphics when a service vehicle is added, replaced, or repaired?",
-    };
-  }
-  if (/\b(?:landscap|lawn|tree|pool|cleaning|janitorial)\b/.test(normalized)) {
-    return {
-      operation: "crews commonly move between customer sites, giving branded vehicles repeated visibility in the neighborhoods they serve",
-      challenge: "graphics may vary across crew vehicles or become difficult to refresh as routes and equipment change",
-      question: "Are the vehicles moving between customer sites consistently branded today, including newer or replacement units?",
-    };
-  }
-  if (/\b(?:construction|contractor|remodel|install|maintenance)\b/.test(normalized)) {
-    return {
-      operation: "crews and supervisors may travel between job sites, where consistent vehicle identification can support visibility and professionalism",
-      challenge: "mixed vehicle types and changing project assignments may make a consistent field presentation harder to maintain",
-      question: "How consistent is the branding across the vehicles your crews or supervisors take to job sites?",
-    };
-  }
-  if (/\b(?:delivery|logistics|courier|transport|moving|distribution)\b/.test(normalized)) {
-    return {
-      operation: "route-based work puts vehicles in public view throughout the service area",
-      challenge: "fleet turnover and multiple vehicle formats may create gaps in brand consistency",
-      question: "When vehicles enter or leave service, how do you keep the fleet graphics current and consistent?",
-    };
-  }
-  return {
-    operation: "some businesses in this field use customer-facing vehicles, which can create a mobile brand touchpoint",
-    challenge: "if vehicles are part of the operation, inconsistent or outdated graphics may reduce recognition",
-    question: "Does your team use customer-facing vehicles, and if so, how are their graphics managed today?",
-  };
+function fleetOperationLabel(signal: OpportunitySignal): string {
+  const evidence = `${signal.signalTitle} ${signal.signalDescription}`.toLowerCase();
+  if (/\bin-home\b/.test(evidence)) return "documented in-home service model";
+  if (/\bon-site\b/.test(evidence)) return "documented on-site service model";
+  if (/\bcaregiver/.test(evidence)) return "documented caregiver travel";
+  if (/\btechnician/.test(evidence)) return "documented field-technician work";
+  if (/\bdeliver/.test(evidence)) return "documented delivery operation";
+  return "documented mobile or customer-site operation";
 }
 
 function category(
@@ -589,12 +554,20 @@ export function buildOpportunityIntelligence(
     ? IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry))
     : undefined;
   const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
-  const fleetContext = vertical === "fleet_wraps" ? fleetDiscoveryContext(lead.industry) : undefined;
-  const fleetOffer = seller.ready && fleetContext
-    ? matchingSellerOffer(
-        sellerOffers,
-        `${fleetContext.operation}. ${fleetContext.challenge}. vehicle branding graphics lettering wraps`,
+  const fleetOperationalSignal = vertical === "fleet_wraps"
+    ? signals.find(signal =>
+        signal.signalClassification === "verified"
+        && signal.signalType === "fleet_mobile_operations",
       )
+    : undefined;
+  const fleetOperationalChallenge = fleetOperationalSignal
+    ? signalChallenge(fleetOperationalSignal, vertical)
+    : undefined;
+  const fleetOperationalLabel = fleetOperationalSignal
+    ? fleetOperationLabel(fleetOperationalSignal)
+    : undefined;
+  const fleetOperationalOffer = seller.ready && fleetOperationalChallenge
+    ? matchingSellerOffer(sellerOffers, `${fleetOperationalChallenge}. vehicle branding graphics lettering wraps`)
     : undefined;
   if (seller.ready) {
     for (const signal of buyingEvidence.slice(0, 2)) {
@@ -618,9 +591,9 @@ export function buildOpportunityIntelligence(
         );
       }
     }
-    if (fleetContext && fleetOffer && buyingEvidence.length === 0) {
+    if (fleetOperationalSignal && fleetOperationalOffer && buyingEvidence.length === 0) {
       potentialNeeds.push(
-        `If ${lead.companyName} uses customer-facing vehicles, ${fleetContext.challenge}. ${seller.name}'s ${fleetOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"}.`,
+        `${lead.companyName}'s ${fleetOperationalLabel} creates a question about whether supporting vehicles are clearly and consistently identified. ${seller.name}'s ${fleetOperationalOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"} if discovery confirms a vehicle-branding gap.`,
       );
     }
   }
@@ -644,12 +617,13 @@ export function buildOpportunityIntelligence(
     : "";
   const whyTarget = strongestBuyingSignal
     ? `${strongestBuyingSignal.signalTitle}. This may indicate ${whyTargetChallenge!.charAt(0).toLowerCase()}${whyTargetChallenge!.slice(1)}${/[.!?]$/.test(whyTargetChallenge!) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
-    : fleetContext
-      ? `${lead.companyName} operates in ${lead.industry}, where ${fleetContext.operation}. This is a fit hypothesis to validate; current vehicle use and branding needs have not been verified.`
+    : fleetOperationalSignal
+      ? `${fleetOperationalSignal.signalTitle}: ${fleetOperationalSignal.signalDescription} This verifies a mobile or customer-site operating model, but not fleet size or a current graphics need.`
       : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
-    : demographic
+    : fleetOperationalChallenge
+      || demographic
       || compliance?.challenge
       || match.challenges[0];
   const outreachOffer = seller.ready
@@ -669,20 +643,20 @@ export function buildOpportunityIntelligence(
       )
     : undefined;
   const recommendedOutreach = !seller.ready || !outreachOffer
-    ? fleetContext && fleetOffer
-      ? `Ask ${lead.companyName}: “${fleetContext.question}” If the answer reveals a need, connect ${seller.name}'s ${fleetOffer} to the specific vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-      : ""
+    ? ""
     : strongestBuyingSignal?.signalType === "security_incident"
       ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${seller.name}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
       : strongestBuyingSignal
         ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+        : fleetOperationalSignal
+          ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${seller.name}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : compliance && contextualSecurityOffer
           ? `Open with a practical question: “${compliance.discoveryQuestion}” If the answer reveals gaps, connect ${seller.name}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : demographic
           ? `For ${lead.companyName}, ask how its ${lead.employeeCount}-person team handles onboarding, support, identity access, endpoint management, and security. Position ${seller.name}'s ${outreachOffer} around the gaps they confirm; then ${outreachCta}.`
-          : fleetContext && fleetOffer
-            ? `Ask ${lead.companyName}: “${fleetContext.question}” If the answer reveals a need, connect ${seller.name}'s ${fleetOffer} to the specific vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-          : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
+          : vertical === "fleet_wraps"
+            ? ""
+            : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
 
   return {
     version: 3,

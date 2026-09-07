@@ -178,7 +178,7 @@ function linksFrom(html: string, base: URL): URL[] {
       const url = new URL(match[1], base);
       if (
         url.origin === base.origin
-        && /(?:career|jobs?|news|press|about|media|blog|insights?|resources?|updates?)/i.test(url.pathname)
+        && /(?:career|jobs?|news|press|about|media|blog|insights?|resources?|updates?|services?|solutions?|what-we-do)/i.test(url.pathname)
         && !found.some(item => item.href === url.href)
       ) found.push(url);
     } catch { /* malformed public link */ }
@@ -331,6 +331,26 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       signalClassification: "verified", confidenceLevel: "high", freshness: "unknown",
       sourceName: "Official company website", sourceURL: page.url.toString(), dateDiscovered: checkedAt, dateVerified: checkedAt,
       supportingEvidence: normalizeText(text.slice(Math.max(0, vehicle.index! - 120), vehicle.index! + vehicle[0].length + 120)), points: 0,
+    });
+    const mobileOperationPattern = /\b(?:we (?:come|travel|drive|visit|serve|provide (?:in-home|on-site)|deliver .*?(?:on-site|at your (?:home|business|location)))|our (?:technicians?|caregivers?|crews?|teams?|drivers?) (?:travel|visit|come|arrive|serve|work (?:on-site|in the field))|in-home (?:care|service|services)|on-site (?:service|services|repair|repairs|installation|installations)|mobile (?:service|services|care|team|teams)|field service)\b/i;
+    const mobileOperation = text.split(/(?<=[.!?])\s+/).find(sentence =>
+      sentence.length >= 20
+      && sentence.length <= 500
+      && mobileOperationPattern.test(sentence),
+    );
+    if (mobileOperation) signals.push({
+      signalType: "fleet_mobile_operations",
+      signalTitle: "Official mobile-service evidence",
+      signalDescription: normalizeText(mobileOperation).slice(0, 400),
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Official company website",
+      sourceURL: page.url.toString(),
+      dateDiscovered: checkedAt,
+      dateVerified: checkedAt,
+      supportingEvidence: normalizeText(mobileOperation).slice(0, 500),
+      points: 0,
     });
     const eventPattern = /(?:acquired|acquisition of|rebrand(?:ed|ing)?|changed (?:its|our) name|new location|opened (?:a|our) new|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched)/i;
     const metadataDate = htmlDate(page.html);

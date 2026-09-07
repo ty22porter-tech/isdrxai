@@ -74,23 +74,41 @@ describe("opportunity intelligence", () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ points: 0 })]));
   });
 
-  it("gives fleet prospects three distinct discovery fields without inventing fleet facts", () => {
+  it("gives fleet prospects three distinct fields from individual company evidence", () => {
+    const mobileCareSignal = [{
+      signalType: "fleet_mobile_operations",
+      signalTitle: "Official mobile-service evidence",
+      signalDescription: "All About Home Care states that its caregivers provide in-home care throughout North Texas.",
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Official company website",
+      sourceURL: "https://allabouthomecare.example/services",
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Our caregivers provide in-home care throughout North Texas.",
+      points: 0,
+    }] as any;
     const homeCare = buildOpportunityIntelligence({
       ...lead,
       companyName: "All About Home Care",
       industry: "Home Health Care",
-    }, "fleet_wraps", readySeller);
-    const hvac = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
+    }, "fleet_wraps", readySeller, mobileCareSignal);
+    const hvac = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, [{
+      ...mobileCareSignal[0],
+      signalDescription: "Northwind Mechanical states that technicians provide on-site HVAC repairs.",
+      sourceURL: "https://northwind.example/services",
+      supportingEvidence: "Our technicians provide on-site HVAC repairs.",
+    }]);
 
-    expect(homeCare.whyTarget).toMatch(/mobile caregivers|service staff/i);
-    expect(homeCare.whyTarget).toMatch(/not been verified/i);
-    expect(homeCare.potentialNeeds.join(" ")).toMatch(/customer-facing vehicles/i);
+    expect(homeCare.whyTarget).toContain("provide in-home care throughout North Texas");
+    expect(homeCare.whyTarget).toMatch(/not fleet size or a current graphics need/i);
+    expect(homeCare.potentialNeeds.join(" ")).toMatch(/documented in-home service model/i);
     expect(homeCare.potentialNeeds.join(" ")).toMatch(/fleet lettering/i);
-    expect(homeCare.recommendedOutreach).toMatch(/patient or client locations/i);
+    expect(homeCare.recommendedOutreach).toMatch(/documented in-home service model/i);
     expect(homeCare.recommendedOutreach).not.toBe(homeCare.whyTarget);
     expect(homeCare.recommendedOutreach).not.toContain(homeCare.potentialNeeds[0]);
-    expect(hvac.recommendedOutreach).toMatch(/added, replaced, or repaired/i);
-    expect(hvac.recommendedOutreach).not.toBe(homeCare.recommendedOutreach);
+    expect(hvac.whyTarget).toContain("on-site HVAC repairs");
+    expect(hvac.whyTarget).not.toBe(homeCare.whyTarget);
   });
 
   it("uses Google Places facts for validation and scoring but never as Why Target copy", () => {
@@ -218,11 +236,26 @@ describe("opportunity intelligence", () => {
     expect(unrelated.potentialNeeds).toEqual([]);
   });
 
-  it("keeps fleet Potential Needs conditional when research finds no buying signal", () => {
+  it("does not manufacture fleet narratives when research finds no company-specific signal", () => {
     const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
-    expect(intelligence.potentialNeeds).toHaveLength(1);
-    expect(intelligence.potentialNeeds[0]).toMatch(/^If Northwind Mechanical uses customer-facing vehicles,/);
-    expect(intelligence.potentialNeeds[0]).not.toMatch(/has a fleet|fleet of \d+|is expanding its fleet/i);
+    expect(intelligence.whyTarget).toBe("");
+    expect(intelligence.potentialNeeds).toEqual([]);
+    expect(intelligence.recommendedOutreach).toBe("");
+  });
+
+  it("extracts verified mobile-operation evidence from an individual company website", () => {
+    const signals = extractOfficialResearchSignals("All About Home Care", [{
+      url: new URL("https://allabouthomecare.example/services"),
+      html: "<html><body><p>Our caregivers travel to client homes and provide in-home care throughout North Texas.</p></body></html>",
+    }], "2026-09-07T12:00:00.000Z");
+    const mobile = signals.find(signal => signal.signalType === "fleet_mobile_operations");
+
+    expect(mobile).toMatchObject({
+      signalClassification: "verified",
+      sourceName: "Official company website",
+      points: 0,
+    });
+    expect(mobile?.supportingEvidence).toContain("provide in-home care throughout North Texas");
   });
 
   it("does not recommend an unrelated seller offer when prospect evidence has no relevant match", () => {
