@@ -19,7 +19,7 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **Why:** Identity and contactability explain why a record is credible, not why the seller should pursue the account.
 
-**How to apply:** Keep Google validation facts in the company-fit breakdown and evidence model. Build **Why Target** from positive buying signals when available, otherwise from a clearly conditional seller-relevant challenge—never from listing availability.
+**How to apply:** Keep Google validation facts in the company-fit breakdown and evidence model. Build **Why Target** only from a positive company-specific buying signal or sourced company demographic, connected to a semantically relevant approved seller offer. Never use listing availability or generic industry/compliance context as the fallback; omit Why Target when no individualized basis exists.
 
 **Potential Needs** must originate from verified prospect research signals, then state the possible business challenge and connect it to an approved seller offer and outcome. Do not manufacture a generic list when research finds nothing.
 

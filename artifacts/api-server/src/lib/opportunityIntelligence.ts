@@ -533,16 +533,21 @@ export function buildOpportunityIntelligence(
         && signal.sourceURL === strongestBuyingSignal.sourceURL,
       )?.potentialBusinessImpact
     : undefined;
-  const possibleChallenge = signalImplication || potentialNeeds[0] || match.operation;
-  const sellerFit = seller.ready && sellerCapability
-    ? `${seller.name}'s ${sellerCapability} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
+  const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
+  const whyTargetChallenge = strongestBuyingSignal
+    ? signalImplication || signalChallenge(strongestBuyingSignal, vertical)
+    : demographic;
+  const whyTargetOffer = strongestBuyingSignal
+    ? matchingSellerOffer(sellerOffers, whyTargetChallenge || "")
+    : demographicOffer;
+  const sellerFit = seller.ready && whyTargetOffer
+    ? `${seller.name}'s ${whyTargetOffer} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
     : "";
   const whyTarget = strongestBuyingSignal
-    ? `${strongestBuyingSignal.signalTitle}. This may indicate ${possibleChallenge.charAt(0).toLowerCase()}${possibleChallenge.slice(1)}${/[.!?]$/.test(possibleChallenge) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
-    : sellerFit
-      ? `Potential fit to validate: ${possibleChallenge}${/[.!?]$/.test(possibleChallenge) ? "" : "."} ${sellerFit}`
+    ? `${strongestBuyingSignal.signalTitle}. This may indicate ${whyTargetChallenge!.charAt(0).toLowerCase()}${whyTargetChallenge!.slice(1)}${/[.!?]$/.test(whyTargetChallenge!) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
+    : demographic && sellerFit
+      ? `${lead.companyName} has a sourced company-size profile as a ${demographic}. ${sellerFit}`
       : "";
-  const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
     : demographic

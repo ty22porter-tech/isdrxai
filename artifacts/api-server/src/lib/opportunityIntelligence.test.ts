@@ -97,7 +97,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.whyTarget).not.toMatch(/public operating address/i);
     expect(intelligence.whyTarget).not.toMatch(/public (?:company )?website/i);
     expect(intelligence.whyTarget).not.toContain("Irving, TX");
-    expect(intelligence.whyTarget).toMatch(/Potential fit to validate/i);
+    expect(intelligence.whyTarget).toBe("");
   });
 
   it("builds Why Target from the strongest positive buying signal and seller fit", () => {
@@ -115,16 +115,27 @@ describe("opportunity intelligence", () => {
       supportingEvidence: "Structured JobPosting data names the role.",
       points: 0,
     }] as any;
+    const relevantSeller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["managed IT services"],
+        sellerCapabilities: ["technology support"],
+        sellerBusinessOutcomes: ["reliable technology operations"],
+      },
+    } as any;
     const intelligence = buildOpportunityIntelligence(
       { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" },
       "it_services",
-      readySeller,
+      relevantSeller,
       researched,
     );
 
     expect(intelligence.whyTarget).toContain("Official job listing: IT Manager");
     expect(intelligence.whyTarget).toMatch(/may indicate/i);
-    expect(intelligence.whyTarget).toContain("Northstar Graphics");
+    expect(intelligence.whyTarget).toContain("SecurePath IT");
+    expect(intelligence.whyTarget).toContain("technology support");
     expect(intelligence.whyTarget).not.toMatch(/Google Places|public operating address|public (?:company )?website/i);
   });
 
@@ -225,6 +236,27 @@ describe("opportunity intelligence", () => {
     expect(intelligence.recommendedOutreach).toContain("84-employee organization");
     expect(intelligence.recommendedOutreach).toContain("SecurePath IT");
     expect(intelligence.recommendedOutreach).toContain("schedule a technology readiness review");
+    expect(intelligence.whyTarget).toContain("Northwind Mechanical");
+    expect(intelligence.whyTarget).toContain("84-employee organization");
+    expect(intelligence.whyTarget).toContain("endpoint and identity management");
+  });
+
+  it("does not turn generic industry compliance context into Why Target", () => {
+    const financialLead = { ...lead, companyName: "Example Financial", industry: "Financial Services" };
+    const securitySeller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["cybersecurity assessment"],
+        sellerCapabilities: ["GLBA readiness support"],
+        sellerBusinessOutcomes: ["stronger security readiness"],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence(financialLead, "it_services", securitySeller);
+
+    expect(intelligence.potentialNeeds[0]).toMatch(/GLBA/i);
+    expect(intelligence.whyTarget).toBe("");
   });
 
   it("turns a dated official breach disclosure into careful seller-specific outreach", () => {
