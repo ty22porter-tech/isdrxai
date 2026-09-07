@@ -11,10 +11,4 @@ export type EnrichLeadsRequestLeadsItem = {
   contactName?: string;
   email: string;
   website?: string;
-  contactTitle?: string;
-  phone?: string;
-  industry?: string;
-  city?: string;
-  state?: string;
-  address?: string;
 };

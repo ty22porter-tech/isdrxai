@@ -61,8 +61,6 @@ export type OpportunityIntelligenceVersion = typeof OpportunityIntelligenceVersi
 
 export const OpportunityIntelligenceVersion = {
   NUMBER_1: 1,
-  NUMBER_2: 2,
-  NUMBER_3: 3,
 } as const;
 
 export type OpportunityIntelligenceLabel = typeof OpportunityIntelligenceLabel[keyof typeof OpportunityIntelligenceLabel];
@@ -70,8 +68,6 @@ export type OpportunityIntelligenceLabel = typeof OpportunityIntelligenceLabel[k
 
 export const OpportunityIntelligenceLabel = {
   High_Priority: 'High Priority',
-  Strong_Opportunity: 'Strong Opportunity',
-  Moderate_Opportunity: 'Moderate Opportunity',
   Strong_Fit: 'Strong Fit',
   Possible_Fit: 'Possible Fit',
   Low_Priority: 'Low Priority',
@@ -144,14 +140,7 @@ export const OpportunitySignalFreshness = {
   unknown: 'unknown',
 } as const;
 
-export type OpportunitySignalCorroboratingSourcesItem = {
-  sourceName?: string;
-  sourceURL: string;
-  sourceDate?: string;
-};
-
 export interface OpportunitySignal {
-  signalId?: string;
   signalType: string;
   signalTitle: string;
   signalDescription: string;
@@ -166,96 +155,12 @@ export interface OpportunitySignal {
   supportingEvidence?: string;
   relatedSellerCapability?: string;
   potentialBusinessImpact?: string;
-  pointReason?: string;
-  corroboratingSources?: OpportunitySignalCorroboratingSourcesItem[];
   /**
      * @minimum 0
      * @maximum 30
      */
   points: number;
 }
-
-export type OpportunityIntelligenceHiringResearchStatus = typeof OpportunityIntelligenceHiringResearchStatus[keyof typeof OpportunityIntelligenceHiringResearchStatus];
-
-
-export const OpportunityIntelligenceHiringResearchStatus = {
-  VERIFIED_ACTIVE_HIRING: 'VERIFIED_ACTIVE_HIRING',
-  RECENT_HIRING_SIGNAL: 'RECENT_HIRING_SIGNAL',
-  NO_ACTIVE_HIRING_FOUND: 'NO_ACTIVE_HIRING_FOUND',
-  UNKNOWN: 'UNKNOWN',
-} as const;
-
-export type OpportunityIntelligenceHiringResearchConfidence = typeof OpportunityIntelligenceHiringResearchConfidence[keyof typeof OpportunityIntelligenceHiringResearchConfidence];
-
-
-export const OpportunityIntelligenceHiringResearchConfidence = {
-  high: 'high',
-  medium: 'medium',
-  low: 'low',
-} as const;
-
-export type OpportunityIntelligenceScoringInputsBusinessModelBasis = typeof OpportunityIntelligenceScoringInputsBusinessModelBasis[keyof typeof OpportunityIntelligenceScoringInputsBusinessModelBasis];
-
-
-export const OpportunityIntelligenceScoringInputsBusinessModelBasis = {
-  verified: 'verified',
-  industry_hypothesis: 'industry_hypothesis',
-} as const;
-
-export type OpportunityIntelligenceScoringInputsSellerProfileStatus = typeof OpportunityIntelligenceScoringInputsSellerProfileStatus[keyof typeof OpportunityIntelligenceScoringInputsSellerProfileStatus];
-
-
-export const OpportunityIntelligenceScoringInputsSellerProfileStatus = {
-  ready: 'ready',
-  limited: 'limited',
-} as const;
-
-export type OpportunityIntelligenceIntegrityStatus = typeof OpportunityIntelligenceIntegrityStatus[keyof typeof OpportunityIntelligenceIntegrityStatus];
-
-
-export const OpportunityIntelligenceIntegrityStatus = {
-  passed: 'passed',
-} as const;
-
-export type OpportunityIntelligenceHiringResearchSourcesItem = {
-  sourceName?: string;
-  sourceURL: string;
-  sourceDate?: string;
-};
-
-export type OpportunityIntelligenceHiringResearch = {
-  status: OpportunityIntelligenceHiringResearchStatus;
-  roles: string[];
-  locations: string[];
-  /** @minimum 0 */
-  count: number | null;
-  sources: OpportunityIntelligenceHiringResearchSourcesItem[];
-  confidence: OpportunityIntelligenceHiringResearchConfidence;
-  evidence: string[];
-};
-
-export type OpportunityIntelligenceScoringInputs = {
-  vertical: string;
-  companyName: string;
-  industry: string;
-  contactTitle: string | null;
-  businessModelBasis: OpportunityIntelligenceScoringInputsBusinessModelBasis;
-  sellerProfileStatus: OpportunityIntelligenceScoringInputsSellerProfileStatus;
-  sellerCapabilitiesConsidered: string[];
-  sellerPriorityConsidered: string | null;
-};
-
-export type OpportunityIntelligenceIntegrityChecksItem = {
-  name: string;
-  passed: boolean;
-};
-
-export type OpportunityIntelligenceIntegrity = {
-  status: OpportunityIntelligenceIntegrityStatus;
-  calculatedTotal: number;
-  categoryMaxTotal: number;
-  checks: OpportunityIntelligenceIntegrityChecksItem[];
-};
 
 export interface OpportunityIntelligence {
   version: OpportunityIntelligenceVersion;
@@ -266,7 +171,6 @@ export interface OpportunityIntelligence {
   score: number;
   label: OpportunityIntelligenceLabel;
   scoreConfidence: OpportunityIntelligenceScoreConfidence;
-  scoreConfidenceReason?: string;
   definition: string;
   /**
      * @minItems 6
@@ -277,9 +181,6 @@ export interface OpportunityIntelligence {
   whyTarget: string;
   potentialNeeds: string[];
   recommendedOutreach: string;
-  hiringResearch?: OpportunityIntelligenceHiringResearch;
-  scoringInputs?: OpportunityIntelligenceScoringInputs;
-  integrity?: OpportunityIntelligenceIntegrity;
   generatedAt: string;
 }
 
@@ -641,12 +542,6 @@ export type EnrichLeadsRequestLeadsItem = {
   contactName?: string;
   email: string;
   website?: string;
-  contactTitle?: string;
-  phone?: string;
-  industry?: string;
-  city?: string;
-  state?: string;
-  address?: string;
 };
 
 export interface EnrichLeadsRequest {
@@ -676,12 +571,6 @@ export type EnrichLeadsResultResultsItem = {
   phone?: string;
   linkedinUrl?: string;
   employeeCount?: number;
-  opportunityScore?: number;
-  scoreLabel?: string;
-  whyTarget?: string;
-  potentialNeeds?: string[];
-  recommendedOutreach?: string;
-  opportunityIntelligence?: OpportunityIntelligence;
   error?: string;
 };
 

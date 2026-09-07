@@ -4,7 +4,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export interface OpportunitySignal {
-  signalId?: string;
   signalType: string;
   signalTitle: string;
   signalDescription: string;
@@ -19,12 +18,6 @@ export interface OpportunitySignal {
   supportingEvidence?: string;
   relatedSellerCapability?: string;
   potentialBusinessImpact?: string;
-  pointReason?: string;
-  corroboratingSources?: Array<{
-    sourceName?: string;
-    sourceURL: string;
-    sourceDate?: string | Date;
-  }>;
   points: number;
 }
 
@@ -38,42 +31,16 @@ export interface OpportunityScoreCategory {
 }
 
 export interface OpportunityIntelligence {
-  version: 1 | 2 | 3;
+  version: 1;
   score: number;
-  label: "High Priority" | "Strong Opportunity" | "Moderate Opportunity" | "Strong Fit" | "Possible Fit" | "Low Priority";
+  label: "High Priority" | "Strong Fit" | "Possible Fit" | "Low Priority";
   scoreConfidence: "high" | "medium" | "low";
-  scoreConfidenceReason?: string;
   definition: string;
   breakdown: OpportunityScoreCategory[];
   signals: OpportunitySignal[];
   whyTarget: string;
   potentialNeeds: string[];
   recommendedOutreach: string;
-  hiringResearch?: {
-    status: "VERIFIED_ACTIVE_HIRING" | "RECENT_HIRING_SIGNAL" | "NO_ACTIVE_HIRING_FOUND" | "UNKNOWN";
-    roles: string[];
-    locations: string[];
-    count: number | null;
-    sources: Array<{ sourceName?: string; sourceURL: string; sourceDate?: string | Date }>;
-    confidence: "high" | "medium" | "low";
-    evidence: string[];
-  };
-  scoringInputs?: {
-    vertical: string;
-    companyName: string;
-    industry: string;
-    contactTitle: string | null;
-    businessModelBasis: "verified" | "industry_hypothesis";
-    sellerProfileStatus: "ready" | "limited";
-    sellerCapabilitiesConsidered: string[];
-    sellerPriorityConsidered: string | null;
-  };
-  integrity?: {
-    status: "passed";
-    calculatedTotal: number;
-    categoryMaxTotal: number;
-    checks: Array<{ name: string; passed: boolean }>;
-  };
   generatedAt: string | Date;
 }
 

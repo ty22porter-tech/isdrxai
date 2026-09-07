@@ -62,8 +62,6 @@ export const listProspectsResponseOpportunityIntelligenceOneBreakdownMax = 6;
 export const listProspectsResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const listProspectsResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
 
-export const listProspectsResponseOpportunityIntelligenceOneHiringResearchCountMin = 0;
-
 
 
 export const ListProspectsResponseItem = zod.object({
@@ -79,11 +77,10 @@ export const ListProspectsResponseItem = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(listProspectsResponseOpportunityIntelligenceOneScoreMin).max(listProspectsResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -94,7 +91,6 @@ export const ListProspectsResponseItem = zod.object({
   "evidence": zod.array(zod.string())
 })).min(listProspectsResponseOpportunityIntelligenceOneBreakdownMin).max(listProspectsResponseOpportunityIntelligenceOneBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -109,49 +105,11 @@ export const ListProspectsResponseItem = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(listProspectsResponseOpportunityIntelligenceOneSignalsItemPointsMin).max(listProspectsResponseOpportunityIntelligenceOneSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(listProspectsResponseOpportunityIntelligenceOneHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
@@ -183,8 +141,6 @@ export const createProspectBodyOpportunityIntelligenceBreakdownMax = 6;
 export const createProspectBodyOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const createProspectBodyOpportunityIntelligenceSignalsItemPointsMax = 30;
 
-export const createProspectBodyOpportunityIntelligenceHiringResearchCountMin = 0;
-
 
 
 export const CreateProspectBody = zod.object({
@@ -199,11 +155,10 @@ export const CreateProspectBody = zod.object({
   "address": zod.string().optional(),
   "notes": zod.string().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(createProspectBodyOpportunityIntelligenceScoreMin).max(createProspectBodyOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -214,7 +169,6 @@ export const CreateProspectBody = zod.object({
   "evidence": zod.array(zod.string())
 })).min(createProspectBodyOpportunityIntelligenceBreakdownMin).max(createProspectBodyOpportunityIntelligenceBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -229,49 +183,11 @@ export const CreateProspectBody = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(createProspectBodyOpportunityIntelligenceSignalsItemPointsMin).max(createProspectBodyOpportunityIntelligenceSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(createProspectBodyOpportunityIntelligenceHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }).optional(),
   "employeeCount": zod.number().optional(),
@@ -294,8 +210,6 @@ export const createProspectResponseOpportunityIntelligenceOneBreakdownMax = 6;
 export const createProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const createProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
 
-export const createProspectResponseOpportunityIntelligenceOneHiringResearchCountMin = 0;
-
 
 
 export const CreateProspectResponse = zod.object({
@@ -311,11 +225,10 @@ export const CreateProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(createProspectResponseOpportunityIntelligenceOneScoreMin).max(createProspectResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -326,7 +239,6 @@ export const CreateProspectResponse = zod.object({
   "evidence": zod.array(zod.string())
 })).min(createProspectResponseOpportunityIntelligenceOneBreakdownMin).max(createProspectResponseOpportunityIntelligenceOneBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -341,49 +253,11 @@ export const CreateProspectResponse = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(createProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin).max(createProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(createProspectResponseOpportunityIntelligenceOneHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
@@ -414,8 +288,6 @@ export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceBreakdow
 export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceSignalsItemPointsMax = 30;
 
-export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceHiringResearchCountMin = 0;
-
 export const bulkCreateProspectsBodyDuplicateStrategyDefault = `skip`;
 
 export const BulkCreateProspectsBody = zod.object({
@@ -431,11 +303,10 @@ export const BulkCreateProspectsBody = zod.object({
   "address": zod.string().optional(),
   "notes": zod.string().optional(),
   "opportunityIntelligence": zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMin).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -446,7 +317,6 @@ export const BulkCreateProspectsBody = zod.object({
   "evidence": zod.array(zod.string())
 })).min(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceBreakdownMin).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -461,49 +331,11 @@ export const BulkCreateProspectsBody = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceSignalsItemPointsMin).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }).optional(),
   "employeeCount": zod.number().optional(),
@@ -527,8 +359,6 @@ export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligen
 
 export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneSignalsItemPointsMax = 30;
-
-export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneHiringResearchCountMin = 0;
 
 
 
@@ -554,11 +384,10 @@ export const BulkCreateProspectsResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMin).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -569,7 +398,6 @@ export const BulkCreateProspectsResponse = zod.object({
   "evidence": zod.array(zod.string())
 })).min(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneBreakdownMin).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -584,49 +412,11 @@ export const BulkCreateProspectsResponse = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneSignalsItemPointsMin).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
@@ -699,8 +489,6 @@ export const getProspectResponseOpportunityIntelligenceOneBreakdownMax = 6;
 export const getProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const getProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
 
-export const getProspectResponseOpportunityIntelligenceOneHiringResearchCountMin = 0;
-
 
 
 export const GetProspectResponse = zod.object({
@@ -716,11 +504,10 @@ export const GetProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(getProspectResponseOpportunityIntelligenceOneScoreMin).max(getProspectResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -731,7 +518,6 @@ export const GetProspectResponse = zod.object({
   "evidence": zod.array(zod.string())
 })).min(getProspectResponseOpportunityIntelligenceOneBreakdownMin).max(getProspectResponseOpportunityIntelligenceOneBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -746,49 +532,11 @@ export const GetProspectResponse = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(getProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin).max(getProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(getProspectResponseOpportunityIntelligenceOneHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
@@ -838,8 +586,6 @@ export const updateProspectResponseOpportunityIntelligenceOneBreakdownMax = 6;
 export const updateProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const updateProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
 
-export const updateProspectResponseOpportunityIntelligenceOneHiringResearchCountMin = 0;
-
 
 
 export const UpdateProspectResponse = zod.object({
@@ -855,11 +601,10 @@ export const UpdateProspectResponse = zod.object({
   "address": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "opportunityIntelligence": zod.union([zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(updateProspectResponseOpportunityIntelligenceOneScoreMin).max(updateProspectResponseOpportunityIntelligenceOneScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -870,7 +615,6 @@ export const UpdateProspectResponse = zod.object({
   "evidence": zod.array(zod.string())
 })).min(updateProspectResponseOpportunityIntelligenceOneBreakdownMin).max(updateProspectResponseOpportunityIntelligenceOneBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -885,49 +629,11 @@ export const UpdateProspectResponse = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(updateProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin).max(updateProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(updateProspectResponseOpportunityIntelligenceOneHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
@@ -1365,8 +1071,6 @@ export const prospectSearchResponseOpportunityIntelligenceBreakdownMax = 6;
 export const prospectSearchResponseOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const prospectSearchResponseOpportunityIntelligenceSignalsItemPointsMax = 30;
 
-export const prospectSearchResponseOpportunityIntelligenceHiringResearchCountMin = 0;
-
 
 
 export const ProspectSearchResponseItem = zod.object({
@@ -1394,11 +1098,10 @@ export const ProspectSearchResponseItem = zod.object({
   "recommendedOutreach": zod.string().optional(),
   "fleetBrandingSignal": zod.string().optional().describe('Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly'),
   "opportunityIntelligence": zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "version": zod.literal(1),
   "score": zod.number().min(prospectSearchResponseOpportunityIntelligenceScoreMin).max(prospectSearchResponseOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
   "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
   "definition": zod.string(),
   "breakdown": zod.array(zod.object({
   "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
@@ -1409,7 +1112,6 @@ export const ProspectSearchResponseItem = zod.object({
   "evidence": zod.array(zod.string())
 })).min(prospectSearchResponseOpportunityIntelligenceBreakdownMin).max(prospectSearchResponseOpportunityIntelligenceBreakdownMax),
   "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
   "signalType": zod.string(),
   "signalTitle": zod.string(),
   "signalDescription": zod.string(),
@@ -1424,49 +1126,11 @@ export const ProspectSearchResponseItem = zod.object({
   "supportingEvidence": zod.string().optional(),
   "relatedSellerCapability": zod.string().optional(),
   "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
   "points": zod.number().min(prospectSearchResponseOpportunityIntelligenceSignalsItemPointsMin).max(prospectSearchResponseOpportunityIntelligenceSignalsItemPointsMax)
 })),
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(prospectSearchResponseOpportunityIntelligenceHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
   "generatedAt": zod.coerce.date()
 }).optional()
 })
@@ -1485,33 +1149,9 @@ export const EnrichLeadsBody = zod.object({
   "companyName": zod.string(),
   "contactName": zod.string().optional(),
   "email": zod.string(),
-  "website": zod.string().optional(),
-  "contactTitle": zod.string().optional(),
-  "phone": zod.string().optional(),
-  "industry": zod.string().optional(),
-  "city": zod.string().optional(),
-  "state": zod.string().optional(),
-  "address": zod.string().optional()
+  "website": zod.string().optional()
 })).min(1).max(enrichLeadsBodyLeadsMax)
 })
-
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMin = 0;
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMax = 100;
-
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMin = 0;
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMax = 30;
-
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemMaxPointsMax = 30;
-
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMin = 6;
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMax = 6;
-
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMin = 0;
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMax = 30;
-
-export const enrichLeadsResponseResultsItemOpportunityIntelligenceHiringResearchCountMin = 0;
-
-
 
 export const EnrichLeadsResponse = zod.object({
   "planBlocked": zod.boolean().optional().describe('True when Apollo rejected the request because the account plan has no API access.'),
@@ -1525,87 +1165,6 @@ export const EnrichLeadsResponse = zod.object({
   "phone": zod.string().optional(),
   "linkedinUrl": zod.string().optional(),
   "employeeCount": zod.number().optional(),
-  "opportunityScore": zod.number().optional(),
-  "scoreLabel": zod.string().optional(),
-  "whyTarget": zod.string().optional(),
-  "potentialNeeds": zod.array(zod.string()).optional(),
-  "recommendedOutreach": zod.string().optional(),
-  "opportunityIntelligence": zod.object({
-  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
-  "score": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceScoreMax),
-  "label": zod.enum(['High Priority', 'Strong Opportunity', 'Moderate Opportunity', 'Strong Fit', 'Possible Fit', 'Low Priority']),
-  "scoreConfidence": zod.enum(['high', 'medium', 'low']),
-  "scoreConfidenceReason": zod.string().optional(),
-  "definition": zod.string(),
-  "breakdown": zod.array(zod.object({
-  "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
-  "label": zod.string(),
-  "points": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemPointsMax),
-  "maxPoints": zod.number().min(1).max(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownItemMaxPointsMax),
-  "explanation": zod.string(),
-  "evidence": zod.array(zod.string())
-})).min(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMax),
-  "signals": zod.array(zod.object({
-  "signalId": zod.string().optional(),
-  "signalType": zod.string(),
-  "signalTitle": zod.string(),
-  "signalDescription": zod.string(),
-  "signalClassification": zod.enum(['verified', 'implication', 'unconfirmed']),
-  "confidenceLevel": zod.enum(['high', 'medium', 'low']),
-  "freshness": zod.enum(['recent', 'active', 'older', 'stale', 'unknown']),
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url().optional(),
-  "sourceDate": zod.coerce.date().optional(),
-  "dateDiscovered": zod.coerce.date(),
-  "dateVerified": zod.coerce.date().optional(),
-  "supportingEvidence": zod.string().optional(),
-  "relatedSellerCapability": zod.string().optional(),
-  "potentialBusinessImpact": zod.string().optional(),
-  "pointReason": zod.string().optional(),
-  "corroboratingSources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})).optional(),
-  "points": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMin).max(enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMax)
-})),
-  "whyTarget": zod.string(),
-  "potentialNeeds": zod.array(zod.string()),
-  "recommendedOutreach": zod.string(),
-  "hiringResearch": zod.object({
-  "status": zod.enum(['VERIFIED_ACTIVE_HIRING', 'RECENT_HIRING_SIGNAL', 'NO_ACTIVE_HIRING_FOUND', 'UNKNOWN']),
-  "roles": zod.array(zod.string()),
-  "locations": zod.array(zod.string()),
-  "count": zod.number().min(enrichLeadsResponseResultsItemOpportunityIntelligenceHiringResearchCountMin).nullable(),
-  "sources": zod.array(zod.object({
-  "sourceName": zod.string().optional(),
-  "sourceURL": zod.string().url(),
-  "sourceDate": zod.coerce.date().optional()
-})),
-  "confidence": zod.enum(['high', 'medium', 'low']),
-  "evidence": zod.array(zod.string())
-}).optional(),
-  "scoringInputs": zod.object({
-  "vertical": zod.string(),
-  "companyName": zod.string(),
-  "industry": zod.string(),
-  "contactTitle": zod.string().nullable(),
-  "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
-  "sellerProfileStatus": zod.enum(['ready', 'limited']),
-  "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
-}).optional(),
-  "integrity": zod.object({
-  "status": zod.enum(['passed']),
-  "calculatedTotal": zod.number(),
-  "categoryMaxTotal": zod.number(),
-  "checks": zod.array(zod.object({
-  "name": zod.string(),
-  "passed": zod.boolean()
-}))
-}).optional(),
-  "generatedAt": zod.coerce.date()
-}).optional(),
   "error": zod.string().optional()
 }))
 })

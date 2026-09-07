@@ -6,12 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OpportunitySignalConfidenceLevel } from './opportunitySignalConfidenceLevel';
-import type { OpportunitySignalCorroboratingSourcesItem } from './opportunitySignalCorroboratingSourcesItem';
 import type { OpportunitySignalFreshness } from './opportunitySignalFreshness';
 import type { OpportunitySignalSignalClassification } from './opportunitySignalSignalClassification';
 
 export interface OpportunitySignal {
-  signalId?: string;
   signalType: string;
   signalTitle: string;
   signalDescription: string;
@@ -26,8 +24,6 @@ export interface OpportunitySignal {
   supportingEvidence?: string;
   relatedSellerCapability?: string;
   potentialBusinessImpact?: string;
-  pointReason?: string;
-  corroboratingSources?: OpportunitySignalCorroboratingSourcesItem[];
   /**
      * @minimum 0
      * @maximum 30

@@ -49,7 +49,7 @@ describe("OpportunityIntelligenceView", () => {
             }),
           ]),
           whyTarget:
-            "The company operates a customer-facing field-service business. No current fleet expansion or vehicle purchase has been verified.",
+            "Verified: the company is actively hiring service technicians. No meaningful company-specific fleet signal was found.",
           potentialNeeds: [
             "Support field teams during growth",
             "Improve onboarding for new technicians",
@@ -66,14 +66,14 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.getByText("Potential needs:")).toBeInTheDocument();
     expect(screen.getByText("Verified signal:")).toBeInTheDocument();
     expect(screen.getByText("Recommended outreach:")).toBeInTheDocument();
-    expect(screen.getByText(/customer-facing field-service business/)).toBeInTheDocument();
-    expect(screen.getByText(/No current fleet expansion/)).toBeInTheDocument();
+    expect(screen.getByText(/actively hiring service technicians/)).toBeInTheDocument();
+    expect(screen.queryByText(/No meaningful/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Unverified fleet size/)).not.toBeInTheDocument();
     expect(screen.queryByText(/third opportunity/)).not.toBeInTheDocument();
     expect(screen.queryByText("Verified Buying Signals")).not.toBeInTheDocument();
   });
 
-  it("shows an honest why-target conclusion while skipping other empty rows", () => {
+  it("skips compact rows that have no useful result", () => {
     render(
       <OpportunityIntelligenceView
         compact
@@ -86,11 +86,7 @@ describe("OpportunityIntelligenceView", () => {
       />,
     );
 
-    expect(screen.getByTestId("section-opportunity-intelligence-compact")).toBeInTheDocument();
-    expect(screen.getByText(/No meaningful company-specific buying signal/)).toBeInTheDocument();
-    expect(screen.queryByText("Potential needs:")).not.toBeInTheDocument();
-    expect(screen.queryByText("Verified signal:")).not.toBeInTheDocument();
-    expect(screen.queryByText("Recommended outreach:")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("section-opportunity-intelligence-compact")).not.toBeInTheDocument();
   });
 
   it("separates company verification from verified buying signals", () => {
@@ -110,86 +106,6 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.getByTestId("status-empty-verified")).toHaveTextContent(
       "No meaningful company-specific buying signal found yet.",
     );
-  });
-
-  it("shows verified business-model evidence with its source in the full breakdown", () => {
-    render(
-      <OpportunityIntelligenceView
-        intelligence={intelligence([
-          signal({
-            signalType: "business_model_evidence",
-            signalTitle: "Verified vehicle-centered operating model",
-            signalDescription: "The official website describes passenger transportation service.",
-            signalClassification: "verified",
-            confidenceLevel: "high",
-            sourceName: "Official company website",
-            sourceURL: "https://example.com/about",
-            supportingEvidence: "Premium intercity bus service across Texas.",
-          }),
-        ])}
-      />,
-    );
-
-    expect(screen.getByText("Verified Business Model")).toBeInTheDocument();
-    expect(screen.getAllByText("Verified vehicle-centered operating model")).toHaveLength(1);
-    fireEvent.click(screen.getByText("View evidence details"));
-    expect(screen.getByRole("link", { name: /Official company website/ })).toHaveAttribute(
-      "href",
-      "https://example.com/about",
-    );
-  });
-
-  it("shows the strongest current verified signal in the compact card", () => {
-    render(
-      <OpportunityIntelligenceView
-        compact
-        intelligence={{
-          ...intelligence([
-            signal({
-              signalType: "hiring_listing",
-              signalTitle: "Official job listing: Driver",
-              signalDescription: "A current driver role is listed.",
-              signalClassification: "verified",
-              freshness: "recent",
-              points: 6,
-            }),
-            signal({
-              signalType: "vehicle_purchase",
-              signalTitle: "Verified vehicle purchase",
-              signalDescription: "Twelve new motorcoaches were purchased.",
-              signalClassification: "verified",
-              freshness: "recent",
-              points: 14,
-            }),
-          ]),
-        }}
-      />,
-    );
-
-    expect(screen.getByText(/Verified vehicle purchase/)).toBeInTheDocument();
-    expect(screen.queryByText(/Official job listing: Driver/)).not.toBeInTheDocument();
-  });
-
-  it("shows the actual category evidence in the score breakdown", () => {
-    render(
-      <OpportunityIntelligenceView
-        intelligence={{
-          ...intelligence([]),
-          breakdown: [{
-            key: "decision_maker_match",
-            label: "Decision-Maker Match",
-            points: 5,
-            maxPoints: 10,
-            explanation: "Office Manager has possible influence but unclear fleet ownership.",
-            evidence: ["Contact role: Office Manager."],
-          }],
-        }}
-      />,
-    );
-
-    expect(screen.getByText("5 / 10 pts")).toBeInTheDocument();
-    expect(screen.getByText("Office Manager has possible influence but unclear fleet ownership.")).toBeInTheDocument();
-    expect(screen.getByText("Contact role: Office Manager.")).toBeInTheDocument();
   });
 
   it("shows hiring details and expandable evidence without inventing a count", () => {
@@ -258,41 +174,5 @@ describe("OpportunityIntelligenceView", () => {
     })} />);
     expect(screen.queryByText("Official job listing: Office Administrator")).not.toBeInTheDocument();
     expect(screen.queryByText("Hiring signal")).not.toBeInTheDocument();
-  });
-
-  it("renders a valid version-3 backend score with the exact category contract", () => {
-    const breakdown = [
-      ["company_industry_fit", "Company / ICP Fit", 20, 20],
-      ["verified_buying_signals", "Verified Buying Signals", 8, 30],
-      ["seller_prospect_match", "Seller-to-Prospect Match", 20, 20],
-      ["decision_maker_match", "Decision-Maker Match", 0, 10],
-      ["signal_freshness", "Signal Freshness", 6, 10],
-      ["business_need_potential", "Business Need Potential", 10, 10],
-    ].map(([key, label, points, maxPoints]) => ({
-      key,
-      label,
-      points,
-      maxPoints,
-      explanation: `${label} explanation`,
-      evidence: [],
-    }));
-    const score = breakdown.reduce((total, category) => total + Number(category.points), 0);
-
-    render(<OpportunityIntelligenceView intelligence={{
-      ...intelligence([]),
-      version: 3,
-      score,
-      label: "Moderate Opportunity",
-      breakdown,
-      integrity: {
-        status: "passed",
-        calculatedTotal: score,
-        categoryMaxTotal: 100,
-        checks: [{ name: "valid backend score", passed: true }],
-      },
-    } as OpportunityIntelligence} />);
-
-    expect(screen.getByTestId("text-opportunity-score")).toHaveTextContent(`Opportunity Score: ${score}`);
-    expect(screen.queryByText(/score integrity check failed/i)).not.toBeInTheDocument();
   });
 });

@@ -3,7 +3,6 @@ import { isIP } from "node:net";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import type { OpportunitySignal } from "@workspace/db";
-import { logger } from "./logger";
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const FAILURE_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -122,11 +121,7 @@ async function pinnedRequest(url: URL, pinned: PinnedHost): Promise<{ status: nu
       method: "GET",
       headers: { "user-agent": "iSDRX-public-research/1.0", accept: "text/html,application/xhtml+xml" },
       servername: url.hostname,
-      lookup: (_hostname, options, callback) => {
-        const done = callback as unknown as (...args: unknown[]) => void;
-        if (typeof options === "object" && options.all) done(null, [pinned]);
-        else done(null, pinned.address, pinned.family);
-      },
+      lookup: (_hostname, _options, callback) => callback(null, pinned.address, pinned.family),
     }, response => {
       const contentType = String(response.headers["content-type"] || "").toLowerCase();
       const declared = Number(response.headers["content-length"] || 0);
@@ -181,12 +176,12 @@ function linksFrom(html: string, base: URL): URL[] {
   for (const match of html.matchAll(pattern)) {
     try {
       const url = new URL(match[1], base);
-      if (url.origin === base.origin && /(?:career|jobs?|news|press|about|media|updates?)/i.test(url.pathname) && !found.some(item => item.href === url.href)) found.push(url);
+      if (url.origin === base.origin && /(?:career|jobs?|news|press|about|media)/i.test(url.pathname) && !found.some(item => item.href === url.href)) found.push(url);
     } catch { /* malformed public link */ }
   }
   return found
     .sort((left, right) => {
-      const rank = (url: URL) => /career|jobs?/i.test(url.pathname) ? 0 : /news|press|media|updates?/i.test(url.pathname) ? 1 : 2;
+      const rank = (url: URL) => /career|jobs?/i.test(url.pathname) ? 0 : /news|press|media/i.test(url.pathname) ? 1 : 2;
       return rank(left) - rank(right);
     })
     .slice(0, MAX_PAGES - 1);
@@ -220,7 +215,7 @@ export function deduplicateJobListings(listings: JobListing[]): JobListing[] {
   return listings.filter(listing => {
     const id = listing.id?.toLowerCase();
     const url = listing.url?.toLowerCase();
-    const descriptionKey = [listing.title, listing.location || ""]
+    const descriptionKey = [listing.title, listing.location || "", listing.date || ""]
       .map(value => normalizeText(value).toLowerCase()).join("|");
     if (id ? (seenIds.has(id) || Boolean(url && seenUrls.has(url))) : (Boolean(url && seenUrls.has(url)) || seenDescriptions.has(descriptionKey))) return false;
     if (id) seenIds.add(id);
@@ -304,27 +299,6 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
     supportingEvidence: job.description?.slice(0, 300) || `Structured JobPosting data names the role ${job.title}.`,
     points: 0,
   }));
-  const vehicleProvidedPattern =
-    /\b(?:company[- ]provided|employer[- ]provided|assigned|take-home|work|fleet)\s+(?:vehicle|van|truck)\b|\b(?:vehicle|van|truck)\s+(?:is\s+)?provided\b|\buse of (?:a\s+)?company (?:vehicle|van|truck)\b/i;
-  for (const job of listings) {
-    const vehicleMention = job.description?.match(vehicleProvidedPattern);
-    if (!vehicleMention || !job.url) continue;
-    signals.push({
-      signalType: "company_vehicle_job_mention",
-      signalTitle: "Company-provided vehicle mentioned in job listing",
-      signalDescription: `${companyName}'s official ${job.title} listing mentions "${vehicleMention[0]}".`,
-      signalClassification: "verified",
-      confidenceLevel: job.confidence ?? "medium",
-      freshness: freshness(job.date),
-      sourceName: "Official company careers page",
-      sourceURL: job.url,
-      sourceDate: job.date,
-      dateDiscovered: checkedAt,
-      dateVerified: checkedAt,
-      supportingEvidence: job.description!.slice(0, 300),
-      points: 0,
-    });
-  }
   if (!listings.length && pages.length) {
     signals.push({
       signalType: "hiring_research_status",
@@ -341,47 +315,9 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       points: 0,
     });
   }
-  let foundBusinessModel = false;
   for (const page of pages) {
     const text = stripHtml(page.html);
-    if (!foundBusinessModel) {
-      const modelPatterns = [
-        {
-           pattern: /\b(?:premium|luxury|scheduled|intercity|inter-city|passenger|charter)\s+(?:bus|coach|motor\s*coach|shuttle|transportation|travel|service)s?\b/i,
-          description: "a customer-facing passenger transportation service where commercial vehicles are central to service delivery",
-        },
-        {
-          pattern: /\b(?:chauffeur|limousine|limo|taxi|ride service|private car service)s?\b/i,
-          description: "a customer-facing transportation service where vehicles are central to the customer experience",
-        },
-        {
-          pattern: /\b(?:courier|delivery fleet|delivery vehicles?|trucking fleet|moving trucks?|service fleet|mobile service|field service technicians?)\b/i,
-          description: "a vehicle-dependent field, delivery, or mobile service operation",
-        },
-      ];
-      const model = modelPatterns.find(candidate => candidate.pattern.test(text));
-      if (model) {
-        const evidence = text.match(model.pattern);
-        signals.push({
-          signalType: "business_model_evidence",
-          signalTitle: "Verified vehicle-centered operating model",
-          signalDescription: `${companyName}'s official website describes ${model.description}.`,
-          signalClassification: "verified",
-          confidenceLevel: "high",
-          freshness: "unknown",
-          sourceName: "Official company website",
-          sourceURL: page.url.toString(),
-          dateDiscovered: checkedAt,
-          dateVerified: checkedAt,
-          supportingEvidence: normalizeText(
-            text.slice(Math.max(0, (evidence?.index ?? 0) - 140), (evidence?.index ?? 0) + (evidence?.[0].length ?? 0) + 180),
-          ),
-          points: 0,
-        });
-        foundBusinessModel = true;
-      }
-    }
-    const vehicle = text.match(vehicleProvidedPattern);
+    const vehicle = text.match(/(?:company[- ]provided vehicle|company vehicle (?:is )?provided|take-home vehicle|company (?:van|truck) provided)/i);
     if (vehicle) signals.push({
       signalType: "fleet_vehicle_evidence", signalTitle: "Company vehicle evidence",
       signalDescription: `${companyName}'s official website states "${vehicle[0]}".`,
@@ -389,77 +325,37 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       sourceName: "Official company website", sourceURL: page.url.toString(), dateDiscovered: checkedAt, dateVerified: checkedAt,
       supportingEvidence: normalizeText(text.slice(Math.max(0, vehicle.index! - 120), vehicle.index! + vehicle[0].length + 120)), points: 0,
     });
-    const eventPattern = /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)|new fleet|fleet expansion|new\s+(?:[^.!?]{1,60}\s+)?route|(?:added|relaunch(?:ed|es|ing)?) (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between|new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded service|service expansion|new service|new (?:facility|terminal|depot|branch|office)|opened (?:a|our) new|acquired|acquisition of|rebrand(?:ed|ing)?|new logo|changed (?:its|our) (?:name|logo)|new location|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched/i;
+    const eventPattern = /(?:acquired|acquisition of|rebrand(?:ed|ing)?|changed (?:its|our) name|new location|opened (?:a|our) new|expansion|expanded (?:into|to)|founded|newly (?:formed|established|launched)|(?:we|our company) launched)/i;
     const metadataDate = htmlDate(page.html);
     for (const event of text.split(/(?<=[.!?])\s+/).filter(sentence =>
       eventPattern.test(sentence) && (sentence.toLowerCase().includes(companyName.toLowerCase()) || /\b(?:we|our company)\b/i.test(sentence)),
     )) {
-       const eventIndex = text.indexOf(event);
-       const dateContext = text.slice(Math.max(0, eventIndex), eventIndex + event.length + 180);
-       const sentenceDate = dateContext.match(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}\s*(?:st|nd|rd|th)?\s*,?\s+20\d{2}\b/i)?.[0]
+      const sentenceDate = event.match(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+20\d{2}\b/i)?.[0]
         || event.match(/\b20\d{2}-\d{2}-\d{2}\b/)?.[0];
-       const normalizedSentenceDate = sentenceDate
-         ? new Date(sentenceDate.replace(/(\d)\s*(?:st|nd|rd|th)\b/i, "$1").replace(/\s+/g, " ")).toISOString()
-         : undefined;
-       const date = normalizedSentenceDate || (/\b(?:founded|formed|established)\b/i.test(event) ? undefined : metadataDate);
+      const date = sentenceDate || (/\b(?:founded|formed|established)\b/i.test(event) ? undefined : metadataDate);
       if (!date) continue;
-      const signalType =
-        /(?:purchased|added|acquired)\s+(?:\d+\s+)?(?:new\s+)?(?:vehicles?|buses|motorcoaches|coaches|trucks|vans)/i.test(event)
-          ? "vehicle_purchase"
-          : /new fleet|fleet expansion/i.test(event)
-            ? "fleet_expansion"
-          : /new\s+(?:[^.!?]{1,60}\s+)?route|(?:added|relaunch(?:ed|es|ing)?) (?:a\s+)?[^.!?]{0,60} route|launched (?:a\s+)?[^.!?]{0,60} route|(?:launched|introduced|added|began)\s+(?:new\s+)?service between/i.test(event)
-              ? "new_route"
-              : /new (?:territory|market)|entering (?:a\s+)?new market|now serving|expanded into/i.test(event)
-                ? "new_market"
-                : /expanded service|service expansion|new service/i.test(event)
-                  ? "service_expansion"
-                  : /new (?:facility|terminal|depot|branch|office)/i.test(event)
-                    ? "new_facility"
-                    : /new logo|changed (?:its|our) logo/i.test(event)
-                      ? "logo_change"
-                      : /acqui/i.test(event)
-                        ? "acquisition"
-                        : /rebrand|changed (?:its|our) name/i.test(event)
-                          ? "rebrand"
-                          : /location|open/i.test(event)
-                            ? "new_location"
-                            : /founded|formed|established|launched/i.test(event)
-                              ? "company_launch"
-                              : "expansion";
-      const signalTitle: Record<string, string> = {
-        vehicle_purchase: "Verified vehicle purchase",
-        fleet_expansion: "Verified fleet expansion",
-        new_route: "Verified new route",
-        new_market: "Verified market expansion",
-        service_expansion: "Verified service expansion",
-        new_facility: "Verified new facility",
-        logo_change: "Verified logo change",
-        acquisition: "Verified acquisition",
-        rebrand: "Verified rebrand",
-        new_location: "Verified new location",
-        company_launch: "Verified company launch",
-        expansion: "Verified expansion",
-      };
       signals.push({
-      signalType,
-      signalTitle: signalTitle[signalType] || "Dated official company announcement",
-      signalDescription: normalizeText(event).slice(0, 400),
+      signalType: /acqui/i.test(event)
+        ? "acquisition"
+        : /rebrand|name/i.test(event)
+          ? "rebrand"
+          : /location|open/i.test(event)
+            ? "new_location"
+            : /founded|formed|established|launched/i.test(event)
+              ? "company_launch"
+              : "expansion",
+      signalTitle: "Dated official company announcement", signalDescription: normalizeText(event).slice(0, 400),
       signalClassification: "verified", confidenceLevel: "high", freshness: freshness(date),
       sourceName: "Official company announcement", sourceURL: page.url.toString(), sourceDate: date,
       dateDiscovered: checkedAt, dateVerified: checkedAt, supportingEvidence: normalizeText(event).slice(0, 500), points: 0,
       });
     }
   }
-  const seenEvidence = new Set<string>();
+  const seenNonHiringTypes = new Set<string>();
   return signals.filter(signal => {
-    const key = [
-      signal.signalType,
-      normalizeText(signal.supportingEvidence || signal.signalDescription).toLowerCase(),
-      signal.sourceDate ? new Date(signal.sourceDate).toISOString().slice(0, 10) : "",
-    ].join("|");
-    if (seenEvidence.has(key)) return false;
-    seenEvidence.add(key);
+    if (signal.signalType === "hiring_listing") return true;
+    if (seenNonHiringTypes.has(signal.signalType)) return false;
+    seenNonHiringTypes.add(signal.signalType);
     return true;
   });
 }
@@ -531,13 +427,7 @@ export async function researchOfficialWebsite(lead: ResearchLead): Promise<Oppor
        }));
        pages.push(...atsPages.filter((page): page is { url: URL; html: string } => page !== null));
        signals = extractOfficialResearchSignals(lead.companyName, pages, new Date().toISOString());
-    } catch (error) {
-      logger.warn({
-        err: error instanceof Error ? error.message : String(error),
-        companyName: lead.companyName,
-        website: lead.website,
-      }, "Official website research failed");
-    }
+    } catch { /* all network/research failures degrade to UNKNOWN (no verified signal) */ }
     cache.set(key, { expiresAt: Date.now() + (signals.length ? CACHE_TTL_MS : FAILURE_CACHE_TTL_MS), signals });
     return signals.map(signal => ({ ...signal }));
   });

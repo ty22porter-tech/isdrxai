@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EnrichLeadsResultResultsItemStatus } from './enrichLeadsResultResultsItemStatus';
-import type { OpportunityIntelligence } from './opportunityIntelligence';
 
 export type EnrichLeadsResultResultsItem = {
   /** Index of the lead in the request array. */
@@ -18,11 +17,5 @@ export type EnrichLeadsResultResultsItem = {
   phone?: string;
   linkedinUrl?: string;
   employeeCount?: number;
-  opportunityScore?: number;
-  scoreLabel?: string;
-  whyTarget?: string;
-  potentialNeeds?: string[];
-  recommendedOutreach?: string;
-  opportunityIntelligence?: OpportunityIntelligence;
   error?: string;
 };

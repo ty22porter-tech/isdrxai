@@ -103,8 +103,6 @@ const FLEET_INDUSTRIES = [
 
 const SCORE_COLORS: Record<string, string> = {
   "High Priority": "bg-green-100 text-green-800 border-green-200",
-  "Strong Opportunity": "bg-emerald-50 text-emerald-700 border-emerald-200",
-  "Moderate Opportunity": "bg-blue-50 text-blue-700 border-blue-200",
   "Strong Fit": "bg-emerald-50 text-emerald-700 border-emerald-200",
   "Possible Fit": "bg-yellow-100 text-yellow-800 border-yellow-200",
   "Low Priority": "bg-gray-100 text-gray-600 border-gray-200",
@@ -177,12 +175,6 @@ type EnrichLeadResult = {
   email?: string;
   title?: string;
   phone?: string;
-  opportunityScore?: number;
-  scoreLabel?: string;
-  whyTarget?: string;
-  potentialNeeds?: string[];
-  recommendedOutreach?: string;
-  opportunityIntelligence?: ProspectLead["opportunityIntelligence"];
 };
 
 // Apply Apollo enrichment results to the current lead list. `snapshot` is the
@@ -208,12 +200,6 @@ export function applyEnrichmentResults(
       contactTitle: r.title ?? "Decision maker",
       email: r.email ?? lead.email,
       phone: r.phone || lead.phone,
-      opportunityScore: r.opportunityScore ?? lead.opportunityScore,
-      scoreLabel: r.scoreLabel ?? lead.scoreLabel,
-      whyTarget: r.whyTarget ?? lead.whyTarget,
-      potentialNeeds: r.potentialNeeds ?? lead.potentialNeeds,
-      recommendedOutreach: r.recommendedOutreach ?? lead.recommendedOutreach,
-      opportunityIntelligence: r.opportunityIntelligence ?? lead.opportunityIntelligence,
     };
   });
 }
@@ -295,12 +281,6 @@ export default function Prospecting() {
             contactName: l.contactName,
             email: l.email,
             website: l.website,
-            contactTitle: l.contactTitle,
-            phone: l.phone,
-            industry: l.industry,
-            city: l.city,
-            state: l.state,
-            address: l.address,
           })),
         },
       },
@@ -1097,7 +1077,7 @@ export default function Prospecting() {
                             variant="outline"
                             className={`text-xs font-medium ${CONFIDENCE_COLORS[lead.confidence]}`}
                           >
-                            Data confidence: {lead.confidence}
+                            {lead.confidence} fit
                           </Badge>
                           {skipped.has(idx) && !added.has(idx) && (
                             <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-200">
@@ -1116,7 +1096,7 @@ export default function Prospecting() {
                           )}
                           {enrichment.get(idx) === "enriched" && (
                             <Badge variant="outline" className="text-xs font-medium bg-green-100 text-green-800 border-green-200">
-                              <Check className="mr-1 h-3 w-3" /> Contact record found
+                              <Check className="mr-1 h-3 w-3" /> Real contact found
                             </Badge>
                           )}
                           {enrichment.get(idx) === "not_found" && (
