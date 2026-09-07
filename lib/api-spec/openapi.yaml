@@ -1328,6 +1328,14 @@ components:
                 type: string
               address:
                 type: string
+              employeeCount:
+                type: integer
+              employeeRange:
+                type: string
+              compliancePriority:
+                type: string
+              estimatedLocations:
+                type: integer
 
     EnrichLeadsResult:
       type: object
@@ -1634,6 +1642,18 @@ components:
                 type: string
             sellerPriorityConsidered:
               type: string
+              nullable: true
+            employeeCount:
+              type: integer
+              nullable: true
+            employeeRange:
+              type: string
+              nullable: true
+            compliancePriority:
+              type: string
+              nullable: true
+            estimatedLocations:
+              type: integer
               nullable: true
         integrity:
           type: object

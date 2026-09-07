@@ -67,6 +67,10 @@ export interface OpportunityIntelligence {
     sellerProfileStatus: "ready" | "limited";
     sellerCapabilitiesConsidered: string[];
     sellerPriorityConsidered: string | null;
+    employeeCount?: number | null;
+    employeeRange?: string | null;
+    compliancePriority?: string | null;
+    estimatedLocations?: number | null;
   };
   integrity?: {
     status: "passed";

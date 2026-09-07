@@ -17,4 +17,8 @@ export type OpportunityIntelligenceScoringInputs = {
   sellerProfileStatus: OpportunityIntelligenceScoringInputsSellerProfileStatus;
   sellerCapabilitiesConsidered: string[];
   sellerPriorityConsidered: string | null;
+  employeeCount?: number | null;
+  employeeRange?: string | null;
+  compliancePriority?: string | null;
+  estimatedLocations?: number | null;
 };

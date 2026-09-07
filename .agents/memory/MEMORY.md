@@ -36,3 +36,4 @@
 - [Protected seller websites](protected-seller-websites.md) — production egress may get 403/429 when dev succeeds; keep SSRF checks and use the bounded public-reader fallback.
 - [Opportunity intelligence integrity](opportunity-intelligence-integrity.md) — server-derived score snapshots; listing facts are not buying signals; stay independent from engagement.
 - [Node pinned DNS lookups](node-pinned-dns-lookups.md) — SSRF-safe pinned requests must support Node's scalar and options.all callback shapes.
+- [Frontend manual builds](frontend-manual-builds.md) — ai-sdr Vite builds outside its workflow require both PORT and BASE_PATH=/app/.

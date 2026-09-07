@@ -141,7 +141,11 @@ export const ListProspectsResponseItem = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -261,7 +265,11 @@ export const CreateProspectBody = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -373,7 +381,11 @@ export const CreateProspectResponse = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -493,7 +505,11 @@ export const BulkCreateProspectsBody = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -616,7 +632,11 @@ export const BulkCreateProspectsResponse = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -778,7 +798,11 @@ export const GetProspectResponse = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -917,7 +941,11 @@ export const UpdateProspectResponse = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -1456,7 +1484,11 @@ export const ProspectSearchResponseItem = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),
@@ -1491,7 +1523,11 @@ export const EnrichLeadsBody = zod.object({
   "industry": zod.string().optional(),
   "city": zod.string().optional(),
   "state": zod.string().optional(),
-  "address": zod.string().optional()
+  "address": zod.string().optional(),
+  "employeeCount": zod.number().optional(),
+  "employeeRange": zod.string().optional(),
+  "compliancePriority": zod.string().optional(),
+  "estimatedLocations": zod.number().optional()
 })).min(1).max(enrichLeadsBodyLeadsMax)
 })
 
@@ -1593,7 +1629,11 @@ export const EnrichLeadsResponse = zod.object({
   "businessModelBasis": zod.enum(['verified', 'industry_hypothesis']),
   "sellerProfileStatus": zod.enum(['ready', 'limited']),
   "sellerCapabilitiesConsidered": zod.array(zod.string()),
-  "sellerPriorityConsidered": zod.string().nullable()
+  "sellerPriorityConsidered": zod.string().nullable(),
+  "employeeCount": zod.number().nullish(),
+  "employeeRange": zod.string().nullish(),
+  "compliancePriority": zod.string().nullish(),
+  "estimatedLocations": zod.number().nullish()
 }).optional(),
   "integrity": zod.object({
   "status": zod.enum(['passed']),

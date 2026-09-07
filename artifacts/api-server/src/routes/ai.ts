@@ -248,7 +248,7 @@ function strRng(seed: string) {
 
 type BaseLead = ReturnType<typeof placeToLeadBase>;
 
-function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string, _compliancePriority?: string, client?: typeof usersTable.$inferSelect) {
+function addItOverlay(lead: BaseLead, industry: string, employeeRange?: string, compliancePriority?: string, client?: typeof usersTable.$inferSelect) {
   const rng = strRng(lead.companyName);
   const seller = sellerIntelligenceProfile(client);
   const isCompliance = IT_COMPLIANCE_SENSITIVE.has(industry);
@@ -272,6 +272,8 @@ function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string,
 
   return {
     ...lead,
+    employeeRange,
+    compliancePriority,
     whyTarget,
     vertical: "it_services" as const,
     opportunityScore,
@@ -553,6 +555,10 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
       address: lead.address ?? null,
       website: lead.website ?? null,
       phone: p.phone ?? lead.phone ?? null,
+      employeeCount: p.employeeCount ?? lead.employeeCount ?? null,
+      employeeRange: lead.employeeRange ?? null,
+      compliancePriority: lead.compliancePriority ?? null,
+      estimatedLocations: lead.estimatedLocations ?? null,
     };
     const researchedSignals = await researchOfficialWebsite(enrichedLead);
     const refreshedIntelligence = buildOpportunityIntelligence(

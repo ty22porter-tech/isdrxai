@@ -397,6 +397,44 @@ describe("opportunity intelligence", () => {
     expect(director.score - placeholder.score).toBe(10);
   });
 
+  it("builds demographic, compliance, and seller-offering specific IT guidance", () => {
+    const itSeller = {
+      sellerIntelligenceProfile: {
+        status: "ready",
+        websiteAnalysisStatus: "ready",
+        sellerCompanyName: "CloudScale365",
+        sellerServices: ["Managed IT Services", "Cybersecurity and Compliance Readiness", "Microsoft 365 Management"],
+        sellerProducts: [],
+        sellerCapabilities: ["Backup and Disaster Recovery"],
+        sellerDifferentiators: [],
+        sellerCertifications: [],
+        sellerIndustriesServed: ["Healthcare"],
+        sellerBusinessOutcomes: ["reliable and secure healthcare operations"],
+        sellerProblemsSolved: [],
+        sellerProofPoints: [],
+        sellerPortfolioExamples: [],
+        sellerValuePropositions: [],
+        sellerCTAs: [],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "Pro Health Texas",
+      industry: "Healthcare",
+      employeeCount: 240,
+      estimatedLocations: 4,
+      compliancePriority: "Healthcare Compliance",
+    }, "it_services", itSeller);
+
+    expect(intelligence.whyTarget).toMatch(/website and available public activity/i);
+    expect(intelligence.whyTarget).toMatch(/HIPAA|HITECH/i);
+    expect(intelligence.whyTarget).toMatch(/not confirmed incidents/i);
+    expect(intelligence.potentialNeeds.join(" ")).toMatch(/240 employees/i);
+    expect(intelligence.potentialNeeds.join(" ")).toMatch(/4\+ locations/i);
+    expect(intelligence.recommendedOutreach).toMatch(/CloudScale365/i);
+    expect(intelligence.recommendedOutreach).toMatch(/Cybersecurity and Compliance Readiness/i);
+  });
+
   it.each([
     "Fleet Manager",
     "Chauffeur",
