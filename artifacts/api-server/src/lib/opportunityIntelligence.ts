@@ -340,16 +340,23 @@ export function buildOpportunityIntelligence(
     .map(need => /^(potential|if|confirm|understand|determine|explore)/i.test(need)
       ? need
       : `Potential opportunity: ${need.charAt(0).toLowerCase()}${need.slice(1)}`);
-  const verifiedSummary = [
-    `${lead.companyName} was returned by Google Places for the selected ${lead.industry} search in ${lead.city}, ${lead.state}`,
-    ...(lead.address ? ["a public operating address is listed"] : []),
-    ...(lead.website ? ["a public website is listed"] : []),
-  ].join("; ");
-  const whyTarget = `Verified: ${verifiedSummary}. Potential implication: ${match.operation} ${
-    seller.ready && sellerCapability
-      ? `${seller.name}'s ${sellerCapability} may be relevant if discovery confirms a matching need.`
-      : "No seller-specific need is assumed until Company Intelligence and discovery support it."
-  }`;
+  const strongestBuyingSignal = buyingEvidence[0];
+  const signalImplication = strongestBuyingSignal
+    ? signals.find(signal =>
+        signal.signalClassification === "implication"
+        && signal.sourceURL
+        && signal.sourceURL === strongestBuyingSignal.sourceURL,
+      )?.potentialBusinessImpact
+    : undefined;
+  const possibleChallenge = signalImplication || potentialNeeds[0] || match.operation;
+  const sellerFit = seller.ready && sellerCapability
+    ? `${seller.name}'s ${sellerCapability} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
+    : "";
+  const whyTarget = strongestBuyingSignal
+    ? `${strongestBuyingSignal.signalTitle}. This may indicate ${possibleChallenge.charAt(0).toLowerCase()}${possibleChallenge.slice(1)}${/[.!?]$/.test(possibleChallenge) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
+    : sellerFit
+      ? `Potential fit to validate: ${possibleChallenge}${/[.!?]$/.test(possibleChallenge) ? "" : "."} ${sellerFit}`
+      : "";
   const recommendedOutreach = buyingEvidence.length
     ? `Lead with the verified ${buyingEvidence[0].signalTitle.toLowerCase()} and describe only its supported potential implication. ${genericOutreach(client, lead.industry, vertical)}`
     : `No strong company-specific buying signal has been verified. Use discovery-led messaging and do not imply hiring, expansion, fleet growth, purchases, or provider dissatisfaction. ${genericOutreach(client, lead.industry, vertical)}`;

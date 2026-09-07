@@ -65,6 +65,60 @@ describe("opportunity intelligence", () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ points: 0 })]));
   });
 
+  it("uses Google Places facts for validation and scoring but never as Why Target copy", () => {
+    const medicalLead = {
+      ...lead,
+      companyName: "CornerStone Medical",
+      industry: "Healthcare",
+      city: "Irving",
+      state: "TX",
+      address: "500 Health Way, Irving, TX",
+      website: "https://cornerstone.example",
+    };
+    const intelligence = buildOpportunityIntelligence(medicalLead, "it_services", readySeller);
+    const companyFit = intelligence.breakdown.find(item => item.key === "company_industry_fit");
+
+    expect(companyFit?.points).toBeGreaterThan(0);
+    expect(intelligence.signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ signalType: "business_listing", sourceName: "Google Places" }),
+      expect.objectContaining({ signalType: "operating_address", sourceName: "Google Places" }),
+      expect.objectContaining({ signalType: "company_website", sourceName: "Google Places" }),
+    ]));
+    expect(intelligence.whyTarget).not.toMatch(/Google Places/i);
+    expect(intelligence.whyTarget).not.toMatch(/public operating address/i);
+    expect(intelligence.whyTarget).not.toMatch(/public (?:company )?website/i);
+    expect(intelligence.whyTarget).not.toContain("Irving, TX");
+    expect(intelligence.whyTarget).toMatch(/Potential fit to validate/i);
+  });
+
+  it("builds Why Target from the strongest positive buying signal and seller fit", () => {
+    const researched = [{
+      signalType: "hiring_listing",
+      signalTitle: "Official job listing: IT Manager",
+      signalDescription: "CornerStone Medical lists an IT Manager.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company careers page",
+      sourceURL: "https://cornerstone.example/careers/it-support",
+      sourceDate: new Date().toISOString(),
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Structured JobPosting data names the role.",
+      points: 0,
+    }] as any;
+    const intelligence = buildOpportunityIntelligence(
+      { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" },
+      "it_services",
+      readySeller,
+      researched,
+    );
+
+    expect(intelligence.whyTarget).toContain("Official job listing: IT Manager");
+    expect(intelligence.whyTarget).toMatch(/may indicate/i);
+    expect(intelligence.whyTarget).toContain("Northstar Graphics");
+    expect(intelligence.whyTarget).not.toMatch(/Google Places|public operating address|public (?:company )?website/i);
+  });
+
   it("changes seller-match points when approved seller intelligence changes", () => {
     const ready = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
     const limited = buildOpportunityIntelligence(lead, "fleet_wraps", undefined);
