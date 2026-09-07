@@ -9,6 +9,14 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary API base-path liveness check
+ */
+export const ApiLivenessCheckResponse = zod.object({
+  "status": zod.string()
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({

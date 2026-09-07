@@ -91,6 +91,83 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
+export const getApiLivenessCheckUrl = () => {
+
+
+
+
+  return `/api/`
+}
+
+/**
+ * @summary API base-path liveness check
+ */
+export const apiLivenessCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
+
+  return customFetch<HealthStatus>(getApiLivenessCheckUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getApiLivenessCheckQueryKey = () => {
+    return [
+    `/api/`
+    ] as const;
+    }
+
+
+export const getApiLivenessCheckQueryOptions = <TData = Awaited<ReturnType<typeof apiLivenessCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof apiLivenessCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getApiLivenessCheckQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof apiLivenessCheck>>> = ({ signal }) => apiLivenessCheck({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof apiLivenessCheck>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ApiLivenessCheckQueryResult = NonNullable<Awaited<ReturnType<typeof apiLivenessCheck>>>
+export type ApiLivenessCheckQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary API base-path liveness check
+ */
+
+export function useApiLivenessCheck<TData = Awaited<ReturnType<typeof apiLivenessCheck>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof apiLivenessCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getApiLivenessCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getHealthCheckUrl = () => {
 
 

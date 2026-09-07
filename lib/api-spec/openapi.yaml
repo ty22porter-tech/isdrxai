@@ -28,6 +28,19 @@ tags:
   - name: Storage
     description: Object storage upload and serving endpoints.
 paths:
+  /:
+    get:
+      operationId: apiLivenessCheck
+      tags: [health]
+      summary: API base-path liveness check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
   /healthz:
     get:
       operationId: healthCheck

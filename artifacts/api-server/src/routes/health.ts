@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type RequestHandler } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
 import { db, prospectsTable, campaignsTable, notificationsTable, scoreEventsTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
@@ -6,10 +6,16 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.get("/healthz", (_req, res) => {
+const livenessCheck: RequestHandler = (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
   res.json(data);
-});
+};
+
+// The API artifact's public base path is also used by deployment uptime
+// monitoring. Keep it as the same dependency-free liveness check as /healthz
+// so a healthy process is never reported down merely because /api returned 404.
+router.get("/", livenessCheck);
+router.get("/healthz", livenessCheck);
 
 // Deep health check: verifies each major table is actually queryable, so a
 // missing table/column (the cause of past production 500s) is caught by a

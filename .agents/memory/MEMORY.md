@@ -23,6 +23,7 @@
 - [Engagement scoring](engagement-scoring.md) — score = sum of score_events (prospect cols are caches); automation idempotent via (prospect,campaign_key,type) unique; followUpMode bypasses generated zod.
 - [Calendly webhook bookings](calendly-webhook.md) — each app user needs independent Calendly auth/sync; never use one account or global token as fleet-wide booking evidence.
 - [PUBLIC_APP_URL → prod links](public-app-url.md) — shared env var forces all emailed links (alerts, tracking, /schedule) to the published app; dev-sent tracking links won't register in dev DB.
+- [Deployment health path](deployment-health-path.md) — publishing uptime probes /api; keep it as a fast public 200 liveness endpoint and use /api/health for deep checks.
 - [Stale lib dist after codegen](stale-lib-dist-after-codegen.md) — orval regen can leave lib dist/*.d.ts stale (tsbuildinfo skips rebuild); artifact typechecks fail on "missing" fields → `tsc --build --force` the lib.
 - [Date query parameters](date-query-parameters.md) — define OpenAPI date-only query params as patterned strings, not format:date; debounce native date inputs and validate again on the server.
 - [Visual brand palette](visual-brand-palette.md) — iSDRX AI’s brand accent is navy blue, never teal/green; reserve green only for explicit success states.
