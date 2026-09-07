@@ -36,16 +36,17 @@ async function currentClient(clientId: string) {
   return client;
 }
 
-function trustedProspectValues(
+async function trustedProspectValues(
   input: Record<string, any>,
   vertical: string,
   client?: typeof usersTable.$inferSelect,
-): any {
+  priorServerIntelligence?: any,
+): Promise<any> {
   const { opportunityIntelligence: requestedIntelligence, ...values } = input;
-  const opportunityIntelligence = deriveOpportunityForPersistence({
+  const opportunityIntelligence = await deriveOpportunityForPersistence({
     ...values,
     opportunityIntelligence: requestedIntelligence,
-  } as any, vertical, client);
+  } as any, vertical, client, priorServerIntelligence);
   return { ...values, opportunityIntelligence };
 }
 
@@ -122,7 +123,7 @@ router.post("/", async (req, res) => {
   const scheduleToken = randomUUID();
   const client = await currentClient(req.clientId);
   const vertical = clientVertical(client);
-  const values = trustedProspectValues(body, vertical, client);
+  const values = await trustedProspectValues(body, vertical, client);
   const [prospect] = await db.insert(prospectsTable).values({ ...values, clientId: req.clientId, status: "new", scheduleToken, vertical }).returning();
   await db.insert(activityTable).values({
     clientId: req.clientId,
@@ -145,15 +146,21 @@ router.post("/bulk", async (req, res) => {
   let updated = 0;
   let failed = 0;
   const existing = await db
-    .select({ id: prospectsTable.id, email: prospectsTable.email })
+    .select()
     .from(prospectsTable)
     .where(eq(prospectsTable.clientId, req.clientId));
-  const existingByEmail = new Map(existing.map((p) => [p.email.trim().toLowerCase(), p.id]));
+  const existingByEmail = new Map(existing.map((p) => [p.email.trim().toLowerCase(), p]));
   const seenEmails = new Set(existingByEmail.keys());
   const validRows: { index: number; values: any }[] = [];
   const updateRows: { index: number; prospectId: number; input: any }[] = [];
+  const trustedInputs = await Promise.all(prospects.map(async prospectInput => {
+    const rawEmail = (prospectInput.email ?? "").trim().toLowerCase();
+    if (!prospectInput.companyName?.trim() || !EMAIL_RE.test(rawEmail)) return prospectInput;
+    if (existingByEmail.has(rawEmail) && duplicateStrategy !== "update") return prospectInput;
+    return trustedProspectValues(prospectInput, vertical, client, existingByEmail.get(rawEmail)?.opportunityIntelligence);
+  }));
   for (let i = 0; i < prospects.length; i++) {
-    const input = trustedProspectValues(prospects[i], vertical, client);
+    const input = trustedInputs[i];
     const email = (input.email ?? "").trim().toLowerCase();
     if (!input.companyName?.trim()) {
       failed++;
@@ -166,9 +173,9 @@ router.post("/bulk", async (req, res) => {
       continue;
     }
     if (seenEmails.has(email)) {
-      const existingId = existingByEmail.get(email);
-      if (duplicateStrategy === "update" && existingId !== undefined) {
-        updateRows.push({ index: i, prospectId: existingId, input });
+      const existingProspect = existingByEmail.get(email);
+      if (duplicateStrategy === "update" && existingProspect !== undefined) {
+        updateRows.push({ index: i, prospectId: existingProspect.id, input });
       } else {
         failed++;
         results.push({ index: i, success: false, error: `Duplicate: a prospect with email ${input.email} already exists` });
@@ -276,7 +283,22 @@ router.get("/:id", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   const { id } = UpdateProspectParams.parse({ id: parseInt(req.params.id) });
   const body = UpdateProspectBody.parse(req.body);
-  const [prospect] = await db.update(prospectsTable).set(body).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId))).returning();
+  const [existing] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
+  if (!existing) return res.status(404).json({ error: "Prospect not found" });
+  const client = await currentClient(req.clientId);
+  const vertical = existing.vertical || clientVertical(client);
+  const updateValues: Record<string, any> = { ...body };
+  const intelligenceInputs = new Set(["companyName", "industry", "city", "state", "website", "address", "phone", "title"]);
+  const shouldRecomputeIntelligence = Boolean(existing.opportunityIntelligence)
+    && Object.keys(body).some(key => intelligenceInputs.has(key));
+  if (shouldRecomputeIntelligence) {
+    const merged = { ...existing, ...body, opportunityIntelligence: existing.opportunityIntelligence };
+    const trusted = await trustedProspectValues(merged, vertical, client, existing.opportunityIntelligence);
+    updateValues.opportunityIntelligence = trusted.opportunityIntelligence;
+  } else {
+    delete updateValues.opportunityIntelligence;
+  }
+  const [prospect] = await db.update(prospectsTable).set(updateValues).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId))).returning();
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
   if (body.status) {
     await db.insert(activityTable).values({

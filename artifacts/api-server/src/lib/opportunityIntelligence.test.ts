@@ -4,6 +4,7 @@ import {
   deriveOpportunityForPersistence,
   opportunityEmailContext,
 } from "./opportunityIntelligence";
+import { deduplicateJobListings, extractOfficialResearchSignals, isBlockedResearchAddress } from "./officialWebsiteResearch";
 
 const lead = {
   companyName: "Northwind Mechanical",
@@ -38,6 +39,13 @@ const readySeller = {
 } as any;
 
 describe("opportunity intelligence", () => {
+  it("blocks private and reserved targets in hexadecimal IPv4-mapped IPv6 form", () => {
+    expect(isBlockedResearchAddress("::ffff:7f00:1")).toBe(true);
+    expect(isBlockedResearchAddress("::ffff:a9fe:a9fe")).toBe(true);
+    expect(isBlockedResearchAddress("::ffff:192.168.1.5")).toBe(true);
+    expect(isBlockedResearchAddress("2001:db8::1")).toBe(true);
+    expect(isBlockedResearchAddress("2606:4700:4700::1111")).toBe(false);
+  });
   it("uses an exact 100-point category model and sums the earned total", () => {
     const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
 
@@ -77,8 +85,8 @@ describe("opportunity intelligence", () => {
     expect(context).toContain("Current fleet size");
   });
 
-  it("recomputes a client-supplied snapshot before persistence", () => {
-    const derived = deriveOpportunityForPersistence({
+  it("recomputes a client-supplied snapshot before persistence", async () => {
+    const derived = await deriveOpportunityForPersistence({
       ...lead,
       title: "Operations Director",
       opportunityIntelligence: { score: 100, breakdown: [] },
@@ -90,7 +98,153 @@ describe("opportunity intelligence", () => {
     expect(derived?.breakdown.reduce((sum, item) => sum + item.maxPoints, 0)).toBe(100);
   });
 
-  it("keeps legacy and manual prospects nullable", () => {
-    expect(deriveOpportunityForPersistence(lead, "fleet_wraps", readySeller)).toBeUndefined();
+  it("keeps legacy and manual prospects nullable", async () => {
+    expect(await deriveOpportunityForPersistence(lead, "fleet_wraps", readySeller)).toBeUndefined();
+  });
+
+  it("awards bounded buying points for relevant official hiring", () => {
+    const researched = [{
+      signalType: "hiring_listing",
+      signalTitle: "Official job listing: Field Service Technician",
+      signalDescription: "Northwind Mechanical lists Field Service Technician in Dallas.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company careers page",
+      sourceURL: "https://northwind.example/careers/field-tech",
+      sourceDate: new Date().toISOString(),
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Structured JobPosting data names the role.",
+      points: 0,
+    }] as any;
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, researched);
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBeGreaterThan(0);
+    expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBeGreaterThan(0);
+    expect(intelligence.scoreConfidence).toBe("medium");
+  });
+
+  it("does not award buying points for irrelevant hiring", () => {
+    const researched = [{
+      signalType: "hiring_listing",
+      signalTitle: "Official job listing: Office Administrator",
+      signalDescription: "Northwind Mechanical lists an Office Administrator.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company careers page",
+      sourceURL: "https://northwind.example/jobs/admin",
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Structured JobPosting data names the role.",
+      points: 0,
+    }] as any;
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, researched);
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(0);
+    expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBe(0);
+  });
+
+  it("keeps field hiring as an implication and never a fleet-purchase fact", () => {
+    const researched = [{
+      signalType: "hiring_listing", signalTitle: "Official job listing: HVAC Technician",
+      signalDescription: "Northwind Mechanical lists HVAC Technician.", signalClassification: "verified",
+      confidenceLevel: "high", freshness: "unknown", sourceName: "Official careers",
+      sourceURL: "https://northwind.example/jobs/hvac", dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Current official listing.", points: 0,
+    }] as any;
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, researched);
+    const implication = intelligence.signals.find(signal => signal.signalType === "hiring_implication");
+    expect(implication?.signalClassification).toBe("implication");
+    expect(implication?.signalDescription).toContain("does not verify any vehicle purchase or fleet growth");
+    expect(intelligence.signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ signalTitle: "Vehicle purchase or expansion plans", signalClassification: "unconfirmed" }),
+    ]));
+  });
+
+  it("scores sourced acquisition and rebrand evidence but not stale or unknown freshness", () => {
+    const events = ["acquisition", "rebrand"].map((signalType, index) => ({
+      signalType, signalTitle: signalType, signalDescription: `Official ${signalType} announcement`,
+      signalClassification: "verified", confidenceLevel: "high",
+      freshness: index ? "unknown" : "stale", sourceName: "Official company announcement",
+      sourceURL: `https://northwind.example/news/${signalType}`, sourceDate: index ? undefined : "2020-01-01",
+      dateDiscovered: new Date().toISOString(), supportingEvidence: `Northwind official ${signalType} wording`, points: 0,
+    })) as any;
+    const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller, events);
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(11);
+    expect(intelligence.breakdown.find(item => item.key === "signal_freshness")?.points).toBe(0);
+  });
+
+  it("deduplicates official job listings by identifiers, URLs, or role/location/date", () => {
+    expect(deduplicateJobListings([
+      { title: "Technician", location: "Dallas", id: "job-1", url: "https://example.com/a" },
+      { title: "Technician", location: "Dallas", id: "job-1", url: "https://example.com/b" },
+      { title: "Installer", location: "Fort Worth", date: "2026-01-01" },
+      { title: " installer ", location: "Fort Worth", date: "2026-01-01" },
+    ])).toHaveLength(2);
+  });
+
+  it("accepts live structured jobs but rejects expired ATS JobPosting data", () => {
+    const signals = extractOfficialResearchSignals("Northwind Mechanical", [{
+      url: new URL("https://jobs.lever.co/northwind/role"),
+      html: `<script type="application/ld+json">[
+        {"@type":"JobPosting","title":"Field Service Technician","validThrough":"2099-01-01","url":"https://jobs.lever.co/northwind/role"},
+        {"@type":"JobPosting","title":"Expired Driver","validThrough":"2020-01-01","url":"https://jobs.lever.co/northwind/old"}
+      ]</script>`,
+    }], new Date().toISOString());
+    expect(signals.filter(signal => signal.signalType === "hiring_listing")).toEqual([
+      expect.objectContaining({ signalTitle: "Official job listing: Field Service Technician" }),
+    ]);
+  });
+
+  it("does not treat a bare job anchor as an active listing without a fetched role and Apply action", () => {
+    const signals = extractOfficialResearchSignals("Northwind Mechanical", [{
+      url: new URL("https://northwind.example/careers"),
+      html: `<a href="/jobs/technician">Service Technician</a>`,
+    }], new Date().toISOString());
+    expect(signals.some(signal => signal.signalType === "hiring_listing")).toBe(false);
+    expect(signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ signalType: "hiring_research_status", signalClassification: "unconfirmed" }),
+    ]));
+  });
+
+  it("requires a date bound to the announcement instead of borrowing an unrelated page date", () => {
+    const signals = extractOfficialResearchSignals("Northwind Mechanical", [{
+      url: new URL("https://northwind.example/about"),
+      html: `<p>January 5, 2026 was our annual safety day.</p><p>Northwind Mechanical acquired Southwind Services.</p>`,
+    }], new Date().toISOString());
+    expect(signals.some(signal => signal.signalType === "acquisition")).toBe(false);
+  });
+
+  it("uses article publication metadata for multiple official announcement types", () => {
+    const signals = extractOfficialResearchSignals("Northwind Mechanical", [{
+      url: new URL("https://northwind.example/news/company-update"),
+      html: `<meta property="article:published_time" content="2026-08-12T09:00:00Z">
+        <p>Northwind Mechanical acquired Southwind Services.</p>
+        <p>We rebranded our commercial division.</p>`,
+    }], new Date().toISOString());
+    expect(signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ signalType: "acquisition", sourceDate: "2026-08-12T09:00:00Z" }),
+      expect.objectContaining({ signalType: "rebrand", sourceDate: "2026-08-12T09:00:00Z" }),
+    ]));
+  });
+
+  it("keeps an undated fetched role page at medium confidence", () => {
+    const signals = extractOfficialResearchSignals("Northwind Mechanical", [{
+      url: new URL("https://jobs.lever.co/northwind/field-tech"),
+      html: `<h1>Field Service Technician</h1><button>Apply now</button>`,
+    }], new Date().toISOString());
+    expect(signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({ signalType: "hiring_listing", confidenceLevel: "medium", freshness: "unknown" }),
+    ]));
+  });
+
+  it("ignores client-injected researched signals during persistence recomputation", async () => {
+    const derived = await deriveOpportunityForPersistence({
+      ...lead,
+      title: "Operations Director",
+      opportunityIntelligence: {
+        signals: [{ signalType: "fleet_vehicle_evidence", points: 30 }],
+        score: 100,
+      },
+    }, "fleet_wraps", readySeller);
+    expect(derived?.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(0);
   });
 });

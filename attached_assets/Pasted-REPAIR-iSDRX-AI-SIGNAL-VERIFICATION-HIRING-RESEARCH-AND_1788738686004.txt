@@ -1,0 +1,1163 @@
+REPAIR iSDRX AI — SIGNAL VERIFICATION, HIRING RESEARCH, AND FALSE
+"CONFIRMED NEED" CORRECTION
+
+CRITICAL:
+
+Inspect the existing prospect research, signal verification, Opportunity Score,
+Seller Intelligence, prospect cards, and email-generation logic BEFORE making
+changes.
+
+DO NOT rebuild the prospecting system.
+
+DO NOT modify or replace:
+- Existing Prospect Search
+- Existing Apollo/enrichment workflows
+- Existing Seller Intelligence
+- Existing Opportunity Score architecture except where signal classification
+  needs correction
+- Existing Hot / Medium / Low engagement system
+- Existing campaign automation
+- Existing 7-step campaign
+- Existing Calendly tracking/follow-up
+- Existing dashboard engagement calculations
+
+This is a REPAIR to how prospect intelligence is classified, researched,
+scored, and described.
+
+
+=========================================================
+PRIMARY PROBLEM
+=========================================================
+
+The current system is sometimes treating basic company verification data as
+a buying signal.
+
+Example:
+
+Google Places verifies:
+- company exists
+- operating address
+- website
+- phone
+
+The system then incorrectly moves from:
+
+"Potential need"
+
+to language such as:
+
+"confirmed need"
+
+even though no actual fleet, vehicle, branding, expansion, hiring, or other
+company-specific buying need has been verified.
+
+THIS MUST BE CORRECTED.
+
+
+=========================================================
+1. SEPARATE COMPANY VERIFICATION FROM BUYING SIGNALS
+=========================================================
+
+Create a clear distinction between:
+
+A. COMPANY VERIFICATION
+B. VERIFIED BUYING SIGNAL
+C. POTENTIAL IMPLICATION
+D. INDUSTRY / BUSINESS MODEL FIT
+E. UNCONFIRMED INFORMATION
+
+
+-------------------------------------------
+A. COMPANY VERIFICATION
+-------------------------------------------
+
+Examples:
+
+✓ Active Google Places listing
+✓ Public operating address
+✓ Public website
+✓ Published phone number
+✓ Company appears operational
+✓ Company industry/category verified
+
+These facts help establish:
+
+DATA QUALITY
+COMPANY VALIDITY
+CONTACTABILITY
+
+They are NOT buying signals by themselves.
+
+Do NOT award Verified Buying Signal points simply because:
+
+- Google Places returned the company
+- the company has a website
+- the company has an address
+- the company has a phone number
+
+
+=========================================================
+2. VERIFIED BUYING SIGNAL DEFINITION
+=========================================================
+
+A VERIFIED BUYING SIGNAL requires company-specific evidence that could
+reasonably affect the need for the seller's service.
+
+Examples include:
+
+- Hiring employees
+- Hiring field technicians
+- Hiring drivers
+- Hiring installers
+- Hiring sales representatives who travel
+- Opening a new location
+- Expanding into a new territory
+- Acquiring another company
+- Announcing business expansion
+- Purchasing vehicles
+- Adding fleet vehicles
+- Rebranding
+- New logo / brand launch
+- Facility opening
+- Facility expansion
+- Construction project
+- Contract award
+- RFP / procurement activity
+- Leadership change where relevant
+- New service line
+- Franchise expansion
+- Funding/growth event where relevant
+- Relevant compliance or technology initiative
+
+A verified signal MUST have supporting evidence.
+
+
+=========================================================
+3. ADD HIRING RESEARCH AS A CORE SIGNAL
+=========================================================
+
+Every prospect research process should actively investigate whether the
+company is currently hiring or has recently been hiring.
+
+DO NOT only look for general company information.
+
+Research:
+
+- Company careers page
+- Public job listings
+- Search-indexed job postings
+- LinkedIn/public hiring information where accessible
+- Applicant tracking system pages
+- Indeed/public job pages where available
+- Company announcements referencing hiring
+- News/press releases mentioning workforce expansion
+- Other reliable public hiring sources already supported by the application
+
+
+Capture:
+
+hiringStatus
+hiringRoles[]
+hiringRoleCount
+hiringDepartments[]
+hiringLocations[]
+hiringSource
+hiringSourceURL
+hiringDate
+hiringConfidence
+hiringEvidence
+
+
+Possible hiringStatus values:
+
+VERIFIED_ACTIVE_HIRING
+RECENT_HIRING_SIGNAL
+NO_ACTIVE_HIRING_FOUND
+UNKNOWN
+
+
+IMPORTANT:
+
+"No jobs found" does NOT mean:
+
+"Company is not hiring."
+
+It means:
+
+"No active hiring signal was found from the sources searched."
+
+
+=========================================================
+4. HIRING SIGNAL RELEVANCE MUST BE INDUSTRY-SPECIFIC
+=========================================================
+
+Do not treat every job opening equally.
+
+The Industry Profile should determine which hiring roles are relevant to
+the seller.
+
+
+=========================================================
+FLEET & COMMERCIAL VEHICLE WRAPS
+=========================================================
+
+HIGH-RELEVANCE HIRING SIGNALS include:
+
+- HVAC Technician
+- Service Technician
+- Field Service Technician
+- Plumber
+- Plumbing Technician
+- Electrician
+- Roofing Technician
+- Roofing Sales Representative where company vehicles are commonly used
+- Installer
+- Field Installer
+- Maintenance Technician
+- Pest Control Technician
+- Restoration Technician
+- Delivery Driver
+- CDL Driver
+- Route Driver
+- Service Driver
+- Mobile Technician
+- Field Representative
+- Field Sales Representative
+- Construction Field Employee
+- Landscaping Crew / Technician
+- Home Service Technician
+- Utility Field Worker
+- Mobile Healthcare / Home Health roles where vehicles are relevant
+
+
+These roles may indicate:
+
+POTENTIAL IMPLICATION:
+Additional mobile employees may eventually require additional service
+vehicles, replacement vehicles, fleet identification, graphics, or branding.
+
+DO NOT automatically state:
+
+"The company is expanding its fleet."
+
+unless vehicle/fleet expansion is independently verified.
+
+
+Example:
+
+VERIFIED SIGNAL:
+ABC HVAC is currently hiring 8 service technicians.
+
+POTENTIAL IMPLICATION:
+Additional field-service staffing may increase future vehicle capacity or
+fleet-branding requirements.
+
+UNCONFIRMED:
+Whether the company is purchasing additional vehicles.
+
+SELLER MATCH:
+C4 Wraps provides commercial vehicle wraps and fleet-branding services that
+may become relevant if additional vehicles are deployed.
+
+
+=========================================================
+JANITORIAL
+=========================================================
+
+Hiring signals should be interpreted differently.
+
+Examples:
+
+- Facility Manager
+- Property Manager
+- Operations Manager
+- Plant Manager
+- Warehouse Manager
+- Environmental Services
+- Facilities Technician
+- Operations expansion hiring
+- New-location staffing
+- Production staffing
+- Warehouse staffing
+
+Potential implication:
+
+Growth in facility operations or staffing may increase cleaning demand,
+facility traffic, or the need for structured janitorial support.
+
+Never claim they need a new cleaning provider without evidence.
+
+
+=========================================================
+IT SERVICES
+=========================================================
+
+Relevant hiring may include:
+
+- IT Manager
+- Systems Administrator
+- Help Desk
+- Cybersecurity
+- Network Engineer
+- Cloud Engineer
+- Information Security
+- Compliance
+- IT leadership
+- Rapid general employee hiring
+
+Potential implications may include:
+
+- increased endpoint count
+- support demand
+- infrastructure complexity
+- security/compliance requirements
+
+Again, phrase as potential implications unless directly verified.
+
+
+=========================================================
+5. HIRING RECENCY
+=========================================================
+
+Track freshness.
+
+Suggested classification:
+
+0–30 days:
+VERY RECENT
+
+31–90 days:
+RECENT
+
+91–180 days:
+ACTIVE / MODERATELY RECENT
+
+181–365 days:
+OLDER
+
+365+ days:
+STALE
+
+
+Recent hiring signals should be weighted more strongly than older hiring
+information.
+
+Never describe a stale posting as:
+
+"currently hiring"
+
+unless it is still demonstrably active.
+
+
+=========================================================
+6. SOURCE QUALITY
+=========================================================
+
+Rank hiring evidence.
+
+HIGH CONFIDENCE:
+
+- Official company careers page
+- Company's ATS/job application page
+- Official company press release
+- Official public-sector job posting
+- Verified company announcement
+
+MEDIUM CONFIDENCE:
+
+- Major established job board showing an active listing
+- Reputable business/news source
+- Multiple corroborating sources
+
+LOW CONFIDENCE:
+
+- Old cached result
+- Aggregated listing with no current validation
+- Search snippet with uncertain status
+
+
+Low-confidence hiring information should NOT be represented as a definitive
+current hiring signal.
+
+
+=========================================================
+7. FIX "CONFIRMED NEED" LANGUAGE
+=========================================================
+
+Search the existing application for logic or prompts that produce phrases
+such as:
+
+"confirmed need"
+
+"confirmed need around"
+
+"the company needs"
+
+"they need"
+
+"requires"
+
+"is expanding"
+
+"is growing its fleet"
+
+"is replacing"
+
+when those statements are based only on inference.
+
+Remove or correct this behavior.
+
+
+A need can only be described as CONFIRMED if there is direct supporting
+evidence.
+
+Otherwise use:
+
+- Potential need
+- Potential opportunity
+- May create a need
+- Could become relevant
+- May indicate
+- If confirmed during discovery
+- Could support
+- May benefit from
+- Appears potentially relevant
+
+
+=========================================================
+8. FIX POTENTIAL NEEDS SECTION
+=========================================================
+
+The current Potential Needs section sometimes converts an inferred
+opportunity into a confirmed requirement.
+
+BAD EXAMPLE:
+
+Potential opportunity: vehicle identification →
+C4 Wraps' custom design and installation may address the confirmed need →
+Mobile billboards for branding and marketing.
+
+
+There is NO confirmed need.
+
+
+CORRECT FORMAT:
+
+Potential opportunity:
+Vehicle identification
+
+Why it may matter:
+If the prospect operates customer-facing commercial vehicles, consistent
+vehicle identification could support brand visibility and professionalism.
+
+Relevant seller capability:
+C4 Wraps — commercial vehicle wrap design and installation.
+
+Business value:
+Potentially stronger local brand visibility and fleet consistency.
+
+Status:
+UNCONFIRMED — vehicle ownership and current wrap requirements have not yet
+been verified.
+
+
+=========================================================
+9. NO BUYING SIGNAL FOUND BEHAVIOR
+=========================================================
+
+When no meaningful verified buying signal exists:
+
+DO NOT invent one.
+
+Display:
+
+VERIFIED BUYING SIGNALS
+No meaningful company-specific buying signal found yet.
+
+
+Then show:
+
+POTENTIAL FIT
+
+Example:
+
+Dallas Metropolitan SBDC is an active Dallas-area organization, but current
+research has not verified that it operates a commercial vehicle fleet or
+has an active vehicle-branding requirement.
+
+
+Then:
+
+UNCONFIRMED
+
+? Vehicle ownership
+? Fleet size
+? Vehicle purchases
+? Hiring of mobile/field employees
+? Expansion
+? Rebranding
+? Current wrap provider
+
+
+Recommended Outreach should adjust accordingly.
+
+Example:
+
+"No strong fleet-specific buying signal has been identified. If this
+prospect is retained, use discovery-oriented messaging to determine whether
+the organization operates branded vehicles before leading with fleet
+expansion or replacement messaging."
+
+
+=========================================================
+10. FLEET PROSPECT PRIORITIZATION
+=========================================================
+
+For Fleet & Commercial Vehicle Wrap prospects, prioritize finding evidence
+in approximately this order:
+
+1. VERIFIED COMMERCIAL VEHICLE / FLEET PRESENCE
+2. ACTIVE FIELD-EMPLOYEE OR DRIVER HIRING
+3. VERIFIED FLEET / VEHICLE EXPANSION
+4. NEW LOCATIONS OR TERRITORIES
+5. BUSINESS EXPANSION
+6. REBRANDING / BRAND REFRESH
+7. ACQUISITION / FRANCHISE EXPANSION
+8. MULTI-LOCATION OPERATIONS
+9. BUSINESS MODEL STRONGLY DEPENDENT ON MOBILE FIELD SERVICE
+10. GENERAL COMPANY FIT
+
+
+Important:
+
+#9 is INDUSTRY / BUSINESS MODEL FIT.
+
+It is NOT the same as a verified company-specific buying signal.
+
+
+=========================================================
+11. SEARCH FOR VEHICLE-RELATED EVIDENCE
+=========================================================
+
+For Fleet industry prospects, research available public information for
+terms/concepts such as:
+
+fleet
+vehicles
+service vehicles
+service vans
+company vans
+company trucks
+work trucks
+delivery vehicles
+technician vehicles
+company-provided vehicle
+company truck
+take-home vehicle
+fleet manager
+fleet operations
+driver
+route driver
+field technician
+service technician
+mobile technician
+vehicle allowance
+
+
+Hiring postings can be extremely useful here.
+
+Example:
+
+Job posting says:
+
+"Company vehicle provided."
+
+That can become:
+
+VERIFIED SIGNAL:
+Company job posting for Service Technician states that a company vehicle is
+provided.
+
+That is much stronger evidence of commercial vehicle use than simply
+assuming an HVAC company has vans.
+
+
+=========================================================
+12. MULTIPLE HIRING SIGNALS
+=========================================================
+
+If multiple current openings exist, summarize intelligently.
+
+Example:
+
+VERIFIED SIGNAL:
+Company currently lists 12 field-service openings across Dallas and Fort
+Worth, including HVAC technicians and installers.
+
+POTENTIAL IMPLICATION:
+The volume of field-service recruiting suggests the company is increasing
+or maintaining substantial mobile-service capacity. This could create
+future fleet-branding requirements if vehicles are added or reassigned.
+
+Do NOT say:
+
+"Company is adding 12 new vans."
+
+unless that is actually verified.
+
+
+=========================================================
+13. OPPORTUNITY SCORE REPAIR
+=========================================================
+
+Update existing scoring logic so:
+
+COMPANY VERIFICATION
+does not equal
+BUYING SIGNALS.
+
+
+Google Places verification may contribute to:
+
+- Company/Data Confidence
+- Company Validity
+- Prospect Fit
+
+But should contribute ZERO or minimal points to:
+
+VERIFIED BUYING SIGNALS.
+
+
+Example Fleet scoring concept:
+
+COMPANY / ICP FIT
+up to 20–25 points
+
+VERIFIED BUYING SIGNALS
+up to 25–30 points
+
+SELLER → PROSPECT MATCH
+up to 20 points
+
+DECISION-MAKER MATCH
+up to 10 points
+
+SIGNAL FRESHNESS
+up to 10 points
+
+BUSINESS NEED POTENTIAL
+remaining points
+
+
+Verified hiring can contribute to buying-signal points when the role is
+relevant to the Industry Profile.
+
+Example:
+
+Hiring 1 generic office administrator:
+Low or zero Fleet signal value.
+
+Hiring 10 HVAC service technicians:
+Strong Fleet-relevant hiring signal.
+
+Hiring 15 delivery drivers:
+Strong Fleet-relevant hiring signal.
+
+
+=========================================================
+14. OPPORTUNITY SCORE MUST REMAIN EXPLAINABLE
+=========================================================
+
+The View Score Breakdown should identify why points were awarded.
+
+Example:
+
+Company / Industry Fit                 22/25
+
+Verified Buying Signals               18/30
+✓ Hiring 8 service technicians         +10
+✓ New Fort Worth service location      +8
+? Vehicle purchases unconfirmed         +0
+
+Seller-to-Prospect Match              18/20
+
+Decision Maker Match                   9/10
+
+Signal Freshness                       9/10
+
+Business Need Potential                5/5
+
+
+TOTAL                                 81/100
+
+
+This is an example only.
+
+Reuse the application's existing score structure when possible.
+
+
+=========================================================
+15. SCORE CONFIDENCE
+=========================================================
+
+Company verification can improve DATA CONFIDENCE.
+
+It should not falsely improve BUYING-SIGNAL CONFIDENCE.
+
+
+Example:
+
+Opportunity Score:
+72 — Moderate/Strong Fit
+
+Score Confidence:
+Medium
+
+Reason:
+
+Company information and industry fit are verified, but only limited
+company-specific buying signals were found.
+
+
+=========================================================
+16. SELLER INTELLIGENCE CONNECTION
+=========================================================
+
+After signals are classified, compare VERIFIED evidence and legitimate
+potential implications against the Seller Intelligence Profile.
+
+Use:
+
+VERIFIED SIGNAL
++
+POTENTIAL IMPLICATION
++
+SELLER CAPABILITY
++
+BUSINESS VALUE
+=
+RECOMMENDED SALES ANGLE
+
+
+Do not reverse the process by starting with a seller capability and then
+inventing a prospect need to make it fit.
+
+
+=========================================================
+17. RECOMMENDED OUTREACH REPAIR
+=========================================================
+
+Recommended Outreach must reflect evidence strength.
+
+
+STRONG VERIFIED SIGNAL:
+
+"Lead with fleet-brand consistency during field-service growth. The company
+is actively recruiting service technicians and recently opened another
+service territory."
+
+
+WEAK / NO VERIFIED SIGNAL:
+
+"Use a discovery-led introduction focused on whether the organization
+operates customer-facing vehicles. Do not lead with fleet expansion because
+no fleet-growth signal has been verified."
+
+
+=========================================================
+18. AI EMAIL GENERATION
+=========================================================
+
+Pass signal classification into email generation.
+
+Emails may use:
+
+VERIFIED FACTS
+
+and carefully worded:
+
+POTENTIAL IMPLICATIONS.
+
+
+Emails may NOT convert implications into facts.
+
+
+Example allowed:
+
+"With your team currently recruiting service technicians, maintaining a
+consistent brand presence across field operations may become increasingly
+important as the organization grows."
+
+
+Do NOT write:
+
+"Since you're adding new vehicles to support your technicians..."
+
+unless vehicle additions are verified.
+
+
+=========================================================
+19. HIRING-BASED EMAIL PERSONALIZATION
+=========================================================
+
+When a relevant hiring signal exists, use it naturally.
+
+Do NOT write:
+
+"I noticed you're hiring."
+
+Prefer outcome-oriented language.
+
+
+Fleet example:
+
+"Adding field technicians can create another operational consideration:
+keeping every customer-facing vehicle consistent with the brand as the team
+grows."
+
+
+Janitorial example:
+
+"As warehouse operations and staffing grow, maintaining consistent cleaning
+standards across high-traffic employee areas can become increasingly
+important."
+
+
+IT example:
+
+"Adding employees and locations can increase the number of users, devices,
+and systems the internal team has to support."
+
+
+Only use this language when the underlying hiring/growth evidence supports
+it.
+
+
+=========================================================
+20. PROSPECT CARD DISPLAY
+=========================================================
+
+For prospect cards, structure intelligence clearly:
+
+WHY TARGET
+
+VERIFIED COMPANY INFORMATION
+✓ Active Dallas-area business
+✓ Public website
+✓ Public operating address
+
+
+VERIFIED BUYING SIGNALS
+✓ Hiring 8 field technicians
+✓ New location announced
+
+
+POTENTIAL IMPLICATIONS
+→ Additional field staffing may create future vehicle capacity and branding
+requirements.
+
+
+UNCONFIRMED
+? Fleet size
+? New vehicle purchases
+? Current wrap provider
+
+
+POTENTIAL NEEDS
+
+Only show needs as confirmed when evidence confirms them.
+
+Otherwise label them:
+
+POTENTIAL OPPORTUNITY
+
+
+RECOMMENDED OUTREACH
+
+Explain what the seller should lead with and why.
+
+
+=========================================================
+21. HIRING DATA ON PROSPECT CARD
+=========================================================
+
+When meaningful hiring information is found, show something concise such as:
+
+HIRING SIGNAL
+
+✓ Active Hiring
+
+8 relevant openings found
+
+Roles:
+- HVAC Service Technician
+- Installer
+- Field Service Technician
+
+Locations:
+Dallas, Fort Worth
+
+Most Recent:
+12 days ago
+
+
+Potential implication:
+Continued field-service recruiting may create additional mobile workforce
+capacity and future fleet-branding requirements.
+
+
+Include source links/details inside the expandable evidence area rather than
+cluttering the main card.
+
+
+=========================================================
+22. SIGNAL EVIDENCE DETAILS
+=========================================================
+
+Allow a user to inspect evidence behind a signal.
+
+Example:
+
+Verified Signal:
+Hiring Service Technicians
+
+Source:
+Company Careers Page
+
+Source Date:
+August 29, 2026
+
+Date Verified:
+September 6, 2026
+
+Evidence:
+Eight currently listed Service Technician positions across Dallas and Fort
+Worth.
+
+Confidence:
+HIGH
+
+
+=========================================================
+23. DEDUPLICATE JOB POSTINGS
+=========================================================
+
+Hiring research may find the same job across multiple sources.
+
+Do NOT count:
+
+Company careers page
++
+Indeed
++
+LinkedIn
++
+job aggregator
+
+as four different openings if they represent the same underlying job.
+
+
+Deduplicate using:
+
+- company
+- job title
+- location
+- posting identifier when available
+- posting URL
+- date
+- similarity
+
+
+Maintain source corroboration separately.
+
+
+=========================================================
+24. DO NOT INFLATE HIRING COUNTS
+=========================================================
+
+If a listing says:
+
+"Multiple openings"
+
+without a count:
+
+Do not invent the number.
+
+
+Store:
+
+hiringRoleCount = unknown
+
+and describe:
+
+"Multiple openings listed."
+
+
+=========================================================
+25. SEARCH FAILURE / MISSING DATA
+=========================================================
+
+If hiring sources cannot be accessed:
+
+Do NOT say:
+
+"No hiring."
+
+Say:
+
+"Hiring status could not be fully verified from available public sources."
+
+
+=========================================================
+26. PERFORMANCE / COST CONTROL
+=========================================================
+
+Do not perform unnecessarily expensive duplicate research.
+
+Use caching where appropriate.
+
+Hiring signals should have:
+
+lastChecked
+sourceDate
+dateVerified
+freshnessStatus
+
+Refresh hiring information based on reasonable signal freshness rules rather
+than re-running identical research on every UI render.
+
+
+=========================================================
+27. EXISTING DALLAS METROPOLITAN SBDC TYPE EXAMPLE
+=========================================================
+
+Current incorrect behavior:
+
+WHY TARGET:
+Google Places returned business...
+
+then later:
+
+"confirmed need around vehicle identification"
+
+
+Correct behavior:
+
+VERIFIED COMPANY INFORMATION:
+✓ Dallas-area operating address
+✓ Public website
+✓ Published phone number
+
+
+VERIFIED BUYING SIGNALS:
+No meaningful fleet-specific buying signal found yet.
+
+
+POTENTIAL FIT:
+The organization may use customer-facing or operational vehicles, but
+current research has not confirmed vehicle ownership.
+
+
+UNCONFIRMED:
+? Commercial vehicle ownership
+? Fleet size
+? Fleet expansion
+? Current vehicle graphics
+? Hiring of mobile employees
+? Rebranding
+
+
+POTENTIAL OPPORTUNITY:
+If discovery confirms that the organization operates branded vehicles,
+C4 Wraps' commercial vehicle graphics may support vehicle identification,
+brand consistency, and local visibility.
+
+
+RECOMMENDED OUTREACH:
+Use a light discovery-oriented approach. Do not lead with fleet expansion
+or a "confirmed need" because no fleet-specific buying signal has been
+verified.
+
+
+=========================================================
+28. VIRTUAL EMPLOYEE BEHAVIOR
+=========================================================
+
+This repair is important to the Virtual Sales Development Employee model.
+
+The employee should behave like a competent SDR:
+
+RESEARCH
+↓
+VERIFY
+↓
+SEPARATE FACT FROM ASSUMPTION
+↓
+ASSESS WHAT THE FACT MAY MEAN
+↓
+COMPARE IT TO WHAT THE EMPLOYER SELLS
+↓
+PRIORITIZE
+↓
+DEVELOP SALES STRATEGY
+↓
+PROSPECT
+
+
+The AI employee should NEVER manufacture a reason to call a prospect simply
+because it wants to create a sales angle.
+
+
+=========================================================
+29. FINAL QUALITY CONTROL
+=========================================================
+
+Before displaying prospect intelligence, run a validation check:
+
+For every statement, ask:
+
+1. Is this company verification or a buying signal?
+2. Is there supporting evidence?
+3. Is the evidence current enough?
+4. Is this a fact or implication?
+5. Is the language accurately labeled?
+6. Did an implication accidentally become a "confirmed need"?
+7. Is a seller capability being mistaken for a prospect need?
+8. Is hiring actually relevant to this seller's industry?
+9. Are duplicate job listings inflating the signal?
+10. Would a salesperson reading this mistakenly believe something was
+    verified when it was not?
+
+If yes, correct the language/classification before rendering.
+
+
+=========================================================
+30. IMPLEMENTATION REQUIREMENT
+=========================================================
+
+Inspect existing:
+
+- prospect research services
+- Google Places logic
+- web/company enrichment
+- signal extraction
+- signal classification
+- Opportunity Score calculation
+- Opportunity Score breakdown
+- industry profiles
+- Seller Intelligence
+- Why Target generation
+- Potential Needs generation
+- Fleet / Branding Signal generation
+- Recommended Outreach generation
+- AI email prompts
+- database schema
+- caching
+- prospect cards
+
+Extend the existing implementation.
+
+Do NOT create parallel duplicate systems if an existing signal or research
+architecture can be repaired.
+
+Preserve all unrelated working functionality.

@@ -29,7 +29,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { OpportunityIntelligenceView } from "@/components/opportunity-intelligence-view";
+import { OpportunityIntelligenceView, sanitizeOpportunityLanguage } from "@/components/opportunity-intelligence-view";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw } from "lucide-react";
@@ -400,7 +400,7 @@ export default function Prospecting() {
     if (lead.opportunityScore != null) {
       const scoreName = lead.vertical === "fleet_wraps" ? "Fleet Wrap Opportunity Score" : "IT Opportunity Score";
       notes += `\n${scoreName}: ${lead.opportunityScore}${lead.scoreLabel ? ` (${lead.scoreLabel})` : ""}`;
-      if (lead.potentialNeeds?.length) notes += `\nPotential needs: ${lead.potentialNeeds.join(", ")}`;
+      if (lead.potentialNeeds?.length) notes += `\nPotential opportunities (unconfirmed): ${lead.potentialNeeds.join(", ")}`;
       if (lead.complianceConsideration) notes += `\nCompliance: ${lead.complianceConsideration}`;
       if (lead.fleetBrandingSignal) notes += `\nFleet / Branding Signal: ${lead.fleetBrandingSignal}`;
       if (lead.recommendedOutreach) notes += `\nRecommended outreach: ${lead.recommendedOutreach}`;
@@ -1148,33 +1148,39 @@ export default function Prospecting() {
                         )}
 
                         <Separator className="my-2.5" />
-                        <p className="text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground">Why target: </span>
-                          {lead.whyTarget}
-                        </p>
-                        {lead.potentialNeeds && lead.potentialNeeds.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1.5">
-                            <span className="font-medium text-foreground">Potential needs: </span>
-                            {lead.potentialNeeds.join(", ")}
-                          </p>
-                        )}
-                        {lead.complianceConsideration && (
-                          <p className="text-xs text-muted-foreground mt-1.5">
-                            <span className="font-medium text-foreground">Compliance: </span>
-                            {lead.complianceConsideration}
-                          </p>
-                        )}
-                        {lead.fleetBrandingSignal && (
-                          <p className="text-xs text-muted-foreground mt-1.5">
-                            <span className="font-medium text-foreground">Fleet / Branding Signal: </span>
-                            {lead.fleetBrandingSignal}
-                          </p>
-                        )}
-                        {lead.recommendedOutreach && (
-                          <p className="text-xs text-muted-foreground mt-1.5">
-                            <span className="font-medium text-foreground">Recommended outreach: </span>
-                            {lead.recommendedOutreach}
-                          </p>
+                        {lead.opportunityIntelligence ? (
+                          <OpportunityIntelligenceView intelligence={lead.opportunityIntelligence} compact />
+                        ) : (
+                          <>
+                            <p className="text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">Why target: </span>
+                              {sanitizeOpportunityLanguage(lead.whyTarget)}
+                            </p>
+                            {lead.potentialNeeds && lead.potentialNeeds.length > 0 && (
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                <span className="font-medium text-foreground">Potential opportunities (unconfirmed): </span>
+                                {lead.potentialNeeds.map(sanitizeOpportunityLanguage).join(", ")}
+                              </p>
+                            )}
+                            {lead.complianceConsideration && (
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                <span className="font-medium text-foreground">Compliance: </span>
+                                {sanitizeOpportunityLanguage(lead.complianceConsideration)}
+                              </p>
+                            )}
+                            {lead.fleetBrandingSignal && (
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                <span className="font-medium text-foreground">Fleet / Branding Signal: </span>
+                                {sanitizeOpportunityLanguage(lead.fleetBrandingSignal)}
+                              </p>
+                            )}
+                            {lead.recommendedOutreach && (
+                              <p className="text-xs text-muted-foreground mt-1.5">
+                                <span className="font-medium text-foreground">Recommended outreach: </span>
+                                {sanitizeOpportunityLanguage(lead.recommendedOutreach)}
+                              </p>
+                            )}
+                          </>
                         )}
                         {failures.has(idx) && !added.has(idx) && (
                           <div className="mt-2.5 flex items-start gap-1.5 rounded-md bg-red-50 border border-red-200 px-2.5 py-1.5">

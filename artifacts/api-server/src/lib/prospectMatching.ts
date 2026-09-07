@@ -134,7 +134,7 @@ export function potentialNeedsForSeller(
   return match.challenges.map((challenge, index) => {
     const solution = solutions[index % solutions.length];
     const outcome = seller.outcomes[index % Math.max(1, seller.outcomes.length)] || match.outcome;
-    return `${challenge} → ${seller.name}'s ${solution} may address the confirmed need → ${outcome}.`;
+    return `${challenge} → If discovery confirms this opportunity, ${seller.name}'s ${solution} may be relevant → Potentially ${outcome}.`;
   });
 }
 
@@ -147,5 +147,5 @@ export function genericOutreach(user: User | undefined, industry: string | null 
   const offer = seller.capabilities[0] || seller.services[0] || seller.products[0] || seller.valuePropositions[0];
   const outcome = seller.outcomes[0] || match.outcome;
   const cta = seller.ctas[0] || "ask whether a brief discovery conversation would be useful";
-  return `Lead with ${seller.name}'s ${offer} because a confirmed need around ${match.challenges[0]} could support ${outcome}; then ${cta}.`;
+  return `Use a discovery-led question about ${match.challenges[0]}. If the prospect confirms it is a priority, ${seller.name}'s ${offer} may support ${outcome}; then ${cta}.`;
 }

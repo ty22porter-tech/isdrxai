@@ -14,6 +14,7 @@ import {
   sellerIntelligenceProfile,
 } from "../lib/prospectMatching";
 import { buildOpportunityIntelligence } from "../lib/opportunityIntelligence";
+import { researchOfficialWebsite } from "../lib/officialWebsiteResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -443,13 +444,14 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     const places = await searchRealBusinesses(apiKey, body.city.trim(), body.state, body.industry, count);
     const bases = places.slice(0, count).map((p) => placeToLeadBase(p, body.city.trim(), body.state, body.industry, vertical));
 
-    const leads = bases.map((base, i) => {
+    const leads = await Promise.all(bases.map(async (base) => {
       const lead = vertical === "it_services"
         ? addItOverlay(base, body.industry, body.employeeRange ?? undefined, body.compliancePriority ?? undefined, client)
         : vertical === "fleet_wraps"
           ? addFleetOverlay(base, body.industry, client)
           : base;
-      const opportunityIntelligence = buildOpportunityIntelligence(lead, vertical, client);
+      const researchedSignals = await researchOfficialWebsite(lead);
+      const opportunityIntelligence = buildOpportunityIntelligence(lead, vertical, client, researchedSignals);
       return {
         ...lead,
         opportunityScore: opportunityIntelligence.score,
@@ -460,7 +462,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
         recommendedOutreach: opportunityIntelligence.recommendedOutreach,
         opportunityIntelligence,
       };
-    });
+    }));
 
     // Strongest seller-specific opportunities first. This never uses engagement.
     leads.sort((a: any, b: any) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
