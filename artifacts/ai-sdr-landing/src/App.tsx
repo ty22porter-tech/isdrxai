@@ -448,7 +448,7 @@ function EmailMockup() {
       <div className="px-5 py-3 bg-primary/5 border-t border-primary/10 flex items-center gap-3">
         <Bot className="w-4 h-4 text-primary shrink-0" />
         <p className="text-xs text-muted-foreground">
-          <span className="text-primary font-medium">Research used:</span> Official company expansion announcement · Google Maps business details · Official company careers page
+          <span className="text-primary font-medium">AI research used:</span> LinkedIn expansion announcement · Google Maps office locations · Yelp reviews
         </p>
       </div>
     </div>

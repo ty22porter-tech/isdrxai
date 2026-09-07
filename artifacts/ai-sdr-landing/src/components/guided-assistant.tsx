@@ -143,14 +143,14 @@ const QA_TREE = {
     ]
   },
   buying_signals: {
-    message: "Buying signals are sourced activities or business changes that may indicate a company has a potential need. iSDRX AI can verify current job postings and dated announcements on official company websites, such as new locations, expansion, service launches, acquisitions, or rebrands. It also measures engagement with outreach separately.",
+    message: "Buying signals are activities or business changes that may indicate a company has a potential need. Examples include hiring activity, company growth, leadership changes, new locations, operational challenges, expansion announcements, or increased engagement with your outreach.",
     options: [
       { label: "How does it track engagement?", target: "tracking" },
       { label: "More features", target: "features" }
     ]
   },
   tracking: {
-    message: "iSDRX AI monitors tracked outreach activity such as email opens, repeat opens, email-link clicks, attachment views, calendar-link clicks, questionnaire activity, positive replies, and scheduled meetings. It does not identify general website visitors or collect LinkedIn and social engagement without a supported data connection.",
+    message: "iSDRX AI monitors engagement activity such as email opens, repeat opens, link clicks, website visits, attachment views, video engagement, and calendar-link activity. These signals help identify hot, warm, and lower-engagement prospects for follow-up.",
     options: [
       { label: "More features", target: "features" }
     ]

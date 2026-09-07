@@ -17,8 +17,4 @@ export type EnrichLeadsRequestLeadsItem = {
   city?: string;
   state?: string;
   address?: string;
-  employeeCount?: number;
-  employeeRange?: string;
-  compliancePriority?: string;
-  estimatedLocations?: number;
 };

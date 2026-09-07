@@ -24,10 +24,6 @@ interface OpportunityLead {
   address?: string | null;
   website?: string | null;
   phone?: string | null;
-  employeeCount?: number | null;
-  employeeRange?: string | null;
-  compliancePriority?: string | null;
-  estimatedLocations?: number | null;
 }
 
 interface PersistedOpportunityInput extends OpportunityLead {
@@ -153,67 +149,6 @@ function noCurrentSignalCaveat(vertical: string): string {
     return "No current technology project, security event, provider change, or other time-sensitive buying signal has been verified.";
   }
   return "No current facility expansion, contract change, service issue, or other time-sensitive buying signal has been verified.";
-}
-
-const IT_COMPLIANCE_CONTEXT: Array<{ pattern: RegExp; obligations: string; risk: string }> = [
-  { pattern: /health|medical|clinic|hospital/i, obligations: "HIPAA and HITECH safeguards are likely relevant when the organization handles protected health information", risk: "phishing, ransomware, insecure access to patient systems, and downtime affecting care operations" },
-  { pattern: /financ|bank|credit|account|investment/i, obligations: "the GLBA Safeguards Rule and applicable financial-services security requirements are likely relevant", risk: "account takeover, business email compromise, unauthorized financial-data access, and audit gaps" },
-  { pattern: /insurance/i, obligations: "state insurance data-security rules, privacy duties, and cyber-insurance control requirements may apply", risk: "claims-data exposure, credential theft, ransomware, and control gaps that affect cyber-insurance renewal" },
-  { pattern: /retail|hospitality|restaurant/i, obligations: "PCI DSS is likely relevant where payment-card data is accepted or transmitted", risk: "payment-system compromise, insecure guest or store networks, phishing, and inconsistent security across locations" },
-  { pattern: /government|public|municipal|defen[sc]e|aerospace|contract/i, obligations: "NIST 800-171, CMMC, CJIS, or other contract-specific controls may apply depending on the data and agencies served", risk: "controlled-data exposure, unsupported systems, access-control gaps, and failure to produce audit evidence" },
-  { pattern: /education|school|university|college/i, obligations: "FERPA and applicable student-data privacy requirements are likely relevant", risk: "account compromise, ransomware, exposed student records, and unmanaged access across faculty, staff, and devices" },
-  { pattern: /legal|law firm/i, obligations: "professional confidentiality, client-data protection, and applicable privacy requirements are likely relevant", risk: "business email compromise, privileged-data exposure, ransomware, and insecure document sharing" },
-  { pattern: /manufactur|logistics|transport/i, obligations: "customer, supply-chain, cyber-insurance, and possibly government-contract security requirements may be relevant", risk: "operational disruption, ransomware, weak OT/IT separation, and unmanaged warehouse or mobile devices" },
-];
-
-function itComplianceContext(industry: string, priority?: string | null) {
-  const selected = Boolean(priority && priority !== "All Prospects");
-  const match = IT_COMPLIANCE_CONTEXT.find(item => item.pattern.test(`${industry} ${priority || ""}`));
-  return {
-    selected,
-    obligations: match?.obligations ?? "state privacy, contractual security, and cyber-insurance requirements may be relevant depending on the data the organization handles",
-    risk: match?.risk ?? "phishing, ransomware, business email compromise, weak identity controls, and preventable technology downtime",
-  };
-}
-
-function employeeProfile(lead: OpportunityLead) {
-  const count = lead.employeeCount && lead.employeeCount > 0 ? lead.employeeCount : undefined;
-  const range = lead.employeeRange?.trim();
-  const label = count ? `${count} employees` : range ? `${range} employees (selected search range)` : "an unverified employee count";
-  const scale = count
-    ? count >= 500 ? "enterprise" : count >= 100 ? "mid-market" : count >= 25 ? "growing" : "small"
-    : range
-      ? /(?:501|1,001|2,000)/.test(range) ? "enterprise" : /(?:101|251)/.test(range) ? "mid-market" : /(?:26|51)/.test(range) ? "growing" : "small"
-      : "unknown";
-  return { label, scale };
-}
-
-function itLocationProfile(lead: OpportunityLead, signals: OpportunitySignal[]) {
-  const expansionLocations = signals.filter(signal =>
-    signal.signalClassification === "verified"
-    && /^(?:new_location|new_facility|new_market|expansion)$/.test(signal.signalType),
-  ).length;
-  const count = Math.max(lead.estimatedLocations || 0, lead.address ? 1 : 0, expansionLocations ? expansionLocations + 1 : 0);
-  return count > 1
-    ? `${count}+ locations indicated by available public evidence`
-    : count === 1
-      ? "at least one published location; the total location count is unverified"
-      : "an unverified number of locations";
-}
-
-function relevantSellerOffers(seller: ReturnType<typeof sellerIntelligenceProfile>, industry: string, limit = 3) {
-  const offers = [...seller.services, ...seller.products, ...seller.capabilities, ...seller.valuePropositions];
-  const context = industry.toLowerCase();
-  const ranked = offers.map((offer, index) => {
-    const normalized = offer.toLowerCase();
-    const score =
-      (/cyber|security|compliance|risk|backup|disaster/.test(normalized) ? 4 : 0)
-      + (/managed it|support|help.?desk|infrastructure|cloud/.test(normalized) ? 3 : 0)
-      + (/microsoft|365|email|identity|device|mdm|network/.test(normalized) ? 2 : 0)
-      + (context.split(/\W+/).some(word => word.length > 4 && normalized.includes(word)) ? 2 : 0);
-    return { offer, index, score };
-  });
-  return ranked.sort((a, b) => b.score - a.score || a.index - b.index).slice(0, limit).map(item => item.offer);
 }
 
 const freshnessRank = (freshness: OpportunitySignal["freshness"]): number =>
@@ -946,22 +881,11 @@ export function buildOpportunityIntelligence(
     ),
   ] satisfies OpportunityScoreCategory[];
   const score = breakdown.reduce((sum, item) => sum + item.points, 0);
-  const employee = employeeProfile(lead);
-  const locationProfile = itLocationProfile(lead, uniqueResearched);
-  const compliance = itComplianceContext(lead.industry, lead.compliancePriority);
-  const approvedOffers = relevantSellerOffers(seller, lead.industry);
-  const itNeeds = [
-    `${employee.scale === "enterprise" || employee.scale === "mid-market" ? "Standardized IT operations, identity, endpoint, and support coverage" : "Reliable day-to-day IT support, account security, and device management"} may be needed for ${employee.label}.`,
-    `${/multiple|[2-9]\+/.test(locationProfile) ? "Consistent networks, security controls, backup, and remote support across locations" : "Secure network, backup, and business-continuity coverage"} may be important given ${locationProfile}.`,
-    `${compliance.obligations}; likely issues to validate include ${compliance.risk}.`,
-  ];
-  const potentialNeeds = vertical === "it_services"
-    ? itNeeds
-    : potentialNeedsForSeller(client, lead.industry, vertical)
-      .slice(0, 3)
-      .map(need => /^(potential|if|confirm|understand|determine|explore)/i.test(need)
-        ? need
-        : `Potential opportunity: ${need.charAt(0).toLowerCase()}${need.slice(1)}`);
+  const potentialNeeds = potentialNeedsForSeller(client, lead.industry, vertical)
+    .slice(0, 3)
+    .map(need => /^(potential|if|confirm|understand|determine|explore)/i.test(need)
+      ? need
+      : `Potential opportunity: ${need.charAt(0).toLowerCase()}${need.slice(1)}`);
   const strongestBuyingSignal = rankedBuyingEvidence[0];
   const strongestHistoricalSignal = rankBuyingSignals(signals.filter(signal =>
     signal.signalClassification === "verified"
@@ -982,29 +906,18 @@ export function buildOpportunityIntelligence(
           ? `${strongestNarrativeSignal.signalDescription} This is verified historical context, not a current buying signal. ${noCurrentSignalCaveat(vertical)}`
           : `${strongestNarrativeSignal.signalDescription} The event is verified, but its date is not; it should not be treated as timely. ${noCurrentSignalCaveat(vertical)}`
     : noCurrentSignalCaveat(vertical);
-  const baseWhyTarget = !seller.ready || (!strongestNarrativeSignal && modelFit.strength === "weak")
+  const whyTarget = !seller.ready || (!strongestNarrativeSignal && modelFit.strength === "weak")
     ? `No strong seller-specific reason to prioritize ${lead.companyName} has been identified yet. ${noCurrentSignalCaveat(vertical)}`
     : strongestNarrativeSignal
       ? `${signalRelevance} ${modelFit.description} ${sellerFit}`
       : `${modelFit.description} ${sellerFit} ${signalRelevance}`;
-  const publicActivity = strongestNarrativeSignal
-    ? `Official company website activity reviewed: ${strongestNarrativeSignal.signalDescription}`
-    : `The reviewed official company website pages did not provide a current, sourced buying event.`;
-  const whyTarget = vertical === "it_services"
-    ? `${lead.companyName}'s official website and linked careers or announcement pages were assessed against ${seller.ready ? `${seller.name}'s approved offerings` : "the user's Company Intelligence"}. ${publicActivity} ${baseWhyTarget}${compliance.selected ? ` Because “${lead.compliancePriority}” was selected, also consider that ${compliance.obligations}; potential issues include ${compliance.risk}. These are likely considerations to validate, not confirmed incidents.` : ""}`
-    : baseWhyTarget;
-  const baseRecommendedOutreach = strongestNarrativeSignal
+  const recommendedOutreach = strongestNarrativeSignal
     ? isCurrentBuyingSignal(strongestNarrativeSignal)
       ? `Lead with the verified ${strongestNarrativeSignal.signalTitle.toLowerCase()}, connect it to ${sellerCapability || "the relevant seller capability"}, and ask whether the related operational priority is current.`
       : `Use the verified ${strongestNarrativeSignal.signalTitle.toLowerCase()} only as background context and ask whether a related priority exists now; do not present the event as current.`
     : modelFit.strength === "weak"
       ? "Keep this prospect low priority until discovery or new evidence establishes a seller-specific reason to engage."
       : `Lead with the business-model relevance described above and ask about ${match.challenges[0]}. Use discovery-oriented messaging because no current buying event has been verified.`;
-  const recommendedOutreach = vertical === "it_services"
-    ? seller.ready && approvedOffers.length
-      ? `For ${lead.companyName}, lead with the challenge most consistent with ${employee.label} and ${locationProfile}: ${compliance.risk.split(",").slice(0, 2).join(" and")}. Connect that challenge to ${seller.name}'s ${approvedOffers.join(", ")} and explain how those offerings could improve ${sellerOutcome || "technology reliability, security, and support consistency"}. ${strongestNarrativeSignal ? `Reference the sourced ${strongestNarrativeSignal.signalTitle.toLowerCase()} as context, then verify the need before recommending a solution.` : "Ask which issue is current before recommending a solution; no active buying event was verified."}`
-      : `Ask ${lead.companyName} which technology, security, compliance, or support challenge is current for its ${employee.label} and ${locationProfile}. Seller offerings are not approved in Company Intelligence, so do not name a product until that profile is completed.`
-    : baseRecommendedOutreach;
   const hiringResearch = buildHiringResearch(uniqueResearched, generatedAt);
   const tracedSignals = signals.map(signal => ({
     ...signal,
@@ -1027,10 +940,6 @@ export function buildOpportunityIntelligence(
     sellerProfileStatus: seller.ready ? "ready" : "limited",
     sellerCapabilitiesConsidered: sellerOffers,
     sellerPriorityConsidered: relevantPriority || null,
-    employeeCount: lead.employeeCount || null,
-    employeeRange: lead.employeeRange || null,
-    compliancePriority: lead.compliancePriority || null,
-    estimatedLocations: lead.estimatedLocations || null,
   };
   const candidate: OpportunityIntelligence = {
     version: OPPORTUNITY_MODEL_VERSION,
@@ -1101,8 +1010,6 @@ export async function deriveOpportunityForPersistence(
   priorServerIntelligence?: OpportunityIntelligence | null,
 ): Promise<OpportunityIntelligence | undefined> {
   if (!input.opportunityIntelligence) return undefined;
-  const submittedIntelligence = input.opportunityIntelligence as OpportunityIntelligence;
-  const demographicInputs = priorServerIntelligence?.scoringInputs ?? submittedIntelligence?.scoringInputs;
   const lead = {
     companyName: input.companyName,
     contactTitle: input.title,
@@ -1112,10 +1019,6 @@ export async function deriveOpportunityForPersistence(
     address: input.address,
     website: input.website,
     phone: input.phone,
-    employeeCount: input.employeeCount ?? demographicInputs?.employeeCount ?? null,
-    employeeRange: demographicInputs?.employeeRange ?? null,
-    compliancePriority: demographicInputs?.compliancePriority ?? null,
-    estimatedLocations: demographicInputs?.estimatedLocations ?? null,
   };
   const researched = await researchOfficialWebsite(lead);
   // A transient research failure must not erase prior server-verified business

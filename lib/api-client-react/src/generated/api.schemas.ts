@@ -243,10 +243,6 @@ export type OpportunityIntelligenceScoringInputs = {
   sellerProfileStatus: OpportunityIntelligenceScoringInputsSellerProfileStatus;
   sellerCapabilitiesConsidered: string[];
   sellerPriorityConsidered: string | null;
-  employeeCount?: number | null;
-  employeeRange?: string | null;
-  compliancePriority?: string | null;
-  estimatedLocations?: number | null;
 };
 
 export type OpportunityIntelligenceIntegrityChecksItem = {
@@ -651,10 +647,6 @@ export type EnrichLeadsRequestLeadsItem = {
   city?: string;
   state?: string;
   address?: string;
-  employeeCount?: number;
-  employeeRange?: string;
-  compliancePriority?: string;
-  estimatedLocations?: number;
 };
 
 export interface EnrichLeadsRequest {

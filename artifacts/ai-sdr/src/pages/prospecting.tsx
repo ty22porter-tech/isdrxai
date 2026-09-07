@@ -177,7 +177,6 @@ type EnrichLeadResult = {
   email?: string;
   title?: string;
   phone?: string;
-  employeeCount?: number;
   opportunityScore?: number;
   scoreLabel?: string;
   whyTarget?: string;
@@ -209,7 +208,6 @@ export function applyEnrichmentResults(
       contactTitle: r.title ?? "Decision maker",
       email: r.email ?? lead.email,
       phone: r.phone || lead.phone,
-      estimatedEmployees: r.employeeCount ?? lead.estimatedEmployees,
       opportunityScore: r.opportunityScore ?? lead.opportunityScore,
       scoreLabel: r.scoreLabel ?? lead.scoreLabel,
       whyTarget: r.whyTarget ?? lead.whyTarget,
@@ -303,10 +301,6 @@ export default function Prospecting() {
             city: l.city,
             state: l.state,
             address: l.address,
-            employeeCount: l.estimatedEmployees,
-            employeeRange: isIT && employeeRange !== IT_EMPLOYEE_RANGES[0] ? employeeRange : undefined,
-            compliancePriority: isIT && compliancePriority !== "All Prospects" ? compliancePriority : undefined,
-            estimatedLocations: l.estimatedLocations,
           })),
         },
       },
