@@ -200,6 +200,54 @@ function employeeDemographic(employeeCount?: number | null): string | undefined 
   return `${employeeCount}-employee organization where specialized security, compliance, resilience, or infrastructure support may complement internal IT`;
 }
 
+function fleetDiscoveryContext(industry: string): {
+  operation: string;
+  challenge: string;
+  question: string;
+} {
+  const normalized = industry.toLowerCase();
+  if (/\b(?:home health|home care|healthcare|medical|hospice)\b/.test(normalized)) {
+    return {
+      operation: "mobile caregivers or service staff may travel between patient or client locations, making clear vehicle identification relevant to trust and recognition",
+      challenge: "added or replacement vehicles may create inconsistent identification across a mobile care team",
+      question: "Do any team members travel to patient or client locations in company vehicles, and how do you keep those vehicles consistently identified?",
+    };
+  }
+  if (/\b(?:hvac|plumb|electric|roof|pest|restoration|appliance|field service)\b/.test(normalized)) {
+    return {
+      operation: "technicians commonly travel to customer properties, where recognizable service vehicles can reinforce trust before they reach the door",
+      challenge: "vehicle additions, replacements, or repairs may leave field branding inconsistent",
+      question: "How do you handle graphics when a service vehicle is added, replaced, or repaired?",
+    };
+  }
+  if (/\b(?:landscap|lawn|tree|pool|cleaning|janitorial)\b/.test(normalized)) {
+    return {
+      operation: "crews commonly move between customer sites, giving branded vehicles repeated visibility in the neighborhoods they serve",
+      challenge: "graphics may vary across crew vehicles or become difficult to refresh as routes and equipment change",
+      question: "Are the vehicles moving between customer sites consistently branded today, including newer or replacement units?",
+    };
+  }
+  if (/\b(?:construction|contractor|remodel|install|maintenance)\b/.test(normalized)) {
+    return {
+      operation: "crews and supervisors may travel between job sites, where consistent vehicle identification can support visibility and professionalism",
+      challenge: "mixed vehicle types and changing project assignments may make a consistent field presentation harder to maintain",
+      question: "How consistent is the branding across the vehicles your crews or supervisors take to job sites?",
+    };
+  }
+  if (/\b(?:delivery|logistics|courier|transport|moving|distribution)\b/.test(normalized)) {
+    return {
+      operation: "route-based work puts vehicles in public view throughout the service area",
+      challenge: "fleet turnover and multiple vehicle formats may create gaps in brand consistency",
+      question: "When vehicles enter or leave service, how do you keep the fleet graphics current and consistent?",
+    };
+  }
+  return {
+    operation: "some businesses in this field use customer-facing vehicles, which can create a mobile brand touchpoint",
+    challenge: "if vehicles are part of the operation, inconsistent or outdated graphics may reduce recognition",
+    question: "Does your team use customer-facing vehicles, and if so, how are their graphics managed today?",
+  };
+}
+
 function category(
   key: OpportunityScoreCategory["key"],
   label: string,
@@ -541,6 +589,13 @@ export function buildOpportunityIntelligence(
     ? IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry))
     : undefined;
   const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
+  const fleetContext = vertical === "fleet_wraps" ? fleetDiscoveryContext(lead.industry) : undefined;
+  const fleetOffer = seller.ready && fleetContext
+    ? matchingSellerOffer(
+        sellerOffers,
+        `${fleetContext.operation}. ${fleetContext.challenge}. vehicle branding graphics lettering wraps`,
+      )
+    : undefined;
   if (seller.ready) {
     for (const signal of buyingEvidence.slice(0, 2)) {
       const challenge = signalChallenge(signal, vertical);
@@ -563,6 +618,11 @@ export function buildOpportunityIntelligence(
         );
       }
     }
+    if (fleetContext && fleetOffer && buyingEvidence.length === 0) {
+      potentialNeeds.push(
+        `If ${lead.companyName} uses customer-facing vehicles, ${fleetContext.challenge}. ${seller.name}'s ${fleetOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"}.`,
+      );
+    }
   }
   potentialNeeds.splice(3);
   const strongestBuyingSignal = buyingEvidence[0];
@@ -584,7 +644,9 @@ export function buildOpportunityIntelligence(
     : "";
   const whyTarget = strongestBuyingSignal
     ? `${strongestBuyingSignal.signalTitle}. This may indicate ${whyTargetChallenge!.charAt(0).toLowerCase()}${whyTargetChallenge!.slice(1)}${/[.!?]$/.test(whyTargetChallenge!) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
-    : "";
+    : fleetContext
+      ? `${lead.companyName} operates in ${lead.industry}, where ${fleetContext.operation}. This is a fit hypothesis to validate; current vehicle use and branding needs have not been verified.`
+      : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
     : demographic
@@ -607,7 +669,9 @@ export function buildOpportunityIntelligence(
       )
     : undefined;
   const recommendedOutreach = !seller.ready || !outreachOffer
-    ? ""
+    ? fleetContext && fleetOffer
+      ? `Ask ${lead.companyName}: “${fleetContext.question}” If the answer reveals a need, connect ${seller.name}'s ${fleetOffer} to the specific vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+      : ""
     : strongestBuyingSignal?.signalType === "security_incident"
       ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${seller.name}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
       : strongestBuyingSignal
@@ -616,6 +680,8 @@ export function buildOpportunityIntelligence(
           ? `Open with a practical question: “${compliance.discoveryQuestion}” If the answer reveals gaps, connect ${seller.name}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : demographic
           ? `For ${lead.companyName}, ask how its ${lead.employeeCount}-person team handles onboarding, support, identity access, endpoint management, and security. Position ${seller.name}'s ${outreachOffer} around the gaps they confirm; then ${outreachCta}.`
+          : fleetContext && fleetOffer
+            ? `Ask ${lead.companyName}: “${fleetContext.question}” If the answer reveals a need, connect ${seller.name}'s ${fleetOffer} to the specific vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
 
   return {

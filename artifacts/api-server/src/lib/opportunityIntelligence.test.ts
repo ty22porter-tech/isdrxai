@@ -74,6 +74,25 @@ describe("opportunity intelligence", () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ points: 0 })]));
   });
 
+  it("gives fleet prospects three distinct discovery fields without inventing fleet facts", () => {
+    const homeCare = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "All About Home Care",
+      industry: "Home Health Care",
+    }, "fleet_wraps", readySeller);
+    const hvac = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
+
+    expect(homeCare.whyTarget).toMatch(/mobile caregivers|service staff/i);
+    expect(homeCare.whyTarget).toMatch(/not been verified/i);
+    expect(homeCare.potentialNeeds.join(" ")).toMatch(/customer-facing vehicles/i);
+    expect(homeCare.potentialNeeds.join(" ")).toMatch(/fleet lettering/i);
+    expect(homeCare.recommendedOutreach).toMatch(/patient or client locations/i);
+    expect(homeCare.recommendedOutreach).not.toBe(homeCare.whyTarget);
+    expect(homeCare.recommendedOutreach).not.toContain(homeCare.potentialNeeds[0]);
+    expect(hvac.recommendedOutreach).toMatch(/added, replaced, or repaired/i);
+    expect(hvac.recommendedOutreach).not.toBe(homeCare.recommendedOutreach);
+  });
+
   it("uses Google Places facts for validation and scoring but never as Why Target copy", () => {
     const medicalLead = {
       ...lead,
@@ -199,9 +218,11 @@ describe("opportunity intelligence", () => {
     expect(unrelated.potentialNeeds).toEqual([]);
   });
 
-  it("does not manufacture generic Potential Needs when research finds no signal", () => {
+  it("keeps fleet Potential Needs conditional when research finds no buying signal", () => {
     const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
-    expect(intelligence.potentialNeeds).toEqual([]);
+    expect(intelligence.potentialNeeds).toHaveLength(1);
+    expect(intelligence.potentialNeeds[0]).toMatch(/^If Northwind Mechanical uses customer-facing vehicles,/);
+    expect(intelligence.potentialNeeds[0]).not.toMatch(/has a fleet|fleet of \d+|is expanding its fleet/i);
   });
 
   it("does not recommend an unrelated seller offer when prospect evidence has no relevant match", () => {
