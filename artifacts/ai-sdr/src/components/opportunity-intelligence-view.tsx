@@ -78,15 +78,13 @@ export function sanitizeOpportunityLanguage(value?: string): string {
 const NON_RESULT_LANGUAGE =
   /\b(?:no meaningful|no (?:verified|relevant|company-specific)|not found|none found|unverified|unknown|insufficient|unable to|could not|no evidence)\b/i;
 
-function compactPositiveText(value?: string, maxLength = 210): string {
-  const sentences = sanitizeOpportunityLanguage(value)
+function compactPositiveText(value?: string): string {
+  return sanitizeOpportunityLanguage(value)
     .split(/(?<=[.!?])\s+/)
     .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence && !NON_RESULT_LANGUAGE.test(sentence));
-  const text = sentences.slice(0, 2).join(" ");
-  if (!text || text.length <= maxLength) return text;
-  const shortened = text.slice(0, maxLength + 1).replace(/\s+\S*$/, "").replace(/[,:;.\s]+$/, "");
-  return `${shortened || text.slice(0, maxLength)}…`;
+    .filter((sentence) => sentence && !NON_RESULT_LANGUAGE.test(sentence))
+    .slice(0, 5)
+    .join(" ");
 }
 
 function formatDate(value?: string): string | null {
@@ -262,21 +260,21 @@ export function OpportunityIntelligenceView({
 
   if (compact) {
     const whyTarget = compactPositiveText(intelligence?.whyTarget);
-    const positiveOpportunities = potentialOpportunities
-      .map((opportunity) => compactPositiveText(opportunity, 105))
-      .filter(Boolean)
-      .slice(0, 2);
+    const positiveOpportunities = compactPositiveText(
+      potentialOpportunities
+        .map(opportunity => /[.!?]$/.test(opportunity.trim()) ? opportunity.trim() : `${opportunity.trim()}.`)
+        .join(" "),
+    );
     const strongestSignal = verifiedBuyingSignals[0];
     const verifiedSignal = strongestSignal
       ? compactPositiveText(
           [strongestSignal.signalTitle, strongestSignal.signalDescription].filter(Boolean).join(": "),
-          180,
         )
       : "";
     const recommendedOutreach = compactPositiveText(intelligence?.recommendedOutreach);
     const rows = [
       { label: "Why target", value: whyTarget },
-      { label: "Potential needs", value: positiveOpportunities.join("; ") },
+      { label: "Potential needs", value: positiveOpportunities },
       { label: "Verified signal", value: verifiedSignal },
       { label: "Recommended outreach", value: recommendedOutreach },
     ].filter((row) => row.value);
@@ -286,7 +284,7 @@ export function OpportunityIntelligenceView({
     return (
       <div className={`space-y-1.5 ${className}`} data-testid="section-opportunity-intelligence-compact">
         {rows.map((row) => (
-          <p key={row.label} className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          <p key={row.label} className="text-xs leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">{row.label}: </span>
             {row.value}
           </p>

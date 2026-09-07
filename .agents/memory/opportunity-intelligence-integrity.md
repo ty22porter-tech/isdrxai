@@ -43,4 +43,4 @@ On prospect cards, keep Opportunity Intelligence in the compact legacy-style for
 
 **Why:** The inline report overwhelmed each prospect card and consumed most of the page. Users need quick positive relevance cues while scanning results, with detail revealed only when requested.
 
-**How to apply:** Limit compact rows and text length, show at most the strongest positive evidence, and skip to the next available item when a category has no useful result.
+**How to apply:** Show each compact response in full through at most five complete sentences, without character truncation, ellipses, or visual line clamping. Include up to five useful Potential Needs, show at most the strongest positive verified signal, and omit empty or negative results.

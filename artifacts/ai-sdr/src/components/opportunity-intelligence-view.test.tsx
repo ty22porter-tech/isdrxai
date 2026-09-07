@@ -30,6 +30,22 @@ const intelligence = (signals: OpportunitySignal[]): OpportunityIntelligence => 
 });
 
 describe("OpportunityIntelligenceView", () => {
+  it("shows complete compact responses up to five sentences without ellipses", () => {
+    render(
+      <OpportunityIntelligenceView
+        compact
+        intelligence={{
+          ...intelligence([]),
+          whyTarget: "First complete sentence. Second complete sentence. Third complete sentence. Fourth complete sentence. Fifth complete sentence. Sixth sentence should not render.",
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/First complete sentence.+Fifth complete sentence\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Sixth sentence should not render/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/…/)).not.toBeInTheDocument();
+  });
+
   it("shows the prospect criteria that earned score points", () => {
     render(
       <OpportunityIntelligenceView
