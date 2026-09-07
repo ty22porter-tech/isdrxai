@@ -75,6 +75,20 @@ export function sanitizeOpportunityLanguage(value?: string): string {
     .trim();
 }
 
+const NON_RESULT_LANGUAGE =
+  /\b(?:no meaningful|no (?:verified|relevant|company-specific)|not found|none found|unverified|unknown|insufficient|unable to|could not|no evidence)\b/i;
+
+function compactPositiveText(value?: string, maxLength = 210): string {
+  const sentences = sanitizeOpportunityLanguage(value)
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence && !NON_RESULT_LANGUAGE.test(sentence));
+  const text = sentences.slice(0, 2).join(" ");
+  if (!text || text.length <= maxLength) return text;
+  const shortened = text.slice(0, maxLength + 1).replace(/\s+\S*$/, "").replace(/[,:;.\s]+$/, "");
+  return `${shortened || text.slice(0, maxLength)}…`;
+}
+
 function formatDate(value?: string): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -245,6 +259,41 @@ export function OpportunityIntelligenceView({
   const breakdown = Array.isArray(intelligence?.breakdown) ? intelligence.breakdown.filter(Boolean) : [];
   const generatedAt = formatDate(intelligence?.generatedAt);
   const scoreLabelColor = SCORE_COLORS[intelligence?.label] || "bg-muted text-muted-foreground border-border";
+
+  if (compact) {
+    const whyTarget = compactPositiveText(intelligence?.whyTarget);
+    const positiveOpportunities = potentialOpportunities
+      .map((opportunity) => compactPositiveText(opportunity, 105))
+      .filter(Boolean)
+      .slice(0, 2);
+    const strongestSignal = verifiedBuyingSignals[0];
+    const verifiedSignal = strongestSignal
+      ? compactPositiveText(
+          [strongestSignal.signalTitle, strongestSignal.signalDescription].filter(Boolean).join(": "),
+          180,
+        )
+      : "";
+    const recommendedOutreach = compactPositiveText(intelligence?.recommendedOutreach);
+    const rows = [
+      { label: "Why target", value: whyTarget },
+      { label: "Potential needs", value: positiveOpportunities.join("; ") },
+      { label: "Verified signal", value: verifiedSignal },
+      { label: "Recommended outreach", value: recommendedOutreach },
+    ].filter((row) => row.value);
+
+    if (rows.length === 0) return null;
+
+    return (
+      <div className={`space-y-1.5 ${className}`} data-testid="section-opportunity-intelligence-compact">
+        {rows.map((row) => (
+          <p key={row.label} className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">{row.label}: </span>
+            {row.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-5 ${className}`} data-testid="section-opportunity-intelligence">

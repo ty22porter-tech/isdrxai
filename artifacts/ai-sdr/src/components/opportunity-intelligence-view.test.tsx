@@ -30,6 +30,65 @@ const intelligence = (signals: OpportunitySignal[]): OpportunityIntelligence => 
 });
 
 describe("OpportunityIntelligenceView", () => {
+  it("keeps the prospect-card view short and omits empty or negative findings", () => {
+    render(
+      <OpportunityIntelligenceView
+        compact
+        intelligence={{
+          ...intelligence([
+            signal({
+              signalType: "hiring",
+              signalTitle: "Hiring service technicians",
+              signalDescription: "Open roles are listed in Dallas.",
+              signalClassification: "verified",
+              points: 10,
+            }),
+            signal({
+              signalTitle: "Unverified fleet size",
+              signalClassification: "unconfirmed",
+            }),
+          ]),
+          whyTarget:
+            "Verified: the company is actively hiring service technicians. No meaningful company-specific fleet signal was found.",
+          potentialNeeds: [
+            "Support field teams during growth",
+            "Improve onboarding for new technicians",
+            "No relevant third opportunity found",
+          ],
+          recommendedOutreach:
+            "Lead with the verified hiring activity and ask how the team supports new field technicians.",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("section-opportunity-intelligence-compact")).toBeInTheDocument();
+    expect(screen.getByText("Why target:")).toBeInTheDocument();
+    expect(screen.getByText("Potential needs:")).toBeInTheDocument();
+    expect(screen.getByText("Verified signal:")).toBeInTheDocument();
+    expect(screen.getByText("Recommended outreach:")).toBeInTheDocument();
+    expect(screen.getByText(/actively hiring service technicians/)).toBeInTheDocument();
+    expect(screen.queryByText(/No meaningful/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unverified fleet size/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/third opportunity/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Verified Buying Signals")).not.toBeInTheDocument();
+  });
+
+  it("skips compact rows that have no useful result", () => {
+    render(
+      <OpportunityIntelligenceView
+        compact
+        intelligence={{
+          ...intelligence([]),
+          whyTarget: "No meaningful company-specific buying signal found yet.",
+          potentialNeeds: [],
+          recommendedOutreach: "No relevant outreach recommendation found.",
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId("section-opportunity-intelligence-compact")).not.toBeInTheDocument();
+  });
+
   it("separates company verification from verified buying signals", () => {
     render(
       <OpportunityIntelligenceView
