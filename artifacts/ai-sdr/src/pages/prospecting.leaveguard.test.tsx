@@ -129,7 +129,7 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string) => {
       if (String(url).includes("/api/users/me")) {
-        return new Response(JSON.stringify({ vertical: "janitorial" }), {
+        return new Response(JSON.stringify({ vertical: "janitorial", website: "https://example.com/" }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

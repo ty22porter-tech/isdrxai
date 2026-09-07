@@ -27,6 +27,8 @@ export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
   sourcePages: string[];
   websiteLastAnalyzed: string;
   websiteAnalysisStatus: "ready" | "limited";
+  lastAnalysisAttemptStatus?: "ready" | "limited" | "failed";
+  lastAnalysisAttemptAt?: string;
   websiteGenerated?: SellerIntelligenceEditable;
   userOverrides?: Partial<SellerIntelligenceEditable>;
   userEditedAt?: string;

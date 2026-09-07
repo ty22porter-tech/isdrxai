@@ -1,0 +1,695 @@
+REPAIR SETTINGS → COMPANY INTELLIGENCE USER EXPERIENCE
+
+The current Company Intelligence setup is confusing.
+
+The Company Website currently appears as optional, the user is shown optional
+manual fields that can make it appear that they are responsible for supplying
+the intelligence, and there is a "Refresh Company Intelligence" button that
+makes it appear the user must manually refresh the website before iSDRX AI can
+use the information.
+
+Simplify this experience.
+
+IMPORTANT:
+
+Do not rebuild Seller Intelligence / Company Intelligence.
+
+Inspect the existing implementation and modify the UX and triggering behavior
+while preserving:
+
+- Existing Company Intelligence database/profile
+- Existing website analysis service
+- Existing Seller Intelligence usage
+- Prospect matching
+- Opportunity scoring
+- Recommended Outreach
+- AI email personalization
+- Industry profiles
+- Existing user-entered overrides
+- Existing cached intelligence
+
+
+========================================================
+1. COMPANY WEBSITE MUST BE REQUIRED
+========================================================
+
+Change:
+
+Company Website (optional)
+
+to:
+
+Company Website *
+
+or:
+
+Company Website
+Required
+
+
+Helper text:
+
+"iSDRX AI uses your website to learn what your company sells, the industries
+you serve, your strengths, differentiators, certifications, capabilities,
+and value proposition. This intelligence is used to research prospects and
+personalize your sales strategy and outreach."
+
+
+The website should still be available for the user's email signature where
+appropriate, but that should NOT be the primary explanation for this field.
+
+
+Remove the current helper text as the main description:
+
+"Shown as 'Website' in your email signature when provided."
+
+
+Replace it with the Company Intelligence explanation above.
+
+Optionally show a smaller secondary note:
+
+"Your website can also be included in your email signature."
+
+
+========================================================
+2. VALID WEBSITE REQUIRED
+========================================================
+
+A valid company website must be entered before Company Intelligence can become
+Ready.
+
+Do not allow a blank website to produce:
+
+"Company Intelligence Ready."
+
+
+If the field is empty, display:
+
+COMPANY WEBSITE REQUIRED
+
+"Add your company website so iSDRX AI can learn your business and personalize
+prospecting."
+
+
+If the URL is invalid, display an inline validation message.
+
+Example:
+
+"Enter a valid company website, such as https://yourcompany.com"
+
+
+========================================================
+3. AUTOMATIC WEBSITE ANALYSIS
+========================================================
+
+The user should NOT have to manually click Refresh Company Intelligence for
+the system to begin using their website.
+
+Automatically analyze the company website when:
+
+1. A valid website is entered for the first time and Settings are saved.
+
+OR
+
+2. The Company Website value changes and Settings are saved.
+
+
+Workflow:
+
+USER ENTERS WEBSITE
+        ↓
+SAVE SETTINGS
+        ↓
+SYSTEM DETECTS NEW / CHANGED WEBSITE
+        ↓
+AUTOMATICALLY ANALYZE WEBSITE
+        ↓
+CREATE / UPDATE COMPANY INTELLIGENCE
+        ↓
+CACHE RESULTS
+        ↓
+MARK COMPANY INTELLIGENCE READY
+        ↓
+USE INTELLIGENCE THROUGHOUT iSDRX AI
+
+
+Do not require another click after Save.
+
+
+========================================================
+4. USE CACHED COMPANY INTELLIGENCE AUTOMATICALLY
+========================================================
+
+Once Company Intelligence has been generated successfully, automatically use
+the saved/cached intelligence throughout the application.
+
+The user should NOT need to refresh it every time they:
+
+- search for prospects
+- generate leads
+- create campaigns
+- generate emails
+- review Opportunity Scores
+- view Recommended Outreach
+- return to the Settings page
+- log into the application
+
+
+Company Intelligence should remain active until:
+
+- the website changes
+- the user edits Company Intelligence
+- the user manually requests a reanalysis
+
+
+========================================================
+5. RENAME "REFRESH COMPANY INTELLIGENCE"
+========================================================
+
+The current wording is confusing because "Refresh" can imply the user must
+press the button before the data becomes active.
+
+Rename:
+
+Refresh Company Intelligence
+
+to:
+
+Reanalyze Website
+
+
+Tooltip/helper:
+
+"Scan your website again if your services, messaging, capabilities, or company
+information have changed."
+
+
+This is an OPTIONAL maintenance action.
+
+The normal customer should not need to click it after entering their website.
+
+
+========================================================
+6. CLARIFY THE TWO OPTIONAL FIELDS
+========================================================
+
+The current fields are useful, but they should clearly supplement the website.
+
+Do NOT make them required.
+
+
+Change:
+
+"What makes your company different?"
+
+to:
+
+"Anything you want your AI employee to know?"
+
+Optional
+
+
+Helper:
+
+"Optional: Add strengths, guarantees, processes, certifications, experience,
+or advantages that may not be clearly explained on your website."
+
+
+Change:
+
+"What services or solutions do you want iSDRX AI to prioritize?"
+
+to:
+
+"Services you want your AI employee to prioritize"
+
+Optional
+
+
+Helper:
+
+"Optional: Tell your AI employee which services or solutions you most want to
+sell. If left blank, iSDRX AI will use the services identified from your
+website."
+
+
+This makes it clear that:
+
+THE WEBSITE PROVIDES THE INTELLIGENCE
+
+and
+
+THE USER CAN ADD INSTRUCTIONS IF DESIRED.
+
+
+========================================================
+7. DO NOT REQUIRE MANUAL DATA ENTRY
+========================================================
+
+The customer should NEVER feel like they have to manually recreate their
+website information inside Settings.
+
+If the website already says:
+
+- Commercial Vehicle Wraps
+- Fleet Graphics
+- Custom Design
+- Certified Installation
+- Commercial Branding
+
+the customer should NOT need to type those services into the optional boxes.
+
+The website analysis should populate the Company Intelligence Profile
+automatically.
+
+
+The manual fields exist only for:
+
+- additional context
+- priorities
+- information missing from website
+- customer-specific instructions
+
+
+========================================================
+8. COMPANY INTELLIGENCE STATUS
+========================================================
+
+Simplify the status display.
+
+
+Before website:
+
+COMPANY WEBSITE REQUIRED
+
+
+While analyzing:
+
+ANALYZING YOUR COMPANY
+
+"iSDRX AI is learning your services, capabilities, strengths, and value
+proposition."
+
+
+Successful:
+
+✓ COMPANY INTELLIGENCE READY
+
+"Your AI Sales Development Employee understands your company and is ready to
+use this intelligence for prospect research, opportunity matching, sales
+strategy, and personalized outreach."
+
+
+Limited extraction:
+
+COMPANY INTELLIGENCE NEEDS REVIEW
+
+"We analyzed your website but found limited information. Review the Company
+Intelligence below or add additional details."
+
+
+Analysis failed:
+
+COMPANY INTELLIGENCE COULD NOT BE UPDATED
+
+"Your previous Company Intelligence remains active. Try reanalyzing the
+website later."
+
+
+Do not destroy existing cached intelligence if a refresh/reanalysis fails.
+
+
+========================================================
+9. VIEW COMPANY INTELLIGENCE
+========================================================
+
+Keep:
+
+View Company Intelligence
+
+
+When expanded, show what iSDRX AI learned.
+
+Suggested sections:
+
+Company
+Website
+Industry
+
+Services / Solutions
+
+Capabilities
+
+Industries Served
+
+Differentiators
+
+Certifications
+
+Problems We Solve
+
+Business Outcomes
+
+Proof Points
+
+Typical Customers
+
+Sales Positioning
+
+
+Allow the user to edit information if the existing implementation supports
+it.
+
+
+========================================================
+10. SHOW WHERE INFORMATION CAME FROM
+========================================================
+
+Where practical, distinguish:
+
+WEBSITE INTELLIGENCE
+
+and
+
+USER-PROVIDED INTELLIGENCE
+
+
+Example:
+
+Services
+Website:
+• Commercial Vehicle Wraps
+• Fleet Graphics
+• Custom Design
+
+
+Customer Priority:
+• Fleet Wraps
+
+
+Do not force this source information into every screen.
+
+It is mainly useful inside View Company Intelligence.
+
+
+========================================================
+11. SOURCE PRIORITY
+========================================================
+
+Continue using this priority order:
+
+1. User-edited Company Intelligence
+2. User-entered AI Employee instructions
+3. User-entered priority services
+4. Website-generated Company Intelligence
+5. Industry Profile fallback
+
+
+The user should be able to guide the AI without having to manually build the
+entire Company Intelligence profile.
+
+
+========================================================
+12. WEBSITE CHANGE DETECTION
+========================================================
+
+If the user changes:
+
+https://companyA.com
+
+to:
+
+https://companyB.com
+
+
+do NOT keep using Company A's Seller Intelligence.
+
+
+Automatically mark the profile:
+
+UPDATING COMPANY INTELLIGENCE
+
+and analyze the newly saved website.
+
+
+Do not combine unrelated website intelligence unless the user explicitly
+requests it.
+
+
+========================================================
+13. DO NOT REANALYZE UNNECESSARILY
+========================================================
+
+Do NOT crawl the website every time the Settings page loads.
+
+Do NOT crawl the website per prospect.
+
+Do NOT crawl the website per generated email.
+
+
+Use the existing cached Company Intelligence.
+
+
+Analyze primarily when:
+
+- Website is first saved
+- Website changes
+- User clicks Reanalyze Website
+
+
+========================================================
+14. COMPANY INTELLIGENCE SHOULD BE ACTIVE IMMEDIATELY
+========================================================
+
+Once analysis completes successfully, Company Intelligence should
+automatically become the active Seller Intelligence Profile.
+
+There should be no separate:
+
+Activate
+Apply
+Refresh
+Use Intelligence
+
+step.
+
+
+The user should not have to wonder:
+
+"Did iSDRX AI actually start using this?"
+
+
+If status says:
+
+COMPANY INTELLIGENCE READY
+
+then the application MUST already be using it.
+
+
+========================================================
+15. IMPROVE THE SCREEN HIERARCHY
+========================================================
+
+Recommended layout:
+
+
+COMPANY WEBSITE *
+
+[ https://www.goc4wraps.com/ ]
+
+"iSDRX AI uses your website to learn your business and personalize
+prospecting, sales strategy, and outreach."
+
+✓ COMPANY INTELLIGENCE READY
+
+"Your AI Sales Development Employee has learned your company."
+
+[ View Company Intelligence ]
+
+Last analyzed:
+September 6, 2026
+
+[ Reanalyze Website ]
+
+
+--------------------------------
+
+OPTIONAL AI EMPLOYEE INSTRUCTIONS
+
+Anything you want your AI employee to know?
+[ textarea ]
+
+Services you want your AI employee to prioritize
+[ textarea ]
+
+
+This should visually communicate:
+
+WEBSITE = REQUIRED FOUNDATION
+
+OPTIONAL FIELDS = ADDITIONAL INSTRUCTIONS
+
+
+========================================================
+16. OPTIONAL FIELDS SHOULD NOT LOOK REQUIRED
+========================================================
+
+Place the two manual fields under a small section heading:
+
+OPTIONAL AI EMPLOYEE INSTRUCTIONS
+
+
+Description:
+
+"Your AI employee already learns your company from your website. Use these
+fields only if you want to give it additional guidance."
+
+
+This single sentence is important.
+
+
+========================================================
+17. REPLACE EMAIL-CENTRIC LANGUAGE
+========================================================
+
+The Settings screen currently says:
+
+"This information will be used to improve prospect matching and email
+personalization."
+
+
+Because iSDRX AI is positioned as a Virtual Sales Development Employee, change
+this to:
+
+"This information helps your AI employee improve prospect matching, sales
+strategy, and personalized outreach."
+
+
+Do not position Company Intelligence as primarily an email-writing feature.
+
+
+========================================================
+18. USE AI EMPLOYEE LANGUAGE
+========================================================
+
+Where appropriate on this section, use:
+
+"Your AI Sales Development Employee"
+
+or
+
+"Your AI employee"
+
+
+Examples:
+
+"Tell your AI employee which services you want to prioritize."
+
+"Your AI employee has learned your company."
+
+"Your AI employee will use this information when researching prospects,
+identifying opportunities, determining sales strategy, and conducting
+personalized prospecting."
+
+
+Do not overuse the phrase on every label.
+
+
+========================================================
+19. FIRST-TIME SETUP EXPERIENCE
+========================================================
+
+For a new account:
+
+1. Select industry
+2. Enter Company Website
+3. Save
+4. Automatically analyze company
+5. Show progress
+6. Generate Company Intelligence
+7. Mark Ready
+8. Allow review/edit
+9. Begin using intelligence automatically
+
+
+Do not require the customer to understand AI architecture or perform a
+separate refresh action.
+
+
+========================================================
+20. EXISTING CUSTOMERS
+========================================================
+
+Be careful with existing accounts.
+
+If an existing customer already has:
+
+- Company Website
+- Valid cached Company Intelligence
+- Company Intelligence Ready
+
+
+DO NOT unnecessarily force them through setup again.
+
+
+Treat their existing valid website/profile as satisfying the requirement.
+
+
+If an existing account has no website:
+
+Prompt them to add one before performing NEW AI prospecting that requires
+Seller Intelligence.
+
+Do not corrupt existing campaign history or customer data.
+
+
+========================================================
+21. FINAL UX PRINCIPLE
+========================================================
+
+The customer experience should feel like hiring and training an AI employee.
+
+
+The customer should think:
+
+"I gave my employee my company website.
+It learned my business.
+I can check what it learned.
+I can give it extra instructions if I want.
+Now it goes to work."
+
+
+The customer should NOT think:
+
+"I entered a website.
+Now I need to manually type my services.
+Then I need to refresh something.
+Then I need to figure out whether the AI is actually using it."
+
+
+========================================================
+22. IMPLEMENTATION
+========================================================
+
+Before modifying anything, inspect:
+
+- Settings Company Website field
+- Website save logic
+- Company Intelligence generation
+- website analysis trigger
+- Company Intelligence caching
+- Company Intelligence Ready status
+- Refresh Company Intelligence button
+- user-entered differentiators
+- priority service fields
+- View Company Intelligence
+- prospect research usage
+- Opportunity Score usage
+- AI email/outreach usage
+
+
+Reuse existing logic.
+
+This is primarily a UX + triggering repair.
+
+Do not create duplicate Company Intelligence systems.

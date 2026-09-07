@@ -429,6 +429,13 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
 router.post("/prospect-search", requireEntitlement, async (req, res) => {
   const body = ProspectSearchBody.parse(req.body);
   const count = Math.min(body.count, 20);
+  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  if (!client?.website) {
+    return res.status(409).json({
+      error: "Add your company website in Settings before generating new prospects so iSDRX AI can learn your business and personalize prospecting.",
+      code: "COMPANY_WEBSITE_REQUIRED",
+    });
+  }
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
@@ -437,7 +444,6 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     });
   }
 
-  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   const vertical = getVerticalConfig(client?.vertical).key;
 
   try {

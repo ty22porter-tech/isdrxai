@@ -30,15 +30,20 @@ function intelligenceFieldLabel(key: string) {
 function StringArrayField({
   label,
   items,
-  onChange
+  onChange,
+  source,
 }: {
   label: string;
   items: string[];
   onChange: (items: string[]) => void;
+  source: "Website intelligence" | "User-edited intelligence";
 }) {
   return (
     <div className="space-y-2 border-t border-border pt-4 mt-4">
-      <label className="text-sm font-semibold">{label}</label>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label className="text-sm font-semibold">{label}</label>
+        <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{source}</span>
+      </div>
       {items.length === 0 && <div className="text-xs text-muted-foreground">No items added.</div>}
       <div className="space-y-2">
         {items.map((item, i) => (
@@ -173,6 +178,23 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
 
   return (
     <div className="space-y-4 rounded-md border border-border/70 bg-background/60 p-4 text-xs mt-3">
+      <div className="rounded-md border border-border bg-card/60 p-3 text-muted-foreground">
+        Website intelligence is the foundation. Fields marked as user-edited contain changes you saved and take priority over the website analysis.
+      </div>
+      <dl className="grid gap-2 rounded-md border border-border/70 p-3 sm:grid-cols-3">
+        <div>
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Company</dt>
+          <dd className="mt-1 text-sm text-foreground">{profile.sellerCompanyName || "Not identified"}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website</dt>
+          <dd className="mt-1 break-all text-sm text-foreground">{profile.sellerWebsite || "Not available"}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Industry</dt>
+          <dd className="mt-1 text-sm text-foreground">{profile.sellerIndustry || "Not available"}</dd>
+        </div>
+      </dl>
       <div className="space-y-1.5">
         <label className="text-sm font-semibold">Company Name</label>
         <input
@@ -189,6 +211,7 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
           label={intelligenceFieldLabel(key)}
           items={draft[key as keyof typeof draft] as string[]}
           onChange={(items) => setDraft({ ...draft, [key]: items })}
+          source={Object.prototype.hasOwnProperty.call(profile.userOverrides ?? {}, key) ? "User-edited intelligence" : "Website intelligence"}
         />
       ))}
 

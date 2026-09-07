@@ -315,6 +315,14 @@ export default function Prospecting() {
   };
 
   const runSearch = (overrideParams?: ProspectingSnapshot["params"]) => {
+    if (!me?.website) {
+      toast({
+        title: "Company website required",
+        description: "Add your company website in Settings so your AI employee can learn your business before researching prospects.",
+        variant: "destructive",
+      });
+      return;
+    }
     const searchCity = overrideParams?.city ?? city;
     const searchState = overrideParams?.state ?? state;
     const searchIndustry = overrideParams?.industry ?? industry;
@@ -836,6 +844,25 @@ export default function Prospecting() {
           </Card>
         )}
 
+        {verticalLoaded && !me?.website && (
+          <Card className="border-amber-500/40 bg-amber-500/10" data-testid="notice-company-website-required">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <div>
+                  <p className="text-sm font-semibold">Add your company website before generating prospects</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Your AI employee uses Company Intelligence to match opportunities and personalize sales strategy without guessing what your business sells.
+                  </p>
+                </div>
+              </div>
+              <Button type="button" size="sm" onClick={() => setLocation("/settings")} data-testid="button-open-company-settings">
+                Open Settings
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Search Parameters</CardTitle>
@@ -922,7 +949,12 @@ export default function Prospecting() {
               )}
             </div>
             <div className="mt-5 flex items-center gap-3">
-              <Button onClick={handleSearch} disabled={searchMutation.isPending} className="min-w-[140px]">
+              <Button
+                onClick={handleSearch}
+                disabled={searchMutation.isPending || !verticalLoaded || !me?.website}
+                className="min-w-[140px]"
+                data-testid="button-generate-leads"
+              >
                 {searchMutation.isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
                 ) : (

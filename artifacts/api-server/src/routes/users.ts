@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { isResendConfigured, getPlatformFromEmail } from "../lib/emailSender";
 import { getEngagementSettings, DEFAULT_ENGAGEMENT_SETTINGS } from "../lib/engagementScoring";
@@ -10,6 +10,8 @@ import {
   analyzeSellerIntelligence,
   applySellerIntelligenceSources,
   buildGenericSellerProfile,
+  equivalentWebsite,
+  isSafelySameCompanyWebsite,
   normalizeWebsite,
   SellerIntelligenceEditableSchema,
   type SellerIntelligenceEditable,
@@ -64,6 +66,11 @@ router.get("/me", async (req, res) => {
     sellerServicePriorities: user.sellerServicePriorities,
     sellerIntelligenceStatus: user.sellerIntelligenceProfile?.status ?? "not_analyzed",
     sellerIntelligenceProfile: user.sellerIntelligenceProfile ?? null,
+    sellerIntelligenceUpdateFailed: user.sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed",
+    previousSellerIntelligenceRemainsActive: Boolean(
+      user.sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed" &&
+      (user.sellerIntelligenceProfile.status === "ready" || user.sellerIntelligenceProfile.status === "needs_review"),
+    ),
     mobilePhone: user.mobilePhone,
     companyLogoPath: user.companyLogoPath,
     profilePhotoPath: user.profilePhotoPath,
@@ -156,12 +163,15 @@ router.put("/settings", async (req, res) => {
     contentType: typeof v.contentType === "string" ? v.contentType : "application/octet-stream",
   });
   const update: Record<string, any> = {};
-  let websiteChanged = false;
-  if (typeof website === "string" || website === null) {
+  let websiteAnalysisFailed = false;
+  let previousProfileRemainsActive = false;
+  const websiteWasIncluded = Object.prototype.hasOwnProperty.call(req.body ?? {}, "website");
+  if (websiteWasIncluded) {
+    if (typeof website !== "string" || !website.trim()) {
+      return res.status(400).json({ error: "A company website is required." });
+    }
     try {
-      update.website = website ? normalizeWebsite(String(website).slice(0, 300)) : null;
-      websiteChanged = update.website !== (req.dbUser.website ?? null);
-      if (websiteChanged && !update.website) update.sellerIntelligenceProfile = null;
+      update.website = normalizeWebsite(website.slice(0, 300));
     } catch (err) {
       return res.status(400).json({ error: err instanceof Error ? err.message : "Enter a valid public website URL." });
     }
@@ -215,12 +225,6 @@ router.put("/settings", async (req, res) => {
   if (vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps") {
     update.vertical = vertical;
     update.verticalSelected = true;
-    if (!websiteChanged && req.dbUser.sellerIntelligenceProfile) {
-      update.sellerIntelligenceProfile = {
-        ...req.dbUser.sellerIntelligenceProfile,
-        sellerIndustry: vertical,
-      };
-    }
   }
 
   if (typeof businessName === "string") update.businessName = businessName;
@@ -237,38 +241,107 @@ router.put("/settings", async (req, res) => {
   }
   if (timezone) update.timezone = timezone;
 
-  // Website analysis is intentionally bounded and best-effort: saving settings
-  // must not discard a valid website because an external site is temporarily down.
-  if (websiteChanged && update.website) {
-    try {
-      const analyzed = await analyzeSellerIntelligence(
-        update.website,
-        update.vertical ?? req.dbUser.vertical,
-      );
-      update.sellerIntelligenceProfile = applySellerIntelligenceSources(analyzed, {
-        differentiatorsInput: update.sellerDifferentiatorsInput ?? req.dbUser.sellerDifferentiatorsInput,
-        servicePriorities: update.sellerServicePriorities ?? req.dbUser.sellerServicePriorities,
-      });
-    } catch (err) {
-      req.log.warn({ err }, "Seller intelligence analysis failed while saving settings");
-      update.sellerIntelligenceProfile = buildGenericSellerProfile(
-        update.website,
-        update.vertical ?? req.dbUser.vertical,
-        "We could not analyze this website yet. Please try refresh later.",
+  // Serialize settings saves per account in Postgres. The fresh row read after
+  // this lock makes first-save and website-change analysis idempotent even when
+  // multiple app instances receive concurrent requests.
+  const [user] = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`seller-settings:${req.clientId}`}))`);
+    const [currentUser] = await tx.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+    if (!currentUser) throw new Error("User settings could not be found.");
+
+    const previous = currentUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+    const websiteChanged = Boolean(
+      websiteWasIncluded &&
+      update.website &&
+      (!currentUser.website || !equivalentWebsite(update.website, currentUser.website)),
+    );
+    const targetVertical = update.vertical ?? currentUser.vertical;
+
+    if (update.vertical && !websiteChanged && previous) {
+      update.sellerIntelligenceProfile = {
+        ...previous,
+        sellerIndustry: targetVertical,
+      };
+    }
+
+    // Website analysis is intentionally bounded and best-effort: saving
+    // settings must not discard a valid website because an external site is
+    // temporarily down.
+    const shouldAnalyzeWebsite = Boolean(
+      websiteWasIncluded && update.website && (websiteChanged || !previous),
+    );
+    if (shouldAnalyzeWebsite) {
+      try {
+        const analyzed = await analyzeSellerIntelligence(update.website, targetVertical);
+        // Explicit edits are company facts, so carry them only across an
+        // analysis that resolves to the same conservative hostname identity.
+        const keepOverrides = Boolean(
+          previous &&
+          isSafelySameCompanyWebsite(previous.sellerWebsite, analyzed.sellerWebsite),
+        );
+        update.sellerIntelligenceProfile = applySellerIntelligenceSources(analyzed, {
+          differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
+          servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+          ...(keepOverrides ? {
+            userOverrides: previous?.userOverrides,
+            userEditedAt: previous?.userEditedAt,
+          } : {}),
+        });
+      } catch (err) {
+        req.log.warn({ err }, "Seller intelligence analysis failed while saving settings");
+        websiteAnalysisFailed = true;
+        const sameCompany = Boolean(
+          previous && isSafelySameCompanyWebsite(previous.sellerWebsite, update.website),
+        );
+        if (sameCompany && (previous?.status === "ready" || previous?.status === "needs_review")) {
+          // A transient failure must not evict useful cached intelligence for
+          // the same company. Newly saved AI instructions still become active.
+          update.sellerIntelligenceProfile = {
+            ...applySellerIntelligenceSources(previous, {
+              differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
+              servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+              userOverrides: previous.userOverrides,
+              userEditedAt: previous.userEditedAt,
+            }),
+            lastAnalysisAttemptStatus: "failed",
+            lastAnalysisAttemptAt: new Date().toISOString(),
+            analysisError: "We could not update Company Intelligence from this website.",
+          };
+          previousProfileRemainsActive = true;
+        } else {
+          // A different company's old facts must never remain active under the
+          // newly saved website, even when that means operating in limited mode.
+          update.sellerIntelligenceProfile = applySellerIntelligenceSources(
+            buildGenericSellerProfile(
+              update.website,
+              targetVertical,
+              "We could not analyze this website yet. Please try reanalyzing later.",
+            ),
+            {
+              differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
+              servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+            },
+          );
+        }
+      }
+    } else if (previous &&
+      (update.sellerDifferentiatorsInput !== undefined || update.sellerServicePriorities !== undefined || update.vertical)) {
+      update.sellerIntelligenceProfile = applySellerIntelligenceSources(
+        update.sellerIntelligenceProfile ?? previous,
+        {
+          differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
+          servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+        },
       );
     }
-  } else if (req.dbUser.sellerIntelligenceProfile &&
-    (update.sellerDifferentiatorsInput !== undefined || update.sellerServicePriorities !== undefined || update.vertical)) {
-    update.sellerIntelligenceProfile = applySellerIntelligenceSources(
-      update.sellerIntelligenceProfile ?? req.dbUser.sellerIntelligenceProfile,
-      {
-        differentiatorsInput: update.sellerDifferentiatorsInput ?? req.dbUser.sellerDifferentiatorsInput,
-        servicePriorities: update.sellerServicePriorities ?? req.dbUser.sellerServicePriorities,
-      },
-    );
-  }
 
-  const [user] = await db.update(usersTable).set(update).where(eq(usersTable.id, req.clientId)).returning();
+    return tx.update(usersTable).set(update).where(eq(usersTable.id, req.clientId)).returning();
+  });
+  websiteAnalysisFailed = user.sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed";
+  previousProfileRemainsActive = Boolean(
+    websiteAnalysisFailed &&
+    (user.sellerIntelligenceProfile?.status === "ready" || user.sellerIntelligenceProfile?.status === "needs_review"),
+  );
   const resendReady = await isResendConfigured();
   return res.json({
     businessName: user.businessName,
@@ -285,6 +358,8 @@ router.put("/settings", async (req, res) => {
     sellerServicePriorities: user.sellerServicePriorities,
     sellerIntelligenceStatus: user.sellerIntelligenceProfile?.status ?? "not_analyzed",
     sellerIntelligenceProfile: user.sellerIntelligenceProfile ?? null,
+    sellerIntelligenceUpdateFailed: websiteAnalysisFailed,
+    previousSellerIntelligenceRemainsActive: previousProfileRemainsActive,
     mobilePhone: user.mobilePhone,
     companyLogoPath: user.companyLogoPath,
     profilePhotoPath: user.profilePhotoPath,
@@ -297,49 +372,74 @@ router.put("/settings", async (req, res) => {
 });
 
 router.post("/company-intelligence/refresh", async (req, res) => {
-  const website = req.dbUser.website;
-  if (!website) {
-    return res.status(400).json({ error: "Save a company website before refreshing its intelligence." });
-  }
-
-  try {
-    const analyzed = await analyzeSellerIntelligence(website, req.dbUser.vertical);
-    const previous = req.dbUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
-    const profile = applySellerIntelligenceSources(analyzed, {
-      differentiatorsInput: req.dbUser.sellerDifferentiatorsInput,
-      servicePriorities: req.dbUser.sellerServicePriorities,
-      userOverrides: previous?.userOverrides,
-      userEditedAt: previous?.userEditedAt,
-    });
-    await db.update(usersTable)
-      .set({ sellerIntelligenceProfile: profile })
-      .where(eq(usersTable.id, req.clientId));
-    return res.json({ sellerIntelligenceStatus: profile.status, sellerIntelligenceProfile: profile });
-  } catch (err) {
-    req.log.warn({ err, userId: req.clientId }, "Seller intelligence manual refresh failed");
-    const previous = req.dbUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
-    // Never replace useful prior research with a transient crawl/model failure.
-    if (previous?.status === "ready" || previous?.status === "needs_review") {
-      return res.status(502).json({
-        error: "We could not refresh company intelligence. Your previous profile is still available.",
-        sellerIntelligenceStatus: "limited",
-        sellerIntelligenceProfile: previous,
-      });
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`seller-settings:${req.clientId}`}))`);
+    const [currentUser] = await tx.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+    if (!currentUser?.website) {
+      return { missingWebsite: true as const };
     }
-    const failed = buildGenericSellerProfile(
-      normalizeWebsite(website),
-      req.dbUser.vertical,
-      "We could not analyze this website yet. Please try refresh later.",
-    );
-    await db.update(usersTable)
-      .set({ sellerIntelligenceProfile: failed })
-      .where(eq(usersTable.id, req.clientId));
+
+    const previous = currentUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+    try {
+      const analyzed = await analyzeSellerIntelligence(currentUser.website, currentUser.vertical);
+      const keepOverrides = Boolean(
+        previous &&
+        isSafelySameCompanyWebsite(previous.sellerWebsite, analyzed.sellerWebsite),
+      );
+      const profile = applySellerIntelligenceSources(analyzed, {
+        differentiatorsInput: currentUser.sellerDifferentiatorsInput,
+        servicePriorities: currentUser.sellerServicePriorities,
+        ...(keepOverrides ? {
+          userOverrides: previous?.userOverrides,
+          userEditedAt: previous?.userEditedAt,
+        } : {}),
+      });
+      await tx.update(usersTable)
+        .set({ sellerIntelligenceProfile: profile })
+        .where(eq(usersTable.id, req.clientId));
+      return { failed: false as const, profile };
+    } catch (err) {
+      req.log.warn({ err, userId: req.clientId }, "Seller intelligence manual reanalysis failed");
+      const previousRemainsActive = previous?.status === "ready" || previous?.status === "needs_review";
+      const profile = previousRemainsActive
+        ? {
+            ...previous,
+            lastAnalysisAttemptStatus: "failed" as const,
+            lastAnalysisAttemptAt: new Date().toISOString(),
+            analysisError: "We could not update Company Intelligence from this website.",
+          }
+        : buildGenericSellerProfile(
+            normalizeWebsite(currentUser.website),
+            currentUser.vertical,
+            "We could not analyze this website yet. Please try reanalyzing later.",
+          );
+      await tx.update(usersTable)
+        .set({ sellerIntelligenceProfile: profile })
+        .where(eq(usersTable.id, req.clientId));
+      return { failed: true as const, profile, previousRemainsActive };
+    }
+  });
+
+  if ("missingWebsite" in result) {
+    return res.status(400).json({ error: "Save a company website before reanalyzing it." });
+  }
+  if (result.failed) {
     return res.status(502).json({
-      error: "We could not analyze this website. Please try refresh later.",
-      sellerIntelligenceStatus: failed.status,
-      sellerIntelligenceProfile: failed,
+      error: result.previousRemainsActive
+        ? "We could not reanalyze company intelligence. Your previous profile is still available."
+        : "We could not analyze this website. Please try reanalyzing later.",
+      sellerIntelligenceStatus: result.profile.status,
+      sellerIntelligenceProfile: result.profile,
+      sellerIntelligenceUpdateFailed: true,
+      previousSellerIntelligenceRemainsActive: result.previousRemainsActive,
     });
   }
+  return res.json({
+    sellerIntelligenceStatus: result.profile.status,
+    sellerIntelligenceProfile: result.profile,
+    sellerIntelligenceUpdateFailed: false,
+    previousSellerIntelligenceRemainsActive: false,
+  });
 });
 
 router.put("/company-intelligence", async (req, res) => {

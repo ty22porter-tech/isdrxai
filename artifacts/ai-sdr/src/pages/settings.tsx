@@ -17,6 +17,26 @@ async function apiFetch(path: string, options?: RequestInit) {
   return data;
 }
 
+function parsedCompanyWebsite(value: string): URL | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(/^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname.includes(".") || parsed.username || parsed.password) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function comparableCompanyWebsite(value: string): string | null {
+  const parsed = parsedCompanyWebsite(value);
+  if (!parsed) return null;
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  const pathname = parsed.pathname.replace(/\/+$/, "") || "/";
+  return `${hostname}${pathname}`;
+}
+
 const objectUrl = (path: string) => `/api/storage${path}`;
 
 type Attachment = { path: string; name: string; size: number; contentType: string };
@@ -233,6 +253,7 @@ export default function SettingsPage() {
   const [saveMsg, setSaveMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
   const [intelligenceMsg, setIntelligenceMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [intelligenceUpdateFailed, setIntelligenceUpdateFailed] = useState(false);
 
   const pendingFileRef = useRef<File | null>(null);
   const attachUpload = useUpload({
@@ -320,7 +341,7 @@ export default function SettingsPage() {
           sellerDifferentiatorsInput: sellerDifferentiatorsInput || null,
           sellerServicePriorities: sellerServicePriorities || null,
           mobilePhone: mobilePhone || null,
-          website: website || null,
+          ...(website.trim() ? { website: website.trim() } : {}),
           companyLogoPath,
           profilePhotoPath,
           attachments,
@@ -328,14 +349,20 @@ export default function SettingsPage() {
           step5CaseStudy,
         }),
       }),
-    onSuccess: () => {
-      const websiteWasChanged = website.trim() !== (me?.website ?? "").trim();
+    onSuccess: (data: any) => {
+      const updateFailed = data.sellerIntelligenceUpdateFailed === true;
+      setIntelligenceUpdateFailed(updateFailed);
+      qc.setQueryData(["me"], (current: any) => ({ ...current, ...data }));
       qc.invalidateQueries({ queryKey: ["me"] });
       setSaveMsg({
-        type: "ok",
-        text: websiteWasChanged
-          ? "Settings saved. Company website analysis is complete."
-          : "Settings saved!",
+        type: updateFailed ? "err" : "ok",
+        text: updateFailed
+          ? data.previousSellerIntelligenceRemainsActive
+            ? "Settings saved. Company Intelligence could not be updated, so your previous profile remains active."
+            : "Settings saved. Company Intelligence could not be updated; try reanalyzing later."
+          : data.website
+            ? "Settings saved. Your Company Intelligence is active."
+            : "Settings saved. Add your company website before generating new prospects.",
       });
       setTimeout(() => setSaveMsg(null), 3000);
     },
@@ -346,16 +373,22 @@ export default function SettingsPage() {
 
   const refreshIntelligenceMutation = useMutation({
     mutationFn: () => apiFetch("/users/company-intelligence/refresh", { method: "POST" }),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      setIntelligenceUpdateFailed(false);
+      qc.setQueryData(["me"], (current: any) => ({ ...current, ...data }));
       qc.invalidateQueries({ queryKey: ["me"] });
-      setIntelligenceMsg({ type: "ok", text: "Company intelligence refresh is complete." });
+      setIntelligenceMsg({ type: "ok", text: "Company Intelligence reanalysis is complete and active." });
     },
-    onError: (err: Error) => setIntelligenceMsg({ type: "err", text: err.message }),
+    onError: (err: Error) => {
+      setIntelligenceUpdateFailed(true);
+      setIntelligenceMsg({ type: "err", text: err.message });
+    },
   });
 
   const allSet = !!(me?.platformEmailReady && me?.outreachEmail);
   const savedWebsite = (me?.website ?? "").trim();
-  const websiteChanged = website.trim() !== savedWebsite;
+  const websiteIsValid = parsedCompanyWebsite(website) !== null;
+  const websiteChanged = comparableCompanyWebsite(website) !== comparableCompanyWebsite(savedWebsite);
   const sellerIntelligenceProfile = me?.sellerIntelligenceProfile as Record<string, unknown> | null | undefined;
   const intelligenceStatus = String(
     sellerIntelligenceProfile?.status
@@ -363,11 +396,16 @@ export default function SettingsPage() {
       ?? sellerIntelligenceProfile?.state
       ?? "",
   ).toLowerCase();
-  const intelligenceIsAnalyzing = refreshIntelligenceMutation.isPending || /analy[sz]|pending|queued|processing|refresh/.test(intelligenceStatus);
-  const intelligenceIsLimited = /limited|partial|fail|error|unavailable/.test(intelligenceStatus);
-  const intelligenceNeedsReview = /review/.test(intelligenceStatus);
-  const intelligenceIsReady = !!sellerIntelligenceProfile && !intelligenceIsAnalyzing && !intelligenceIsLimited && !intelligenceNeedsReview
-    && !/not.?analy[sz]|missing|none/.test(intelligenceStatus);
+  const intelligenceIsAnalyzing = refreshIntelligenceMutation.isPending
+    || (mutation.isPending && websiteChanged && websiteIsValid)
+    || /analy[sz]|pending|queued|processing|refresh/.test(intelligenceStatus);
+  const intelligenceIsLimited = intelligenceStatus === "limited";
+  const intelligenceNeedsReview = intelligenceStatus === "needs_review";
+  const intelligenceIsReady = intelligenceStatus === "ready";
+  const intelligenceAnalysisFailed = intelligenceUpdateFailed
+    || me?.sellerIntelligenceUpdateFailed === true
+    || sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed";
+  const websiteAllowsSave = websiteIsValid || (!savedWebsite && !website.trim());
   const intelligenceDisplayFields = sellerIntelligenceProfile
     ? Object.entries(sellerIntelligenceProfile).filter(([key]) => !["status", "analysisStatus", "state", "error", "lastError"].includes(key))
     : [];
@@ -589,56 +627,42 @@ export default function SettingsPage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
-              <ExternalLink className="w-4 h-4 text-primary" /> Company Website <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+              <ExternalLink className="w-4 h-4 text-primary" /> Company Website <span className="text-red-400">*</span>
             </label>
             <input
-              type="url"
+              type="text"
               value={website}
-              onChange={e => setWebsite(e.target.value)}
-              placeholder="e.g. www.yourcompany.com"
-              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              onChange={e => {
+                setWebsite(e.target.value);
+                setIntelligenceUpdateFailed(false);
+              }}
+              placeholder="e.g. https://www.yourcompany.com"
+              className={`w-full bg-background border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                !websiteAllowsSave ? "border-red-400 focus:ring-red-400/50" : "border-border"
+              }`}
+              data-testid="input-company-website"
+              aria-invalid={!websiteAllowsSave}
+              aria-describedby="company-website-help company-website-error"
+              required
             />
-            <p className="text-xs text-muted-foreground">Shown as "Website" in your email signature when provided.</p>
+            {!website.trim() ? (
+              <p id="company-website-error" className="text-xs text-red-400 font-medium">COMPANY WEBSITE REQUIRED</p>
+            ) : !websiteIsValid ? (
+              <p id="company-website-error" className="text-xs text-red-400">Enter a valid company website, such as https://yourcompany.com</p>
+            ) : null}
+            <p id="company-website-help" className="text-xs text-muted-foreground mt-1">
+              iSDRX AI uses your website to learn what your company sells, the industries you serve, your strengths, differentiators, certifications, capabilities, and value proposition. This intelligence is used to research prospects and personalize your sales strategy and outreach.
+              <br />
+              <span className="text-[11px] opacity-80 mt-1 block">Your website can also be included in your email signature.</span>
+            </p>
+          </div>
 
-            <div className="grid gap-4 pt-2 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">
-                  What makes your company different? <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-                </label>
-                <textarea
-                  value={sellerDifferentiatorsInput}
-                  onChange={event => setSellerDifferentiatorsInput(event.target.value)}
-                  placeholder="e.g. We provide 48-hour installation, handle design in-house, and use certified installers."
-                  rows={4}
-                  maxLength={4000}
-                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Tell iSDRX AI about strengths, guarantees, processes, services, experience, or advantages that may not be obvious from your website. This information will be used to improve prospect matching and email personalization.
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">
-                  What services or solutions do you want iSDRX AI to prioritize? <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-                </label>
-                <textarea
-                  value={sellerServicePriorities}
-                  onChange={event => setSellerServicePriorities(event.target.value)}
-                  placeholder="e.g. Managed IT, cybersecurity, cloud migration"
-                  rows={4}
-                  maxLength={2000}
-                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter the services you most want to sell. iSDRX AI will prioritize these when matching prospect needs and generating outreach.
-                </p>
-              </div>
-            </div>
-
-            <div
+          <div
               className={`rounded-lg border p-3 space-y-3 ${
-                intelligenceIsAnalyzing
+                 intelligenceIsAnalyzing
                   ? "border-blue-500/30 bg-blue-500/10"
+                   : intelligenceAnalysisFailed
+                     ? "border-red-500/30 bg-red-500/10"
                   : intelligenceIsReady
                     ? "border-emerald-500/30 bg-emerald-500/10"
                     : intelligenceNeedsReview
@@ -648,10 +672,13 @@ export default function SettingsPage() {
                         : "border-border bg-card"
               }`}
               aria-live="polite"
+              data-testid="status-company-intelligence"
             >
               <div className="flex items-start gap-2.5">
                 {intelligenceIsAnalyzing ? (
                   <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-blue-400" />
+                ) : intelligenceAnalysisFailed ? (
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                 ) : intelligenceIsReady ? (
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                 ) : intelligenceNeedsReview ? (
@@ -661,58 +688,60 @@ export default function SettingsPage() {
                 ) : (
                   <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className={`text-xs font-semibold ${
-                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceNeedsReview || intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
+                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceAnalysisFailed ? "text-red-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceNeedsReview || intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
                   }`}>
                     {
-                      intelligenceIsAnalyzing ? "Company Intelligence Analyzing"
-                      : intelligenceIsReady ? "Company Intelligence Ready"
-                      : intelligenceNeedsReview ? "Company Intelligence Needs Review"
-                      : intelligenceIsLimited ? "Company Intelligence Limited"
-                      : !savedWebsite ? "Company Website Not Added"
-                      : "Company Intelligence Not Analyzed"
+                      intelligenceIsAnalyzing ? "ANALYZING YOUR COMPANY"
+                      : intelligenceAnalysisFailed ? "COMPANY INTELLIGENCE COULD NOT BE UPDATED"
+                      : intelligenceIsReady ? "COMPANY INTELLIGENCE READY"
+                      : intelligenceNeedsReview ? "COMPANY INTELLIGENCE NEEDS REVIEW"
+                      : intelligenceIsLimited ? "COMPANY INTELLIGENCE NEEDS REVIEW"
+                      : !savedWebsite ? "COMPANY WEBSITE REQUIRED"
+                      : "COMPANY INTELLIGENCE NOT ANALYZED"
                     }
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {intelligenceIsAnalyzing
-                      ? "Your website is being analyzed. This can take a few moments; the intelligence below will update when it is ready."
-                      : intelligenceIsReady
-                        ? "Your company profile is ready to help tailor prospect research and outreach."
-                        : intelligenceNeedsReview
-                          ? "Website was analyzed but important information may be incomplete or uncertain. Please review."
-                          : intelligenceIsLimited
-                            ? "We found limited company information. Refresh after updating your website for a more complete profile."
-                            : savedWebsite
-                              ? "Your saved website has not been analyzed yet. Refresh to create company intelligence."
-                              : "Add and save your company website to create company intelligence."}
-                  </p>
-                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {intelligenceIsAnalyzing
+                    ? "iSDRX AI is learning your services, capabilities, strengths, and value proposition."
+                     : intelligenceAnalysisFailed
+                       ? intelligenceIsReady || intelligenceNeedsReview
+                         ? "Your previous Company Intelligence remains active. Try reanalyzing the website later."
+                         : "We could not analyze this website yet. Try reanalyzing the website later."
+                    : intelligenceIsReady
+                      ? "Your AI Sales Development Employee understands your company and is ready to use this intelligence for prospect research, opportunity matching, sales strategy, and personalized outreach."
+                      : intelligenceNeedsReview || intelligenceIsLimited
+                        ? "We analyzed your website but found limited information. Review the Company Intelligence below or add additional details."
+                        : savedWebsite
+                          ? "Your website was saved but could not be analyzed. Try reanalyzing later."
+                          : "Add your company website so iSDRX AI can learn your business and personalize prospecting."}
+                </p>
+              </div>
+            </div>
+
+            {sellerIntelligenceProfile && (
+              <Collapsible open={intelligenceOpen} onOpenChange={setIntelligenceOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-auto px-0 py-1 text-xs text-primary hover:bg-transparent">
+                    {intelligenceOpen ? "Hide Company Intelligence" : "View Company Intelligence"}
+                    <ChevronDown className={`ml-1.5 h-3.5 w-3.5 transition-transform ${intelligenceOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <CompanyIntelligenceEditor profile={sellerIntelligenceProfile} />
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-4 border-t border-border/50">
+              <div className="text-[11px] text-muted-foreground">
+                {Boolean(sellerIntelligenceProfile?.websiteLastAnalyzed) && (
+                  <span>Last analyzed: {new Date(sellerIntelligenceProfile?.websiteLastAnalyzed as string).toLocaleDateString()}</span>
+                )}
               </div>
 
-              {sellerIntelligenceProfile && (
-                <Collapsible open={intelligenceOpen} onOpenChange={setIntelligenceOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="h-auto px-0 py-1 text-xs">
-                      <ChevronDown className={`mr-1.5 h-3.5 w-3.5 transition-transform ${intelligenceOpen ? "rotate-180" : ""}`} />
-                      {intelligenceOpen ? "Hide Company Intelligence" : "View Company Intelligence"}
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-2">
-                    <div className="mb-2 text-[11px] text-muted-foreground">
-                      {Boolean(sellerIntelligenceProfile.websiteLastAnalyzed) && (
-                        <div>Last analyzed: {new Date(sellerIntelligenceProfile.websiteLastAnalyzed as string).toLocaleString()}</div>
-                      )}
-                      {Boolean(sellerIntelligenceProfile.userEditedAt) && (
-                        <div>Last updated by user: {new Date(sellerIntelligenceProfile.userEditedAt as string).toLocaleString()}</div>
-                      )}
-                    </div>
-                    <CompanyIntelligenceEditor profile={sellerIntelligenceProfile} />
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -722,22 +751,68 @@ export default function SettingsPage() {
                     setIntelligenceMsg(null);
                     refreshIntelligenceMutation.mutate();
                   }}
+                  title="Scan your website again if your services, messaging, capabilities, or company information have changed."
+                  data-testid="button-reanalyze-website"
                 >
                   {refreshIntelligenceMutation.isPending ? (
-                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Refreshing…</>
+                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analyzing…</>
                   ) : (
-                    <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh Company Intelligence</>
+                    <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Reanalyze Website</>
                   )}
                 </Button>
-                {!savedWebsite && <span className="text-xs text-muted-foreground">Save a website first to refresh.</span>}
+                {!savedWebsite && <span className="text-xs text-muted-foreground">Save a website first</span>}
               </div>
-              {intelligenceMsg && (
-                <p className={`text-xs ${intelligenceMsg.type === "ok" ? "text-emerald-400" : "text-red-400"}`}>
-                  {intelligenceMsg.text}
-                </p>
-              )}
             </div>
+            {intelligenceMsg && (
+              <p className={`text-xs ${intelligenceMsg.type === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+                {intelligenceMsg.text}
+              </p>
+            )}
           </div>
+
+            <div className="mt-8 mb-4 border-t border-border/70 pt-6">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">OPTIONAL AI EMPLOYEE INSTRUCTIONS</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Your AI employee already learns your company from your website. Add information below only if you want to give it additional guidance.</p>
+            </div>
+
+            <div className="grid gap-4 rounded-lg border border-border/60 bg-muted/20 p-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium flex items-center justify-between">
+                  <span>Anything you want your AI employee to know?</span>
+                  <span className="text-xs font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Optional</span>
+                </label>
+                <textarea
+                  value={sellerDifferentiatorsInput}
+                  onChange={event => setSellerDifferentiatorsInput(event.target.value)}
+                  placeholder="e.g. We provide 48-hour installation, handle design in-house, and use certified installers."
+                  rows={3}
+                  maxLength={4000}
+                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  data-testid="input-ai-employee-instructions"
+                />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Optional: Add strengths, guarantees, processes, certifications, experience, or advantages that may not be clearly explained on your website.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium flex items-center justify-between">
+                  <span>Services you want your AI employee to prioritize</span>
+                  <span className="text-xs font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Optional</span>
+                </label>
+                <textarea
+                  value={sellerServicePriorities}
+                  onChange={event => setSellerServicePriorities(event.target.value)}
+                  placeholder="e.g. Managed IT, cybersecurity, cloud migration"
+                  rows={3}
+                  maxLength={2000}
+                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  data-testid="input-priority-services"
+                />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use the services identified from your website.
+                </p>
+              </div>
+            </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
@@ -1093,8 +1168,9 @@ export default function SettingsPage() {
 
           <Button
             className="w-full"
-            disabled={mutation.isPending || isLoading}
+            disabled={mutation.isPending || isLoading || !websiteAllowsSave}
             onClick={() => mutation.mutate()}
+            data-testid="button-save-settings"
           >
             {mutation.isPending ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {websiteChanged ? "Saving & starting analysis…" : "Saving…"}</>

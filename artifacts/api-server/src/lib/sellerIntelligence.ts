@@ -35,6 +35,8 @@ export const SellerIntelligenceProfileSchema = SellerIntelligenceEditableSchema.
   sourcePages: z.array(z.string().url()).max(MAX_PAGES),
   websiteLastAnalyzed: z.string().datetime(),
   websiteAnalysisStatus: z.enum(["ready", "limited"]),
+  lastAnalysisAttemptStatus: z.enum(["ready", "limited", "failed"]).optional(),
+  lastAnalysisAttemptAt: z.string().datetime().optional(),
   websiteGenerated: SellerIntelligenceEditableSchema.optional(),
   userOverrides: SellerIntelligenceEditableSchema.partial().optional(),
   userEditedAt: z.string().datetime().optional(),
@@ -55,6 +57,19 @@ export function normalizeWebsite(input: string): string {
   if (!["http:", "https:"].includes(url.protocol) || !url.hostname || url.username || url.password) {
     throw new Error("Enter a valid public HTTP(S) website URL.");
   }
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === "localhost" || (!hostname.includes(".") && net.isIP(hostname) === 0)) {
+    throw new Error("Enter a valid company website, such as https://yourcompany.com.");
+  }
+  if (net.isIP(hostname) === 0 && (
+    hostname.length > 253 ||
+    hostname.split(".").some(label => !/^[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/i.test(label))
+  )) {
+    throw new Error("Enter a valid company website, such as https://yourcompany.com.");
+  }
+  if (net.isIP(hostname) && isPrivateAddress(hostname)) {
+    throw new Error("The website must use a public address.");
+  }
   if ((url.protocol === "https:" && url.port && url.port !== "443") ||
       (url.protocol === "http:" && url.port && url.port !== "80")) {
     throw new Error("Company websites must use the standard HTTP or HTTPS port.");
@@ -63,6 +78,37 @@ export function normalizeWebsite(input: string): string {
   url.search = "";
   url.pathname = url.pathname.replace(/\/+$/, "") || "/";
   return url.toString();
+}
+
+function comparableHostname(rawUrl: string): string {
+  const hostname = new URL(normalizeWebsite(rawUrl)).hostname.toLowerCase();
+  return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+}
+
+/**
+ * Compares URL spellings without treating scheme, www, or a trailing slash as
+ * a website change. The path remains significant because saving a different
+ * landing page is an explicit request to analyze that page.
+ */
+export function equivalentWebsite(first: string, second: string): boolean {
+  const a = new URL(normalizeWebsite(first));
+  const b = new URL(normalizeWebsite(second));
+  const path = (url: URL) => url.pathname.replace(/\/+$/, "") || "/";
+  return comparableHostname(first) === comparableHostname(second) && path(a) === path(b);
+}
+
+/**
+ * Conservative override-retention rule: user edits may survive a reanalysis
+ * only when the old and new profiles use the exact same hostname after the
+ * harmless www normalization. We deliberately do not guess at parent-domain,
+ * brand, redirect, or corporate relationships.
+ */
+export function isSafelySameCompanyWebsite(first: string, second: string): boolean {
+  try {
+    return comparableHostname(first) === comparableHostname(second);
+  } catch {
+    return false;
+  }
 }
 
 function isPrivateAddress(address: string): boolean {
@@ -217,6 +263,8 @@ export function buildGenericSellerProfile(
     sourcePages: [],
     websiteLastAnalyzed: new Date().toISOString(),
     websiteAnalysisStatus: "limited",
+    lastAnalysisAttemptStatus: "failed",
+    lastAnalysisAttemptAt: new Date().toISOString(),
     analysisError: error.slice(0, 200),
   };
 }
@@ -316,6 +364,8 @@ ${crawled.text}`;
     sourcePages: crawled.pages.map(page => page.url),
     websiteLastAnalyzed: new Date().toISOString(),
     websiteAnalysisStatus: hasUsableSellerFacts ? "ready" : "limited",
+    lastAnalysisAttemptStatus: hasUsableSellerFacts ? "ready" : "limited",
+    lastAnalysisAttemptAt: new Date().toISOString(),
     websiteGenerated,
     ...(hasUsableSellerFacts ? {} : { analysisError: "The website did not contain enough explicit seller information." }),
   };

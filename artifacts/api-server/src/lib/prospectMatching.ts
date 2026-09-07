@@ -20,6 +20,29 @@ export interface SellerIntelligence {
 const clean = (values: string[] | null | undefined) =>
   Array.isArray(values) ? values.map(value => value.trim()).filter(Boolean) : [];
 
+export function sellerPriorityServices(user?: User | null): string[] {
+  return (user?.sellerServicePriorities ?? "")
+    .split(/[\n,;]+/)
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
+function prioritizeApprovedOffers(offers: string[], priorities: string[]): string[] {
+  if (!priorities.length) return offers;
+  const rank = (offer: string) => {
+    const normalizedOffer = offer.toLowerCase();
+    const index = priorities.findIndex(priority => {
+      const normalizedPriority = priority.toLowerCase();
+      return normalizedOffer.includes(normalizedPriority) || normalizedPriority.includes(normalizedOffer);
+    });
+    return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+  };
+  return offers
+    .map((offer, index) => ({ offer, index, rank: rank(offer) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({ offer }) => offer);
+}
+
 /** Reads only a successfully analyzed, website-backed profile. */
 export function sellerIntelligenceProfile(user?: User | null): SellerIntelligence {
   const profile = user?.sellerIntelligenceProfile as SellerIntelligenceProfile | null | undefined;
@@ -90,12 +113,16 @@ export function industryMatch(industry?: string | null, vertical?: string | null
 
 export function sellerContext(user: User | undefined, industry?: string | null, vertical?: string | null): string {
   const seller = sellerIntelligenceProfile(user);
+  const priorities = sellerPriorityServices(user);
   const match = industryMatch(industry, vertical);
   const lines = [
     `PROSPECT INDUSTRY FRAMEWORK: ${match.operation}`,
     "Treat industry patterns as possible fit, never as verified facts about this prospect.",
   ];
   if (!seller.ready) {
+    if (priorities.length) {
+      lines.push(`USER-PRIORITIZED SERVICES (discovery strategy only, not verified seller capabilities): ${priorities.join("; ")}`);
+    }
     lines.push("SELLER INTELLIGENCE IS MISSING OR LIMITED: use a generic, discovery-led industry message. Do not invent the sender's services, products, capabilities, differentiators, certifications, clients, proof, outcomes, portfolio, pricing, or CTA.");
     return lines.join("\n");
   }
@@ -115,6 +142,9 @@ export function sellerContext(user: User | undefined, industry?: string | null, 
   add("PROOF POINTS (only these may be claimed)", seller.proof);
   add("PORTFOLIO EXAMPLES (only these may be claimed)", seller.portfolioExamples);
   add("CALLS TO ACTION", seller.ctas);
+  if (priorities.length) {
+    lines.push(`USER-PRIORITIZED SERVICES (use to rank relevant approved offers; do not treat this instruction itself as proof of a capability): ${priorities.join("; ")}`);
+  }
   return lines.join("\n");
 }
 
@@ -130,7 +160,10 @@ export function potentialNeedsForSeller(
       `${challenge} → Confirm the prospect's situation before recommending a solution → Identify whether there is a real opportunity.`,
     );
   }
-  const solutions = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
+  const solutions = prioritizeApprovedOffers(
+    [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions],
+    sellerPriorityServices(user),
+  );
   return match.challenges.map((challenge, index) => {
     const solution = solutions[index % solutions.length];
     const outcome = seller.outcomes[index % Math.max(1, seller.outcomes.length)] || match.outcome;
@@ -144,7 +177,10 @@ export function genericOutreach(user: User | undefined, industry: string | null 
   if (!seller.ready) {
     return `Lead with a discovery question about ${match.challenges[0]}; seller-specific capabilities are unavailable, so do not make a product claim.`;
   }
-  const offer = seller.capabilities[0] || seller.services[0] || seller.products[0] || seller.valuePropositions[0];
+  const offer = prioritizeApprovedOffers(
+    [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions],
+    sellerPriorityServices(user),
+  )[0];
   const outcome = seller.outcomes[0] || match.outcome;
   const cta = seller.ctas[0] || "ask whether a brief discovery conversation would be useful";
   return `Use a discovery-led question about ${match.challenges[0]}. If the prospect confirms it is a priority, ${seller.name}'s ${offer} may support ${outcome}; then ${cta}.`;

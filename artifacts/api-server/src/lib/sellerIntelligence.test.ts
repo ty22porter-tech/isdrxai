@@ -3,12 +3,29 @@ import {
   applySellerIntelligenceSources,
   buildGenericSellerProfile,
   buildSellerIntelligenceContext,
+  equivalentWebsite,
   extractPublicText,
+  isSafelySameCompanyWebsite,
   normalizeWebsite,
 } from "./sellerIntelligence";
 
 describe("seller intelligence helpers", () => {
   it("normalizes a bare public website", () => expect(normalizeWebsite(" Example.com/about/ ")).toBe("https://example.com/about"));
+  it("rejects blank and non-public-looking company websites", () => {
+    expect(() => normalizeWebsite(" ")).toThrow(/required/i);
+    expect(() => normalizeWebsite("localhost")).toThrow(/valid company website/i);
+    expect(() => normalizeWebsite("http://127.0.0.1")).toThrow(/public/i);
+  });
+  it("recognizes equivalent URL spellings without suppressing a new landing-page analysis", () => {
+    expect(equivalentWebsite("example.com/about/", "http://www.example.com/about")).toBe(true);
+    expect(equivalentWebsite("https://example.com/", "https://example.com/services")).toBe(false);
+  });
+  it("uses the resolved hostname as the conservative automatic and manual reanalysis override-retention rule", () => {
+    expect(isSafelySameCompanyWebsite("https://www.example.com/old", "http://example.com/new")).toBe(true);
+    expect(isSafelySameCompanyWebsite("https://app.example.com", "https://example.com")).toBe(false);
+    expect(isSafelySameCompanyWebsite("https://example.com", "https://example.net")).toBe(false);
+    expect(isSafelySameCompanyWebsite("https://old-company.example", "https://redirected-company.example")).toBe(false);
+  });
   it("rejects non-http websites", () => expect(() => normalizeWebsite("file:///etc/passwd")).toThrow());
   it("extracts readable text without executable content", () => expect(extractPublicText("<script>secret()</script><h1>Acme &amp; Co</h1>")).toBe("Acme & Co"));
   it("does not put failed analysis in seller context", () => {

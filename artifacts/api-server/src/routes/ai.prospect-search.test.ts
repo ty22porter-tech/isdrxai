@@ -3,7 +3,7 @@
  * IT-services scoring overlay, and missing/invalid key error handling.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { genericOutreach, sellerIntelligenceProfile } from "../lib/prospectMatching";
+import { genericOutreach, sellerContext, sellerIntelligenceProfile } from "../lib/prospectMatching";
 
 // ── Mocks must be hoisted before imports ──────────────────────────────────────
 vi.mock("@workspace/db", () => ({
@@ -47,6 +47,38 @@ describe("seller intelligence fallback", () => {
     expect(ready.name).toBe("Northstar Graphics");
     expect(genericOutreach({ sellerIntelligenceProfile: { sellerCompanyName: "Northstar Graphics" } } as any, "HVAC", "fleet_wraps"))
       .toMatch(/seller-specific capabilities are unavailable/i);
+  });
+
+  it("uses priority services to rank approved offers without turning them into seller facts", () => {
+    const user = {
+      sellerServicePriorities: "fleet lettering",
+      sellerIntelligenceProfile: {
+        status: "ready",
+        websiteAnalysisStatus: "ready",
+        sellerCompanyName: "Northstar Graphics",
+        sellerServices: ["fleet lettering"],
+        sellerProducts: [],
+        sellerCapabilities: ["on-site installation"],
+        sellerDifferentiators: [],
+        sellerCertifications: [],
+        sellerIndustriesServed: [],
+        sellerBusinessOutcomes: ["consistent field branding"],
+        sellerProblemsSolved: [],
+        sellerProofPoints: [],
+        sellerPortfolioExamples: [],
+        sellerValuePropositions: [],
+        sellerTypicalCustomers: [],
+        sellerCTAs: [],
+      },
+    } as any;
+    expect(genericOutreach(user, "HVAC", "fleet_wraps")).toContain("fleet lettering");
+
+    const limitedContext = sellerContext({
+      sellerServicePriorities: "unsupported priority",
+      sellerIntelligenceProfile: null,
+    } as any, "HVAC", "fleet_wraps");
+    expect(limitedContext).toContain("discovery strategy only");
+    expect(limitedContext).toContain("Do not invent");
   });
 });
 
