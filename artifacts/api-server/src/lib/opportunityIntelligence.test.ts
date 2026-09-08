@@ -63,6 +63,17 @@ describe("opportunity intelligence", () => {
     expect(intelligence.breakdown.reduce((sum, item) => sum + item.points, 0)).toBe(intelligence.score);
   });
 
+  it("marks an evidence-based score of 30 as a possible fit to call", () => {
+    const intelligence = buildOpportunityIntelligence({
+      ...lead,
+      contactTitle: "IT Director",
+      employeeCount: 25,
+    }, "it_services", readySeller);
+
+    expect(intelligence.score).toBe(30);
+    expect(intelligence.label).toBe("Possible Fit");
+  });
+
   it("does not award buying-signal or freshness points without dated buying evidence", () => {
     const intelligence = buildOpportunityIntelligence(lead, "fleet_wraps", readySeller);
     const buyingSignals = intelligence.breakdown.find(item => item.key === "verified_buying_signals");
@@ -289,6 +300,59 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds.join(" ")).toContain("identity, endpoint, and network support");
     expect(intelligence.recommendedOutreach).toContain("Perfect General Contractors");
     expect(intelligence.recommendedOutreach).toContain("schedule a technology operations review");
+  });
+
+  it("personalizes operating-profile outreach and selects the relevant website-approved seller offering", () => {
+    const seller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["cloud collaboration support", "network infrastructure management", "backup and disaster recovery"],
+        sellerCapabilities: [],
+        sellerBusinessOutcomes: ["reliable and secure operations"],
+        sellerCTAs: ["schedule a technology operations review"],
+      },
+    } as any;
+    const signal = (description: string, sourceURL: string) => ({
+      signalType: "company_operating_profile",
+      signalTitle: "Company operating profile",
+      signalDescription: description,
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Company research",
+      sourceURL,
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: description,
+      points: 0,
+    });
+    const construction = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "Perfect General Contractors",
+      industry: "Construction",
+    }, "it_services", seller, [
+      signal(
+        "Perfect General Contractors manages commercial construction projects and field teams across North Texas.",
+        "https://perfect.example",
+      ),
+    ] as any);
+    const manufacturer = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "Contoso Manufacturing",
+      industry: "Manufacturing",
+    }, "it_services", seller, [
+      signal(
+        "Contoso Manufacturing operates production plants and warehouses for industrial equipment.",
+        "https://contoso.example",
+      ),
+    ] as any);
+
+    expect(construction.recommendedOutreach).toContain("commercial construction projects and field teams");
+    expect(construction.recommendedOutreach).toContain("cloud collaboration support");
+    expect(manufacturer.recommendedOutreach).toContain("production plants and warehouses");
+    expect(manufacturer.recommendedOutreach).toContain("backup and disaster recovery");
+    expect(construction.recommendedOutreach).not.toBe(manufacturer.recommendedOutreach);
   });
 
   it("does not recommend an unrelated seller offer when prospect evidence has no relevant match", () => {

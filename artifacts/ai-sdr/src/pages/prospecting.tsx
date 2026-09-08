@@ -1176,6 +1176,11 @@ export default function Prospecting() {
                             >
                               {isFleet ? "Fleet Wrap Opportunity Score" : isIT ? "IT Opportunity Score" : "Opportunity Score"}: {lead.opportunityScore} — {lead.scoreLabel}
                             </Badge>
+                            {lead.opportunityScore >= 30 && (
+                              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-xs font-medium text-primary">
+                                <Phone className="mr-1 h-3 w-3" /> Fit to Call
+                              </Badge>
+                            )}
                             {lead.opportunityIntelligence && (
                               <Dialog>
                                 <DialogTrigger asChild>

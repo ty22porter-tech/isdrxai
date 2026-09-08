@@ -70,6 +70,8 @@ export function isVerifiedCompanyInformation(signal: OpportunitySignal): boolean
 
 export function sanitizeOpportunityLanguage(value?: string): string {
   return (value || "")
+    .replace(/\bApollo company operating evidence\b/gi, "Company operating profile")
+    .replace(/\bApollo company enrichment\b/gi, "Company research")
     .replace(/\bconfirmed needs?\b/gi, (match) =>
       match.toLowerCase().endsWith("s") ? "potential opportunities" : "potential opportunity",
     )
@@ -326,6 +328,7 @@ export function OpportunityIntelligenceView({
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-xl font-bold" data-testid="text-opportunity-score">Opportunity Score: {intelligence?.score ?? "—"}</h3>
                 {intelligence?.label && <Badge variant="outline" className={`font-semibold ${scoreLabelColor}`}>{intelligence.label}</Badge>}
+                {intelligence?.score >= 30 && <Badge variant="outline" className="border-primary/20 bg-primary/10 font-semibold text-primary">Fit to Call</Badge>}
               </div>
               <p className="flex items-start gap-1 text-sm text-muted-foreground">
                 <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

@@ -259,7 +259,7 @@ function addItOverlay(lead: BaseLead, industry: string, _employeeRange?: string,
   const cyberScore = 8 + Math.floor(rng() * 9);
   const growthScore = Math.floor(rng() * 11);
   const opportunityScore = Math.min(100, 15 + complianceScore + managedItScore + cyberScore + growthScore);
-  const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 40 ? "Possible Fit" : "Low Priority";
+  const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 30 ? "Possible Fit" : "Low Priority";
   const complianceConsideration = IT_COMPLIANCE[industry] ?? "Potential state privacy and cyber-insurance security requirements";
   const potentialNeeds = seller.ready
     ? potentialNeedsForSeller(client, industry, "it_services")
@@ -295,7 +295,7 @@ function addFleetOverlay(lead: BaseLead, industry: string, client?: typeof users
   ].filter(Boolean);
   const verificationScore = (lead.address ? 10 : 0) + (lead.website ? 8 : 0) + (lead.phone ? 6 : 0);
   const opportunityScore = Math.min(100, 28 + (seller.ready ? 24 : 10) + verificationScore);
-  const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 40 ? "Possible Fit" : "Low Priority";
+  const scoreLabel = opportunityScore >= 80 ? "High Priority" : opportunityScore >= 60 ? "Strong Fit" : opportunityScore >= 30 ? "Possible Fit" : "Low Priority";
   const verified = verifiedSignals.length ? verifiedSignals.join("; ") : "No direct operating, website, or phone signal was available in the Google Places result.";
   const fleetBrandingSignal = `Verified: ${verified}. Industry Fit: ${match.operation} Unverified: Actual vehicle ownership, fleet size, vehicle purchases, hiring, expansion, rebranding, location count, and current wrap status have not been confirmed.`;
   const whyTarget = `${lead.companyName} is a verified ${lead.industry} business in ${lead.city}, ${lead.state}. ${match.operation} ${seller.ready ? `${seller.name}'s ${seller.capabilities.concat(seller.services).slice(0, 2).join(" and ")} may be relevant if discovery confirms a need.` : "Seller capabilities have not been configured, so begin with discovery rather than a product claim."}`;
@@ -575,7 +575,7 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
       const apolloCompanySignal = p?.organizationDescription && p.website
         ? [{
             signalType: "company_operating_profile",
-            signalTitle: "Apollo company operating evidence",
+            signalTitle: "Company operating profile",
             signalDescription: p.organizationDescription,
             signalClassification: "verified" as const,
             confidenceLevel: "medium" as const,

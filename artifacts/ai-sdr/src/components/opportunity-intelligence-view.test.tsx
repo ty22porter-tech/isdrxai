@@ -190,6 +190,32 @@ describe("OpportunityIntelligenceView", () => {
 
     expect(screen.getByText("Verified signal:")).toBeInTheDocument();
     expect(screen.getByText(/commercial construction management across North Texas/)).toBeInTheDocument();
+    expect(screen.queryByText(/Apollo company operating evidence/i)).not.toBeInTheDocument();
+  });
+
+  it("hides Apollo wording from cached company evidence and marks scores of 30 as fit to call", () => {
+    render(
+      <OpportunityIntelligenceView
+        intelligence={{
+          ...intelligence([
+            signal({
+              signalType: "company_operating_profile",
+              signalTitle: "Apollo company operating evidence",
+              signalDescription: "A documented company operation.",
+              sourceName: "Apollo company enrichment",
+              signalClassification: "verified",
+              points: 0,
+            }),
+          ]),
+          score: 30,
+          label: "Possible Fit",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Fit to Call")).toBeInTheDocument();
+    expect(screen.getByText("Company operating profile")).toBeInTheDocument();
+    expect(screen.queryByText(/Apollo/i)).not.toBeInTheDocument();
   });
 
   it("separates company verification from verified buying signals", () => {

@@ -35,7 +35,7 @@ interface PersistedOpportunityInput extends OpportunityLead {
 }
 
 const scoreLabel = (score: number): OpportunityIntelligence["label"] =>
-  score >= 80 ? "High Priority" : score >= 60 ? "Strong Fit" : score >= 40 ? "Possible Fit" : "Low Priority";
+  score >= 80 ? "High Priority" : score >= 60 ? "Strong Fit" : score >= 30 ? "Possible Fit" : "Low Priority";
 
 const bounded = (value: number, max: number) => Math.max(0, Math.min(max, Math.round(value)));
 
@@ -165,6 +165,71 @@ function signalChallenge(signal: OpportunitySignal, vertical: string): string {
     || "addressing the operational change indicated by this verified signal";
 }
 
+function companyOperatingOutreach(signal: OpportunitySignal): {
+  discoveryFocus: string;
+  offerMatchContext: string;
+  operatingSummary: string;
+} {
+  const evidence = [
+    signal.signalDescription,
+    signal.supportingEvidence,
+  ].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+  const normalized = evidence.toLowerCase();
+  const operatingSummary = (evidence.match(/^.*?[.!?](?:\s|$)/)?.[0] || evidence)
+    .trim()
+    .replace(/[.!?]+$/, "");
+  const profiles = [
+    {
+      pattern: /\b(?:construction|contractor|project|jobsite|field service|technician|on-site)\b/i,
+      discoveryFocus: "field and project teams maintain reliable access, supported devices, secure collaboration, and recoverable files across jobsites",
+      offerMatchContext: "field workforce mobile device endpoint identity access collaboration file backup recovery managed IT support",
+    },
+    {
+      pattern: /\b(?:school|education|student|teacher|faculty|campus|district)\b/i,
+      discoveryFocus: "staff and learners maintain reliable access, supported devices, secure accounts, and responsive help across its learning environments",
+      offerMatchContext: "education user support help desk device endpoint identity access email security network backup recovery",
+    },
+    {
+      pattern: /\b(?:health|medical|patient|clinic|caregiver|dental|therapy|pharmacy)\b/i,
+      discoveryFocus: "care teams maintain reliable access, supported devices, secure information handling, and recovery across patient-service workflows",
+      offerMatchContext: "healthcare managed IT support device endpoint identity access security backup disaster recovery continuity",
+    },
+    {
+      pattern: /\b(?:manufactur|production|plant|warehouse|industrial|fabricat)\b/i,
+      discoveryFocus: "production and operations teams maintain reliable connectivity, supported systems, secure access, and recovery without disrupting throughput",
+      offerMatchContext: "manufacturing network infrastructure systems support security backup disaster recovery business continuity",
+    },
+    {
+      pattern: /\b(?:delivery|logistics|transport|dispatch|fleet|distribution)\b/i,
+      discoveryFocus: "dispatch and mobile teams maintain reliable connectivity, supported devices, secure access, and recoverable operations",
+      offerMatchContext: "logistics mobile device endpoint support identity access network security backup recovery",
+    },
+    {
+      pattern: /\b(?:financial|bank|credit|lending|mortgage|insurance|wealth)\b/i,
+      discoveryFocus: "client-service teams maintain secure access, reliable systems, protected communications, and recoverable workflows",
+      offerMatchContext: "financial services identity access email security managed IT network backup recovery risk",
+    },
+    {
+      pattern: /\b(?:retail|restaurant|hospitality|hotel|store|location|franchise)\b/i,
+      discoveryFocus: "its locations maintain reliable networks, supported endpoints, secure access, and recoverable customer-service systems",
+      offerMatchContext: "multi-location retail network infrastructure endpoint support identity access security backup recovery",
+    },
+    {
+      pattern: /\b(?:legal|accounting|consult|professional service|staffing|marketing|agency|client service)\b/i,
+      discoveryFocus: "client and project teams maintain secure access, reliable collaboration, supported endpoints, and recoverable files",
+      offerMatchContext: "professional services collaboration email cloud managed IT support endpoint identity access security backup recovery",
+    },
+  ];
+  const profile = profiles.find(candidate => candidate.pattern.test(normalized));
+  return profile
+    ? { ...profile, operatingSummary }
+    : {
+        discoveryFocus: "the customer and operational workflows described on its website remain reliably supported, securely accessible, and recoverable",
+        offerMatchContext: `${evidence} managed IT support identity access endpoint network security backup recovery`,
+        operatingSummary,
+      };
+}
+
 function matchingSellerOffer(offers: string[], challenge: string, requireSecurity = false): string | undefined {
   const eligible = requireSecurity ? offers.filter(offer => SECURITY_OFFER_PATTERN.test(offer)) : offers;
   if (!eligible.length) return undefined;
@@ -251,6 +316,7 @@ export function buildOpportunityIntelligence(
   const seller = sellerIntelligenceProfile(client);
   const match = industryMatch(lead.industry, vertical);
   const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
+  const sellerRecommendations = [...seller.services, ...seller.products, ...seller.capabilities, ...seller.valuePropositions];
   const sellerCapability = sellerOffers[0];
   const sellerOutcome = seller.outcomes[0] || seller.valuePropositions[0];
   const decisionMakerKnown = Boolean(
@@ -582,6 +648,9 @@ export function buildOpportunityIntelligence(
         && signal.signalType === "company_operating_profile",
       )
     : undefined;
+  const companyOperatingRecommendation = companyOperatingSignal
+    ? companyOperatingOutreach(companyOperatingSignal)
+    : undefined;
   const fleetOperationalChallenge = fleetOperationalSignal
     ? signalChallenge(fleetOperationalSignal, vertical)
     : undefined;
@@ -650,13 +719,16 @@ export function buildOpportunityIntelligence(
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
     : fleetOperationalChallenge
-      || (companyOperatingSignal ? signalChallenge(companyOperatingSignal, vertical) : undefined);
+      || companyOperatingRecommendation?.offerMatchContext;
   const outreachOffer = seller.ready && outreachChallenge
     ? matchingSellerOffer(
-        sellerOffers,
+        strongestBuyingSignal || fleetOperationalSignal ? sellerOffers : sellerRecommendations,
         outreachChallenge,
         strongestBuyingSignal?.signalType === "security_incident",
-      ) || matchingSellerOffer(sellerOffers, outreachChallenge)
+      ) || matchingSellerOffer(
+        strongestBuyingSignal || fleetOperationalSignal ? sellerOffers : sellerRecommendations,
+        outreachChallenge,
+      )
     : undefined;
   const outreachOutcome = sellerOutcome || match.outcome;
   const outreachCta = seller.ctas[0] || "recommend a brief, focused assessment of the relevant environment";
@@ -680,8 +752,8 @@ export function buildOpportunityIntelligence(
           : `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : fleetOperationalSignal
           ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${seller.name}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-          : companyOperatingSignal
-            ? `Ask ${lead.companyName} which parts of its documented operation depend most on reliable identity access, endpoints, systems, security, recovery, and user support. If they identify a gap, connect ${seller.name}'s ${outreachOffer} to the specific workflow and impact they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          : companyOperatingSignal && companyOperatingRecommendation
+            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. If discovery confirms a relevant challenge, recommend ${seller.name}'s ${outreachOffer} for the specific workflow and impact they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
             : "";
 
   return {
