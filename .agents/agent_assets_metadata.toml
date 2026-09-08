@@ -87,3 +87,17 @@ mtime_ms = 1788817525103
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/bdbca617-1323-4f0f-808a-5d1efe8ee33d/7ece1737-3c6a-4074-a31f-98433283b04c"
 storage_version_token = "1788817532101082"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "Gts5zvXlMvB22frZUrLym"
+uri = "file://screenshots/it-intelligence-signal-comparison.jpg"
+type = "image"
+title = "Corrected IT Prospect Cards — Side-by-Side"
+description = "Comparison of an IT prospect with verified company-specific evidence and one with no individualized signal."
+logical_id = "a90ffaf3-5a1c-4e5f-a7ee-052984229eec"
+content_hash = "sha256:0b6ab84c3d54d4b6e17bac1e953d4dd0ad012249f28f5bf825dbb12ecfddb439"
+size = 84235
+mtime_ms = 1788836817475
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/a90ffaf3-5a1c-4e5f-a7ee-052984229eec/28c1fbfa-2148-4770-bd6f-d955b2acb5da"
+storage_version_token = "1788836824210379"
+content_type = "image/jpeg"
