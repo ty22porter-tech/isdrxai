@@ -324,13 +324,12 @@ export function buildOpportunityIntelligence(
   const sellerName = currentSellerName(seller.name);
   const match = industryMatch(lead.industry, vertical);
   const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
-  const approvedIcpSolutions = vertical === "it_services" ? sellerPriorityServices(client) : [];
+  const approvedIcpSolutions = ["it_services", "fleet_wraps"].includes(vertical)
+    ? sellerPriorityServices(client)
+    : [];
   const sellerRecommendations = uniqueOffers([
     ...approvedIcpSolutions,
-    ...seller.services,
-    ...seller.products,
-    ...seller.capabilities,
-    ...seller.valuePropositions,
+    ...sellerOffers,
   ]);
   const recommendationReady = Boolean(sellerName && sellerRecommendations.length);
   const sellerCapability = sellerOffers[0];
@@ -674,7 +673,7 @@ export function buildOpportunityIntelligence(
     ? fleetOperationLabel(fleetOperationalSignal)
     : undefined;
   const fleetOperationalOffer = seller.ready && fleetOperationalChallenge
-    ? matchingSellerOffer(sellerOffers, `${fleetOperationalChallenge}. vehicle branding graphics lettering wraps`)
+    ? matchingSellerOffer(sellerRecommendations, `${fleetOperationalChallenge}. vehicle branding graphics lettering wraps`)
     : undefined;
   if (seller.ready) {
     for (const signal of buyingEvidence.slice(0, 2)) {
@@ -685,7 +684,7 @@ export function buildOpportunityIntelligence(
       const contextualChallenge = applicableCompliance
         ? `${challenge}. Because this verified company signal concerns security or compliance, discovery can also test readiness for ${applicableCompliance.frameworks}`
         : challenge;
-      const offer = matchingSellerOffer(sellerOffers, contextualChallenge);
+      const offer = matchingSellerOffer(sellerRecommendations, contextualChallenge);
       if (!offer) continue;
       const outcome = sellerOutcome || match.outcome;
       potentialNeeds.push(
@@ -694,12 +693,12 @@ export function buildOpportunityIntelligence(
     }
     if (fleetOperationalSignal && fleetOperationalOffer && buyingEvidence.length === 0) {
       potentialNeeds.push(
-        `${lead.companyName}'s ${fleetOperationalLabel} creates a question about whether supporting vehicles are clearly and consistently identified. ${sellerName}'s ${fleetOperationalOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"} if discovery confirms a vehicle-branding gap.`,
+        `${lead.companyName}'s ${fleetOperationalLabel} raises whether supporting vehicles are clearly and consistently identified. ${sellerName}'s ${fleetOperationalOffer} could support ${sellerOutcome || "a more consistent and recognizable field presence"}.`,
       );
     }
     if (companyOperatingSignal && buyingEvidence.length === 0) {
       const challenge = signalChallenge(companyOperatingSignal, vertical);
-      const offer = matchingSellerOffer(sellerOffers, challenge);
+      const offer = matchingSellerOffer(sellerRecommendations, challenge);
       if (offer) {
         potentialNeeds.push(
           `${lead.companyName}'s verified operating profile creates a discovery question about ${challenge}. ${sellerName}'s ${offer} may support ${sellerOutcome || "reliable and secure operations"} if the company confirms a relevant gap.`,
@@ -720,7 +719,7 @@ export function buildOpportunityIntelligence(
     ? signalImplication || signalChallenge(strongestBuyingSignal, vertical)
     : undefined;
   const whyTargetOffer = strongestBuyingSignal
-    ? matchingSellerOffer(sellerOffers, whyTargetChallenge || "")
+    ? matchingSellerOffer(sellerRecommendations, whyTargetChallenge || "")
     : undefined;
   const sellerFit = seller.ready && whyTargetOffer
     ? `${sellerName}'s ${whyTargetOffer} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
@@ -738,11 +737,11 @@ export function buildOpportunityIntelligence(
       || companyOperatingRecommendation?.offerMatchContext;
   const outreachOffer = (companyOperatingRecommendation ? recommendationReady : seller.ready) && outreachChallenge
     ? matchingSellerOffer(
-        strongestBuyingSignal || fleetOperationalSignal ? sellerOffers : sellerRecommendations,
+        sellerRecommendations,
         outreachChallenge,
         strongestBuyingSignal?.signalType === "security_incident",
       ) || matchingSellerOffer(
-        strongestBuyingSignal || fleetOperationalSignal ? sellerOffers : sellerRecommendations,
+        sellerRecommendations,
         outreachChallenge,
       )
     : undefined;
@@ -754,7 +753,7 @@ export function buildOpportunityIntelligence(
     && strongestBuyingSignal
     && supportsComplianceContext(strongestBuyingSignal)
     ? matchingSellerOffer(
-        sellerOffers,
+        sellerRecommendations,
         `${compliance.requirement}. ${compliance.challenge}. ${compliance.threats}. ${compliance.controls}`,
         true,
       )
@@ -768,7 +767,7 @@ export function buildOpportunityIntelligence(
           ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing and ask: “${compliance.discoveryQuestion}” If the answer reveals a relevant gap, connect ${sellerName}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${sellerName}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : fleetOperationalSignal
-          ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${sellerName}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          ? `For ${lead.companyName}, reference its ${fleetOperationalLabel} and ask how those customer-facing vehicles are identified today and where consistency becomes difficult. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved Fleet & Vehicle Wraps solution for that documented operation${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : companyOperatingSignal && companyOperatingRecommendation
             ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved IT Services ICP solution for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
             : "";

@@ -18,6 +18,9 @@ describe("Settings Company Intelligence experience", () => {
     expect(settingsSource).toContain("Services you want your AI employee to prioritize");
     expect(settingsSource).toContain("this is your approved ICP solution catalog");
     expect(settingsSource).toContain("prospect's website-backed business challenge");
+    expect(settingsSource).toContain("For Fleet & Vehicle Wraps, this is your approved solution catalog");
+    expect(settingsSource).toContain("prospect's documented business operation or verified company event");
+    expect(settingsSource).toContain("your individual client profile");
     expect(settingsSource).toContain("Reanalyze Website");
     expect(settingsSource).not.toContain("Refresh Company Intelligence");
   });

@@ -811,6 +811,8 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {vertical === "it_services"
                     ? "For IT Services, this is your approved ICP solution catalog. Recommended Outreach may use these solutions when they meaningfully match a prospect's website-backed business challenge, even if the solution is not listed on your website."
+                    : vertical === "fleet_wraps"
+                      ? "For Fleet & Vehicle Wraps, this is your approved solution catalog. Recommended Outreach will match the prospect's documented business operation or verified company event to the most relevant solution for your individual client profile, even if the solution is not listed on your website."
                     : "Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use the services identified from your website."}
                 </p>
               </div>

@@ -122,6 +122,43 @@ describe("opportunity intelligence", () => {
     expect(hvac.whyTarget).not.toBe(homeCare.whyTarget);
   });
 
+  it("matches fleet prospect operations to the individual client's approved solution catalog", () => {
+    const c4Wraps = {
+      ...readySeller,
+      sellerServicePriorities: "fleet lettering, reflective fleet graphics, color-change wraps",
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "C4 Wraps",
+        sellerServices: ["event banners"],
+        sellerCapabilities: ["in-house design"],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "All About Home Care",
+      industry: "Home Health Care",
+    }, "fleet_wraps", c4Wraps, [{
+      signalType: "fleet_mobile_operations",
+      signalTitle: "Official mobile-service evidence",
+      signalDescription: "All About Home Care states that its caregivers provide in-home care throughout North Texas.",
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Official company website",
+      sourceURL: "https://allabouthomecare.example/services",
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "Our caregivers provide in-home care throughout North Texas.",
+      points: 0,
+    }] as any);
+
+    expect(intelligence.potentialNeeds.join(" ")).toContain("C4 Wraps");
+    expect(intelligence.potentialNeeds.join(" ")).toContain("fleet lettering");
+    expect(intelligence.recommendedOutreach).toContain("C4 Wraps");
+    expect(intelligence.recommendedOutreach).toContain("fleet lettering");
+    expect(intelligence.recommendedOutreach).toContain("documented in-home service model");
+    expect(intelligence.recommendedOutreach).not.toContain("event banners");
+  });
+
   it("uses Google Places facts for validation and scoring but never as Why Target copy", () => {
     const medicalLead = {
       ...lead,
@@ -204,6 +241,7 @@ describe("opportunity intelligence", () => {
     }] as any;
     const seller = {
       ...readySeller,
+      sellerServicePriorities: "",
       sellerIntelligenceProfile: {
         ...readySeller.sellerIntelligenceProfile,
         sellerCompanyName: "SecurePath IT",
