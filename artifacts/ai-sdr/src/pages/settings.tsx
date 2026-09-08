@@ -809,7 +809,9 @@ export default function SettingsPage() {
                   data-testid="input-priority-services"
                 />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use the services identified from your website.
+                  {vertical === "it_services"
+                    ? "For IT Services, this is your approved ICP solution catalog. Recommended Outreach may use these solutions when they meaningfully match a prospect's website-backed business challenge, even if the solution is not listed on your website."
+                    : "Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use the services identified from your website."}
                 </p>
               </div>
             </div>

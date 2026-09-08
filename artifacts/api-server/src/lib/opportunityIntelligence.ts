@@ -7,6 +7,7 @@ import type { usersTable } from "@workspace/db";
 import {
   industryMatch,
   sellerIntelligenceProfile,
+  sellerPriorityServices,
 } from "./prospectMatching";
 import { researchOfficialWebsite } from "./officialWebsiteResearch";
 import { researchPublicBreachRecords } from "./publicBreachResearch";
@@ -38,6 +39,12 @@ const scoreLabel = (score: number): OpportunityIntelligence["label"] =>
   score >= 80 ? "High Priority" : score >= 60 ? "Strong Fit" : score >= 30 ? "Possible Fit" : "Low Priority";
 
 const bounded = (value: number, max: number) => Math.max(0, Math.min(max, Math.round(value)));
+
+const currentSellerName = (name?: string) =>
+  name && /^cloud\s*scale\s*365$/i.test(name.trim()) ? "Forte' Technologies" : name;
+
+const uniqueOffers = (offers: string[]) =>
+  [...new Set(offers.map(offer => offer.trim()).filter(Boolean))];
 
 const safeSourceUrl = (website?: string | null) => {
   if (!website) return undefined;
@@ -314,9 +321,18 @@ export function buildOpportunityIntelligence(
 ): OpportunityIntelligence {
   const generatedAt = new Date().toISOString();
   const seller = sellerIntelligenceProfile(client);
+  const sellerName = currentSellerName(seller.name);
   const match = industryMatch(lead.industry, vertical);
   const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
-  const sellerRecommendations = [...seller.services, ...seller.products, ...seller.capabilities, ...seller.valuePropositions];
+  const approvedIcpSolutions = vertical === "it_services" ? sellerPriorityServices(client) : [];
+  const sellerRecommendations = uniqueOffers([
+    ...approvedIcpSolutions,
+    ...seller.services,
+    ...seller.products,
+    ...seller.capabilities,
+    ...seller.valuePropositions,
+  ]);
+  const recommendationReady = Boolean(sellerName && sellerRecommendations.length);
   const sellerCapability = sellerOffers[0];
   const sellerOutcome = seller.outcomes[0] || seller.valuePropositions[0];
   const decisionMakerKnown = Boolean(
@@ -673,12 +689,12 @@ export function buildOpportunityIntelligence(
       if (!offer) continue;
       const outcome = sellerOutcome || match.outcome;
       potentialNeeds.push(
-        `${signal.signalTitle}: ${contextualChallenge}. ${seller.name}'s ${offer} may support ${outcome}.`,
+        `${signal.signalTitle}: ${contextualChallenge}. ${sellerName}'s ${offer} may support ${outcome}.`,
       );
     }
     if (fleetOperationalSignal && fleetOperationalOffer && buyingEvidence.length === 0) {
       potentialNeeds.push(
-        `${lead.companyName}'s ${fleetOperationalLabel} creates a question about whether supporting vehicles are clearly and consistently identified. ${seller.name}'s ${fleetOperationalOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"} if discovery confirms a vehicle-branding gap.`,
+        `${lead.companyName}'s ${fleetOperationalLabel} creates a question about whether supporting vehicles are clearly and consistently identified. ${sellerName}'s ${fleetOperationalOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"} if discovery confirms a vehicle-branding gap.`,
       );
     }
     if (companyOperatingSignal && buyingEvidence.length === 0) {
@@ -686,7 +702,7 @@ export function buildOpportunityIntelligence(
       const offer = matchingSellerOffer(sellerOffers, challenge);
       if (offer) {
         potentialNeeds.push(
-          `${lead.companyName}'s verified operating profile creates a discovery question about ${challenge}. ${seller.name}'s ${offer} may support ${sellerOutcome || "reliable and secure operations"} if the company confirms a relevant gap.`,
+          `${lead.companyName}'s verified operating profile creates a discovery question about ${challenge}. ${sellerName}'s ${offer} may support ${sellerOutcome || "reliable and secure operations"} if the company confirms a relevant gap.`,
         );
       }
     }
@@ -707,7 +723,7 @@ export function buildOpportunityIntelligence(
     ? matchingSellerOffer(sellerOffers, whyTargetChallenge || "")
     : undefined;
   const sellerFit = seller.ready && whyTargetOffer
-    ? `${seller.name}'s ${whyTargetOffer} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
+    ? `${sellerName}'s ${whyTargetOffer} may help${sellerOutcome ? ` support ${sellerOutcome}` : " address that challenge"} if discovery confirms the need.`
     : "";
   const whyTarget = strongestBuyingSignal
     ? `${strongestBuyingSignal.signalTitle}. This may indicate ${whyTargetChallenge!.charAt(0).toLowerCase()}${whyTargetChallenge!.slice(1)}${/[.!?]$/.test(whyTargetChallenge!) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
@@ -720,7 +736,7 @@ export function buildOpportunityIntelligence(
     ? signalChallenge(strongestBuyingSignal, vertical)
     : fleetOperationalChallenge
       || companyOperatingRecommendation?.offerMatchContext;
-  const outreachOffer = seller.ready && outreachChallenge
+  const outreachOffer = (companyOperatingRecommendation ? recommendationReady : seller.ready) && outreachChallenge
     ? matchingSellerOffer(
         strongestBuyingSignal || fleetOperationalSignal ? sellerOffers : sellerRecommendations,
         outreachChallenge,
@@ -743,18 +759,18 @@ export function buildOpportunityIntelligence(
         true,
       )
     : undefined;
-  const recommendedOutreach = !seller.ready || !outreachOffer
+  const recommendedOutreach = !(companyOperatingRecommendation ? recommendationReady : seller.ready) || !outreachOffer
     ? ""
     : strongestBuyingSignal?.signalType === "security_incident"
-      ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${seller.name}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+      ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${sellerName}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
       : strongestBuyingSignal
         ? contextualSecurityOffer && compliance
-          ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing and ask: “${compliance.discoveryQuestion}” If the answer reveals a relevant gap, connect ${seller.name}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-          : `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing and ask: “${compliance.discoveryQuestion}” If the answer reveals a relevant gap, connect ${sellerName}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          : `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${sellerName}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : fleetOperationalSignal
-          ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${seller.name}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${sellerName}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : companyOperatingSignal && companyOperatingRecommendation
-            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${seller.name}'s ${outreachOffer} as the relevant website-backed service for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
+            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved IT Services ICP solution for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
             : "";
 
   return {

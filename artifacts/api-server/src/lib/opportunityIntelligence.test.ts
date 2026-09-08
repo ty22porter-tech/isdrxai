@@ -305,10 +305,11 @@ describe("opportunity intelligence", () => {
   it("personalizes operating-profile outreach and selects the relevant website-approved seller offering", () => {
     const seller = {
       ...readySeller,
+      sellerServicePriorities: "cloud collaboration support, backup and disaster recovery",
       sellerIntelligenceProfile: {
         ...readySeller.sellerIntelligenceProfile,
-        sellerCompanyName: "SecurePath IT",
-        sellerServices: ["cloud collaboration support", "network infrastructure management", "backup and disaster recovery"],
+        sellerCompanyName: "CloudScale 365",
+        sellerServices: ["managed IT services"],
         sellerCapabilities: [],
         sellerBusinessOutcomes: ["reliable and secure operations"],
         sellerCTAs: ["Contact Us"],
@@ -350,6 +351,9 @@ describe("opportunity intelligence", () => {
 
     expect(construction.recommendedOutreach).toContain("commercial construction projects and field teams");
     expect(construction.recommendedOutreach).toContain("cloud collaboration support");
+    expect(construction.recommendedOutreach).toContain("Forte' Technologies");
+    expect(construction.recommendedOutreach).toContain("approved IT Services ICP solution");
+    expect(construction.recommendedOutreach).not.toContain("CloudScale 365");
     expect(manufacturer.recommendedOutreach).toContain("production plants and warehouses");
     expect(manufacturer.recommendedOutreach).toContain("backup and disaster recovery");
     expect(construction.recommendedOutreach).not.toBe(manufacturer.recommendedOutreach);

@@ -16,6 +16,8 @@ describe("Settings Company Intelligence experience", () => {
     expect(settingsSource).toContain("Your AI employee already learns your company from your website. Add information below only if you want to give it additional guidance.");
     expect(settingsSource).toContain("Anything you want your AI employee to know?");
     expect(settingsSource).toContain("Services you want your AI employee to prioritize");
+    expect(settingsSource).toContain("this is your approved ICP solution catalog");
+    expect(settingsSource).toContain("prospect's website-backed business challenge");
     expect(settingsSource).toContain("Reanalyze Website");
     expect(settingsSource).not.toContain("Refresh Company Intelligence");
   });
