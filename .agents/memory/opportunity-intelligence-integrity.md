@@ -33,11 +33,11 @@ For fleet-wrap prospects, Why Target, Potential Needs, and Recommended Outreach 
 
 **How to apply:** Why Target cites the company signal, Potential Needs interprets a distinct conditional challenge tied to an approved seller offering, and Recommended Outreach asks a separate evidence-led discovery question. If no company-specific signal exists, do not fabricate generic fleet narratives.
 
-**Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, explain the evidence-based timing or verified demographic fit, and end with an approved seller CTA. Never replace this with a generic no-signal warning.
+**Recommended Outreach** must name the prospect, choose the most relevant approved seller offer, and explain why that service fits the prospect’s documented workflow. Never replace this with a generic no-signal warning or a repeated conditional closing.
 
 **Why:** Users need an actionable course of action, while generic caution text neither differentiates the prospect nor identifies the seller's best relevant offer.
 
-**How to apply:** Use a verified company event as the reason for timing and match offer relevance semantically rather than taking the first configured service. When only a company operating profile is available, personalize the discovery question to that documented operation and select the best-matching service or product from ready, website-backed Seller Intelligence. Keep enrichment-provider names internal; display neutral language such as “Company operating profile.” Company size and industry/compliance context can inform scoring or interpretation, but cannot create outreach copy without an individualized verified signal.
+**How to apply:** Use a verified company event as the reason for timing and match offer relevance semantically rather than taking the first configured service. When only a company operating profile is available, personalize the discovery question to that documented operation and directly position the best-matching service or product from ready, website-backed Seller Intelligence. Do not append “If discovery confirms…” boilerplate, and suppress generic CTAs such as “Contact Us.” Keep enrichment-provider names internal; display neutral language such as “Company operating profile.” Company size and industry/compliance context can inform scoring or interpretation, but cannot create outreach copy without an individualized verified signal.
 
 An evidence-based Opportunity Score of 30 or higher is fit for the user to call and should be visibly identified as **Fit to Call**. This designation means the prospect clears the user’s calling threshold; it still does not claim purchase intent or a verified buying event.
 

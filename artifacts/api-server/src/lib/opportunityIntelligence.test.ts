@@ -299,7 +299,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds.join(" ")).toContain("Perfect General Contractors");
     expect(intelligence.potentialNeeds.join(" ")).toContain("identity, endpoint, and network support");
     expect(intelligence.recommendedOutreach).toContain("Perfect General Contractors");
-    expect(intelligence.recommendedOutreach).toContain("schedule a technology operations review");
+    expect(intelligence.recommendedOutreach).toContain("identity, endpoint, and network support");
   });
 
   it("personalizes operating-profile outreach and selects the relevant website-approved seller offering", () => {
@@ -311,7 +311,7 @@ describe("opportunity intelligence", () => {
         sellerServices: ["cloud collaboration support", "network infrastructure management", "backup and disaster recovery"],
         sellerCapabilities: [],
         sellerBusinessOutcomes: ["reliable and secure operations"],
-        sellerCTAs: ["schedule a technology operations review"],
+        sellerCTAs: ["Contact Us"],
       },
     } as any;
     const signal = (description: string, sourceURL: string) => ({
@@ -353,6 +353,8 @@ describe("opportunity intelligence", () => {
     expect(manufacturer.recommendedOutreach).toContain("production plants and warehouses");
     expect(manufacturer.recommendedOutreach).toContain("backup and disaster recovery");
     expect(construction.recommendedOutreach).not.toBe(manufacturer.recommendedOutreach);
+    expect(construction.recommendedOutreach).not.toMatch(/if discovery confirms a relevant challenge/i);
+    expect(construction.recommendedOutreach).not.toMatch(/contact us/i);
   });
 
   it("does not recommend an unrelated seller offer when prospect evidence has no relevant match", () => {

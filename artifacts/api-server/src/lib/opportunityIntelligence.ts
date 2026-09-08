@@ -731,7 +731,8 @@ export function buildOpportunityIntelligence(
       )
     : undefined;
   const outreachOutcome = sellerOutcome || match.outcome;
-  const outreachCta = seller.ctas[0] || "recommend a brief, focused assessment of the relevant environment";
+  const outreachCta = seller.ctas.find(cta => !/^\s*contact us[.!]?\s*$/i.test(cta))
+    || "recommend a brief, focused assessment of the relevant environment";
   const contextualSecurityOffer = seller.ready
     && compliance
     && strongestBuyingSignal
@@ -753,7 +754,7 @@ export function buildOpportunityIntelligence(
         : fleetOperationalSignal
           ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${seller.name}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : companyOperatingSignal && companyOperatingRecommendation
-            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. If discovery confirms a relevant challenge, recommend ${seller.name}'s ${outreachOffer} for the specific workflow and impact they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${seller.name}'s ${outreachOffer} as the relevant website-backed service for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
             : "";
 
   return {
