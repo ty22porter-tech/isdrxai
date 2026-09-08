@@ -28,6 +28,7 @@ export interface ApolloEnrichment {
   state: string | null;
   website: string | null;
   employeeCount: number | null;
+  organizationDescription: string | null;
 }
 
 export type ApolloResult =
@@ -173,7 +174,7 @@ export function isPlausibleCompanyMatch(rawPerson: any, target: {
   return reject("no domain or name evidence linking person to company");
 }
 
-function extractPersonFromApolloData(p: any): ApolloEnrichment {
+export function extractPersonFromApolloData(p: any): ApolloEnrichment {
   const org = p.organization ?? {};
 
   // Build full name from whichever fields Apollo returns.
@@ -194,6 +195,11 @@ function extractPersonFromApolloData(p: any): ApolloEnrichment {
     org.sanitized_phone ||
     org.phone ||
     null;
+  const organizationDescription = [org.short_description, org.seo_description, org.description]
+    .find((value) => typeof value === "string" && value.trim().length >= 30)
+    ?.replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500) ?? null;
 
   return {
     contactName: fullName,
@@ -205,6 +211,7 @@ function extractPersonFromApolloData(p: any): ApolloEnrichment {
     state: p.state ?? org.state ?? null,
     website: org.website_url ?? null,
     employeeCount: typeof org.estimated_num_employees === "number" ? org.estimated_num_employees : null,
+    organizationDescription,
   };
 }
 

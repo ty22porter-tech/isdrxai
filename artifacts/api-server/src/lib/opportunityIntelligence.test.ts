@@ -253,6 +253,44 @@ describe("opportunity intelligence", () => {
     expect(mobile?.supportingEvidence).toContain("provide in-home care throughout North Texas");
   });
 
+  it("uses official operating evidence for IT discovery without scoring it as a buying signal", () => {
+    const signals = extractOfficialResearchSignals("Perfect General Contractors", [{
+      url: new URL("https://perfectgc.example/services"),
+      html: "<html><body><p>Our company provides commercial construction management and coordinates project teams across active job sites in North Texas.</p></body></html>",
+    }], "2026-09-08T12:00:00.000Z");
+    const seller = {
+      ...readySeller,
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "SecurePath IT",
+        sellerServices: ["managed IT services"],
+        sellerCapabilities: ["identity, endpoint, and network support"],
+        sellerBusinessOutcomes: ["reliable and secure operations"],
+        sellerCTAs: ["schedule a technology operations review"],
+      },
+    } as any;
+    const intelligence = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "Perfect General Contractors",
+      industry: "Construction",
+    }, "it_services", seller, signals);
+
+    expect(signals).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        signalType: "company_operating_profile",
+        signalClassification: "verified",
+        points: 0,
+      }),
+    ]));
+    expect(intelligence.breakdown.find(item => item.key === "verified_buying_signals")?.points).toBe(0);
+    expect(intelligence.whyTarget).toContain("commercial construction management");
+    expect(intelligence.whyTarget).toMatch(/does not prove a current IT problem or purchase intent/i);
+    expect(intelligence.potentialNeeds.join(" ")).toContain("Perfect General Contractors");
+    expect(intelligence.potentialNeeds.join(" ")).toContain("identity, endpoint, and network support");
+    expect(intelligence.recommendedOutreach).toContain("Perfect General Contractors");
+    expect(intelligence.recommendedOutreach).toContain("schedule a technology operations review");
+  });
+
   it("does not recommend an unrelated seller offer when prospect evidence has no relevant match", () => {
     const intelligence = buildOpportunityIntelligence(lead, "it_services", readySeller);
     expect(intelligence.recommendedOutreach).not.toContain("No strong company-specific buying signal has been verified");

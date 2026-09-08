@@ -167,6 +167,31 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.queryByTestId("section-opportunity-intelligence-compact")).not.toBeInTheDocument();
   });
 
+  it("shows non-scoring company operating evidence as the compact verified signal", () => {
+    render(
+      <OpportunityIntelligenceView
+        compact
+        intelligence={{
+          ...intelligence([
+            signal({
+              signalType: "company_operating_profile",
+              signalTitle: "Apollo company operating evidence",
+              signalDescription: "Perfect General Contractors provides commercial construction management across North Texas.",
+              signalClassification: "verified",
+              points: 0,
+            }),
+          ]),
+          whyTarget: "Official company operating evidence supports discovery.",
+          potentialNeeds: ["Ask how technology supports its documented project operations."],
+          recommendedOutreach: "Ask which project workflows depend on reliable access and support.",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Verified signal:")).toBeInTheDocument();
+    expect(screen.getByText(/commercial construction management across North Texas/)).toBeInTheDocument();
+  });
+
   it("separates company verification from verified buying signals", () => {
     render(
       <OpportunityIntelligenceView

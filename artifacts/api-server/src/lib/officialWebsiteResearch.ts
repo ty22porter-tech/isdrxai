@@ -322,6 +322,40 @@ export function extractOfficialResearchSignals(companyName: string, pages: Array
       points: 0,
     });
   }
+  const operatingProfilePattern =
+    /\b(?:we|our company|our team|the company)\b.{0,80}\b(?:provide|provides|offer|offers|specialize|specializes|serve|serves|deliver|delivers|build|builds|construct|constructs|manage|manages|support|supports)\b|\b(?:providing|offering|specializing in|serving|delivering|building|constructing|managing)\b/i;
+  const boilerplatePattern =
+    /\b(?:cookie|privacy policy|terms of use|all rights reserved|subscribe|newsletter|javascript|two short sentences|lorem ipsum)\b/i;
+  const operatingProfile = pages
+    .flatMap(page => stripHtml(page.html)
+      .split(/(?<=[.!?])\s+/)
+      .map(sentence => ({ page, sentence: normalizeText(sentence) })))
+    .filter(({ sentence }) =>
+      sentence.length >= 45
+      && sentence.length <= 420
+      && operatingProfilePattern.test(sentence)
+      && !boilerplatePattern.test(sentence),
+    )
+    .sort((left, right) => {
+      const pathScore = (value: URL) => /services?|solutions?|what-we-do|about/i.test(value.pathname) ? 1 : 0;
+      return pathScore(right.page.url) - pathScore(left.page.url) || left.sentence.length - right.sentence.length;
+    })[0];
+  if (operatingProfile) {
+    signals.push({
+      signalType: "company_operating_profile",
+      signalTitle: "Official company operating evidence",
+      signalDescription: operatingProfile.sentence,
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Official company website",
+      sourceURL: operatingProfile.page.url.toString(),
+      dateDiscovered: checkedAt,
+      dateVerified: checkedAt,
+      supportingEvidence: operatingProfile.sentence,
+      points: 0,
+    });
+  }
   for (const page of pages) {
     const text = stripHtml(page.html);
     const vehicle = text.match(/(?:company[- ]provided vehicle|company vehicle (?:is )?provided|take-home vehicle|company (?:van|truck) provided)/i);

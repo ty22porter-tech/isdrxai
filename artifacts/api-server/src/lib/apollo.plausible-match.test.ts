@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPlausibleCompanyMatch } from "./apollo";
+import { extractPersonFromApolloData, isPlausibleCompanyMatch } from "./apollo";
 
 const target = { companyName: "Mockingbird Food Group", domain: null };
 
@@ -49,5 +49,20 @@ describe("isPlausibleCompanyMatch", () => {
   it("accepts punctuation/concatenation name variants", () => {
     const p = { organization: { name: "McDonalds Corporation" } };
     expect(isPlausibleCompanyMatch(p, { companyName: "McDonald's", domain: null })).toBe(true);
+  });
+
+  it("preserves Apollo organization descriptions for company-specific intelligence", () => {
+    const person = extractPersonFromApolloData({
+      name: "Arjun Kooranotha",
+      organization: {
+        name: "Perfect General Contractors",
+        website_url: "https://perfectgc.net",
+        short_description: "Perfect General Contractors provides commercial construction management for clients across North Texas.",
+        estimated_num_employees: 4,
+      },
+    });
+
+    expect(person.organizationDescription).toContain("commercial construction management");
+    expect(person.employeeCount).toBe(4);
   });
 });

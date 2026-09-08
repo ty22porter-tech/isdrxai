@@ -33,6 +33,7 @@ const apolloPerson = (overrides: Partial<ApolloEnrichment> = {}): ApolloEnrichme
   state: null,
   website: null,
   employeeCount: null,
+  organizationDescription: null,
   ...overrides,
 });
 

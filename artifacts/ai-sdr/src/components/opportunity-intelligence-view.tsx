@@ -56,6 +56,7 @@ const COMPANY_INFORMATION_TYPES = new Set([
   "business_category",
   "company_operational",
   "operational_status",
+  "company_operating_profile",
 ]);
 
 /** Keeps legacy listing records out of the buying-signal group. */
@@ -285,7 +286,11 @@ export function OpportunityIntelligenceView({
         .map(opportunity => /[.!?]$/.test(opportunity.trim()) ? opportunity.trim() : `${opportunity.trim()}.`)
         .join(" "),
     );
-    const strongestSignal = verifiedBuyingSignals[0];
+    const strongestSignal = verifiedBuyingSignals[0]
+      || signals.find(signal =>
+        signal.signalClassification === "verified"
+        && signal.signalType === "company_operating_profile",
+      );
     const verifiedSignal = strongestSignal
       ? compactPositiveText(
           [strongestSignal.signalTitle, strongestSignal.signalDescription].filter(Boolean).join(": "),

@@ -572,7 +572,23 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         researchOfficialWebsite(intelligenceLead),
         researchPublicBreachRecords(intelligenceLead),
       ]);
-      const researchedSignals = [...officialSignals, ...publicBreachSignals];
+      const apolloCompanySignal = p?.organizationDescription && p.website
+        ? [{
+            signalType: "company_operating_profile",
+            signalTitle: "Apollo company operating evidence",
+            signalDescription: p.organizationDescription,
+            signalClassification: "verified" as const,
+            confidenceLevel: "medium" as const,
+            freshness: "unknown" as const,
+            sourceName: "Apollo company enrichment",
+            sourceURL: p.website,
+            dateDiscovered: new Date().toISOString(),
+            dateVerified: new Date().toISOString(),
+            supportingEvidence: p.organizationDescription,
+            points: 0,
+          }]
+        : [];
+      const researchedSignals = [...officialSignals, ...publicBreachSignals, ...apolloCompanySignal];
       opportunityIntelligence = buildOpportunityIntelligence(intelligenceLead, vertical, client, researchedSignals);
     }
     results.push({

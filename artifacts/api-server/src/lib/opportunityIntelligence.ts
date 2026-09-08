@@ -155,6 +155,11 @@ function signalChallenge(signal: OpportunitySignal, vertical: string): string {
   if (signal.signalType === "fleet_mobile_operations") {
     return "evaluating whether vehicles used for the documented mobile or customer-site operation are clearly and consistently identified";
   }
+  if (signal.signalType === "company_operating_profile") {
+    return vertical === "it_services"
+      ? "understanding how identity access, endpoints, systems, security, recovery, and user support enable the operation documented by the company"
+      : "understanding the operational requirements created by the company activity documented in the source";
+  }
   return signal.potentialBusinessImpact
     || signal.signalDescription
     || "addressing the operational change indicated by this verified signal";
@@ -571,6 +576,12 @@ export function buildOpportunityIntelligence(
         && signal.signalType === "fleet_mobile_operations",
       )
     : undefined;
+  const companyOperatingSignal = vertical === "it_services"
+    ? signals.find(signal =>
+        signal.signalClassification === "verified"
+        && signal.signalType === "company_operating_profile",
+      )
+    : undefined;
   const fleetOperationalChallenge = fleetOperationalSignal
     ? signalChallenge(fleetOperationalSignal, vertical)
     : undefined;
@@ -601,6 +612,15 @@ export function buildOpportunityIntelligence(
         `${lead.companyName}'s ${fleetOperationalLabel} creates a question about whether supporting vehicles are clearly and consistently identified. ${seller.name}'s ${fleetOperationalOffer} may support ${sellerOutcome || "a more consistent and recognizable field presence"} if discovery confirms a vehicle-branding gap.`,
       );
     }
+    if (companyOperatingSignal && buyingEvidence.length === 0) {
+      const challenge = signalChallenge(companyOperatingSignal, vertical);
+      const offer = matchingSellerOffer(sellerOffers, challenge);
+      if (offer) {
+        potentialNeeds.push(
+          `${lead.companyName}'s verified operating profile creates a discovery question about ${challenge}. ${seller.name}'s ${offer} may support ${sellerOutcome || "reliable and secure operations"} if the company confirms a relevant gap.`,
+        );
+      }
+    }
   }
   potentialNeeds.splice(3);
   const strongestBuyingSignal = buyingEvidence[0];
@@ -624,10 +644,13 @@ export function buildOpportunityIntelligence(
     ? `${strongestBuyingSignal.signalTitle}. This may indicate ${whyTargetChallenge!.charAt(0).toLowerCase()}${whyTargetChallenge!.slice(1)}${/[.!?]$/.test(whyTargetChallenge!) ? "" : "."}${sellerFit ? ` ${sellerFit}` : ""}`
     : fleetOperationalSignal
       ? `${fleetOperationalSignal.signalTitle}: ${fleetOperationalSignal.signalDescription} This verifies a mobile or customer-site operating model, but not fleet size or a current graphics need.`
-      : "";
+      : companyOperatingSignal
+        ? `${companyOperatingSignal.signalTitle}: ${companyOperatingSignal.signalDescription} This provides company-specific discovery context, but does not prove a current IT problem or purchase intent.`
+        : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
-    : fleetOperationalChallenge;
+    : fleetOperationalChallenge
+      || (companyOperatingSignal ? signalChallenge(companyOperatingSignal, vertical) : undefined);
   const outreachOffer = seller.ready && outreachChallenge
     ? matchingSellerOffer(
         sellerOffers,
@@ -657,7 +680,9 @@ export function buildOpportunityIntelligence(
           : `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : fleetOperationalSignal
           ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${seller.name}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-          : "";
+          : companyOperatingSignal
+            ? `Ask ${lead.companyName} which parts of its documented operation depend most on reliable identity access, endpoints, systems, security, recovery, and user support. If they identify a gap, connect ${seller.name}'s ${outreachOffer} to the specific workflow and impact they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+            : "";
 
   return {
     version: 3,
