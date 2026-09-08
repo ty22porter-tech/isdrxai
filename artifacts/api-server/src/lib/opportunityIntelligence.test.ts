@@ -210,7 +210,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.potentialNeeds[0]).toContain("multi-location network integration");
   });
 
-  it("turns applicable healthcare compliance and cyber risk into a seller-relevant discovery hypothesis", () => {
+  it("does not turn industry compliance into prospect intelligence without company-specific evidence", () => {
     const medicalLead = { ...lead, companyName: "CornerStone Medical", industry: "Healthcare" };
     const securitySeller = {
       ...readySeller,
@@ -226,13 +226,8 @@ describe("opportunity intelligence", () => {
     const relevant = buildOpportunityIntelligence(medicalLead, "it_services", securitySeller);
     const unrelated = buildOpportunityIntelligence(medicalLead, "it_services", readySeller);
 
-    expect(relevant.potentialNeeds).toHaveLength(1);
-    expect(relevant.potentialNeeds[0]).toContain("CornerStone Medical");
-    expect(relevant.potentialNeeds[0]).toMatch(/HIPAA and HITECH/i);
-    expect(relevant.potentialNeeds[0]).toMatch(/ransomware, account takeover, and third-party access failures/i);
-    expect(relevant.potentialNeeds[0]).toContain("HIPAA compliance support");
-    expect(relevant.recommendedOutreach).toContain("How are you testing access controls and recovery readiness");
-    expect(relevant.recommendedOutreach).not.toContain("CornerStone Medical's sourced profile");
+    expect(relevant.potentialNeeds).toEqual([]);
+    expect(relevant.recommendedOutreach).toBe("");
     expect(unrelated.potentialNeeds).toEqual([]);
   });
 
@@ -265,7 +260,7 @@ describe("opportunity intelligence", () => {
     expect(intelligence.breakdown.find(item => item.key === "seller_prospect_match")?.points).toBe(0);
   });
 
-  it("uses verified company demographics to tailor IT outreach", () => {
+  it("keeps company size in scoring evidence without manufacturing IT outreach", () => {
     const seller = {
       ...readySeller,
       sellerIntelligenceProfile: {
@@ -289,14 +284,12 @@ describe("opportunity intelligence", () => {
         signalDescription: expect.stringContaining("84 employees"),
       }),
     ]));
-    expect(intelligence.recommendedOutreach).toContain("SecurePath IT");
-    expect(intelligence.recommendedOutreach).toContain("schedule a technology readiness review");
-    expect(intelligence.recommendedOutreach).toContain("ask how its 84-person team handles");
+    expect(intelligence.recommendedOutreach).toBe("");
     expect(intelligence.potentialNeeds).toEqual([]);
     expect(intelligence.whyTarget).toBe("");
   });
 
-  it("keeps financial compliance and cyber risk in Potential Needs, not Why Target", () => {
+  it("uses financial compliance only as context for a verified company security signal", () => {
     const financialLead = { ...lead, companyName: "Example Financial", industry: "Financial Services" };
     const securitySeller = {
       ...readySeller,
@@ -308,14 +301,26 @@ describe("opportunity intelligence", () => {
         sellerBusinessOutcomes: ["stronger security readiness"],
       },
     } as any;
-    const intelligence = buildOpportunityIntelligence(financialLead, "it_services", securitySeller);
+    const intelligence = buildOpportunityIntelligence(financialLead, "it_services", securitySeller, [{
+      signalType: "security_incident",
+      signalTitle: "Official security incident disclosure",
+      signalDescription: "Example Financial disclosed that it contained unauthorized access to an email account.",
+      signalClassification: "verified",
+      confidenceLevel: "high",
+      freshness: "recent",
+      sourceName: "Official company website",
+      sourceURL: "https://example-financial.example/security-update",
+      sourceDate: new Date().toISOString(),
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: "The company states that it contained unauthorized access and completed its investigation.",
+      points: 0,
+    }] as any);
 
     expect(intelligence.potentialNeeds).toHaveLength(1);
     expect(intelligence.potentialNeeds[0]).toMatch(/GLBA, the FTC Safeguards Rule/i);
-    expect(intelligence.potentialNeeds[0]).toMatch(/credential theft, business email compromise, and ransomware/i);
     expect(intelligence.potentialNeeds[0]).toContain("GLBA readiness support");
-    expect(intelligence.recommendedOutreach).toContain("How confident are you that your current safeguards");
-    expect(intelligence.whyTarget).toBe("");
+    expect(intelligence.recommendedOutreach).toMatch(/submitted public breach record|officially disclosed/i);
+    expect(intelligence.whyTarget).toContain("Official security incident disclosure");
   });
 
   it("turns a dated official breach disclosure into careful seller-specific outreach", () => {

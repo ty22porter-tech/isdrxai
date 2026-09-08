@@ -107,6 +107,18 @@ const IT_COMPLIANCE_BY_INDUSTRY: Array<{
 const SECURITY_OFFER_PATTERN =
   /\b(?:cyber(?:security)?|security|compliance|risk|managed it|information technology|network|backup|disaster recovery|incident|recovery|resilience|identity|access|microsoft 365|cloud|hipaa|hitech|glba|pci|ferpa|cmmc|nist)\b/i;
 
+const COMPANY_SECURITY_EVIDENCE_PATTERN =
+  /\b(?:breach|cyber(?:security)?|security|compliance|ransomware|phishing|incident|risk assessment|audit|hipaa|hitech|glba|pci|ferpa|cmmc|nist|protected health|cardholder|controlled unclassified|government contract|defen[cs]e contract)\b/i;
+
+function supportsComplianceContext(signal: OpportunitySignal): boolean {
+  return COMPANY_SECURITY_EVIDENCE_PATTERN.test([
+    signal.signalTitle,
+    signal.signalDescription,
+    signal.supportingEvidence,
+    signal.potentialBusinessImpact,
+  ].filter(Boolean).join(" "));
+}
+
 function signalChallenge(signal: OpportunitySignal, vertical: string): string {
   if (signal.signalType === "security_incident") {
     return "validating incident remediation, strengthening security controls, improving resilience, and documenting readiness without assuming the disclosed issue remains unresolved";
@@ -553,7 +565,6 @@ export function buildOpportunityIntelligence(
   const compliance = vertical === "it_services"
     ? IT_COMPLIANCE_BY_INDUSTRY.find(item => item.pattern.test(lead.industry))
     : undefined;
-  const demographic = vertical === "it_services" ? employeeDemographic(lead.employeeCount) : undefined;
   const fleetOperationalSignal = vertical === "fleet_wraps"
     ? signals.find(signal =>
         signal.signalClassification === "verified"
@@ -572,24 +583,18 @@ export function buildOpportunityIntelligence(
   if (seller.ready) {
     for (const signal of buyingEvidence.slice(0, 2)) {
       const challenge = signalChallenge(signal, vertical);
-      const offer = matchingSellerOffer(sellerOffers, challenge);
+      const applicableCompliance = compliance && supportsComplianceContext(signal)
+        ? compliance
+        : undefined;
+      const contextualChallenge = applicableCompliance
+        ? `${challenge}. Because this verified company signal concerns security or compliance, discovery can also test readiness for ${applicableCompliance.frameworks}`
+        : challenge;
+      const offer = matchingSellerOffer(sellerOffers, contextualChallenge);
       if (!offer) continue;
       const outcome = sellerOutcome || match.outcome;
       potentialNeeds.push(
-        `${signal.signalTitle}: ${challenge}. ${seller.name}'s ${offer} may support ${outcome}.`,
+        `${signal.signalTitle}: ${contextualChallenge}. ${seller.name}'s ${offer} may support ${outcome}.`,
       );
-    }
-    if (compliance) {
-      const securityOffer = matchingSellerOffer(
-        sellerOffers,
-        `${compliance.requirement}. ${compliance.challenge}. ${compliance.threats}. ${compliance.controls}`,
-        true,
-      );
-      if (securityOffer) {
-        potentialNeeds.push(
-          `For ${lead.companyName}, a useful question is whether current practices align with ${compliance.frameworks} and are prepared for ${compliance.threats}. ${seller.name}'s ${securityOffer} could help review ${compliance.controls}${sellerOutcome ? ` and support ${sellerOutcome}` : ""}.`,
-        );
-      }
     }
     if (fleetOperationalSignal && fleetOperationalOffer && buyingEvidence.length === 0) {
       potentialNeeds.push(
@@ -608,7 +613,7 @@ export function buildOpportunityIntelligence(
     : undefined;
   const whyTargetChallenge = strongestBuyingSignal
     ? signalImplication || signalChallenge(strongestBuyingSignal, vertical)
-    : demographic;
+    : undefined;
   const whyTargetOffer = strongestBuyingSignal
     ? matchingSellerOffer(sellerOffers, whyTargetChallenge || "")
     : undefined;
@@ -622,20 +627,20 @@ export function buildOpportunityIntelligence(
       : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
-    : fleetOperationalChallenge
-      || demographic
-      || compliance?.challenge
-      || match.challenges[0];
-  const outreachOffer = seller.ready
+    : fleetOperationalChallenge;
+  const outreachOffer = seller.ready && outreachChallenge
     ? matchingSellerOffer(
         sellerOffers,
         outreachChallenge,
-        strongestBuyingSignal?.signalType === "security_incident" || Boolean(!strongestBuyingSignal && compliance),
+        strongestBuyingSignal?.signalType === "security_incident",
       ) || matchingSellerOffer(sellerOffers, outreachChallenge)
     : undefined;
   const outreachOutcome = sellerOutcome || match.outcome;
   const outreachCta = seller.ctas[0] || "recommend a brief, focused assessment of the relevant environment";
-  const contextualSecurityOffer = seller.ready && compliance
+  const contextualSecurityOffer = seller.ready
+    && compliance
+    && strongestBuyingSignal
+    && supportsComplianceContext(strongestBuyingSignal)
     ? matchingSellerOffer(
         sellerOffers,
         `${compliance.requirement}. ${compliance.challenge}. ${compliance.threats}. ${compliance.controls}`,
@@ -647,16 +652,12 @@ export function buildOpportunityIntelligence(
     : strongestBuyingSignal?.signalType === "security_incident"
       ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${seller.name}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
       : strongestBuyingSignal
-        ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
+        ? contextualSecurityOffer && compliance
+          ? `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing and ask: “${compliance.discoveryQuestion}” If the answer reveals a relevant gap, connect ${seller.name}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
+          : `For ${lead.companyName}, use the verified ${strongestBuyingSignal.signalTitle.toLowerCase()} as the reason for timing. Recommend ${seller.name}'s ${outreachOffer} as a way to address the possible challenge of ${outreachChallenge}${outreachOutcome ? ` and support ${outreachOutcome}` : ""}; then ${outreachCta}.`
         : fleetOperationalSignal
           ? `Ask ${lead.companyName} how vehicles supporting its ${fleetOperationalLabel} are identified today and where consistency becomes difficult. If they confirm a gap, connect ${seller.name}'s ${outreachOffer} to the vehicles and timing they describe${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-        : compliance && contextualSecurityOffer
-          ? `Open with a practical question: “${compliance.discoveryQuestion}” If the answer reveals gaps, connect ${seller.name}'s ${contextualSecurityOffer} to the priorities they name${outreachOutcome ? ` and the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
-        : demographic
-          ? `For ${lead.companyName}, ask how its ${lead.employeeCount}-person team handles onboarding, support, identity access, endpoint management, and security. Position ${seller.name}'s ${outreachOffer} around the gaps they confirm; then ${outreachCta}.`
-          : vertical === "fleet_wraps"
-            ? ""
-            : `For ${lead.companyName}, lead with ${seller.name}'s ${outreachOffer} around the possible ${lead.industry.toLowerCase()} challenge of ${outreachChallenge}${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`;
+          : "";
 
   return {
     version: 3,

@@ -25,7 +25,7 @@ Google Places listing, address, website, and phone facts are validation/scoring 
 
 **Why:** A generic industry issue is not evidence that a specific prospect has that need, and a seller priority is not proof the seller can solve it.
 
-**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. For IT prospects, applicable industry compliance and plausible cyber threats may form a clearly conditional discovery hypothesis only when tied to a semantically relevant approved seller offering; they never become verified buying signals or scored business needs. Keep it to two natural sentences and do not reuse the same wording in Recommended Outreach.
+**How to apply:** For each positive signal, render a concise company-specific challenge plus the matched approved seller capability/outcome. For IT prospects, industry compliance, plausible cyber threats, and employee count cannot populate Potential Needs or Recommended Outreach by themselves. Compliance context may appear only when a verified company-specific security/compliance signal makes it relevant and it maps to an approved seller offering; it never becomes a buying signal or scored need on its own. Keep the sections concise and do not reuse the same wording in Recommended Outreach.
 
 For fleet-wrap prospects, Why Target, Potential Needs, and Recommended Outreach must come from verified individual-company signals such as official mobile-service evidence, vehicle evidence, relevant hiring, rebrands, acquisitions, or expansion. Never create these narratives from the industry label alone.
 
@@ -37,7 +37,7 @@ For fleet-wrap prospects, Why Target, Potential Needs, and Recommended Outreach 
 
 **Why:** Users need an actionable course of action, while generic caution text neither differentiates the prospect nor identifies the seller's best relevant offer.
 
-**How to apply:** Prefer verified company events, then verified company size, then applicable industry/compliance context. Match offer relevance semantically rather than taking the first configured service.
+**How to apply:** Use a verified company event as the reason for timing and match offer relevance semantically rather than taking the first configured service. Company size and industry/compliance context can inform scoring or interpretation, but cannot create outreach copy without an individualized verified signal.
 
 Public breach records require exact organization-name and state matching. Describe a government portal entry as a submitted public record and never imply the incident is unresolved.
 
