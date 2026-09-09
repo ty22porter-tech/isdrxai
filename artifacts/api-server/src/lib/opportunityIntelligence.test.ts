@@ -340,6 +340,48 @@ describe("opportunity intelligence", () => {
     expect(intelligence.recommendedOutreach).toContain("identity, endpoint, and network support");
   });
 
+  it("turns a janitorial prospect's operating profile into all three research outcomes", () => {
+    const janitorialSeller = {
+      ...readySeller,
+      sellerServicePriorities: "",
+      sellerIntelligenceProfile: {
+        ...readySeller.sellerIntelligenceProfile,
+        sellerCompanyName: "North Texas Facility Care",
+        sellerServices: ["recurring commercial cleaning"],
+        sellerCapabilities: ["high-touch disinfecting", "office and restroom cleaning"],
+        sellerBusinessOutcomes: ["a consistently clean and presentable workplace"],
+        sellerCTAs: ["schedule a facility walkthrough"],
+      },
+    } as any;
+    const description = "Charlin Health Services is a Medicare Certified Home Health and Hospice Care Agency serving patients throughout the Dallas Metroplex.";
+    const intelligence = buildOpportunityIntelligence({
+      ...lead,
+      companyName: "Charlin Health Services",
+      industry: "Home Health Care",
+    }, "janitorial", janitorialSeller, [{
+      signalType: "company_operating_profile",
+      signalTitle: "Company operating profile",
+      signalDescription: description,
+      signalClassification: "verified",
+      confidenceLevel: "medium",
+      freshness: "unknown",
+      sourceName: "Company research",
+      sourceURL: "https://charlin.example",
+      dateDiscovered: new Date().toISOString(),
+      supportingEvidence: description,
+      points: 0,
+    }] as any);
+
+    expect(intelligence.whyTarget).toContain("Charlin Health Services");
+    expect(intelligence.whyTarget).toMatch(/does not prove a current cleaning-service gap or purchase intent/i);
+    expect(intelligence.potentialNeeds.join(" ")).toContain("Charlin Health Services");
+    expect(intelligence.potentialNeeds.join(" ")).toMatch(/offices and staff environments/i);
+    expect(intelligence.potentialNeeds.join(" ")).toContain("recurring commercial cleaning");
+    expect(intelligence.recommendedOutreach).toContain("Charlin Health Services");
+    expect(intelligence.recommendedOutreach).toContain("recurring commercial cleaning");
+    expect(intelligence.recommendedOutreach).toContain("best-matching approved Janitorial solution");
+  });
+
   it("personalizes operating-profile outreach and selects the relevant website-approved seller offering", () => {
     const seller = {
       ...readySeller,

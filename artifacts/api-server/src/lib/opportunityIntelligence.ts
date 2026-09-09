@@ -172,7 +172,7 @@ function signalChallenge(signal: OpportunitySignal, vertical: string): string {
     || "addressing the operational change indicated by this verified signal";
 }
 
-function companyOperatingOutreach(signal: OpportunitySignal): {
+function companyOperatingOutreach(signal: OpportunitySignal, vertical: string): {
   discoveryFocus: string;
   offerMatchContext: string;
   operatingSummary: string;
@@ -185,6 +185,53 @@ function companyOperatingOutreach(signal: OpportunitySignal): {
   const operatingSummary = (evidence.match(/^.*?[.!?](?:\s|$)/)?.[0] || evidence)
     .trim()
     .replace(/[.!?]+$/, "");
+  if (vertical === "janitorial") {
+    const janitorialProfiles = [
+      {
+        pattern: /\b(?:health|medical|patient|clinic|caregiver|dental|therapy|pharmacy|hospice)\b/i,
+        discoveryFocus: "the offices and staff environments supporting its patient-service operation maintain consistent cleaning across shared and high-touch areas",
+        offerMatchContext: "healthcare office commercial cleaning disinfecting sanitizing high-touch common areas restrooms recurring janitorial service",
+      },
+      {
+        pattern: /\b(?:school|education|student|teacher|faculty|campus|district)\b/i,
+        discoveryFocus: "classrooms, offices, restrooms, and shared learning spaces stay consistently clean around daily staff and student use",
+        offerMatchContext: "education school classroom office restroom common area recurring janitorial cleaning floor care disinfecting",
+      },
+      {
+        pattern: /\b(?:manufactur|production|plant|warehouse|industrial|fabricat)\b/i,
+        discoveryFocus: "production, warehouse, office, restroom, and breakroom areas are cleaned without disrupting operating schedules",
+        offerMatchContext: "industrial manufacturing warehouse janitorial cleaning floor care restroom breakroom scheduled commercial cleaning",
+      },
+      {
+        pattern: /\b(?:retail|restaurant|hospitality|hotel|store|location|franchise)\b/i,
+        discoveryFocus: "customer-facing areas, staff spaces, floors, and restrooms remain consistently presentable throughout operating hours",
+        offerMatchContext: "retail hospitality customer area commercial cleaning day porter floor care restroom recurring janitorial service",
+      },
+      {
+        pattern: /\b(?:delivery|logistics|transport|dispatch|fleet|distribution)\b/i,
+        discoveryFocus: "warehouse, dispatch, office, restroom, and driver-facing spaces stay clean around active logistics schedules",
+        offerMatchContext: "logistics warehouse dispatch office commercial cleaning floor care restroom recurring janitorial service",
+      },
+      {
+        pattern: /\b(?:legal|accounting|consult|professional service|staffing|marketing|agency|client service|insurance|financial)\b/i,
+        discoveryFocus: "client-facing offices, work areas, conference rooms, and shared spaces remain consistently clean and presentable",
+        offerMatchContext: "professional office commercial cleaning conference room common area restroom recurring janitorial service",
+      },
+      {
+        pattern: /\b(?:construction|contractor|project|jobsite|field service|technician|on-site)\b/i,
+        discoveryFocus: "offices, project support spaces, and completed work areas receive cleaning appropriate to its active project schedule",
+        offerMatchContext: "construction office post-construction cleanup project cleaning commercial janitorial floor care",
+      },
+    ];
+    const janitorialProfile = janitorialProfiles.find(candidate => candidate.pattern.test(normalized));
+    return janitorialProfile
+      ? { ...janitorialProfile, operatingSummary }
+      : {
+          discoveryFocus: "the workplaces and shared areas supporting the operation described on its website remain consistently clean and presentable",
+          offerMatchContext: `${evidence} workplace office commercial janitorial cleaning floor care restroom recurring service`,
+          operatingSummary,
+        };
+  }
   const profiles = [
     {
       pattern: /\b(?:construction|contractor|project|jobsite|field service|technician|on-site)\b/i,
@@ -311,6 +358,10 @@ function category(
   evidence: string[],
 ): OpportunityScoreCategory {
   return { key, label, points: bounded(points, maxPoints), maxPoints, explanation, evidence };
+}
+
+function possessiveName(name: string): string {
+  return /s$/i.test(name.trim()) ? `${name}'` : `${name}'s`;
 }
 
 export function buildOpportunityIntelligence(
@@ -657,15 +708,16 @@ export function buildOpportunityIntelligence(
         && signal.signalType === "fleet_mobile_operations",
       )
     : undefined;
-  const companyOperatingSignal = vertical === "it_services"
+  const companyOperatingSignal = ["it_services", "janitorial"].includes(vertical)
     ? signals.find(signal =>
         signal.signalClassification === "verified"
         && signal.signalType === "company_operating_profile",
       )
     : undefined;
   const companyOperatingRecommendation = companyOperatingSignal
-    ? companyOperatingOutreach(companyOperatingSignal)
+    ? companyOperatingOutreach(companyOperatingSignal, vertical)
     : undefined;
+  const companyOperatingReady = Boolean(companyOperatingRecommendation && seller.ready && recommendationReady);
   const fleetOperationalChallenge = fleetOperationalSignal
     ? signalChallenge(fleetOperationalSignal, vertical)
     : undefined;
@@ -697,11 +749,15 @@ export function buildOpportunityIntelligence(
       );
     }
     if (companyOperatingSignal && buyingEvidence.length === 0) {
-      const challenge = signalChallenge(companyOperatingSignal, vertical);
-      const offer = matchingSellerOffer(sellerRecommendations, challenge);
+      const challenge = companyOperatingRecommendation?.discoveryFocus
+        || signalChallenge(companyOperatingSignal, vertical);
+      const offer = matchingSellerOffer(
+        sellerRecommendations,
+        companyOperatingRecommendation?.offerMatchContext || challenge,
+      );
       if (offer) {
         potentialNeeds.push(
-          `${lead.companyName}'s verified operating profile creates a discovery question about ${challenge}. ${sellerName}'s ${offer} may support ${sellerOutcome || "reliable and secure operations"} if the company confirms a relevant gap.`,
+          `${possessiveName(lead.companyName)} documented operation raises a discovery question about how ${challenge}. ${sellerName}'s ${offer} could support ${sellerOutcome || (vertical === "janitorial" ? "a consistently clean and presentable workplace" : "reliable and secure operations")}.`,
         );
       }
     }
@@ -729,13 +785,13 @@ export function buildOpportunityIntelligence(
     : fleetOperationalSignal
       ? `${fleetOperationalSignal.signalTitle}: ${fleetOperationalSignal.signalDescription} This verifies a mobile or customer-site operating model, but not fleet size or a current graphics need.`
       : companyOperatingSignal
-        ? `${companyOperatingSignal.signalTitle}: ${companyOperatingSignal.signalDescription} This provides company-specific discovery context, but does not prove a current IT problem or purchase intent.`
+        ? `${companyOperatingSignal.signalTitle}: ${companyOperatingSignal.signalDescription} This provides company-specific discovery context, but does not prove ${vertical === "janitorial" ? "a current cleaning-service gap" : "a current IT problem"} or purchase intent.`
         : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
     : fleetOperationalChallenge
       || companyOperatingRecommendation?.offerMatchContext;
-  const outreachOffer = (companyOperatingRecommendation ? recommendationReady : seller.ready) && outreachChallenge
+  const outreachOffer = (companyOperatingRecommendation ? companyOperatingReady : seller.ready) && outreachChallenge
     ? matchingSellerOffer(
         sellerRecommendations,
         outreachChallenge,
@@ -758,7 +814,7 @@ export function buildOpportunityIntelligence(
         true,
       )
     : undefined;
-  const recommendedOutreach = !(companyOperatingRecommendation ? recommendationReady : seller.ready) || !outreachOffer
+  const recommendedOutreach = !(companyOperatingRecommendation ? companyOperatingReady : seller.ready) || !outreachOffer
     ? ""
     : strongestBuyingSignal?.signalType === "security_incident"
       ? `For ${lead.companyName}, reference the ${strongestBuyingSignal.signalTitle.toLowerCase()} only as ${strongestBuyingSignal.sourceName === "HHS OCR Breach Portal" ? "a submitted public breach record" : "officially disclosed"} and do not imply the issue remains unresolved. Lead with ${sellerName}'s ${outreachOffer} to help validate remediation, resilience, and applicable controls${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
@@ -769,7 +825,7 @@ export function buildOpportunityIntelligence(
         : fleetOperationalSignal
           ? `For ${lead.companyName}, reference its ${fleetOperationalLabel} and ask how those customer-facing vehicles are identified today and where consistency becomes difficult. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved Fleet & Vehicle Wraps solution for that documented operation${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : companyOperatingSignal && companyOperatingRecommendation
-            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved IT Services ICP solution for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
+            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved ${vertical === "janitorial" ? "Janitorial" : "IT Services ICP"} solution for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
             : "";
 
   return {
