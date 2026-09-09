@@ -51,8 +51,8 @@ Public breach records require exact organization-name and state matching. Descri
 
 **How to apply:** Cite the authoritative portal, submission date, reported type, and affected system/data context. A non-match means “not found in the records checked,” never “no breach.”
 
-On prospect cards, keep Opportunity Intelligence in the compact legacy-style format: short labeled rows for why target, potential needs, the strongest verified signal, and recommended outreach. Omit empty, negative, unknown, and unverified findings instead of rendering “no result” sections; the full evidence report belongs only in the score-breakdown dialog.
+On prospect cards, keep Opportunity Intelligence in the compact legacy-style format: short labeled rows for why target, potential needs, and recommended outreach. Do not show the Verified Signal row on Janitorial, IT Services, or Fleet & Vehicle Wrap cards. Omit empty, negative, unknown, and unverified findings instead of rendering “no result” sections; the full evidence report belongs only in the score-breakdown dialog.
 
 **Why:** The inline report overwhelmed each prospect card and consumed most of the page. Users need quick positive relevance cues while scanning results, with detail revealed only when requested.
 
-**How to apply:** Show each compact response in full through at most five complete sentences, without character truncation, ellipses, or visual line clamping. Include up to five useful Potential Needs, show at most the strongest positive verified signal, and omit empty or negative results.
+**How to apply:** Show each compact response in full through at most five complete sentences, without character truncation, ellipses, or visual line clamping. Include up to five useful Potential Needs and omit empty or negative results. Preserve verified evidence in View Score Breakdown even though it is hidden on the card.

@@ -142,7 +142,7 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.getByTestId("section-opportunity-intelligence-compact")).toBeInTheDocument();
     expect(screen.getByText("Why target:")).toBeInTheDocument();
     expect(screen.getByText("Potential needs:")).toBeInTheDocument();
-    expect(screen.getByText("Verified signal:")).toBeInTheDocument();
+    expect(screen.queryByText("Verified signal:")).not.toBeInTheDocument();
     expect(screen.getByText("Recommended outreach:")).toBeInTheDocument();
     expect(screen.getByText(/actively hiring service technicians/)).toBeInTheDocument();
     expect(screen.queryByText(/No meaningful/)).not.toBeInTheDocument();
@@ -167,7 +167,7 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.queryByTestId("section-opportunity-intelligence-compact")).not.toBeInTheDocument();
   });
 
-  it("shows non-scoring company operating evidence as the compact verified signal", () => {
+  it("hides non-scoring company operating evidence from the compact summary", () => {
     render(
       <OpportunityIntelligenceView
         compact
@@ -188,9 +188,8 @@ describe("OpportunityIntelligenceView", () => {
       />,
     );
 
-    expect(screen.getByText("Verified signal:")).toBeInTheDocument();
-    expect(screen.getByText(/commercial construction management across North Texas/)).toBeInTheDocument();
-    expect(screen.queryByText(/Apollo company operating evidence/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Verified signal:")).not.toBeInTheDocument();
+    expect(screen.queryByText(/commercial construction management across North Texas/)).not.toBeInTheDocument();
   });
 
   it("hides Apollo wording from cached company evidence and marks scores of 30 as fit to call", () => {
