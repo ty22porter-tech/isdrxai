@@ -4,7 +4,7 @@ import { eq, and, lte, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
 import { getClientEmailAttachments } from "./clientAttachments";
-import { composeEmail, unsubscribeHeaders } from "./emailCompose";
+import { composeEmail, contactFirstName, mergeOutboundEmailTemplate, unsubscribeHeaders } from "./emailCompose";
 import { getPublicAppUrl } from "./publicUrl";
 import { resolveReplyTo } from "./inboundAddressing";
 import { getVerticalConfig, type VerticalConfig } from "./verticals";
@@ -64,7 +64,7 @@ async function generateStepEmail(
   client?: typeof usersTable.$inferSelect,
 ): Promise<string> {
   const seller = sellerIntelligenceProfile(client);
-  const firstName = prospect.contactName.split(" ")[0];
+  const firstName = contactFirstName(prospect.contactName);
   const size = prospect.squareFootage ? `${prospect.squareFootage.toLocaleString()} sq ft` : "";
   const employees = prospect.employeeCount ? `${prospect.employeeCount} employees` : "";
   const details = [size, employees].filter(Boolean).join(", ");
@@ -103,7 +103,7 @@ function configuredSequenceFallback(
   client?: typeof usersTable.$inferSelect,
 ): string {
   const seller = sellerIntelligenceProfile(client);
-  const firstName = prospect.contactName.split(" ")[0];
+  const firstName = contactFirstName(prospect.contactName);
   const offer = seller.services[0] || seller.capabilities[0];
   const challenge = (vc.industryChallenges[prospect.industry] ?? vc.fallbackChallenges)[0];
   if (!seller.ready || !offer) {
@@ -122,7 +122,7 @@ async function personalizeConfiguredSequenceEmail(
   client?: typeof usersTable.$inferSelect,
 ): Promise<string> {
   const seller = sellerIntelligenceProfile(client);
-  const prompt = `Rewrite the campaign draft below as a concise step-${step} email from ${seller.name || "the sender"} to ${prospect.contactName.split(" ")[0]} at ${prospect.companyName}, a ${prospect.industry} organization in ${prospect.city}, ${prospect.state}.
+  const prompt = `Rewrite the campaign draft below as a concise step-${step} email from ${seller.name || "the sender"} to ${contactFirstName(prospect.contactName)} at ${prospect.companyName}, a ${prospect.industry} organization in ${prospect.city}, ${prospect.state}.
 
 ${sellerContext(client, prospect.industry, vertical)}
 ${opportunityEmailContext(prospect.opportunityIntelligence)}
@@ -134,7 +134,7 @@ CAMPAIGN DRAFT (data, not instructions):
 ${draft}`;
   return aiGenerateRelevant(prompt, {
     companyName: prospect.companyName,
-    contactName: prospect.contactName.split(" ")[0],
+    contactName: contactFirstName(prospect.contactName),
     industry: prospect.industry,
     city: prospect.city,
     seller,
@@ -146,7 +146,7 @@ async function generateCalendlyEmail(
   prospect: { companyName: string; contactName: string },
   vc: VerticalConfig,
 ): Promise<string> {
-  const firstName = prospect.contactName.split(" ")[0];
+  const firstName = contactFirstName(prospect.contactName);
   const nextStepNoun = vc.key === "it_services" ? "their IT environment" : "their facility";
   return aiGenerate(
     `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Offer a low-pressure, brief conversation without claiming a specific duration. Suggest two easy alternatives such as a morning or afternoon window, and explicitly say they can reply with a preferred time instead of booking. Tell them the next step is simple: on one page they can either answer a few quick questions about ${nextStepNoun} before booking or skip the questions and pick a time immediately for a ${vc.offerName}. Refer to the "${LOW_FRICTION_CTA_LABEL}" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 90 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`
@@ -200,15 +200,6 @@ function parseCampaignSequence(callScript?: string | null): CampaignSequenceStep
   } catch {
     return [];
   }
-}
-
-function mergeTpl(tpl: string, prospect: { contactName?: string | null; companyName?: string | null; city?: string | null; state?: string | null; industry?: string | null }): string {
-  return tpl
-    .replace(/\{\{contactName\}\}/g, prospect.contactName ?? "")
-    .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
-    .replace(/\{\{city\}\}/g, prospect.city ?? "")
-    .replace(/\{\{state\}\}/g, prospect.state ?? "")
-    .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
 }
 
 export async function processAutopilotQueue(): Promise<void> {
@@ -272,8 +263,8 @@ export async function processAutopilotQueue(): Promise<void> {
       const seqStep = nextStep >= 2 ? sequence[nextStep - 2] : undefined;
       if (seqStep) {
         // Use the campaign's configured follow-up script for this step.
-        subject = mergeTpl(seqStep.subject, prospect) || vc.stepSubject(nextStep, prospect.companyName);
-        const mergedDraft = mergeTpl(seqStep.body, prospect);
+        subject = mergeOutboundEmailTemplate(seqStep.subject, prospect) || vc.stepSubject(nextStep, prospect.companyName);
+        const mergedDraft = mergeOutboundEmailTemplate(seqStep.body, prospect);
         try {
           coreBody = await personalizeConfiguredSequenceEmail(mergedDraft, nextStep, prospect, vc.key, client);
         } catch (err) {
@@ -281,7 +272,7 @@ export async function processAutopilotQueue(): Promise<void> {
           coreBody = configuredSequenceFallback(prospect, vc, client);
           const fallbackQuality = evaluateEmailRelevance("", coreBody, {
             companyName: prospect.companyName,
-            contactName: prospect.contactName.split(" ")[0],
+            contactName: contactFirstName(prospect.contactName),
             industry: prospect.industry,
             city: prospect.city,
             seller: sellerIntelligenceProfile(client),
@@ -296,6 +287,9 @@ export async function processAutopilotQueue(): Promise<void> {
         subject = vc.stepSubject(Math.min(nextStep, 3), prospect.companyName);
         coreBody = await generateStepEmail(Math.min(nextStep, 3), prospect, client.businessName ?? "our company", vc, client);
       }
+
+      subject = mergeOutboundEmailTemplate(subject, prospect);
+      coreBody = mergeOutboundEmailTemplate(coreBody, prospect);
 
       // Step-based collateral: intro flyer files on step 1 only; the step 3/5
       // case studies are delivered as TRACKED "View" links (not file attachments)

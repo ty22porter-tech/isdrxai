@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeEmail } from "./emailCompose";
+import { composeEmail, contactFirstName, mergeOutboundEmailTemplate } from "./emailCompose";
 import { resolveReplyTo } from "./inboundAddressing";
 
 describe("composeEmail clean tracked-link display", () => {
@@ -48,5 +48,39 @@ describe("outbound Reply-To", () => {
     );
     if (originalDomain === undefined) delete process.env.INBOUND_REPLY_DOMAIN;
     else process.env.INBOUND_REPLY_DOMAIN = originalDomain;
+  });
+});
+
+describe("outbound contact-name personalization", () => {
+  it.each(["janitorial", "it_services", "fleet_wraps"])(
+    "uses only the first name for %s campaign placeholders",
+    () => {
+      const result = mergeOutboundEmailTemplate(
+        "Hi {{contactName}},\n\nA note for {{companyName}} in {{city}}.",
+        {
+          contactName: "  Austin   Wheeler ",
+          companyName: "Example Co",
+          city: "Dallas",
+        },
+      );
+
+      expect(result).toBe("Hi Austin,\n\nA note for Example Co in Dallas.");
+      expect(result).not.toContain("Austin Wheeler");
+    },
+  );
+
+  it("repairs a pre-merged full name in a greeting before dispatch", () => {
+    expect(
+      mergeOutboundEmailTemplate(
+        "Hi Austin Wheeler,\n\nJust following up.",
+        { contactName: "Austin Wheeler" },
+      ),
+    ).toBe("Hi Austin,\n\nJust following up.");
+  });
+
+  it("handles single and missing contact names safely", () => {
+    expect(contactFirstName("Prince")).toBe("Prince");
+    expect(contactFirstName("")).toBe("");
+    expect(contactFirstName(null)).toBe("");
   });
 });

@@ -29,8 +29,9 @@ import { generateIntroEmail } from "@/lib/email-ai";
 
 // ─── Merge template ───────────────────────────────────────────────────────────
 function mergeTpl(tpl: string, prospect: any): string {
+  const firstName = prospect.contactName?.trim().split(/\s+/)[0] ?? "";
   return tpl
-    .replace(/\{\{contactName\}\}/g, prospect.contactName ?? "")
+    .replace(/\{\{contactName\}\}/g, firstName)
     .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
     .replace(/\{\{city\}\}/g, prospect.city ?? "")
     .replace(/\{\{state\}\}/g, prospect.state ?? "")

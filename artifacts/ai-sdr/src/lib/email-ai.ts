@@ -537,6 +537,10 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function contactFirstName(contactName?: string): string {
+  return contactName?.trim().split(/\s+/)[0] ?? "{{contactName}}";
+}
+
 export function generateIntroEmail(prospect: {
   contactName?: string;
   companyName?: string;
@@ -547,7 +551,7 @@ export function generateIntroEmail(prospect: {
   const painPoint = pick(p.painPoints);
   const seller = getSeller(sellerProfile);
   const company = prospect.companyName ?? "{{companyName}}";
-  const contact = prospect.contactName ?? "{{contactName}}";
+  const contact = contactFirstName(prospect.contactName);
   const configuredMatch = seller.ready
     ? `${seller.name}'s ${seller.offers[0]} may be relevant if that challenge is confirmed.${seller.outcomes[0] ? ` The potential outcome is ${seller.outcomes[0]}.` : ""}`
     : "Seller-specific capabilities are not available yet, so the right first step is to understand the current approach before recommending a solution.";
@@ -568,7 +572,7 @@ export function generateIntroEmail(prospect: {
     const fleetOpening = openingByIndustry[prospect.industry ?? ""] ?? `If ${company} operates customer-facing vehicles in ${city}, those vehicles may be an underused brand asset.`;
     return {
       subject: `Making every ${company} vehicle work harder`,
-      body: `Hi ${prospect.contactName ?? "{{contactName}}"},
+      body: `Hi ${contactFirstName(prospect.contactName)},
 
 ${fleetOpening}
 
@@ -613,7 +617,7 @@ export function generateFollowUpEmail(prospect: {
   const cta = seller.ready && seller.ctas[0]
     ? seller.ctas[0]
     : `Would a brief conversation about ${company}'s current approach be useful?`;
-  const body = `Hi ${prospect.contactName ?? "{{contactName}}"},
+  const body = `Hi ${contactFirstName(prospect.contactName)},
 
 For ${p.label.toLowerCase()} organizations, ${challenge} can be worth reviewing. ${sellerMatch}
 
@@ -632,7 +636,7 @@ export function generateBreakupEmail(prospect: {
   const company = prospect.companyName ?? "{{companyName}}";
 
   const subject = `Last note — ${company}`;
-  const body = `Hi ${prospect.contactName ?? "{{contactName}}"},
+  const body = `Hi ${contactFirstName(prospect.contactName)},
 
 I'll close the loop after this note. ${p.label} organizations sometimes review ${p.painPoints[0]}, but whether that matters for ${company} is still unverified.
 

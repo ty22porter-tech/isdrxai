@@ -4,6 +4,40 @@ import { getVerticalConfig } from "./verticals";
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+export function contactFirstName(contactName?: string | null): string {
+  return contactName?.trim().split(/\s+/)[0] ?? "";
+}
+
+export function mergeOutboundEmailTemplate(
+  template: string,
+  prospect: {
+    contactName?: string | null;
+    companyName?: string | null;
+    city?: string | null;
+    state?: string | null;
+    industry?: string | null;
+  },
+): string {
+  const fullName = prospect.contactName?.trim() ?? "";
+  const firstName = contactFirstName(fullName);
+  let merged = template
+    .replace(/\{\{contactName\}\}/g, firstName)
+    .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
+    .replace(/\{\{city\}\}/g, prospect.city ?? "")
+    .replace(/\{\{state\}\}/g, prospect.state ?? "")
+    .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
+
+  if (fullName && firstName && fullName !== firstName) {
+    const escapedName = fullName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    merged = merged.replace(
+      new RegExp(`(^|\\n)((?:Hi|Hello|Dear|Hey)\\s+)${escapedName}(?=\\s*[,!])`, "gi"),
+      `$1$2${firstName}`,
+    );
+  }
+
+  return merged;
+}
+
 export interface ComposeClient {
   businessName?: string | null;
   senderName?: string | null;

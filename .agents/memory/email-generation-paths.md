@@ -41,6 +41,12 @@ NOT fix the others — verify the actual caller before assuming a path is dead.
   must be told to reference the "Schedule walkthrough" link without writing any URL.
   **Why:** a raw `/schedule/<uuid>` URL in the body gets ugly Gmail auto-linkification and
   looks spammy; letting composeEmail render the anchor keeps one clean link.
+- **Prospect greetings use only the contact's first name in every vertical.** Apply this
+  to manual campaign sends, Send All, sequence follow-ups, engagement automation, and
+  Autopilot. Keep the server send boundary as the final enforcement point, including
+  correcting drafts that were already merged with a full name.
+  **Why:** campaign paths historically personalized inconsistently, producing a mix of
+  “Hi Austin” and “Hi Austin Wheeler.”
 
 ## Deliverability / Gmail Promotions (composeEmail footer)
 - CAN-SPAM legally requires a functional opt-out + physical postal address in the body —

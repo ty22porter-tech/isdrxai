@@ -15,6 +15,7 @@ import { getClientEmailAttachments } from "../lib/clientAttachments";
 import { resolveReplyTo } from "../lib/inboundAddressing";
 import {
   composeEmail,
+  mergeOutboundEmailTemplate,
   unsubscribeHeaders,
   hasPostalAddress,
   POSTAL_ADDRESS_REQUIRED_MESSAGE,
@@ -85,8 +86,10 @@ router.post("/", requireEntitlement, async (req, res) => {
   }
 
   const trackingToken = randomUUID();
+  const subject = mergeOutboundEmailTemplate(body.subject, prospect);
+  const coreBody = mergeOutboundEmailTemplate(body.body, prospect);
   const composed = composeEmail(
-    body.body,
+    coreBody,
     client,
     { companyName: prospect.companyName, unsubscribeToken },
     undefined,
@@ -112,7 +115,7 @@ router.post("/", requireEntitlement, async (req, res) => {
       fromEmail: client.sendingEmail ?? undefined,
       replyTo: resolveReplyTo(client.outreachEmail, replyToken),
       to: prospect.email,
-      subject: body.subject,
+      subject,
       body: composed.text,
       html: composed.html,
       headers: unsubscribeHeaders(composed.unsubscribeApiUrl, client.outreachEmail),
@@ -127,7 +130,7 @@ router.post("/", requireEntitlement, async (req, res) => {
     .values({
       prospectId: body.prospectId,
       campaignId: body.campaignId,
-      subject: body.subject,
+      subject,
       body: composed.text,
       clientId: req.clientId,
       status: "sent",
@@ -151,7 +154,7 @@ router.post("/", requireEntitlement, async (req, res) => {
   await db.insert(activityTable).values({
     clientId: req.clientId,
     type: "email_sent",
-    description: `Email sent to ${prospect.companyName}: ${body.subject}`,
+    description: `Email sent to ${prospect.companyName}: ${subject}`,
     prospectId: body.prospectId,
     prospectName: prospect.contactName ?? null,
   });

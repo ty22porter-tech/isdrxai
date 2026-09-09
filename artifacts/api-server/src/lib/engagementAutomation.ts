@@ -12,7 +12,7 @@ import {
 import { eq, and, lte, gte, sql, desc, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
-import { composeEmail, unsubscribeHeaders } from "./emailCompose";
+import { composeEmail, mergeOutboundEmailTemplate, unsubscribeHeaders } from "./emailCompose";
 import { resolveReplyTo } from "./inboundAddressing";
 import { getPublicAppUrl } from "./publicUrl";
 import { getEngagementSettings, isValidCalendlyUrl } from "./engagementScoring";
@@ -22,15 +22,6 @@ import {
   LOW_FRICTION_CTA_LABEL,
   clickFollowUpCopy,
 } from "./calendlyConversion";
-
-function mergeTpl(tpl: string, p: { contactName?: string | null; companyName?: string | null; city?: string | null; state?: string | null; industry?: string | null }): string {
-  return tpl
-    .replace(/\{\{contactName\}\}/g, p.contactName ?? "")
-    .replace(/\{\{companyName\}\}/g, p.companyName ?? "")
-    .replace(/\{\{city\}\}/g, p.city ?? "")
-    .replace(/\{\{state\}\}/g, p.state ?? "")
-    .replace(/\{\{industry\}\}/g, p.industry ?? "");
-}
 
 /** Prospect statuses that mean a meeting is already in motion — never nudge again. */
 const MEETING_STATUSES = ["walkthrough_requested", "appointment_requested", "appointment_set", "closed_won", "closed_lost"];
@@ -152,8 +143,11 @@ export async function processEngagementAutomation(): Promise<void> {
         : null;
       const subject =
         clickCopy?.subject ??
-        (mergeTpl(settings.template.subject, prospect) || `Quick conversation, ${prospect.companyName}?`);
-      const coreBody = clickCopy?.body ?? mergeTpl(settings.template.body, prospect);
+        (mergeOutboundEmailTemplate(settings.template.subject, prospect) || `Quick conversation, ${prospect.companyName}?`);
+      const coreBody = mergeOutboundEmailTemplate(
+        clickCopy?.body ?? settings.template.body,
+        prospect,
+      );
       const optionB = !clickFollowUp && campaign?.followUpMode === "questionnaire_first";
 
       // Option A: Calendly link directly. Option B: the scheduling
