@@ -160,6 +160,7 @@ Would it be worth comparing your current approach?`,
     );
     expect(result.score).toBeLessThan(70);
     expect(result.reasons.join(" ")).toMatch(/unsupported prospect claim/i);
+    expect(result.blockingReasons.join(" ")).toMatch(/unsupported prospect claim/i);
   });
 
   it.each([
@@ -218,5 +219,68 @@ Would it be worth comparing your current approach?`,
       },
     );
     expect(result.reasons.join(" ")).not.toMatch(/unsupported prospect claim/i);
+    expect(result.blockingReasons).toEqual([]);
+  });
+
+  it("treats ordinary low relevance as a rewrite concern, not a send blocker", () => {
+    const result = evaluateEmailRelevance(
+      "Quick question",
+      `Hi Jordan,
+
+Would it be worth comparing your current approach?`,
+      { companyName: "Lakeview Health", industry: "Healthcare", city: "Dallas", seller: readySeller },
+    );
+
+    expect(result.score).toBeLessThan(70);
+    expect(result.reasons.length).toBeGreaterThan(0);
+    expect(result.blockingReasons).toEqual([]);
+  });
+
+  it("blocks explicit unsupported guarantees", () => {
+    const result = evaluateEmailRelevance(
+      "Security support for Lakeview Health",
+      `Hi Jordan,
+
+Healthcare organizations can benefit from consistent endpoint protection.
+
+We guarantee a 50% reduction in security incidents.
+
+Would it be worth comparing Lakeview Health's current security approach?`,
+      { companyName: "Lakeview Health", industry: "Healthcare", city: "Dallas", seller: readySeller },
+    );
+
+    expect(result.blockingReasons.join(" ")).toMatch(/unsupported guarantee/i);
+  });
+
+  it("blocks seller services that are not in approved Seller Intelligence", () => {
+    const result = evaluateEmailRelevance(
+      "Technology support for Lakeview Health",
+      `Hi Jordan,
+
+Healthcare operations can benefit from reliable technology support.
+
+We provide custom software development and accounting services.
+
+Would it be worth comparing Lakeview Health's current approach?`,
+      { companyName: "Lakeview Health", industry: "Healthcare", city: "Dallas", seller: readySeller },
+    );
+
+    expect(result.blockingReasons.join(" ")).toMatch(/unapproved seller-service/i);
+  });
+
+  it("allows an explicitly approved seller service", () => {
+    const result = evaluateEmailRelevance(
+      "Security support for Lakeview Health",
+      `Hi Jordan,
+
+Healthcare operations can benefit from reliable endpoint protection.
+
+We provide managed security monitoring for teams reviewing their current approach.
+
+Would it be worth comparing Lakeview Health's current security approach?`,
+      { companyName: "Lakeview Health", industry: "Healthcare", city: "Dallas", seller: readySeller },
+    );
+
+    expect(result.blockingReasons).toEqual([]);
   });
 });

@@ -15,6 +15,7 @@ export interface EmailRelevanceContext {
 export interface EmailRelevanceResult {
   score: number;
   reasons: string[];
+  blockingReasons: string[];
 }
 
 const FORBIDDEN_OPENING = /^(?:i noticed|i came across|i wanted to reach out|i hope this email finds you well|my name is|we are a leading|are you looking for)\b/i;
@@ -129,12 +130,47 @@ function firstBusinessParagraph(body: string): string {
   return paragraphs[0] ?? "";
 }
 
+function unsupportedGuaranteeClaim(body: string): string | null {
+  const explicitGuarantee = body.match(/\b(?:guarantee[ds]?|promise[sd]?)\b[^.!?\n]*/i);
+  if (explicitGuarantee) return explicitGuarantee[0].trim();
+
+  const certainNumericOutcome = body.match(
+    /\b(?:will|can)\s+(?:definitely\s+)?(?:reduce|lower|increase|improve|eliminate|prevent)\b[^.!?\n]{0,60}\b\d+(?:\.\d+)?%/i,
+  );
+  return certainNumericOutcome?.[0]?.trim() ?? null;
+}
+
+function unapprovedSellerServiceClaim(body: string, context: EmailRelevanceContext): string | null {
+  if (!context.seller.ready) return null;
+  const approvedOffers = [
+    ...context.seller.capabilities,
+    ...context.seller.services,
+    ...context.seller.products,
+    ...context.seller.valuePropositions,
+  ];
+  const sellerName = context.seller.name?.trim();
+  const sellerSubject = sellerName
+    ? `(?:we|our company|${escapeRegExp(sellerName)}(?:['’]s)?)`
+    : "(?:we|our company)";
+  const claimPattern = new RegExp(
+    `\\b${sellerSubject}\\s+(?:offer|offers|provide|provides|deliver|delivers|specialize|specializes)(?:\\s+in)?\\s+[^.!?\\n]+`,
+    "gi",
+  );
+
+  for (const match of body.matchAll(claimPattern)) {
+    const claim = match[0].trim();
+    if (!includesFact(claim, approvedOffers)) return claim;
+  }
+  return null;
+}
+
 export function evaluateEmailRelevance(
   subject: string,
   body: string,
   context: EmailRelevanceContext,
 ): EmailRelevanceResult {
   const reasons: string[] = [];
+  const blockingReasons: string[] = [];
   let score = 0;
   const opening = firstBusinessParagraph(body);
   const sellerOffers = [
@@ -202,7 +238,25 @@ export function evaluateEmailRelevance(
   const unsupportedClaim = unsupportedProspectEventClaim(body, context);
   if (unsupportedClaim) {
     score = Math.min(score, 69);
-    reasons.push(`Remove or qualify the unsupported prospect claim "${unsupportedClaim}"; only a matching verified signal may be stated as fact.`);
+    const reason = `Remove or qualify the unsupported prospect claim "${unsupportedClaim}"; only a matching verified signal may be stated as fact.`;
+    reasons.push(reason);
+    blockingReasons.push(reason);
+  }
+
+  const unsupportedGuarantee = unsupportedGuaranteeClaim(body);
+  if (unsupportedGuarantee) {
+    score = Math.min(score, 69);
+    const reason = `Remove the unsupported guarantee "${unsupportedGuarantee}".`;
+    reasons.push(reason);
+    blockingReasons.push(reason);
+  }
+
+  const unapprovedService = unapprovedSellerServiceClaim(body, context);
+  if (unapprovedService) {
+    score = Math.min(score, 69);
+    const reason = `Remove the unapproved seller-service claim "${unapprovedService}".`;
+    reasons.push(reason);
+    blockingReasons.push(reason);
   }
 
   if (!companyGrounded) reasons.push(
@@ -220,5 +274,9 @@ export function evaluateEmailRelevance(
     reasons.push("Shorten the email to keep it concise.");
   }
 
-  return { score: Math.max(0, Math.min(100, Math.round(score))), reasons };
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    reasons,
+    blockingReasons,
+  };
 }

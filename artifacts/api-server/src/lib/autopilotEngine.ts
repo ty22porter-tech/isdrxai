@@ -36,7 +36,7 @@ async function aiGenerateRelevant(prompt: string, context: EmailRelevanceContext
   let body = await aiGenerate(prompt);
   let quality = evaluateEmailRelevance("", body, context);
   let regenerated = false;
-  if (quality.score < 70) {
+  if (quality.score < 70 || quality.blockingReasons.length > 0) {
     regenerated = true;
     body = await aiGenerate(`${prompt}
 
@@ -49,9 +49,20 @@ ${body.slice(0, 2500)}
 Rewrite it once with stronger prospect relevance, the best configured seller capability, a relevant configured differentiator when available, clear potential business value, and a varied low-friction question. Plain text only.`);
     quality = evaluateEmailRelevance("", body, context);
   }
+  if (quality.blockingReasons.length > 0) {
+    console.warn("Autopilot email blocked for unsafe factual claims", {
+      relevanceScore: quality.score,
+      regenerated,
+      blockingReasons: quality.blockingReasons,
+    });
+    throw new Error("Generated email contained an unsupported factual claim");
+  }
   if (quality.score < 70) {
-    console.warn("Autopilot email relevance threshold not met", { relevanceScore: quality.score, regenerated });
-    throw new Error("Generated email did not meet the relevance threshold");
+    console.warn("Autopilot email remained below the relevance target after rewrite; sending because no unsafe factual claims remain", {
+      relevanceScore: quality.score,
+      regenerated,
+      reasons: quality.reasons,
+    });
   }
   return body;
 }
@@ -278,8 +289,8 @@ export async function processAutopilotQueue(): Promise<void> {
             seller: sellerIntelligenceProfile(client),
             ...emailSignalAccuracyInputs(prospect.opportunityIntelligence),
           });
-          if (fallbackQuality.score < 70) {
-            throw new Error("Configured fallback did not meet the relevance threshold");
+          if (fallbackQuality.blockingReasons.length > 0) {
+            throw new Error("Configured fallback contained an unsupported factual claim");
           }
         }
       } else {

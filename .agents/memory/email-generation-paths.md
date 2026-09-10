@@ -47,6 +47,11 @@ NOT fix the others — verify the actual caller before assuming a path is dead.
   correcting drafts that were already merged with a full name.
   **Why:** campaign paths historically personalized inconsistently, producing a mix of
   “Hi Austin” and “Hi Austin Wheeler.”
+- **Autopilot relevance review rewrites once but does not block merely for a low score.**
+  After the rewrite, send ordinary low-relevance copy and block only clear factual risks:
+  unsupported prospect claims, explicit guarantees, or unapproved seller-service claims.
+  **Why:** the former fixed score threshold paused legitimate campaigns without giving
+  users enough information or a reliable recovery path.
 
 ## Deliverability / Gmail Promotions (composeEmail footer)
 - CAN-SPAM legally requires a functional opt-out + physical postal address in the body —
