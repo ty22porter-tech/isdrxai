@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
-import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock, ChevronDown, ChevronRight, Ticket, Plus, Copy, Check, MousePointerClick, CalendarCheck, UserPlus, CreditCard } from "lucide-react";
+import { Shield, Users, CheckCircle2, XCircle, Loader2, Play, Eye, Clock, ChevronDown, ChevronRight, Ticket, Plus, Copy, Check, MousePointerClick, CalendarCheck, UserPlus, CreditCard, Infinity as InfinityIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -119,6 +119,28 @@ function ClientDetails({ client }: { client: any }) {
     onError: (err: Error) => toast({ title: "Failed to update client", description: err.message, variant: "destructive" }),
   });
 
+  const grantUnlimitedTrialMutation = useMutation({
+    mutationFn: () =>
+      apiFetch("/trial-codes/grant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: client.id, trialDays: 0 }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-clients"] });
+      qc.invalidateQueries({ queryKey: ["admin-trial-codes"] });
+      toast({
+        title: "Unlimited trial granted",
+        description: `${client.businessName || client.accountName || client.email || "The client"} now has unlimited trial access.`,
+      });
+    },
+    onError: (err: Error) => toast({
+      title: "Failed to grant trial",
+      description: err.message,
+      variant: "destructive",
+    }),
+  });
+
   const { data: campaignsData } = useQuery({
     queryKey: ["admin-client-campaigns", client.id],
     queryFn: () => apiFetch(`/admin/clients/${client.id}/call-campaigns`),
@@ -161,6 +183,34 @@ function ClientDetails({ client }: { client: any }) {
             </span>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h4 className="font-semibold text-sm">Trial Access</h4>
+            <p className="text-xs text-muted-foreground">
+              Grant another unlimited trial and retain a permanent redeemed-code record
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="gap-1.5 shrink-0"
+            disabled={grantUnlimitedTrialMutation.isPending || client.isAdmin || client.status === "active"}
+            onClick={() => {
+              const name = client.businessName || client.accountName || client.email || "this client";
+              if (window.confirm(`Grant unlimited trial access to ${name}? This replaces their current trial end date.`)) {
+                grantUnlimitedTrialMutation.mutate();
+              }
+            }}
+          >
+            {grantUnlimitedTrialMutation.isPending
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <InfinityIcon className="w-3.5 h-3.5" />}
+            Grant unlimited trial
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card p-4 space-y-4">

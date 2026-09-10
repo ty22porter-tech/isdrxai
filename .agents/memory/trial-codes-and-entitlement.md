@@ -51,6 +51,11 @@ user can hit the ungated twin. Any new paid generation/prospect endpoint must ca
   WHERE code=? AND redeemed_by IS NULL` — losing a race matches 0 rows → 409.
 - **One trial per client**: redeem is rejected if `user.trialEndsAt` is already set
   (they used their trial → must subscribe). Prevents stacking codes to extend forever.
+- Admins may deliberately grant an additional trial from client management. The exception
+  must create and redeem a normal trial-code record attributed to the granting admin rather
+  than clearing history or disguising the account as a paid subscription.
+  **Why:** exceptional access still needs an auditable record while ordinary users must not
+  be able to stack codes themselves.
 - Code claim + `users.trialEndsAt` grant are wrapped in a single `db.transaction` so a
   failed grant rolls back the claim (code is never burned without granting the trial).
 - Admin generate/list gated by `requireAdmin`; code format `TRIAL-XXXXXXXX` (ambiguous

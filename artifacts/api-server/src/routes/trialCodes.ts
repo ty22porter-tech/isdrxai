@@ -15,6 +15,27 @@ function generateCode(): string {
   return `TRIAL-${s}`;
 }
 
+function trialEndDate(trialDays: number, now: Date): Date {
+  return trialDays === 0
+    ? new Date("2999-12-31T00:00:00Z")
+    : new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+}
+
+async function generateUniqueCode(
+  values: { label: string | null; trialDays: number; createdBy: string },
+) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateCode();
+    const inserted = await db
+      .insert(trialCodesTable)
+      .values({ code, ...values })
+      .onConflictDoNothing()
+      .returning();
+    if (inserted.length) return inserted[0];
+  }
+  return null;
+}
+
 // Client: redeem a trial code to unlock a free trial (no card required).
 router.post("/redeem", async (req, res) => {
   const code = String(req.body?.code ?? "").trim().toUpperCase();
@@ -35,9 +56,7 @@ router.post("/redeem", async (req, res) => {
 
   const now = new Date();
   // trialDays === 0 means the code never expires (used for internal live testing).
-  const trialEndsAt = tc.trialDays === 0
-    ? new Date("2999-12-31T00:00:00Z")
-    : new Date(now.getTime() + tc.trialDays * 24 * 60 * 60 * 1000);
+  const trialEndsAt = trialEndDate(tc.trialDays, now);
 
   // Claim the code and grant the trial atomically. The claim's WHERE only matches
   // while the code is still unredeemed, so two clients racing on the same code
@@ -85,19 +104,79 @@ router.post("/", requireAdmin, async (req, res) => {
     trialDays = Math.min(Math.floor(trialDays), 365);
   }
 
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const code = generateCode();
-    const inserted = await db
-      .insert(trialCodesTable)
-      .values({ code, label, trialDays, createdBy: req.clientId })
-      .onConflictDoNothing()
-      .returning();
-    if (inserted.length) {
-      const c = inserted[0];
-      return res.json({ ...c, createdAt: c.createdAt.toISOString(), redeemedAt: null });
-    }
+  const c = await generateUniqueCode({ label, trialDays, createdBy: req.clientId });
+  if (c) {
+    return res.json({ ...c, createdAt: c.createdAt.toISOString(), redeemedAt: null });
   }
   return res.status(500).json({ error: "generate_failed", message: "Couldn't generate a unique code, please try again." });
+});
+
+// Admin: grant an additional trial directly. This intentionally bypasses the
+// one-trial-per-client redemption rule while retaining a redeemed code as the audit record.
+router.post("/grant", requireAdmin, async (req, res) => {
+  const clientId = typeof req.body?.clientId === "string" ? req.body.clientId.trim() : "";
+  if (!clientId) {
+    return res.status(400).json({ error: "client_required", message: "Select a client." });
+  }
+
+  let trialDays = Number(req.body?.trialDays);
+  if (trialDays !== 0) {
+    if (!Number.isFinite(trialDays) || trialDays < 1) {
+      return res.status(400).json({ error: "invalid_trial_days", message: "Trial days must be at least 1, or 0 for unlimited." });
+    }
+    trialDays = Math.min(Math.floor(trialDays), 365);
+  }
+
+  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, clientId));
+  if (!client) {
+    return res.status(404).json({ error: "client_not_found", message: "Client not found." });
+  }
+  if (client.isAdmin) {
+    return res.status(400).json({ error: "admin_account", message: "Trial access cannot be granted to an admin account." });
+  }
+  if (client.status === "active") {
+    return res.status(409).json({ error: "already_active", message: "This client already has an active subscription." });
+  }
+
+  const now = new Date();
+  const trialEndsAt = trialEndDate(trialDays, now);
+  const label = `Admin grant: ${client.businessName || client.email || client.id}`;
+  const code = await generateUniqueCode({ label, trialDays, createdBy: req.clientId });
+  if (!code) {
+    return res.status(500).json({ error: "generate_failed", message: "Couldn't record the trial grant, please try again." });
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      const claimed = await tx
+        .update(trialCodesTable)
+        .set({ redeemedBy: client.id, redeemedAt: now })
+        .where(and(eq(trialCodesTable.code, code.code), isNull(trialCodesTable.redeemedBy)))
+        .returning();
+      if (claimed.length === 0) throw new Error("grant_conflict");
+      await tx
+        .update(usersTable)
+        .set({ status: "trialing", trialEndsAt })
+        .where(eq(usersTable.id, client.id));
+    });
+  } catch (err) {
+    await db
+      .delete(trialCodesTable)
+      .where(and(eq(trialCodesTable.code, code.code), isNull(trialCodesTable.redeemedBy)))
+      .catch(() => {});
+    if (err instanceof Error && err.message === "grant_conflict") {
+      return res.status(409).json({ error: "grant_conflict", message: "The grant could not be completed. Please try again." });
+    }
+    throw err;
+  }
+
+  return res.json({
+    ok: true,
+    code: code.code,
+    clientId: client.id,
+    trialDays,
+    trialEndsAt: trialEndsAt.toISOString(),
+  });
 });
 
 export default router;
