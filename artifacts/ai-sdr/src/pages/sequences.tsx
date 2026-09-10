@@ -49,15 +49,7 @@ interface SequenceStep {
   body: string;
 }
 
-function mergeTpl(tpl: string, prospect: any): string {
-  const firstName = prospect.contactName?.trim().split(/\s+/)[0] ?? "";
-  return tpl
-    .replace(/\{\{contactName\}\}/g, firstName)
-    .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
-    .replace(/\{\{city\}\}/g, prospect.city ?? "")
-    .replace(/\{\{state\}\}/g, prospect.state ?? "")
-    .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
-}
+import { mergeEmailTemplate as mergeTpl } from "@/lib/email-template";
 
 function daysSince(dateStr: string): number {
   return (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24);

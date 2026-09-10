@@ -25,17 +25,12 @@ import { useToast } from "@/hooks/use-toast";
 
 import { InterestBadge } from "@/components/interest-badge";
 import { EmailPreview } from "@/components/email-preview";
+import { mergeEmailTemplate } from "@/lib/email-template";
 import { generateIntroEmail } from "@/lib/email-ai";
 
 // ─── Merge template ───────────────────────────────────────────────────────────
 function mergeTpl(tpl: string, prospect: any): string {
-  const firstName = prospect.contactName?.trim().split(/\s+/)[0] ?? "";
-  return tpl
-    .replace(/\{\{contactName\}\}/g, firstName)
-    .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
-    .replace(/\{\{city\}\}/g, prospect.city ?? "")
-    .replace(/\{\{state\}\}/g, prospect.state ?? "")
-    .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
+  return mergeEmailTemplate(tpl, prospect);
 }
 function defaultSubject(campaignName: string, vertical: string = "janitorial") {
   const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : "Janitorial Services";

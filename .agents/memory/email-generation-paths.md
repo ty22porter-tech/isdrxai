@@ -47,6 +47,9 @@ NOT fix the others — verify the actual caller before assuming a path is dead.
   correcting drafts that were already merged with a full name.
   **Why:** campaign paths historically personalized inconsistently, producing a mix of
   “Hi Austin” and “Hi Austin Wheeler.”
+  **How to apply:** include sample-data campaign previews in greeting checks, not only real
+  recipient sends. Keep full names in recipient metadata; shorten greetings, not every
+  occurrence of a name in the message.
 - **Autopilot relevance review rewrites once but does not block merely for a low score.**
   After the rewrite, send ordinary low-relevance copy and block only clear factual risks:
   unsupported prospect claims, explicit guarantees, or unapproved seller-service claims.

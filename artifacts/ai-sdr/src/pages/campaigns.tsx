@@ -56,6 +56,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { EmailPreview } from "@/components/email-preview";
+import { mergeEmailTemplate } from "@/lib/email-template";
 import {
   Plus,
   MoreVertical,
@@ -261,12 +262,10 @@ const CAMPAIGN_PREVIEW_PROSPECT = {
 };
 
 function mergePreviewTemplate(template: string, industry: string): string {
-  return template
-    .replace(/\{\{contactName\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.contactName)
-    .replace(/\{\{companyName\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.companyName)
-    .replace(/\{\{city\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.city)
-    .replace(/\{\{state\}\}/g, CAMPAIGN_PREVIEW_PROSPECT.state)
-    .replace(/\{\{industry\}\}/g, industry || "your industry");
+  return mergeEmailTemplate(template, {
+    ...CAMPAIGN_PREVIEW_PROSPECT,
+    industry: industry || "your industry",
+  });
 }
 
 function introPreviewSubject(campaignName: string, vertical: ClientVertical): string {
