@@ -32,6 +32,7 @@ import {
 import { OpportunityIntelligenceView, sanitizeOpportunityLanguage } from "@/components/opportunity-intelligence-view";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+import { addToAutopilotProspectSelection, clearAutopilotProspectSelection } from "@/lib/autopilot-prospect-selection";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw } from "lucide-react";
 
 const INDUSTRIES = [
@@ -357,6 +358,7 @@ export default function Prospecting() {
     }
 
     restorePendingRef.current = false;
+    if (user?.id) clearAutopilotProspectSelection(user.id);
     setRestorable(null);
     setLeads([]);
     setAdded(new Set());
@@ -453,7 +455,10 @@ export default function Prospecting() {
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (prospect) => {
+          if (user?.id && prospect?.id) {
+            addToAutopilotProspectSelection(user.id, [prospect.id]);
+          }
           setAdded((prev) => new Set([...prev, idx]));
           setFailures((prev) => {
             const next = new Map(prev);
@@ -526,6 +531,14 @@ export default function Prospecting() {
             },
           });
           anyRequestSucceeded = true;
+          if (user?.id) {
+            addToAutopilotProspectSelection(
+              user.id,
+              result.results
+                .filter((r) => r.success && r.prospect?.id)
+                .map((r) => r.prospect!.id),
+            );
+          }
           totalAdded += result.added;
           totalUpdated += result.updated ?? 0;
           if (duplicateStrategy === "skip") {

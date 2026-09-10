@@ -7,6 +7,7 @@ import { Bot, Play, Pause, Mail, Calendar, CheckCircle2, AlertCircle, Clock, Mes
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+import { clearAutopilotProspectSelection, readAutopilotProspectSelection } from "@/lib/autopilot-prospect-selection";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -67,6 +68,7 @@ export default function AutopilotPage() {
   const [enrollModal, setEnrollModal] = useState(false);
   const [enrollCampaign, setEnrollCampaign] = useState<number | null>(null);
   const [selectedProspects, setSelectedProspects] = useState<number[]>([]);
+  const [selectedProspectsFromSearch, setSelectedProspectsFromSearch] = useState<number[]>([]);
 
   const { data: me } = useQuery({
     queryKey: ["me"],
@@ -163,6 +165,8 @@ export default function AutopilotPage() {
       setEnrollModal(false);
       setSelectedProspects([]);
       setEnrollCampaign(null);
+      if (user?.id) clearAutopilotProspectSelection(user.id);
+      setSelectedProspectsFromSearch([]);
     },
     onError: (err: Error) => toast({ title: "Failed to enroll prospects", description: err.message, variant: "destructive" }),
   });
@@ -173,6 +177,20 @@ export default function AutopilotPage() {
   const emailsSent = enrollments.reduce((sum: number, e: any) => sum + (e.currentStep ?? 0), 0);
 
   const notConfigured = !me?.autopilotReady;
+  const availableProspects = (prospects as any[]).filter(
+    (prospect: any) =>
+      prospect.status !== "appointment_set" &&
+      selectedProspectsFromSearch.includes(prospect.id),
+  );
+  const allAvailableSelected =
+    availableProspects.length > 0 &&
+    availableProspects.every((prospect: any) => selectedProspects.includes(prospect.id));
+
+  const openEnrollModal = () => {
+    setSelectedProspects([]);
+    setSelectedProspectsFromSearch(user?.id ? readAutopilotProspectSelection(user.id) : []);
+    setEnrollModal(true);
+  };
 
   return (
     <Layout>
@@ -185,7 +203,7 @@ export default function AutopilotPage() {
               <p className="text-muted-foreground mt-0.5">iSDRX AI running on autopilot — emails, follow-ups, and booking</p>
             </div>
           </div>
-          <Button onClick={() => setEnrollModal(true)} disabled={notConfigured} className="gap-2">
+          <Button onClick={openEnrollModal} disabled={notConfigured} className="gap-2">
             <PlusCircle className="w-4 h-4" /> Add Prospects
           </Button>
         </div>
@@ -375,7 +393,24 @@ export default function AutopilotPage() {
                 Prospects ({selectedProspects.length} selected)
               </label>
               <div className="max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border">
-                {(prospects as any[]).filter((p: any) => p.status !== "appointment_set").map((p: any) => (
+                {availableProspects.length > 0 && (
+                  <label className="flex items-center gap-3 px-4 py-2.5 bg-muted/30 hover:bg-muted/50 cursor-pointer font-medium">
+                    <input
+                      type="checkbox"
+                      checked={allAvailableSelected}
+                      onChange={(event) =>
+                        setSelectedProspects(
+                          event.target.checked
+                            ? availableProspects.map((prospect: any) => prospect.id)
+                            : [],
+                        )
+                      }
+                      className="accent-primary"
+                    />
+                    <span className="text-sm">Select all ({availableProspects.length})</span>
+                  </label>
+                )}
+                {availableProspects.map((p: any) => (
                   <label key={p.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 cursor-pointer">
                     <input
                       type="checkbox"
@@ -391,6 +426,14 @@ export default function AutopilotPage() {
                     </div>
                   </label>
                 ))}
+                {availableProspects.length === 0 && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-sm font-medium">No newly added prospects</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Select prospects in Prospect Search and click Add before opening this dialog.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
