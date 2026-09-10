@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { prospectsTable, emailsTable, callsTable, appointmentsTable, activityTable, campaignsTable } from "@workspace/db";
-import { eq, gte, count, sql, and, lt, isNotNull, desc } from "drizzle-orm";
+import { eq, gte, count, sql, and, lt, isNotNull, desc, getTableColumns } from "drizzle-orm";
 import type { AnyColumn } from "drizzle-orm";
 import { GetActivityFeedQueryParams } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
+import { campaignProspectCount } from "../lib/campaignProspectCount";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -141,7 +142,10 @@ router.get("/leadership", async (req, res) => {
     db.select({ status: prospectsTable.status, count: count() }).from(prospectsTable)
       .where(eq(prospectsTable.clientId, cid))
       .groupBy(prospectsTable.status),
-    db.select().from(campaignsTable)
+    db.select({
+      ...getTableColumns(campaignsTable),
+      prospectCount: campaignProspectCount(cid),
+    }).from(campaignsTable)
       .where(eq(campaignsTable.clientId, cid))
       .orderBy(desc(campaignsTable.appointmentsSet), desc(campaignsTable.emailsSent), desc(campaignsTable.callsMade))
       .limit(8),
