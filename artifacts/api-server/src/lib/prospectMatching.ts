@@ -43,10 +43,26 @@ function prioritizeApprovedOffers(offers: string[], priorities: string[]): strin
     .map(({ offer }) => offer);
 }
 
-/** Reads only a successfully analyzed, website-backed profile. */
+/** Reads only a successfully analyzed, source-backed seller profile. */
 export function sellerIntelligenceProfile(user?: User | null): SellerIntelligence {
   const profile = user?.sellerIntelligenceProfile as SellerIntelligenceProfile | null | undefined;
-  if (!profile || profile.status !== "ready") {
+  // A Responses report can be fully source-backed while still needing a
+  // human review of narrative depth (for example, no cited differentiator or
+  // outcome). Evidence-backed offerings must remain usable for opportunity
+  // recommendations in that state; requiring a separate manual approval
+  // would discard the verified research we just paid to obtain.
+  // Some older persisted profiles have the source-backed research payload but
+  // were serialized through a schema that dropped researchStatus. The
+  // researchGenerated snapshot is itself the server-produced evidence boundary
+  // and is safe to use as the readiness signal in that case.
+  const researchReady = profile?.researchStatus === "ready"
+    || Boolean(profile?.researchGenerated && (
+      profile.researchGenerated.sellerServices?.length
+      || profile.researchGenerated.sellerProducts?.length
+      || profile.researchGenerated.sellerCapabilities?.length
+      || profile.researchGenerated.sellerValuePropositions?.length
+    ));
+  if (!profile || (profile.status !== "ready" && !researchReady)) {
     return {
       services: [], products: [], capabilities: [], differentiators: [],
       certifications: [], industriesServed: [], outcomes: [], problemsSolved: [],
@@ -55,15 +71,25 @@ export function sellerIntelligenceProfile(user?: User | null): SellerIntelligenc
   }
   // Service-priority preferences affect opportunity ordering, but they are not
   // approved seller capabilities. Read services from their factual source so
-  // older cached profiles cannot leak priority-only text into sales claims.
+  // Older cached profiles cannot leak priority-only text into sales claims.
   const approvedServices = profile.userOverrides?.sellerServices
+    ?? (researchReady ? profile.researchGenerated?.sellerServices : undefined)
     ?? profile.websiteGenerated?.sellerServices
     ?? profile.sellerServices;
+  const approvedProducts = profile.userOverrides?.sellerProducts
+    ?? (researchReady ? profile.researchGenerated?.sellerProducts : undefined)
+    ?? profile.sellerProducts;
+  const approvedCapabilities = profile.userOverrides?.sellerCapabilities
+    ?? (researchReady ? profile.researchGenerated?.sellerCapabilities : undefined)
+    ?? profile.sellerCapabilities;
+  const approvedValuePropositions = profile.userOverrides?.sellerValuePropositions
+    ?? (researchReady ? profile.researchGenerated?.sellerValuePropositions : undefined)
+    ?? profile.sellerValuePropositions;
   const seller = {
-    name: profile.sellerCompanyName?.trim() || undefined,
+    name: profile.sellerCompanyName?.trim() || user?.businessName?.trim() || undefined,
     services: clean(approvedServices),
-    products: clean(profile.sellerProducts),
-    capabilities: clean(profile.sellerCapabilities),
+    products: clean(approvedProducts),
+    capabilities: clean(approvedCapabilities),
     differentiators: clean(profile.sellerDifferentiators),
     certifications: clean(profile.sellerCertifications),
     industriesServed: clean(profile.sellerIndustriesServed),
@@ -71,7 +97,7 @@ export function sellerIntelligenceProfile(user?: User | null): SellerIntelligenc
     problemsSolved: clean(profile.sellerProblemsSolved),
     proof: clean(profile.sellerProofPoints),
     portfolioExamples: clean(profile.sellerPortfolioExamples),
-    valuePropositions: clean(profile.sellerValuePropositions),
+    valuePropositions: clean(approvedValuePropositions),
     ctas: clean(profile.sellerCTAs),
   };
   return {

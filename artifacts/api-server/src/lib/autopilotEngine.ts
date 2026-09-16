@@ -13,6 +13,7 @@ import { LOW_FRICTION_CTA_LABEL } from "./calendlyConversion";
 import { sellerContext, sellerIntelligenceProfile } from "./prospectMatching";
 import { evaluateEmailRelevance, type EmailRelevanceContext } from "./emailRelevance";
 import { emailSignalAccuracyInputs, opportunityEmailContext } from "./opportunityIntelligence";
+import { ensureCurrentSellerResearch } from "./sellerResearch";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -230,9 +231,12 @@ export async function processAutopilotQueue(): Promise<void> {
   for (const enrollment of pending) {
     try {
       const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.id, enrollment.prospectId));
-      const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
+      let [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
       if (!prospect || !client || !client.outreachEmail) continue;
+      client = await ensureCurrentSellerResearch(enrollment.clientId, client);
+      const currentOutreachEmail = client.outreachEmail;
+      if (!currentOutreachEmail) continue;
 
       if (prospect.optedOut) {
         await db.update(autopilotEnrollmentsTable)
@@ -316,14 +320,14 @@ export async function processAutopilotQueue(): Promise<void> {
       const fileAttachments = await getClientEmailAttachments(attachmentSource, console);
       const resendId = await sendEmail({
         attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
-        fromName: client.businessName ?? client.outreachEmail,
+        fromName: client.businessName?.trim() || currentOutreachEmail,
         fromEmail: client.sendingEmail ?? undefined,
-        replyTo: resolveReplyTo(client.outreachEmail, prospect.replyToken),
+        replyTo: resolveReplyTo(currentOutreachEmail, prospect.replyToken),
         to: prospect.email,
         subject,
         body: composed.text,
         html: composed.html,
-        headers: unsubscribeHeaders(composed.unsubscribeApiUrl, client.outreachEmail),
+        headers: unsubscribeHeaders(composed.unsubscribeApiUrl, currentOutreachEmail),
       });
 
       const sentAt = new Date();

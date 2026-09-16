@@ -22,7 +22,8 @@ export interface SellerIntelligenceEditable {
 export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
   status: "ready" | "needs_review" | "limited";
   sellerCompanyName: string | null;
-  sellerWebsite: string;
+  /** Legacy display field. Seller research no longer depends on this website. */
+  sellerWebsite: string | null;
   sellerIndustry: string;
   sourcePages: string[];
   websiteLastAnalyzed: string;
@@ -33,6 +34,24 @@ export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
   userOverrides?: Partial<SellerIntelligenceEditable>;
   userEditedAt?: string;
   analysisError?: string;
+  /** Name/vertical-bound company-name web research metadata. */
+  researchVersion?: number;
+  researchIdentity?: {
+    companyName: string;
+    vertical: string;
+    aliases?: string[];
+  };
+  researchStatus?: "ready" | "limited" | "failed";
+  researchLastAnalyzed?: string;
+  /** ISO timestamp used by the UI as the public research provenance marker. */
+  researchedGenerated?: string;
+  researchMethod?: "responses_web_search";
+  researchSources?: Array<{
+    title: string;
+    url: string;
+    publishedDate?: string | null;
+  }>;
+  researchGenerated?: SellerIntelligenceEditable;
 }
 
 export const usersTable = pgTable("users", {

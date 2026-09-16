@@ -5,7 +5,7 @@ description: Trust, evidence, and separation rules for Opportunity Scores.
 
 Opportunity Intelligence is a server-derived snapshot. Never trust client-supplied score arithmetic; recompute supplied snapshots from trusted prospect fields and current seller context. Preserve null for legacy or manual prospects that have no snapshot.
 
-For IT Services, the research-based sections supersede the older narrative restrictions below: **Industry IT Challenges**, **Prospect IT Concerns**, and **Recommended Solutions and Outreach**. Industry-based possibilities are explicitly requested and allowed when labeled as possibilities, never promoted to verified buying signals. Keep the older generic-fallback restrictions for other verticals.
+The research-based sections supersede the older narrative restrictions below: **Industry Challenges**, **Prospect Concerns**, and **Recommended Solutions and Outreach**, contextualized by the seller's “Your Industry.” IT Services uses the IT-specific titles. Industry-based possibilities are explicitly requested and allowed when labeled as possibilities, never promoted to verified buying signals.
 
 **Why:** The user's IT research specification deliberately separates industry context, company evidence, and seller solutions. Suppressing every industry-based possibility would contradict that request; treating one as verified would also contradict it.
 

@@ -265,8 +265,10 @@ export function OpportunityIntelligenceView({
   vertical,
 }: OpportunityIntelligenceViewProps) {
   const isIT = vertical === "it_services";
-  const hasITResearch = !!intelligence?.itResearch;
-  const isLegacyIT = isIT && !hasITResearch;
+  // The structured report is still stored under the legacy `itResearch`
+  // property for API compatibility, but now applies to every seller vertical.
+  const hasStructuredResearch = !!intelligence?.itResearch;
+  const isLegacyReport = !hasStructuredResearch;
 
   const signals = Array.isArray(intelligence?.signals) ? intelligence.signals.filter(Boolean) : [];
   const companyInformation = signals.filter(
@@ -322,8 +324,8 @@ export function OpportunityIntelligenceView({
   }
 
   if (compact) {
-    if (hasITResearch && intelligence.itResearch) {
-      return <ITResearchView research={intelligence.itResearch} compact />;
+    if (hasStructuredResearch && intelligence.itResearch) {
+      return <ITResearchView research={intelligence.itResearch} sellerVertical={vertical} compact />;
     }
     const positiveOpportunities = compactPositiveText(
       displayPotentialOpportunities
@@ -375,7 +377,7 @@ export function OpportunityIntelligenceView({
                 {generatedAt && <span className="flex items-center gap-1.5 text-muted-foreground"><History className="h-3.5 w-3.5" /> Generated: {generatedAt}</span>}
               </div>
             </div>
-            {onRefresh && !isLegacyIT && (
+            {onRefresh && !isLegacyReport && (
               <div className="shrink-0 mt-3 sm:mt-0">
                 <Button size="sm" variant="outline" onClick={onRefresh} disabled={isRefreshing}>
                   <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -385,7 +387,7 @@ export function OpportunityIntelligenceView({
             )}
           </div>
 
-          {displayWhyTarget && !hasITResearch && !isLegacyIT && (
+          {displayWhyTarget && !hasStructuredResearch && !isLegacyReport && (
             <Card className="border-primary/15 bg-primary/5 shadow-none">
               <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Why Target</CardTitle></CardHeader>
               <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayWhyTarget}</p></CardContent>
@@ -422,7 +424,7 @@ export function OpportunityIntelligenceView({
         </>
       )}
 
-      {isLegacyIT ? (
+      {isLegacyReport ? (
         <Card className="border-amber-200 bg-amber-50/50 shadow-none dark:border-amber-900/50 dark:bg-amber-900/10">
           <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
             <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
@@ -431,7 +433,9 @@ export function OpportunityIntelligenceView({
             <div className="space-y-1">
               <h4 className="font-semibold text-amber-800 dark:text-amber-400">Research Update Available</h4>
               <p className="text-sm text-amber-700 dark:text-amber-300 max-w-md mx-auto">
-                This prospect was evaluated using an older intelligence model. Refresh to generate specific IT challenges, concerns, and recommended solutions based on current research.
+                {isIT
+                  ? "This prospect was evaluated using an older intelligence model. Refresh to generate specific IT challenges, concerns, and recommended solutions based on current research."
+                  : "This prospect was evaluated using an older intelligence model. Refresh to generate current industry challenges, prospect concerns, and recommended solutions based on current seller research."}
               </p>
             </div>
             {onRefresh && (
@@ -441,8 +445,8 @@ export function OpportunityIntelligenceView({
             )}
           </CardContent>
         </Card>
-      ) : hasITResearch && intelligence.itResearch ? (
-        <ITResearchView research={intelligence.itResearch} />
+      ) : hasStructuredResearch && intelligence.itResearch ? (
+        <ITResearchView research={intelligence.itResearch} sellerVertical={vertical} />
       ) : (
         <>
           {hiringSignals.length > 0 && (

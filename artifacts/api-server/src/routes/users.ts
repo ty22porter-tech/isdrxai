@@ -7,16 +7,21 @@ import { getEngagementSettings, DEFAULT_ENGAGEMENT_SETTINGS } from "../lib/engag
 import { ObjectStorageService } from "../lib/objectStorage";
 import { getObjectAclPolicy } from "../lib/objectAcl";
 import {
-  analyzeSellerIntelligence,
   applySellerIntelligenceSources,
   buildGenericSellerProfile,
-  equivalentWebsite,
-  isSafelySameCompanyWebsite,
   normalizeWebsite,
   SellerIntelligenceEditableSchema,
   type SellerIntelligenceEditable,
   type SellerIntelligenceProfile,
 } from "../lib/sellerIntelligence";
+import {
+  ensureCurrentSellerResearch,
+  researchSellerCompany,
+  sellerResearchIdentity,
+  sellerResearchSameCompany,
+  researchedIdentityMatchesPrior,
+  sellerResearchWriteSnapshotMatches,
+} from "../lib/sellerResearch";
 
 const objectStorage = new ObjectStorageService();
 
@@ -167,13 +172,18 @@ router.put("/settings", async (req, res) => {
   let previousProfileRemainsActive = false;
   const websiteWasIncluded = Object.prototype.hasOwnProperty.call(req.body ?? {}, "website");
   if (websiteWasIncluded) {
-    if (typeof website !== "string" || !website.trim()) {
-      return res.status(400).json({ error: "A company website is required." });
-    }
-    try {
-      update.website = normalizeWebsite(website.slice(0, 300));
-    } catch (err) {
-      return res.status(400).json({ error: err instanceof Error ? err.message : "Enter a valid public website URL." });
+    if (website === null || (typeof website === "string" && !website.trim())) {
+      // The website is an optional signature/display field. It is not a
+      // prerequisite for seller research and changing it never purges facts.
+      update.website = null;
+    } else if (typeof website === "string") {
+      try {
+        update.website = normalizeWebsite(website.slice(0, 300));
+      } catch (err) {
+        return res.status(400).json({ error: err instanceof Error ? err.message : "Enter a valid public website URL." });
+      }
+    } else {
+      return res.status(400).json({ error: "Enter a valid public HTTP(S) website URL." });
     }
   }
   if (typeof mobilePhone === "string" || mobilePhone === null) update.mobilePhone = mobilePhone ? String(mobilePhone).trim().slice(0, 50) : null;
@@ -227,7 +237,7 @@ router.put("/settings", async (req, res) => {
     update.verticalSelected = true;
   }
 
-  if (typeof businessName === "string") update.businessName = businessName;
+  if (typeof businessName === "string") update.businessName = businessName.trim().slice(0, 240);
   if (typeof senderName === "string") update.senderName = senderName;
   if (typeof phone === "string") update.phone = phone;
   if (typeof businessAddress === "string") update.businessAddress = businessAddress;
@@ -241,102 +251,109 @@ router.put("/settings", async (req, res) => {
   }
   if (timezone) update.timezone = timezone;
 
-  // Serialize settings saves per account in Postgres. The fresh row read after
-  // this lock makes first-save and website-change analysis idempotent even when
-  // multiple app instances receive concurrent requests.
-  const [user] = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`seller-settings:${req.clientId}`}))`);
-    const [currentUser] = await tx.select().from(usersTable).where(eq(usersTable.id, req.clientId));
-    if (!currentUser) throw new Error("User settings could not be found.");
-
-    const previous = currentUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
-    const websiteChanged = Boolean(
-      websiteWasIncluded &&
-      update.website &&
-      (!currentUser.website || !equivalentWebsite(update.website, currentUser.website)),
-    );
-    const targetVertical = update.vertical ?? currentUser.vertical;
-
-    if (update.vertical && !websiteChanged && previous) {
-      update.sellerIntelligenceProfile = {
-        ...previous,
-        sellerIndustry: targetVertical,
-      };
-    }
-
-    // Website analysis is intentionally bounded and best-effort: saving
-    // settings must not discard a valid website because an external site is
-    // temporarily down.
-    const shouldAnalyzeWebsite = Boolean(
-      websiteWasIncluded && update.website && (websiteChanged || !previous),
-    );
-    if (shouldAnalyzeWebsite) {
-      try {
-        const analyzed = await analyzeSellerIntelligence(update.website, targetVertical);
-        // Explicit edits are company facts, so carry them only across an
-        // analysis that resolves to the same conservative hostname identity.
-        const keepOverrides = Boolean(
-          previous &&
-          isSafelySameCompanyWebsite(previous.sellerWebsite, analyzed.sellerWebsite),
-        );
-        update.sellerIntelligenceProfile = applySellerIntelligenceSources(analyzed, {
-          differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
-          servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
-          ...(keepOverrides ? {
-            userOverrides: previous?.userOverrides,
-            userEditedAt: previous?.userEditedAt,
-          } : {}),
-        });
-      } catch (err) {
-        req.log.warn({ err }, "Seller intelligence analysis failed while saving settings");
-        websiteAnalysisFailed = true;
-        const sameCompany = Boolean(
-          previous && isSafelySameCompanyWebsite(previous.sellerWebsite, update.website),
-        );
-        if (sameCompany && (previous?.status === "ready" || previous?.status === "needs_review")) {
-          // A transient failure must not evict useful cached intelligence for
-          // the same company. Newly saved AI instructions still become active.
-          update.sellerIntelligenceProfile = {
-            ...applySellerIntelligenceSources(previous, {
-              differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
-              servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
-              userOverrides: previous.userOverrides,
-              userEditedAt: previous.userEditedAt,
-            }),
-            lastAnalysisAttemptStatus: "failed",
-            lastAnalysisAttemptAt: new Date().toISOString(),
-            analysisError: "We could not update Company Intelligence from this website.",
-          };
-          previousProfileRemainsActive = true;
-        } else {
-          // A different company's old facts must never remain active under the
-          // newly saved website, even when that means operating in limited mode.
-          update.sellerIntelligenceProfile = applySellerIntelligenceSources(
-            buildGenericSellerProfile(
-              update.website,
-              targetVertical,
-              "We could not analyze this website yet. Please try reanalyzing later.",
-            ),
-            {
-              differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
-              servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+  // Seller analysis is keyed by Settings business name + Your Industry. A
+  // website edit alone deliberately does not enter this branch.
+  const [beforeSave] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  if (!beforeSave) return res.status(404).json({ error: "User settings could not be found." });
+  const previous = beforeSave.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+  const targetCompanyName = (update.businessName ?? beforeSave.businessName ?? "").trim();
+  const targetVertical = update.vertical ?? beforeSave.vertical;
+  const businessNameIncluded = typeof businessName === "string";
+  const companyChanged = businessNameIncluded
+    && (beforeSave.businessName ?? "").trim().toLowerCase() !== targetCompanyName.toLowerCase();
+  const verticalChanged = Boolean(update.vertical && update.vertical !== beforeSave.vertical);
+  const shouldResearchSeller = Boolean(targetCompanyName && (
+    companyChanged
+    || verticalChanged
+    || (!previous && businessNameIncluded)
+  ));
+  let researchedProfile: SellerIntelligenceProfile | undefined;
+  if (shouldResearchSeller) {
+    try {
+      const analyzed = await researchSellerCompany({
+        companyName: targetCompanyName,
+        vertical: targetVertical,
+        website: update.website ?? beforeSave.website,
+      }, { force: true, clientId: req.clientId });
+      const keepOverrides = sellerResearchSameCompany(previous, targetCompanyName)
+        || researchedIdentityMatchesPrior(analyzed, previous);
+      researchedProfile = applySellerIntelligenceSources(analyzed, {
+        differentiatorsInput: update.sellerDifferentiatorsInput ?? beforeSave.sellerDifferentiatorsInput,
+        servicePriorities: update.sellerServicePriorities ?? beforeSave.sellerServicePriorities,
+        ...(keepOverrides && previous?.userOverrides ? {
+          userOverrides: previous.userOverrides,
+          userEditedAt: previous.userEditedAt,
+        } : {}),
+      });
+    } catch (err) {
+      req.log.warn({ err }, "Seller company-name research failed while saving settings");
+      websiteAnalysisFailed = true;
+      const sameCompany = sellerResearchSameCompany(previous, targetCompanyName);
+      const attemptedAt = new Date().toISOString();
+      researchedProfile = sameCompany && previous
+        ? {
+            ...previous,
+            sellerIndustry: targetVertical,
+            researchIdentity: {
+              ...(previous.researchIdentity ?? {}),
+              ...sellerResearchIdentity(targetCompanyName, targetVertical),
             },
-          );
-        }
-      }
-    } else if (previous &&
-      (update.sellerDifferentiatorsInput !== undefined || update.sellerServicePriorities !== undefined || update.vertical)) {
-      update.sellerIntelligenceProfile = applySellerIntelligenceSources(
-        update.sellerIntelligenceProfile ?? previous,
-        {
-          differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
-          servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
-        },
-      );
+            researchStatus: "failed",
+            researchMethod: "responses_web_search",
+            lastAnalysisAttemptStatus: "failed",
+            lastAnalysisAttemptAt: attemptedAt,
+            analysisError: err instanceof Error ? err.message.slice(0, 200) : "Company-name web research failed.",
+          }
+        : {
+            ...buildGenericSellerProfile(
+              update.website ?? beforeSave.website,
+              targetVertical,
+              err instanceof Error ? err.message : "Company-name web research failed.",
+              targetCompanyName,
+            ),
+            researchIdentity: sellerResearchIdentity(targetCompanyName, targetVertical),
+          };
+      previousProfileRemainsActive = Boolean(sameCompany && previous
+        && (previous.status === "ready" || previous.status === "needs_review"));
     }
+  }
 
-    return tx.update(usersTable).set(update).where(eq(usersTable.id, req.clientId)).returning();
-  });
+  // Serialize the actual write per account. Re-read after the web call so a
+  // concurrent save cannot silently attach the wrong company facts.
+  let user: typeof usersTable.$inferSelect | undefined;
+  try {
+    [user] = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`seller-settings:${req.clientId}`}))`);
+      const [currentUser] = await tx.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+      if (!currentUser) throw new Error("User settings could not be found.");
+
+      const currentPrevious = currentUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+      if (researchedProfile && !sellerResearchWriteSnapshotMatches(currentUser, beforeSave)) {
+        throw Object.assign(
+          new Error("Seller settings changed while company research was running. Your changes were preserved; reload and try again."),
+          { status: 409 },
+        );
+      }
+      if (researchedProfile) {
+        update.sellerIntelligenceProfile = researchedProfile;
+      } else if (currentPrevious &&
+        (update.sellerDifferentiatorsInput !== undefined || update.sellerServicePriorities !== undefined)) {
+        update.sellerIntelligenceProfile = applySellerIntelligenceSources(
+          currentPrevious,
+          {
+            differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
+            servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+          },
+        );
+      }
+
+      return tx.update(usersTable).set(update).where(eq(usersTable.id, req.clientId)).returning();
+    });
+  } catch (err: any) {
+    if (err?.status === 409) return res.status(409).json({ error: err.message });
+    throw err;
+  }
+  if (!user) return res.status(404).json({ error: "User settings could not be found." });
   websiteAnalysisFailed = user.sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed";
   previousProfileRemainsActive = Boolean(
     websiteAnalysisFailed &&
@@ -372,115 +389,97 @@ router.put("/settings", async (req, res) => {
 });
 
 router.post("/company-intelligence/refresh", async (req, res) => {
-  const result = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`seller-settings:${req.clientId}`}))`);
-    const [currentUser] = await tx.select().from(usersTable).where(eq(usersTable.id, req.clientId));
-    if (!currentUser?.website) {
-      return { missingWebsite: true as const };
-    }
-
-    const previous = currentUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
-    try {
-      const analyzed = await analyzeSellerIntelligence(currentUser.website, currentUser.vertical);
-      const keepOverrides = Boolean(
-        previous &&
-        isSafelySameCompanyWebsite(previous.sellerWebsite, analyzed.sellerWebsite),
-      );
-      const profile = applySellerIntelligenceSources(analyzed, {
-        differentiatorsInput: currentUser.sellerDifferentiatorsInput,
-        servicePriorities: currentUser.sellerServicePriorities,
-        ...(keepOverrides ? {
-          userOverrides: previous?.userOverrides,
-          userEditedAt: previous?.userEditedAt,
-        } : {}),
-      });
-      await tx.update(usersTable)
-        .set({ sellerIntelligenceProfile: profile })
-        .where(eq(usersTable.id, req.clientId));
-      return { failed: false as const, profile };
-    } catch (err) {
-      req.log.warn({ err, userId: req.clientId }, "Seller intelligence manual reanalysis failed");
-      const previousRemainsActive = previous?.status === "ready" || previous?.status === "needs_review";
-      const profile = previousRemainsActive
-        ? {
-            ...previous,
-            lastAnalysisAttemptStatus: "failed" as const,
-            lastAnalysisAttemptAt: new Date().toISOString(),
-            analysisError: "We could not update Company Intelligence from this website.",
-          }
-        : buildGenericSellerProfile(
-            normalizeWebsite(currentUser.website),
-            currentUser.vertical,
-            "We could not analyze this website yet. Please try reanalyzing later.",
-          );
-      await tx.update(usersTable)
-        .set({ sellerIntelligenceProfile: profile })
-        .where(eq(usersTable.id, req.clientId));
-      return { failed: true as const, profile, previousRemainsActive };
-    }
-  });
-
-  if ("missingWebsite" in result) {
-    return res.status(400).json({ error: "Save a company website before reanalyzing it." });
+  const [currentUser] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  const companyName = currentUser?.businessName?.trim()
+    || currentUser?.sellerIntelligenceProfile?.researchIdentity?.companyName?.trim()
+    || currentUser?.sellerIntelligenceProfile?.sellerCompanyName?.trim();
+  if (!currentUser || !companyName) {
+    return res.status(400).json({ error: "Save your business name in Settings before researching Company Intelligence." });
   }
-  if (result.failed) {
+  const refreshed = await ensureCurrentSellerResearch(req.clientId, {
+    ...currentUser,
+    businessName: companyName,
+  }, { force: true });
+  const profile = refreshed.sellerIntelligenceProfile;
+  const failed = profile?.researchStatus === "failed";
+  const previousRemainsActive = Boolean(
+    failed && (profile?.status === "ready" || profile?.status === "needs_review"),
+  );
+  if (failed) {
     return res.status(502).json({
-      error: result.previousRemainsActive
-        ? "We could not reanalyze company intelligence. Your previous profile is still available."
-        : "We could not analyze this website. Please try reanalyzing later.",
-      sellerIntelligenceStatus: result.profile.status,
-      sellerIntelligenceProfile: result.profile,
+      error: previousRemainsActive
+        ? "We could not re-research Company Intelligence. Your previous profile is still available."
+        : "We could not research this company yet. Please try again later.",
+      sellerIntelligenceStatus: profile?.status ?? "limited",
+      sellerIntelligenceProfile: profile,
       sellerIntelligenceUpdateFailed: true,
-      previousSellerIntelligenceRemainsActive: result.previousRemainsActive,
+      previousSellerIntelligenceRemainsActive: previousRemainsActive,
     });
   }
   return res.json({
-    sellerIntelligenceStatus: result.profile.status,
-    sellerIntelligenceProfile: result.profile,
+    sellerIntelligenceStatus: profile?.status ?? "limited",
+    sellerIntelligenceProfile: profile,
     sellerIntelligenceUpdateFailed: false,
     previousSellerIntelligenceRemainsActive: false,
   });
 });
 
 router.put("/company-intelligence", async (req, res) => {
-  const current = req.dbUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
+  const sellerUser = await ensureCurrentSellerResearch(req.clientId, req.dbUser);
+  const current = sellerUser.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
   if (!current) {
-    return res.status(400).json({ error: "Add and analyze a company website before editing company intelligence." });
+    return res.status(400).json({ error: "Research your seller company before editing Company Intelligence." });
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "sellerCompanyName")
+    && String(req.body.sellerCompanyName ?? "").trim() !== String(current.sellerCompanyName ?? "").trim()) {
+    return res.status(400).json({ error: "Research Profile Company Name is read-only; update the canonical Business Name in Settings." });
   }
   const parsed = SellerIntelligenceEditableSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Company intelligence contains an invalid or oversized field." });
   }
   const editableKeys: (keyof SellerIntelligenceEditable)[] = [
-    "sellerCompanyName", "sellerServices", "sellerProducts", "sellerCapabilities",
+    "sellerServices", "sellerProducts", "sellerCapabilities",
     "sellerDifferentiators", "sellerCertifications", "sellerIndustriesServed",
     "sellerBusinessOutcomes", "sellerProblemsSolved", "sellerProofPoints",
     "sellerPortfolioExamples", "sellerValuePropositions", "sellerTypicalCustomers",
     "sellerCTAs",
   ];
-  const baseline = applySellerIntelligenceSources(current, {
-    differentiatorsInput: req.dbUser.sellerDifferentiatorsInput,
-    servicePriorities: req.dbUser.sellerServicePriorities,
-    userOverrides: {},
-  });
-  const userOverrides: Partial<SellerIntelligenceEditable> = { ...(current.userOverrides ?? {}) };
-  for (const key of editableKeys) {
-    if (JSON.stringify(parsed.data[key]) === JSON.stringify(baseline[key])) {
-      delete userOverrides[key];
-    } else {
-      (userOverrides as Record<string, unknown>)[key] = parsed.data[key];
+  const [saved] = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`seller-settings:${req.clientId}`}))`);
+    const [lockedUser] = await tx.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+    if (!lockedUser?.sellerIntelligenceProfile) {
+      return [];
     }
-  }
-  const userEditedAt = new Date().toISOString();
-  const profile = applySellerIntelligenceSources(current, {
-    differentiatorsInput: req.dbUser.sellerDifferentiatorsInput,
-    servicePriorities: req.dbUser.sellerServicePriorities,
-    userOverrides,
-    userEditedAt,
+    const lockedCurrent = lockedUser.sellerIntelligenceProfile as SellerIntelligenceProfile;
+    const baseline = applySellerIntelligenceSources(lockedCurrent, {
+      differentiatorsInput: lockedUser.sellerDifferentiatorsInput,
+      servicePriorities: lockedUser.sellerServicePriorities,
+      userOverrides: {},
+    });
+    const userOverrides: Partial<SellerIntelligenceEditable> = { ...(lockedCurrent.userOverrides ?? {}) };
+    for (const key of editableKeys) {
+      if (JSON.stringify(parsed.data[key]) === JSON.stringify(baseline[key])) {
+        delete userOverrides[key];
+      } else {
+        (userOverrides as Record<string, unknown>)[key] = parsed.data[key];
+      }
+    }
+    const profile = applySellerIntelligenceSources(lockedCurrent, {
+      differentiatorsInput: lockedUser.sellerDifferentiatorsInput,
+      servicePriorities: lockedUser.sellerServicePriorities,
+      userOverrides,
+      userEditedAt: new Date().toISOString(),
+    });
+    return tx.update(usersTable)
+      .set({ sellerIntelligenceProfile: profile })
+      .where(eq(usersTable.id, req.clientId))
+      .returning();
   });
-  await db.update(usersTable)
-    .set({ sellerIntelligenceProfile: profile })
-    .where(eq(usersTable.id, req.clientId));
+  if (!saved?.sellerIntelligenceProfile) {
+    return res.status(400).json({ error: "Research your seller company before editing Company Intelligence." });
+  }
+  const profile = saved?.sellerIntelligenceProfile as SellerIntelligenceProfile;
   return res.json({
     sellerIntelligenceStatus: profile.status,
     sellerIntelligenceProfile: profile,

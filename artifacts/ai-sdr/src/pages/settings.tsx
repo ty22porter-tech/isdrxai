@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUpload } from "@workspace/object-storage-web";
 import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox, ImageIcon, Camera, Paperclip, Trash2, FileText, Upload, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CompanyIntelligenceEditor } from "@/components/company-intelligence-editor";
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { CompanyIntelligenceEditor, sellerResearchTimestamps } from "@/components/company-intelligence-editor";
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(`/api${path}`, { credentials: "include", ...options });
@@ -17,24 +15,9 @@ async function apiFetch(path: string, options?: RequestInit) {
   return data;
 }
 
-function parsedCompanyWebsite(value: string): URL | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  try {
-    const parsed = new URL(/^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`);
-    if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname.includes(".") || parsed.username || parsed.password) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function comparableCompanyWebsite(value: string): string | null {
-  const parsed = parsedCompanyWebsite(value);
-  if (!parsed) return null;
-  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
-  const pathname = parsed.pathname.replace(/\/+$/, "") || "/";
-  return `${hostname}${pathname}`;
+/** Send an explicit empty string so an optional saved website can be cleared. */
+export function buildWebsiteSettingsUpdate(value: string): { website: string } {
+  return { website: value.trim() };
 }
 
 const objectUrl = (path: string) => `/api/storage${path}`;
@@ -85,6 +68,27 @@ function IntelligenceValue({ value }: { value: unknown }) {
   }
 
   return <>{String(value)}</>;
+}
+
+function normalizedIdentityValue(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+/** Legacy profiles may say ready, but are current only with seller provenance. */
+export function hasCurrentSellerResearch(
+  profile: Record<string, unknown> | null | undefined,
+  sellerCompanyName: string,
+  sellerVertical: string,
+): boolean {
+  const identity = profile?.researchIdentity as Record<string, unknown> | undefined;
+  return Boolean(
+    profile
+      && profile.researchVersion !== undefined
+      && profile.researchStatus
+      && identity
+      && normalizedIdentityValue(identity.companyName) === normalizedIdentityValue(sellerCompanyName)
+      && normalizedIdentityValue(identity.vertical) === normalizedIdentityValue(sellerVertical),
+  );
 }
 
 function SingleFileCard({
@@ -331,7 +335,10 @@ export default function SettingsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName,
+          // businessName is the canonical seller identity. The seller-company
+          // research service uses it together with vertical; website is only a
+          // separate, optional contact/signature field.
+          businessName: businessName.trim(),
           senderName,
           phone,
           businessAddress,
@@ -341,7 +348,7 @@ export default function SettingsPage() {
           sellerDifferentiatorsInput: sellerDifferentiatorsInput || null,
           sellerServicePriorities: sellerServicePriorities || null,
           mobilePhone: mobilePhone || null,
-          ...(website.trim() ? { website: website.trim() } : {}),
+          ...buildWebsiteSettingsUpdate(website),
           companyLogoPath,
           profilePhotoPath,
           attachments,
@@ -358,11 +365,11 @@ export default function SettingsPage() {
         type: updateFailed ? "err" : "ok",
         text: updateFailed
           ? data.previousSellerIntelligenceRemainsActive
-            ? "Settings saved. Company Intelligence could not be updated, so your previous profile remains active."
-            : "Settings saved. Company Intelligence could not be updated; try reanalyzing later."
-          : data.website
-            ? "Settings saved. Your Company Intelligence is active."
-            : "Settings saved. Add your company website before generating new prospects.",
+            ? "Settings saved. Seller research could not be updated, so your previous profile remains active."
+            : "Settings saved. Seller research could not be updated; try refreshing later."
+          : data.sellerIntelligenceProfile?.researchStatus === "ready"
+            ? "Settings saved. Seller research is active."
+            : "Settings saved.",
       });
       setTimeout(() => setSaveMsg(null), 3000);
     },
@@ -377,38 +384,58 @@ export default function SettingsPage() {
       setIntelligenceUpdateFailed(false);
       qc.setQueryData(["me"], (current: any) => ({ ...current, ...data }));
       qc.invalidateQueries({ queryKey: ["me"] });
-      setIntelligenceMsg({ type: "ok", text: "Company Intelligence reanalysis is complete and active." });
+      setIntelligenceMsg({ type: "ok", text: "Seller research refresh is complete and active." });
     },
     onError: (err: Error) => {
       setIntelligenceUpdateFailed(true);
-      setIntelligenceMsg({ type: "err", text: err.message });
+      setIntelligenceMsg({ type: "err", text: err.message || "Seller research could not be refreshed." });
     },
   });
 
-  const allSet = !!(me?.platformEmailReady && me?.outreachEmail);
-  const savedWebsite = (me?.website ?? "").trim();
-  const websiteIsValid = parsedCompanyWebsite(website) !== null;
-  const websiteChanged = comparableCompanyWebsite(website) !== comparableCompanyWebsite(savedWebsite);
+  const savedBusinessName = (me?.businessName ?? "").trim();
+  const savedVertical = me?.vertical ?? "";
+  const sellerIdentityChanged = normalizedIdentityValue(businessName) !== normalizedIdentityValue(savedBusinessName)
+    || vertical !== savedVertical;
   const sellerIntelligenceProfile = me?.sellerIntelligenceProfile as Record<string, unknown> | null | undefined;
   const intelligenceStatus = String(
-    sellerIntelligenceProfile?.status
+    sellerIntelligenceProfile?.researchStatus
+      ?? sellerIntelligenceProfile?.status
       ?? sellerIntelligenceProfile?.analysisStatus
       ?? sellerIntelligenceProfile?.state
       ?? "",
   ).toLowerCase();
+  const researchIdentity = sellerIntelligenceProfile?.researchIdentity as Record<string, unknown> | undefined;
+  const researchIdentityMatchesSeller = Boolean(
+    researchIdentity
+      && normalizedIdentityValue(researchIdentity.companyName) === normalizedIdentityValue(savedBusinessName)
+      && normalizedIdentityValue(researchIdentity.vertical) === normalizedIdentityValue(savedVertical),
+  );
+  // A legacy profile may still say "ready", but without the new provenance
+  // fields it must not be presented as current seller research.
+  const hasResearchProvenance = Boolean(
+    sellerIntelligenceProfile
+      && sellerIntelligenceProfile.researchVersion !== undefined
+      && sellerIntelligenceProfile.researchStatus
+      && researchIdentity,
+  );
+  const intelligenceNeedsRefresh = Boolean(
+    sellerIntelligenceProfile && (!hasResearchProvenance || !researchIdentityMatchesSeller),
+  );
   const intelligenceIsAnalyzing = refreshIntelligenceMutation.isPending
-    || (mutation.isPending && websiteChanged && websiteIsValid)
+    || (mutation.isPending && businessName.trim() && vertical && (sellerIdentityChanged || !hasResearchProvenance))
     || /analy[sz]|pending|queued|processing|refresh/.test(intelligenceStatus);
   const intelligenceIsLimited = intelligenceStatus === "limited";
   const intelligenceNeedsReview = intelligenceStatus === "needs_review";
-  const intelligenceIsReady = intelligenceStatus === "ready";
+  const intelligenceIsReady = intelligenceStatus === "ready"
+    && hasCurrentSellerResearch(sellerIntelligenceProfile, savedBusinessName, savedVertical);
   const intelligenceAnalysisFailed = intelligenceUpdateFailed
     || me?.sellerIntelligenceUpdateFailed === true
-    || sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed";
-  const websiteAllowsSave = websiteIsValid || (!savedWebsite && !website.trim());
-  const intelligenceDisplayFields = sellerIntelligenceProfile
-    ? Object.entries(sellerIntelligenceProfile).filter(([key]) => !["status", "analysisStatus", "state", "error", "lastError"].includes(key))
-    : [];
+    || sellerIntelligenceProfile?.lastAnalysisAttemptStatus === "failed"
+    || intelligenceStatus === "failed";
+  const { lastResearched, lastAttempt } = sellerIntelligenceProfile
+    ? sellerResearchTimestamps(sellerIntelligenceProfile)
+    : {};
+  const sellerNameAllowsSave = businessName.trim().length > 0;
 
   const {
     data: deliverability,
@@ -566,12 +593,12 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">All AI-generated emails, call scripts, and the prospect scheduling page use messaging tailored to this industry.</p>
+             <p className="text-xs text-muted-foreground">This is your seller industry. It sets the seller vertical used to research your offerings and match them to a separately selected prospect industry.</p>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" /> Business Name
+               <Building2 className="w-4 h-4 text-primary" /> Seller Company Name <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -579,8 +606,15 @@ export default function SettingsPage() {
               onChange={e => setBusinessName(e.target.value)}
               placeholder="e.g. SparkClean Commercial Services"
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+               data-testid="input-business-name"
+               aria-invalid={isLoaded && !sellerNameAllowsSave}
+               aria-describedby="business-name-help business-name-error"
+               required
             />
-            <p className="text-xs text-muted-foreground">This is what prospects see in the "From" field of every email.</p>
+             {isLoaded && !sellerNameAllowsSave && (
+               <p id="business-name-error" className="text-xs text-red-400 font-medium">SELLER COMPANY NAME REQUIRED</p>
+             )}
+             <p id="business-name-help" className="text-xs text-muted-foreground">Required to identify your seller business and start public research. This is also what prospects see in the "From" field of every email.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -627,7 +661,7 @@ export default function SettingsPage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-2">
-              <ExternalLink className="w-4 h-4 text-primary" /> Company Website <span className="text-red-400">*</span>
+               <ExternalLink className="w-4 h-4 text-primary" /> Company Website <span className="text-xs text-muted-foreground font-normal">(optional)</span>
             </label>
             <input
               type="text"
@@ -637,23 +671,12 @@ export default function SettingsPage() {
                 setIntelligenceUpdateFailed(false);
               }}
               placeholder="e.g. https://www.yourcompany.com"
-              className={`w-full bg-background border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 ${
-                !websiteAllowsSave ? "border-red-400 focus:ring-red-400/50" : "border-border"
-              }`}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               data-testid="input-company-website"
-              aria-invalid={!websiteAllowsSave}
-              aria-describedby="company-website-help company-website-error"
-              required
+              aria-describedby="company-website-help"
             />
-            {!website.trim() ? (
-              <p id="company-website-error" className="text-xs text-red-400 font-medium">COMPANY WEBSITE REQUIRED</p>
-            ) : !websiteIsValid ? (
-              <p id="company-website-error" className="text-xs text-red-400">Enter a valid company website, such as https://yourcompany.com</p>
-            ) : null}
             <p id="company-website-help" className="text-xs text-muted-foreground mt-1">
-              iSDRX AI uses your website to learn what your company sells, the industries you serve, your strengths, differentiators, certifications, capabilities, and value proposition. This intelligence is used to research prospects and personalize your sales strategy and outreach.
-              <br />
-              <span className="text-[11px] opacity-80 mt-1 block">Your website can also be included in your email signature.</span>
+               Optional contact/business field. Add it when you want your website included in your email signature or available as business contact information; it does not determine seller research.
             </p>
           </div>
 
@@ -665,7 +688,7 @@ export default function SettingsPage() {
                      ? "border-red-500/30 bg-red-500/10"
                   : intelligenceIsReady
                     ? "border-emerald-500/30 bg-emerald-500/10"
-                    : intelligenceNeedsReview
+                   : intelligenceNeedsRefresh || intelligenceNeedsReview
                       ? "border-amber-500/30 bg-amber-500/10"
                       : intelligenceIsLimited
                         ? "border-amber-500/30 bg-amber-500/10"
@@ -681,7 +704,7 @@ export default function SettingsPage() {
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                 ) : intelligenceIsReady ? (
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                ) : intelligenceNeedsReview ? (
+                ) : intelligenceNeedsRefresh || intelligenceNeedsReview ? (
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 ) : intelligenceIsLimited ? (
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
@@ -690,32 +713,33 @@ export default function SettingsPage() {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className={`text-xs font-semibold ${
-                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceAnalysisFailed ? "text-red-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceNeedsReview || intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
+                    intelligenceIsAnalyzing ? "text-blue-400" : intelligenceAnalysisFailed ? "text-red-400" : intelligenceIsReady ? "text-emerald-400" : intelligenceNeedsRefresh || intelligenceNeedsReview || intelligenceIsLimited ? "text-amber-400" : "text-muted-foreground"
                   }`}>
                     {
-                      intelligenceIsAnalyzing ? "ANALYZING YOUR COMPANY"
-                      : intelligenceAnalysisFailed ? "COMPANY INTELLIGENCE COULD NOT BE UPDATED"
-                      : intelligenceIsReady ? "COMPANY INTELLIGENCE READY"
-                      : intelligenceNeedsReview ? "COMPANY INTELLIGENCE NEEDS REVIEW"
-                      : intelligenceIsLimited ? "COMPANY INTELLIGENCE NEEDS REVIEW"
-                      : !savedWebsite ? "COMPANY WEBSITE REQUIRED"
-                      : "COMPANY INTELLIGENCE NOT ANALYZED"
+                      intelligenceIsAnalyzing ? "RESEARCHING YOUR SELLER BUSINESS"
+                      : intelligenceAnalysisFailed ? "SELLER RESEARCH COULD NOT BE UPDATED"
+                      : intelligenceIsReady ? "SELLER RESEARCH READY"
+                      : intelligenceNeedsRefresh ? "SELLER RESEARCH UPDATE AVAILABLE"
+                      : intelligenceNeedsReview ? "SELLER RESEARCH NEEDS REVIEW"
+                      : intelligenceIsLimited ? "SELLER RESEARCH NEEDS REVIEW"
+                      : !sellerNameAllowsSave ? "SELLER COMPANY NAME REQUIRED"
+                      : "SELLER RESEARCH NOT STARTED"
                     }
                   </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {intelligenceIsAnalyzing
-                    ? "iSDRX AI is learning your services, capabilities, strengths, and value proposition."
+                    ? "Public research is identifying your offerings, evidence, and company identity for seller-side prospect matching."
                      : intelligenceAnalysisFailed
-                       ? intelligenceIsReady || intelligenceNeedsReview
-                         ? "Your previous Company Intelligence remains active. Try reanalyzing the website later."
-                         : "We could not analyze this website yet. Try reanalyzing the website later."
+                       ? "Your previous seller profile remains active when available. Refresh seller research to try again."
                     : intelligenceIsReady
-                      ? "Your AI Sales Development Employee understands your company and is ready to use this intelligence for prospect research, opportunity matching, sales strategy, and personalized outreach."
-                      : intelligenceNeedsReview || intelligenceIsLimited
-                        ? "We analyzed your website but found limited information. Review the Company Intelligence below or add additional details."
-                        : savedWebsite
-                          ? "Your website was saved but could not be analyzed. Try reanalyzing later."
-                          : "Add your company website so iSDRX AI can learn your business and personalize prospecting."}
+                       ? "Seller research is ready for prospect matching, with source-backed offerings and evidence shown below when available."
+                       : intelligenceNeedsRefresh
+                         ? "This profile needs a refresh to confirm seller identity and publicly discovered offerings, evidence, and rebrands."
+                         : intelligenceNeedsReview || intelligenceIsLimited
+                           ? "Seller research found limited information. Review the profile below or add approved details."
+                           : !sellerNameAllowsSave
+                             ? "Enter your seller company name to start public research."
+                             : "Save your seller company name and industry to start public research."}
                 </p>
               </div>
             </div>
@@ -724,7 +748,7 @@ export default function SettingsPage() {
               <Collapsible open={intelligenceOpen} onOpenChange={setIntelligenceOpen}>
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="h-auto px-0 py-1 text-xs text-primary hover:bg-transparent">
-                    {intelligenceOpen ? "Hide Company Intelligence" : "View Company Intelligence"}
+                    {intelligenceOpen ? "Hide Seller Research" : "View Seller Research"}
                     <ChevronDown className={`ml-1.5 h-3.5 w-3.5 transition-transform ${intelligenceOpen ? "rotate-180" : ""}`} />
                   </Button>
                 </CollapsibleTrigger>
@@ -736,9 +760,8 @@ export default function SettingsPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-4 border-t border-border/50">
               <div className="text-[11px] text-muted-foreground">
-                {Boolean(sellerIntelligenceProfile?.websiteLastAnalyzed) && (
-                  <span>Last analyzed: {new Date(sellerIntelligenceProfile?.websiteLastAnalyzed as string).toLocaleDateString()}</span>
-                )}
+                {lastResearched && <span>Last researched: {new Date(lastResearched).toLocaleDateString()}</span>}
+                {lastAttempt && <span className={lastResearched ? "ml-3" : undefined}>Last attempt: {new Date(lastAttempt).toLocaleDateString()}</span>}
               </div>
 
               <div className="flex items-center gap-2">
@@ -746,21 +769,21 @@ export default function SettingsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={!savedWebsite || refreshIntelligenceMutation.isPending}
+                  disabled={!sellerNameAllowsSave || !savedVertical || refreshIntelligenceMutation.isPending}
                   onClick={() => {
                     setIntelligenceMsg(null);
                     refreshIntelligenceMutation.mutate();
                   }}
-                  title="Scan your website again if your services, messaging, capabilities, or company information have changed."
-                  data-testid="button-reanalyze-website"
+                  title="Refresh public seller research for this company and seller industry."
+                  data-testid="button-refresh-seller-research"
                 >
                   {refreshIntelligenceMutation.isPending ? (
-                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Analyzing…</>
+                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Researching…</>
                   ) : (
-                    <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Reanalyze Website</>
+                    <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh Seller Research</>
                   )}
                 </Button>
-                {!savedWebsite && <span className="text-xs text-muted-foreground">Save a website first</span>}
+                {!sellerNameAllowsSave || !savedVertical ? <span className="text-xs text-muted-foreground">Save a seller company name and industry first</span> : null}
               </div>
             </div>
             {intelligenceMsg && (
@@ -772,7 +795,7 @@ export default function SettingsPage() {
 
             <div className="mt-8 mb-4 border-t border-border/70 pt-6">
               <h3 className="text-sm font-semibold tracking-tight text-foreground">OPTIONAL AI EMPLOYEE INSTRUCTIONS</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Your AI employee already learns your company from your website. Add information below only if you want to give it additional guidance.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Public seller research already identifies your company. Add information below only when you want to provide additional guidance or approved priorities.</p>
             </div>
 
             <div className="grid gap-4 rounded-lg border border-border/60 bg-muted/20 p-4 md:grid-cols-2">
@@ -813,7 +836,7 @@ export default function SettingsPage() {
                     ? "For IT Services, this is your approved ICP solution catalog. Recommended Outreach may use these solutions when they meaningfully match a prospect's website-backed business challenge, even if the solution is not listed on your website."
                     : vertical === "fleet_wraps"
                       ? "For Fleet & Vehicle Wraps, this is your approved solution catalog. Recommended Outreach will match the prospect's documented business operation or verified company event to the most relevant solution for your individual client profile, even if the solution is not listed on your website."
-                    : "Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use the services identified from your website."}
+                      : "Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use offerings identified through seller research."}
                 </p>
               </div>
             </div>
@@ -1172,12 +1195,12 @@ export default function SettingsPage() {
 
           <Button
             className="w-full"
-            disabled={mutation.isPending || isLoading || !websiteAllowsSave}
+            disabled={mutation.isPending || isLoading || !sellerNameAllowsSave}
             onClick={() => mutation.mutate()}
             data-testid="button-save-settings"
           >
             {mutation.isPending ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {websiteChanged ? "Saving & starting analysis…" : "Saving…"}</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {sellerIdentityChanged ? "Saving & researching…" : "Saving…"}</>
             ) : "Save Settings"}
           </Button>
         </div>

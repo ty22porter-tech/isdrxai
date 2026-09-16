@@ -94,6 +94,23 @@ describe("OpportunityIntelligenceView", () => {
     expect(onRefresh).toHaveBeenCalled();
   });
 
+  it("renders a generic legacy refresh prompt for non-IT sellers", () => {
+    const onRefresh = vi.fn();
+    render(
+      <OpportunityIntelligenceView
+        intelligence={mockLegacyITIntelligence}
+        vertical="janitorial"
+        onRefresh={onRefresh}
+      />,
+    );
+
+    expect(screen.getByText("Research Update Available")).toBeInTheDocument();
+    expect(screen.getByText(/current industry challenges, prospect concerns/i)).toBeInTheDocument();
+    expect(screen.queryByText(/specific IT challenges/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Refresh Intelligence/i }));
+    expect(onRefresh).toHaveBeenCalled();
+  });
+
   it("renders ITResearch sections", () => {
     render(
       <OpportunityIntelligenceView
@@ -149,5 +166,44 @@ describe("OpportunityIntelligenceView", () => {
     
     // Should show "Refreshing..." text
     expect(screen.getByRole("button", { name: /Refreshing\.\.\./i })).toBeDisabled();
+  });
+
+  it("uses generic report headings when legacy itResearch is attached to a non-IT seller", () => {
+    render(
+      <OpportunityIntelligenceView
+        intelligence={mockITResearchIntelligence}
+        vertical="janitorial"
+      />,
+    );
+
+    expect(screen.getByText("Industry Challenges")).toBeInTheDocument();
+    expect(screen.getByText("Prospect Concerns")).toBeInTheDocument();
+    expect(screen.queryByText("Industry IT Challenges")).not.toBeInTheDocument();
+    expect(screen.queryByText("Prospect IT Concerns")).not.toBeInTheDocument();
+  });
+
+  it("keeps the solutions section visible with honest empty-state guidance", () => {
+    render(
+      <OpportunityIntelligenceView
+        intelligence={{
+          ...mockITResearchIntelligence,
+          itResearch: {
+            ...mockITResearchIntelligence.itResearch!,
+            recommendations: [],
+          },
+        }}
+        vertical="it_services"
+      />,
+    );
+
+    expect(screen.getByText("Industry IT Challenges")).toBeInTheDocument();
+    expect(screen.getByText("Prospect IT Concerns")).toBeInTheDocument();
+    expect(screen.getByText("Recommended Solutions and Outreach")).toBeInTheDocument();
+    expect(screen.getByTestId("empty-recommended-solutions")).toHaveTextContent(
+      "No supported matching offering found",
+    );
+    expect(screen.getByTestId("empty-recommended-solutions")).toHaveTextContent(
+      "Refresh seller research or review the seller research profile",
+    );
   });
 });

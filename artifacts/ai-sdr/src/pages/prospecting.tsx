@@ -150,6 +150,11 @@ type ProspectingSnapshot = {
 
 const storageKeyForUser = (userId: string) => `prospecting:inprogress:${userId}`;
 
+/** Prospecting needs the seller identity, never a seller website. */
+export function hasSellerProfileForProspecting(profile?: { businessName?: string | null; vertical?: string | null } | null): boolean {
+  return Boolean(profile?.businessName?.trim() && profile?.vertical);
+}
+
 // Saved lists reference market data that goes stale over time. Snapshots older
 // than this are auto-discarded on hydration rather than offered for restore.
 const SNAPSHOT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -349,10 +354,10 @@ export default function Prospecting() {
   };
 
   const runSearch = (overrideParams?: ProspectingSnapshot["params"]) => {
-    if (!me?.website) {
+    if (!hasSellerProfileForProspecting(me)) {
       toast({
-        title: "Company website required",
-        description: "Add your company website in Settings so your AI employee can learn your business before researching prospects.",
+        title: "Seller profile required",
+        description: "Add your seller company name and choose your seller industry in Settings before researching prospects.",
         variant: "destructive",
       });
       return;
@@ -939,6 +944,9 @@ export default function Prospecting() {
               ? "Generate a targeted list of IT services prospects — companies likely to need managed IT, cybersecurity, and compliance support. Add them directly to your pipeline."
               : "Generate a targeted list of commercial prospects in any market. Add them directly to your pipeline."}
           </p>
+          <p className="mt-2 text-xs font-medium text-primary" data-testid="text-seller-vertical">
+            Seller vertical: {verticalLabel}. Prospect Industry below is the market you want to search.
+          </p>
         </div>
 
         {restorable && (
@@ -978,15 +986,15 @@ export default function Prospecting() {
           </Card>
         )}
 
-        {verticalLoaded && !me?.website && (
-          <Card className="border-amber-500/40 bg-amber-500/10" data-testid="notice-company-website-required">
+         {verticalLoaded && !hasSellerProfileForProspecting(me) && (
+          <Card className="border-amber-500/40 bg-amber-500/10" data-testid="notice-seller-profile-required">
             <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-2.5">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                 <div>
-                  <p className="text-sm font-semibold">Add your company website before generating prospects</p>
+                  <p className="text-sm font-semibold">Complete your seller profile before generating prospects</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Your AI employee uses Company Intelligence to match opportunities and personalize sales strategy without guessing what your business sells.
+                    Add your seller company name and choose Your Industry in Settings. Your seller industry controls seller-side matching; the Prospect Industry below describes the businesses you want to find.
                   </p>
                 </div>
               </div>
@@ -1000,6 +1008,7 @@ export default function Prospecting() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Search Parameters</CardTitle>
+            <p className="text-xs text-muted-foreground">Seller vertical: {verticalLabel} · select a separate Prospect Industry to describe your target businesses.</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
@@ -1026,7 +1035,7 @@ export default function Prospecting() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Industry</Label>
+                <Label>Prospect Industry</Label>
                 <Select value={industry} onValueChange={setIndustry}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select industry" />
@@ -1037,6 +1046,7 @@ export default function Prospecting() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">This is the selected prospect market, not your seller industry.</p>
               </div>
               <div className="space-y-2">
                 <Label>Count</Label>
@@ -1085,7 +1095,7 @@ export default function Prospecting() {
             <div className="mt-5 flex items-center gap-3">
               <Button
                 onClick={handleSearch}
-                disabled={searchMutation.isPending || !verticalLoaded || !me?.website}
+                disabled={searchMutation.isPending || !verticalLoaded || !hasSellerProfileForProspecting(me)}
                 className="min-w-[140px]"
                 data-testid="button-generate-leads"
               >
@@ -1191,7 +1201,7 @@ export default function Prospecting() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">
-                {leads.length} prospects found in {city}, {state} — {industry}
+                 {leads.length} prospects found in {city}, {state} — Prospect Industry: {industry}
                 {enrichLeadsMutation.isPending && (
                   <span className="ml-2 inline-flex items-center gap-1 text-primary">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Looking up decision-maker contacts…

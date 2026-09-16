@@ -37,6 +37,8 @@ export interface ResearchSource {
 }
 
 export interface ItResearch {
+  /** Seller vertical that contextualized this report; legacy field name retained for API compatibility. */
+  sellerVertical?: "janitorial" | "it_services" | "fleet_wraps" | string;
   selectedIndustry: string;
   actualIndustry: string | null;
   industryRelationship: "match" | "serves_industry" | "mismatch" | "uncertain";

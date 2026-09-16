@@ -94,6 +94,52 @@ const response = {
 };
 
 describe("IT opportunity research", () => {
+  it("uses source-backed research offerings even when narrative depth leaves the profile needing review", () => {
+    const needsReviewSeller = {
+      ...seller,
+      sellerIntelligenceProfile: {
+        ...seller.sellerIntelligenceProfile,
+        status: "needs_review",
+        researchStatus: "ready",
+        researchGenerated: {
+          ...seller.sellerIntelligenceProfile,
+          sellerCompanyName: "SecurePath IT",
+          sellerServices: ["managed IT services"],
+          sellerProducts: [],
+          sellerCapabilities: ["endpoint security"],
+          sellerValuePropositions: [],
+        },
+      },
+    } as any;
+    const offerings = approvedOfferingsForResearch(needsReviewSeller);
+    expect(offerings.map(item => item.offering)).toEqual(expect.arrayContaining([
+      "managed IT services",
+      "endpoint security",
+    ]));
+    const importedSchemaSeller = {
+      ...needsReviewSeller,
+      sellerIntelligenceProfile: {
+        ...needsReviewSeller.sellerIntelligenceProfile,
+        researchStatus: undefined,
+      },
+    } as any;
+    expect(approvedOfferingsForResearch(importedSchemaSeller).length).toBeGreaterThan(0);
+
+    const responseWithActualOffering = structuredClone(response);
+    const responseBody = JSON.parse((responseWithActualOffering.output[1] as any).content[0].text);
+    responseBody.recommendations[0].offeringId = offerings[0].id;
+    (responseWithActualOffering.output[1] as any).content[0].text = JSON.stringify(responseBody);
+    const report = parseItOpportunityResearchResponse(responseWithActualOffering, {
+      selectedIndustry: "Manufacturing",
+      companyName: "Example Health",
+      website: "https://example.com",
+      sellerVertical: "it_services",
+    }, needsReviewSeller);
+    expect(report?.recommendations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ offering: offerings[0].offering }),
+    ]));
+  });
+
   it("keeps possibilities distinct from company-verified claims and flags mismatch", () => {
     const report = parseItOpportunityResearchResponse(response, {
       selectedIndustry: "Manufacturing",

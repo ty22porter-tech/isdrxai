@@ -22,7 +22,20 @@ export function SourcesList({ sources }: { sources: ResearchSource[] }) {
   );
 }
 
-export function ITResearchView({ research, compact }: { research: ItResearch; compact?: boolean }) {
+export function ITResearchView({
+  research,
+  compact,
+  sellerVertical,
+}: {
+  research: ItResearch;
+  compact?: boolean;
+  /** Legacy reports can exist under itResearch for non-IT seller verticals. */
+  sellerVertical?: string;
+}) {
+  const isITSeller = sellerVertical === "it_services";
+  const industryChallengesHeading = isITSeller ? "Industry IT Challenges" : "Industry Challenges";
+  const prospectConcernsHeading = isITSeller ? "Prospect IT Concerns" : "Prospect Concerns";
+
   if (compact) {
     return (
       <div className="space-y-2" data-testid="section-it-research-compact">
@@ -81,11 +94,11 @@ export function ITResearchView({ research, compact }: { research: ItResearch; co
         </div>
       )}
 
-      {research.industryChallenges && research.industryChallenges.length > 0 && (
-        <section className="space-y-3">
-          <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-            <Briefcase className="h-4 w-4" /> Industry IT Challenges
-          </h4>
+      <section className="space-y-3">
+        <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          <Briefcase className="h-4 w-4" /> {industryChallengesHeading}
+        </h4>
+        {research.industryChallenges && research.industryChallenges.length > 0 ? (
           <div className="grid gap-3">
             {research.industryChallenges.map((challenge, i) => (
               <Card key={i} className="shadow-none">
@@ -100,14 +113,18 @@ export function ITResearchView({ research, compact }: { research: ItResearch; co
               </Card>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="rounded-lg border bg-muted/25 p-3 text-sm text-muted-foreground">
+            No industry challenges identified in this report.
+          </p>
+        )}
+      </section>
 
-      {research.prospectConcerns && research.prospectConcerns.length > 0 && (
-        <section className="space-y-3">
-          <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-            <Target className="h-4 w-4" /> Prospect IT Concerns
-          </h4>
+      <section className="space-y-3">
+        <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          <Target className="h-4 w-4" /> {prospectConcernsHeading}
+        </h4>
+        {research.prospectConcerns && research.prospectConcerns.length > 0 ? (
           <div className="grid gap-3">
             {research.prospectConcerns.map((concern) => (
               <Card key={concern.id} className="shadow-none">
@@ -139,14 +156,18 @@ export function ITResearchView({ research, compact }: { research: ItResearch; co
               </Card>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="rounded-lg border bg-muted/25 p-3 text-sm text-muted-foreground">
+            No prospect concerns identified in this report.
+          </p>
+        )}
+      </section>
 
-      {research.recommendations && research.recommendations.length > 0 && (
-        <section className="space-y-3">
-          <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-            <Lightbulb className="h-4 w-4" /> Recommended Solutions and Outreach
-          </h4>
+      <section className="space-y-3">
+        <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          <Lightbulb className="h-4 w-4" /> Recommended Solutions and Outreach
+        </h4>
+        {research.recommendations && research.recommendations.length > 0 ? (
           <div className="grid gap-3">
             {research.recommendations.map((rec, i) => (
               <Card key={i} className="border-primary/20 bg-primary/5 shadow-none">
@@ -177,8 +198,12 @@ export function ITResearchView({ research, compact }: { research: ItResearch; co
               </Card>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="rounded-lg border bg-muted/25 p-3 text-sm text-muted-foreground" data-testid="empty-recommended-solutions">
+            No supported matching offering found in this report. Refresh seller research or review the seller research profile for current offerings.
+          </p>
+        )}
+      </section>
       
       {research.lastResearched && (
         <p className="text-xs text-muted-foreground flex items-center gap-1.5">

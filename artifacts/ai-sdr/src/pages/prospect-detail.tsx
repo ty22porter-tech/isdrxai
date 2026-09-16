@@ -39,6 +39,11 @@ import { OpportunityIntelligenceView } from "@/components/opportunity-intelligen
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+/** Opportunity intelligence can be refreshed for every supported seller vertical. */
+export function supportsOpportunityRefresh(vertical: unknown): boolean {
+  return vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps";
+}
+
 interface TimelineItem {
   ts: string;
   type: string;
@@ -519,12 +524,14 @@ export default function ProspectDetail() {
           </div>
         )}
 
-        {!prospect.opportunityIntelligence && me?.vertical === "it_services" && (
+        {!prospect.opportunityIntelligence && supportsOpportunityRefresh(me?.vertical) && (
           <Card data-testid="empty-opportunity-intelligence">
             <CardHeader>
               <CardTitle>Opportunity Intelligence</CardTitle>
               <CardDescription>
-                Research current industry challenges, company-specific concerns, and solutions from your confirmed offerings.
+                {me?.vertical === "it_services"
+                  ? "Research current IT industry challenges, company-specific concerns, and solutions from your confirmed offerings."
+                  : "Research current industry challenges, company-specific concerns, and solutions from your confirmed offerings."}
               </CardDescription>
             </CardHeader>
             <CardContent>

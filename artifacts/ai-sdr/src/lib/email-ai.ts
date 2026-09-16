@@ -480,6 +480,9 @@ export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps";
 export interface SellerFallbackProfile {
   status?: "ready" | "limited";
   websiteAnalysisStatus?: "ready" | "limited";
+  researchVersion?: number;
+  researchStatus?: "ready" | "limited" | "failed";
+  researchIdentity?: { companyName?: string; vertical?: string };
   sellerCompanyName?: string | null;
   sellerServices?: string[];
   sellerProducts?: string[];
@@ -497,7 +500,9 @@ function getSeller(profile?: SellerFallbackProfile | null) {
     ...(profile?.sellerValuePropositions ?? []),
   ].map(value => value.trim()).filter(Boolean);
   const ready = profile?.status === "ready" &&
-    profile.websiteAnalysisStatus === "ready" &&
+    (profile.researchVersion !== undefined
+      ? profile.researchStatus === "ready"
+      : profile.websiteAnalysisStatus === "ready") &&
     Boolean(profile.sellerCompanyName?.trim()) &&
     offers.length > 0;
   return {

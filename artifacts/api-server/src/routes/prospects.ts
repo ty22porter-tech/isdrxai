@@ -21,6 +21,7 @@ import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 import { buildOpportunityIntelligence, deriveOpportunityForPersistence, upgradeStoredOpportunityIntelligence } from "../lib/opportunityIntelligence";
 import { attachResearchProof, verifiedResearchProof } from "../lib/itOpportunityResearch";
+import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -48,12 +49,12 @@ async function trustedProspectValues(
   // Only unsaved search results need the durable handoff. Saved records use
   // their existing server snapshot and may be freshly researched on identity
   // changes; a client cannot turn an old proof into an edit authorization.
-  if (vertical === "it_services" && requestedIntelligence?.itResearch && !priorServerIntelligence) {
+  if (requestedIntelligence?.itResearch && !priorServerIntelligence) {
     const verified = client?.id
       ? verifiedResearchProof(requestedIntelligence.researchProof, client.id, values as any, client)
       : undefined;
     if (!verified) {
-      throw new Error("The IT research handoff has expired or is invalid. Refresh research before saving this prospect.");
+      throw new Error("The opportunity research handoff has expired or is invalid. Refresh research before saving this prospect.");
     }
     const intelligence = attachResearchProof(
       buildOpportunityIntelligence(values as any, vertical, client, [], verified),
@@ -130,8 +131,9 @@ router.get("/", async (req, res) => {
   }
 
   const prospects = await db.select().from(prospectsTable).where(and(...conditions)).orderBy(sql`${prospectsTable.createdAt} desc`);
-  const client = prospects.some(prospect => prospect.opportunityIntelligence && prospect.opportunityIntelligence.version !== 3)
-    ? await currentClient(req.clientId)
+  const storedClient = await currentClient(req.clientId);
+  const client = storedClient
+    ? await ensureCurrentSellerResearch(req.clientId, storedClient)
     : undefined;
   res.json(prospects.map(p => ({
     ...p,
@@ -150,7 +152,8 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   const body = CreateProspectBody.parse(req.body);
   const scheduleToken = randomUUID();
-  const client = await currentClient(req.clientId);
+  let client = await currentClient(req.clientId);
+  client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const vertical = clientVertical(client);
   const values = await trustedProspectValues(body, vertical, client);
   const [prospect] = await db.insert(prospectsTable).values({ ...values, clientId: req.clientId, status: "new", scheduleToken, vertical }).returning();
@@ -168,7 +171,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post("/bulk", async (req, res) => {
   const { prospects, duplicateStrategy } = BulkCreateProspectsBody.parse(req.body);
-  const client = await currentClient(req.clientId);
+  let client = await currentClient(req.clientId);
+  client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const vertical = clientVertical(client);
   const results: { index: number; success: boolean; updated?: boolean; error?: string; prospect?: any }[] = [];
   let added = 0;
@@ -323,8 +327,9 @@ router.get("/:id", async (req, res) => {
   const { id } = GetProspectParams.parse({ id: parseInt(req.params.id) });
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  const client = prospect.opportunityIntelligence && prospect.opportunityIntelligence.version !== 3
-    ? await currentClient(req.clientId)
+  const storedClient = await currentClient(req.clientId);
+  const client = storedClient
+    ? await ensureCurrentSellerResearch(req.clientId, storedClient)
     : undefined;
   const opportunityIntelligence = upgradeStoredOpportunityIntelligence(
     prospect,
@@ -340,7 +345,8 @@ router.patch("/:id", async (req, res) => {
   const body = UpdateProspectBody.parse(req.body);
   const [existing] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!existing) return res.status(404).json({ error: "Prospect not found" });
-  const client = await currentClient(req.clientId);
+  let client = await currentClient(req.clientId);
+  client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const vertical = existing.vertical || clientVertical(client);
   const updateValues: Record<string, any> = { ...body };
   const intelligenceInputs = new Set(["companyName", "industry", "city", "state", "website", "address", "phone", "title"]);

@@ -27,6 +27,58 @@ function intelligenceFieldLabel(key: string) {
     .replace("Seller ", "");
 }
 
+function sourceRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : null;
+}
+
+function citationDetails(value: unknown) {
+  if (typeof value === "string") return { label: value, url: "", evidence: "", date: "" };
+  const source = sourceRecord(value);
+  if (!source) return { label: "Public source", url: "", evidence: "", date: "" };
+  const label = [
+    source.title,
+    source.name,
+    source.sourceName,
+    source.publisher,
+    source.domain,
+  ].find((item): item is string => typeof item === "string" && item.trim().length > 0)?.trim() || "Public source";
+  const url = [source.url, source.sourceURL, source.href]
+    .find((item): item is string => typeof item === "string" && item.trim().length > 0)?.trim() || "";
+  const evidence = [source.evidence, source.supportingEvidence, source.description, source.citation]
+    .find((item): item is string => typeof item === "string" && item.trim().length > 0)?.trim() || "";
+  const date = [source.publishedDate, source.sourceDate, source.date]
+    .find((item): item is string => typeof item === "string" && item.trim().length > 0)?.trim() || "";
+  return { label, url, evidence, date };
+}
+
+function validTimestamp(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim() || Number.isNaN(Date.parse(value))) return undefined;
+  return value;
+}
+
+/**
+ * A failed research attempt must not be presented as the last successful
+ * research. New profiles use researchLastAnalyzed for the successful evidence
+ * timestamp and lastAnalysisAttemptAt for a separate attempt timestamp;
+ * researchedGenerated remains a compatibility fallback for successful legacy
+ * profiles.
+ */
+export function sellerResearchTimestamps(profile: Record<string, unknown>): {
+  lastResearched?: string;
+  lastAttempt?: string;
+} {
+  const status = profile.researchStatus;
+  const hasSuccessfulResearch = status === "ready" || status === "limited";
+  const lastResearched = hasSuccessfulResearch
+    ? validTimestamp(profile.researchLastAnalyzed) ?? validTimestamp(profile.researchedGenerated)
+    : undefined;
+  const lastAttempt = validTimestamp(profile.lastAnalysisAttemptAt)
+    ?? (status === "failed" || profile.lastAnalysisAttemptStatus === "failed"
+      ? validTimestamp(profile.researchLastAnalyzed)
+      : undefined);
+  return { lastResearched, lastAttempt };
+}
+
 function StringArrayField({
   label,
   items,
@@ -36,7 +88,7 @@ function StringArrayField({
   label: string;
   items: string[];
   onChange: (items: string[]) => void;
-  source: "Website intelligence" | "User-edited intelligence";
+  source: "Public research" | "Approved edit";
 }) {
   return (
     <div className="space-y-2 border-t border-border pt-4 mt-4">
@@ -90,7 +142,6 @@ function StringArrayField({
 export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState(() => ({
-    sellerCompanyName: profile.sellerCompanyName || "",
     sellerServices: Array.isArray(profile.sellerServices) ? profile.sellerServices : [],
     sellerProducts: Array.isArray(profile.sellerProducts) ? profile.sellerProducts : [],
     sellerCapabilities: Array.isArray(profile.sellerCapabilities) ? profile.sellerCapabilities : [],
@@ -106,10 +157,20 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
     sellerCTAs: Array.isArray(profile.sellerCTAs) ? profile.sellerCTAs : [],
   }));
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const researchIdentity = sourceRecord(profile.researchIdentity);
+  const researchSources = Array.isArray(profile.researchSources) ? profile.researchSources : [];
+  const hasResearchProvenance = Boolean(
+    profile.researchVersion !== undefined && profile.researchStatus && researchIdentity,
+  );
+  const researchStatus = hasResearchProvenance
+    ? String(profile.researchStatus).replace(/_/g, " ")
+    : "refresh needed";
+  const researchMethod = typeof profile.researchMethod === "string" ? profile.researchMethod : "";
+  const researchVersion = profile.researchVersion;
+  const { lastResearched, lastAttempt } = sellerResearchTimestamps(profile);
 
   useEffect(() => {
     setDraft({
-      sellerCompanyName: profile.sellerCompanyName || "",
       sellerServices: Array.isArray(profile.sellerServices) ? profile.sellerServices : [],
       sellerProducts: Array.isArray(profile.sellerProducts) ? profile.sellerProducts : [],
       sellerCapabilities: Array.isArray(profile.sellerCapabilities) ? profile.sellerCapabilities : [],
@@ -130,7 +191,6 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
     mutationFn: async () => {
       const payload = {
         ...draft,
-        sellerCompanyName: draft.sellerCompanyName.trim() || null,
         ...Object.fromEntries(
           Object.entries(draft)
             .filter(([, value]) => Array.isArray(value))
@@ -152,7 +212,7 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["me"] });
-      setMsg({ type: "ok", text: "Company intelligence updated successfully." });
+      setMsg({ type: "ok", text: "Seller research edits updated successfully." });
       setTimeout(() => setMsg(null), 3000);
     },
     onError: (err: Error) => {
@@ -179,30 +239,87 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
   return (
     <div className="space-y-4 rounded-md border border-border/70 bg-background/60 p-4 text-xs mt-3">
       <div className="rounded-md border border-border bg-card/60 p-3 text-muted-foreground">
-        Website intelligence is the foundation. Fields marked as user-edited contain changes you saved and take priority over the website analysis.
+        Seller research summarizes publicly discovered offerings and evidence for this company, including rebrands when public sources connect the old and current identity. Fields marked as approved edits override same-company research on future refreshes.
       </div>
-      <dl className="grid gap-2 rounded-md border border-border/70 p-3 sm:grid-cols-3">
+      <dl className="grid gap-2 rounded-md border border-border/70 p-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="seller-research-metadata">
         <div>
           <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Company</dt>
           <dd className="mt-1 text-sm text-foreground">{profile.sellerCompanyName || "Not identified"}</dd>
         </div>
         <div>
-          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website</dt>
-          <dd className="mt-1 break-all text-sm text-foreground">{profile.sellerWebsite || "Not available"}</dd>
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Seller industry</dt>
+          <dd className="mt-1 text-sm text-foreground">{profile.sellerIndustry || researchIdentity?.vertical || "Not available"}</dd>
         </div>
         <div>
-          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Industry</dt>
-          <dd className="mt-1 text-sm text-foreground">{profile.sellerIndustry || "Not available"}</dd>
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Research status</dt>
+          <dd className="mt-1 capitalize text-sm text-foreground">{researchStatus}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Research version</dt>
+          <dd className="mt-1 text-sm text-foreground">{researchVersion ?? "Legacy profile"}</dd>
+        </div>
+        <div className="sm:col-span-2 lg:col-span-4">
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Company website (optional contact field)</dt>
+          <dd className="mt-1 break-all text-sm text-foreground">{profile.sellerWebsite || "Not provided"}</dd>
         </div>
       </dl>
+      <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-muted-foreground" data-testid="seller-research-provenance">
+        <p>
+          <span className="font-medium text-foreground">Research provenance:</span>{" "}
+          {researchMethod || "Public web research"}.
+          {lastResearched && <> Last researched {new Date(lastResearched).toLocaleString()}.</>}
+          {lastAttempt && <> Last attempt {new Date(lastAttempt).toLocaleString()}.</>}
+        </p>
+        {researchIdentity && (
+          <p className="mt-1">
+            <span className="font-medium text-foreground">Research identity:</span>{" "}
+            {String(researchIdentity.companyName || profile.sellerCompanyName || "Unknown company")}
+            {researchIdentity.vertical ? ` · seller industry ${String(researchIdentity.vertical)}` : ""}
+          </p>
+        )}
+      </div>
+      {researchSources.length > 0 && (
+        <section className="space-y-2" data-testid="seller-research-sources">
+          <div>
+            <h3 className="text-sm font-semibold">Public research sources</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Citations supporting publicly discovered offerings, evidence, and company identity.</p>
+          </div>
+          <ul className="space-y-2">
+            {researchSources.map((source: unknown, index: number) => {
+              const citation = citationDetails(source);
+              return (
+                <li key={index} className="rounded-md border border-border/70 bg-background px-3 py-2">
+                  {citation.url ? (
+                    <a href={citation.url} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline" data-testid={`link-seller-research-source-${index}`}>
+                      {citation.label}
+                    </a>
+                  ) : (
+                    <span className="font-medium text-foreground">{citation.label}</span>
+                  )}
+                  {citation.date && <span className="ml-2 text-muted-foreground">({citation.date})</span>}
+                  {citation.evidence && <p className="mt-1 text-muted-foreground">{citation.evidence}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold">Company Name</label>
+        <label htmlFor="input-research-profile-company-name" className="text-sm font-semibold">Research Profile Company Name</label>
         <input
           type="text"
-          value={draft.sellerCompanyName}
-          onChange={e => setDraft({ ...draft, sellerCompanyName: e.target.value })}
-          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          value={profile.sellerCompanyName || ""}
+          readOnly
+          aria-readonly="true"
+          data-testid="input-research-profile-company-name"
+          className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground"
         />
+        <p className="text-xs text-muted-foreground">This is read-only here. To change the canonical seller identity used for new research, update Seller Company Name in Settings.</p>
+        {typeof researchIdentity?.companyName === "string" && researchIdentity.companyName !== profile.sellerCompanyName && (
+          <p className="text-xs text-muted-foreground">
+            Public research resolved a related name: <span className="font-medium text-foreground">{String(researchIdentity.companyName)}</span>. This does not change your Seller Company Name.
+          </p>
+        )}
       </div>
 
       {arrayFields.map(key => (
@@ -211,7 +328,7 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
           label={intelligenceFieldLabel(key)}
           items={draft[key as keyof typeof draft] as string[]}
           onChange={(items) => setDraft({ ...draft, [key]: items })}
-          source={Object.prototype.hasOwnProperty.call(profile.userOverrides ?? {}, key) ? "User-edited intelligence" : "Website intelligence"}
+          source={Object.prototype.hasOwnProperty.call(profile.userOverrides ?? {}, key) ? "Approved edit" : "Public research"}
         />
       ))}
 

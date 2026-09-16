@@ -20,7 +20,6 @@ import {
   sellerIntelligenceProfile,
 } from "../lib/prospectMatching";
 import { buildOpportunityIntelligence } from "../lib/opportunityIntelligence";
-import { researchOfficialWebsite } from "../lib/officialWebsiteResearch";
 import { researchPublicBreachRecords } from "../lib/publicBreachResearch";
 import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
 import {
@@ -31,6 +30,7 @@ import {
   researchItOpportunityIntelligence,
   withResearchPipelineTimeout,
 } from "../lib/itOpportunityResearch";
+import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -44,9 +44,7 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
   const sq = squareFootage ? `${squareFootage.toLocaleString()} sq ft` : null;
   const emp = employeeCount ? `${employeeCount}-person` : null;
   const vertical = getVerticalConfig(client?.vertical).key;
-  const researchIndustry = vertical === "it_services"
-    ? prospect.opportunityIntelligence?.itResearch?.actualIndustry || industry
-    : industry;
+  const researchIndustry = prospect.opportunityIntelligence?.itResearch?.actualIndustry || industry;
 
   const offering = seller.services[0] || seller.capabilities[0] || "a relevant solution";
   const subjects = [`A question about ${companyName}`, `${companyName} and ${researchIndustry}`, `${offering} for ${companyName}`];
@@ -62,9 +60,7 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
   const claims = seller.ready
     ? `${businessName} offers ${sellerOffers.slice(0, 3).join(", ")}.${seller.differentiators[0] ? ` ${seller.differentiators[0]}.` : ""}`
     : "I’m reaching out with a brief, discovery-led question rather than assuming what solution would fit.";
-  const researchRecommendation = vertical === "it_services"
-    ? prospect.opportunityIntelligence?.itResearch?.recommendations[0]
-    : undefined;
+  const researchRecommendation = prospect.opportunityIntelligence?.itResearch?.recommendations[0];
   const researchContext = researchRecommendation
     ? `${researchRecommendation.outreachAngle} ${researchRecommendation.discoveryQuestion}`
     : `${match.operation} ${companyName}'s specific situation is something we'd want to understand rather than assume.`;
@@ -84,7 +80,6 @@ function generateCallScript(prospect: typeof prospectsTable.$inferSelect, client
   const firstName = contactName.split(" ")[0];
   const senderName = client?.senderName?.trim() || client?.businessName?.trim() || "our team";
   const businessName = client?.businessName?.trim() || "our company";
-  const sq = squareFootage ? `your ${squareFootage.toLocaleString()} sq ft space` : `your facility`;
   const vertical = getVerticalConfig(client?.vertical).key;
   const match = industryMatch(industry, vertical);
 
@@ -143,47 +138,50 @@ CLOSE (1:30 – 2:00)
     return { script, keyPoints, objectionHandlers };
   }
 
+  const researchIndustry = prospect.opportunityIntelligence?.itResearch?.actualIndustry || industry;
+  const recommendation = prospect.opportunityIntelligence?.itResearch?.recommendations[0];
+  const seller = sellerIntelligenceProfile(client);
+  const approvedOffer = recommendation?.offering;
+  const offerSentence = approvedOffer && seller.ready
+    ? `When it is relevant, we help with ${approvedOffer}.`
+    : "I’m calling to understand your current approach rather than assume a solution.";
+  const researchQuestion = recommendation?.discoveryQuestion
+    || `How is ${match.challenges[0]} being handled today, and where would additional support be most useful?`;
   const script = `OPENING (0:00 – 0:30)
-"Good [morning/afternoon], may I speak with ${firstName}? … Hi ${firstName}, this is ${senderName} calling from ${businessName}. I'm reaching out to ${industry} businesses in ${city} — I'll keep this brief, I promise. Do you have about 60 seconds?"
+"Good [morning/afternoon], may I speak with ${firstName}? … Hi ${firstName}, this is ${senderName} calling from ${businessName}. I'm reaching out regarding ${researchIndustry} operations in ${city} — I'll keep this brief. Do you have about 60 seconds?"
 
 PITCH (0:30 – 1:30)
-"We specialize in commercial cleaning for ${industry} companies, and I noticed ${companyName} is in ${city}. A lot of our clients had the same situation — their current cleaning wasn't consistent, or they were overpaying for a generic service.
+"I'm calling with one research-led question about ${companyName}: ${researchQuestion}
 
-We've helped similar businesses in the area cut their cleaning costs by 20-30% while getting more reliable results. We do everything — nightly cleaning, floor care, restroom sanitation, window cleaning — and every crew member is bonded and background-checked.
-
-The reason I'm calling is to see if it'd make sense to do a quick walkthrough of ${sq}. It's free, takes about 20 minutes, and I can give you a firm quote on the spot."
+${offerSentence} I don't want to assume there is a current problem, provider change, or purchase plan — I wanted to learn whether this is a priority for your team."
 
 CLOSE (1:30 – 2:00)
-"${objective.includes("appointment") ? `Would you be available for a site visit this week — say Tuesday or Thursday afternoon?` : `Can I send you some information about what we do for ${industry} businesses in ${city}?`}"`;
+"${objective.includes("appointment") ? `Would you be available for a brief discovery call this week — say Tuesday or Thursday afternoon?` : `Can I send a short overview after we understand whether that is relevant?`}"`;
 
   const keyPoints = [
-    `Mention ${industry}-specific experience and local ${city} presence upfront`,
-    `Lead with cost savings (20-30%) and reliability — most common pain points`,
-    `Keep the ask small: a 20-minute walkthrough, not a commitment`,
-    `Reference that the quote is free and on-the-spot to reduce friction`,
+    `Use the researched industry context (${researchIndustry}) without claiming prior experience unless it is configured`,
+    recommendation ? `Use the research-led discovery question about ${recommendation.prospectConcern}` : "Use a discovery question; no company-specific concern is assumed",
+    approvedOffer ? `Name only the matched approved offering: ${approvedOffer}` : "Do not name an unverified seller offering",
+    "Keep the ask small: a brief discovery call, not a commitment",
     `Always confirm a specific day/time, not an open-ended "sometime this week"`,
   ];
 
   const objectionHandlers = [
     {
-      objection: "We already have a cleaning company",
-      response: `"That's great to hear — most of our best clients did too before they switched. Can I ask, are you fully satisfied with the consistency and communication? We often do a complimentary side-by-side quote — no pressure, just good info to have."`,
-    },
-    {
       objection: "We're not interested / not looking right now",
-      response: `"I completely understand, ${firstName}. Timing is everything. Would it be okay if I followed up in a couple months? And if anything changes before then, I'll make sure you have my direct number."`,
+      response: `"I completely understand, ${firstName}. Timing is everything. Would it be okay if I followed up in a couple months? And if anything changes, I'll make sure you have my direct number."`,
     },
     {
       objection: "Send me information by email",
-      response: `"Absolutely, I'll send that right over. What's the best email for you? And just so the info is relevant — roughly how large is ${sq}? That helps me tailor what I send."`,
+      response: `"Absolutely, I'll send that right over. What's the best email for you? I want to make sure the information is relevant to your current operation."`,
     },
     {
       objection: "We're under contract",
-      response: `"Totally fair — contracts are there for a reason. When does that come up for renewal? I'd love to be on your radar so we can put together a proposal when the time is right. Would you be open to a 10-minute walkthrough just to have options?"`,
+      response: `"Understood. I’m not asking you to change anything today. May I send a short overview of ${approvedOffer || "the relevant approach"} for whenever a future review is useful?"`,
     },
     {
       objection: "Too busy right now",
-      response: `"Understood — I'll be quick. The walkthrough only takes 20 minutes and I come to you. Would early morning or end of day work better so it doesn't cut into your schedule?"`,
+      response: `"Understood. Would a short, scheduled discovery conversation at a more convenient time be useful, or should I send a brief overview instead?"`,
     },
   ];
 
@@ -194,7 +192,8 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
   const body = GenerateEmailBody.parse(req.body);
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const result = generatePersonalizedEmail(prospect, client, body.tone);
   return res.json(result);
 });
@@ -203,7 +202,8 @@ router.post("/generate-call-script", requireEntitlement, async (req, res) => {
   const body = GenerateCallScriptBody.parse(req.body);
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const result = generateCallScript(prospect, client, body.objective);
   return res.json(result);
 });
@@ -356,13 +356,9 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
 router.post("/prospect-search", requireEntitlement, async (req, res) => {
   const body = ProspectSearchBody.parse(req.body);
   const count = Math.min(body.count, 20);
-  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
-  if (!client?.website) {
-    return res.status(409).json({
-      error: "Add your company website in Settings before generating new prospects so iSDRX AI can learn your business and personalize prospecting.",
-      code: "COMPANY_WEBSITE_REQUIRED",
-    });
-  }
+  let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  if (!client) return res.status(404).json({ error: "User settings could not be found." });
+  client = await ensureCurrentSellerResearch(req.clientId, client);
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
@@ -381,49 +377,44 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
       const lead = vertical === "fleet_wraps"
           ? addFleetOverlay(base, body.industry, client)
           : base;
-      let opportunityIntelligence: ReturnType<typeof buildOpportunityIntelligence>;
-      if (vertical === "it_services") {
-        let researched;
-        try {
-          researched = await researchItOpportunityIntelligence({
-            clientId: req.clientId,
-            lead,
-            selectedIndustry: body.industry,
-            client,
-            force: true,
-          });
-        } catch (err) {
-          return {
-            ...lead,
-            opportunityScore: 0,
-            scoreLabel: "Research unavailable",
-            scoreExplanation: "Current IT research could not be completed for this lead.",
-            whyTarget: "Current IT opportunity research is unavailable; refresh research before saving or acting on this lead.",
-            potentialNeeds: [],
-            recommendedOutreach: "",
-            researchError: err instanceof Error ? err.message : "Current IT research could not be completed.",
-          };
-        }
-        const publicBreachSignals = await researchPublicBreachRecords({
+      let researched;
+      try {
+        // All supported seller verticals receive the same three-part,
+        // evidence-guarded report. The report's prompt and score rubric are
+        // vertical-aware; the legacy itResearch field is retained only for
+        // backwards-compatible saved payloads.
+        researched = await researchItOpportunityIntelligence({
+          clientId: req.clientId,
+          lead,
+          selectedIndustry: body.industry,
+          client,
+          force: true,
+        });
+      } catch (err) {
+        return {
           ...lead,
-          industry: body.industry,
-        });
-        const signals = [...researched.signals, ...publicBreachSignals];
-        cacheTrustedItResearch(req.clientId, lead, body.industry, client, {
-          itResearch: researched.itResearch,
-          signals,
-        });
-        opportunityIntelligence = attachResearchProof(
-          buildOpportunityIntelligence(lead, vertical, client, signals, researched.itResearch),
-          req.clientId, lead, client,
-        );
-      } else {
-        const [officialSignals, publicBreachSignals] = await Promise.all([
-          researchOfficialWebsite(lead),
-          researchPublicBreachRecords(lead),
-        ]);
-        opportunityIntelligence = buildOpportunityIntelligence(lead, vertical, client, [...officialSignals, ...publicBreachSignals]);
+          opportunityScore: 0,
+          scoreLabel: "Research unavailable",
+          scoreExplanation: `${vertical} opportunity research could not be completed for this lead.`,
+          whyTarget: "Current opportunity research is unavailable; refresh research before saving or acting on this lead.",
+          potentialNeeds: [],
+          recommendedOutreach: "",
+          researchError: err instanceof Error ? err.message : "Current opportunity research could not be completed.",
+        };
       }
+      const publicBreachSignals = await researchPublicBreachRecords({
+        ...lead,
+        industry: body.industry,
+      });
+      const signals = [...researched.signals, ...publicBreachSignals];
+      cacheTrustedItResearch(req.clientId, lead, body.industry, client, {
+        itResearch: researched.itResearch,
+        signals,
+      });
+      const opportunityIntelligence = attachResearchProof(
+        buildOpportunityIntelligence(lead, vertical, client, signals, researched.itResearch),
+        req.clientId, lead, client,
+      );
       return {
         ...lead,
         opportunityScore: opportunityIntelligence.score,
@@ -484,7 +475,9 @@ type EnrichLeadResult = {
 router.post("/enrich-leads", requireEntitlement, async (req, res) => {
   const { leads } = EnrichLeadsBody.parse(req.body);
 
-  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  if (!client) return res.status(404).json({ error: "User settings could not be found." });
+  client = await ensureCurrentSellerResearch(req.clientId, client);
   const vertical = getVerticalConfig(client?.vertical).key;
 
   const results: EnrichLeadResult[] = [];
@@ -542,10 +535,6 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         website: lead.website ?? null,
         phone: p?.phone ?? lead.phone ?? null,
       };
-      const [officialSignals, publicBreachSignals] = await Promise.all([
-        researchOfficialWebsite(intelligenceLead),
-        researchPublicBreachRecords(intelligenceLead),
-      ]);
       const apolloCompanySignal = p?.organizationDescription && p.website
         ? [{
             signalType: "company_operating_profile",
@@ -562,32 +551,30 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
             points: 0,
           }]
         : [];
-      const researchedSignals = [...officialSignals, ...publicBreachSignals, ...apolloCompanySignal];
-      if (vertical === "it_services") {
-        try {
+      try {
+        const [researched, publicBreachSignals] = await Promise.all([
           // Search intelligence is held in a server-only tenant cache, so a
           // client cannot forge its report while enriching an unsaved result.
-          const researched = await researchItOpportunityIntelligence({
+          researchItOpportunityIntelligence({
             clientId: req.clientId,
             lead: intelligenceLead,
             selectedIndustry: lead.industry,
             client,
-          });
-          const signals = [...researched.signals, ...publicBreachSignals, ...apolloCompanySignal];
-          cacheTrustedItResearch(req.clientId, intelligenceLead, lead.industry, client, {
-            itResearch: researched.itResearch,
-            signals,
-          });
-          opportunityIntelligence = attachResearchProof(
-            buildOpportunityIntelligence(intelligenceLead, vertical, client, signals, researched.itResearch),
-            req.clientId, intelligenceLead, client,
-          );
-        } catch (err) {
-          results.push({ index, status: "failed", error: err instanceof Error ? err.message : "IT intelligence research failed" });
-          return;
-        }
-      } else {
-        opportunityIntelligence = buildOpportunityIntelligence(intelligenceLead, vertical, client, researchedSignals);
+          }),
+          researchPublicBreachRecords(intelligenceLead),
+        ]);
+        const signals = [...researched.signals, ...publicBreachSignals, ...apolloCompanySignal];
+        cacheTrustedItResearch(req.clientId, intelligenceLead, lead.industry, client, {
+          itResearch: researched.itResearch,
+          signals,
+        });
+        opportunityIntelligence = attachResearchProof(
+          buildOpportunityIntelligence(intelligenceLead, vertical, client, signals, researched.itResearch),
+          req.clientId, intelligenceLead, client,
+        );
+      } catch (err) {
+        results.push({ index, status: "failed", error: err instanceof Error ? err.message : `${vertical} opportunity research failed` });
+        return;
       }
     }
     results.push({
@@ -639,10 +626,10 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
   if ((body.prospectId == null && !body.lead) || (body.prospectId != null && body.lead)) {
     return res.status(400).json({ error: "Provide exactly one of prospectId or lead." });
   }
-  const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
-  if (getVerticalConfig(client?.vertical).key !== "it_services") {
-    return res.status(409).json({ error: "Current IT intelligence research is available only for IT Services sellers." });
-  }
+  let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+  if (!client) return res.status(404).json({ error: "User settings could not be found." });
+  client = await ensureCurrentSellerResearch(req.clientId, client);
+  const sellerVertical = getVerticalConfig(client?.vertical).key;
   let savedProspect: typeof prospectsTable.$inferSelect | undefined;
   let lead: {
     companyName: string; website?: string | null; industry: string; city: string; state: string;
@@ -682,31 +669,31 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
   }
   try {
     const startedAt = Date.now();
-    req.log.info({ savedProspect: Boolean(savedProspect) }, "IT intelligence refresh research started");
-    const itResearchStartedAt = Date.now();
-    const itResearch = researchItOpportunityIntelligence({
+    req.log.info({ savedProspect: Boolean(savedProspect), sellerVertical }, "Opportunity intelligence refresh research started");
+    const opportunityResearchStartedAt = Date.now();
+    const opportunityResearch = researchItOpportunityIntelligence({
       clientId: req.clientId,
       lead,
       selectedIndustry: body.selectedIndustry,
       client,
       force: true,
     }).then(result => {
-      req.log.info({ durationMs: Date.now() - itResearchStartedAt }, "IT intelligence refresh web research phase completed");
+      req.log.info({ durationMs: Date.now() - opportunityResearchStartedAt, sellerVertical }, "Opportunity refresh web research phase completed");
       return result;
     });
     const breachStartedAt = Date.now();
     const breachResearch = researchPublicBreachRecords(lead).then(result => {
-      req.log.info({ durationMs: Date.now() - breachStartedAt }, "IT intelligence refresh public-record phase completed");
+      req.log.info({ durationMs: Date.now() - breachStartedAt, sellerVertical }, "Opportunity refresh public-record phase completed");
       return result;
     });
     const [researched, publicBreachSignals] = await withResearchPipelineTimeout(Promise.all([
-      itResearch,
+      opportunityResearch,
       breachResearch,
     ]));
-    req.log.info({ durationMs: Date.now() - startedAt, savedProspect: Boolean(savedProspect) }, "IT intelligence refresh research completed");
+    req.log.info({ durationMs: Date.now() - startedAt, savedProspect: Boolean(savedProspect), sellerVertical }, "Opportunity intelligence refresh research completed");
     const signals = [...researched.signals, ...publicBreachSignals];
     const opportunityIntelligence = attachResearchProof(
-      buildOpportunityIntelligence(lead, "it_services", client, signals, researched.itResearch),
+      buildOpportunityIntelligence(lead, sellerVertical, client, signals, researched.itResearch),
       req.clientId, lead, client,
     );
     cacheTrustedItResearch(req.clientId, lead, body.selectedIndustry, client, {
@@ -725,11 +712,11 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
     return res.json({ opportunityIntelligence });
   } catch (err) {
     const timedOut = err instanceof ItOpportunityResearchTimeoutError;
-    req.log.warn({ err, timedOut }, "IT opportunity intelligence refresh failed");
+    req.log.warn({ err, timedOut, sellerVertical }, "Opportunity intelligence refresh failed");
     return res.status(timedOut ? 504 : 502).json({
       error: err instanceof ItOpportunityResearchError
         ? err.message
-        : "Current IT intelligence research could not be completed. Existing saved intelligence was not changed.",
+        : "Current opportunity research could not be completed. Existing saved intelligence was not changed.",
     });
   }
 });

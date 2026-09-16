@@ -847,7 +847,9 @@ export function buildOpportunityIntelligence(
     potentialNeeds,
     recommendedOutreach,
     generatedAt,
-    ...(vertical === "it_services" && itResearch ? { itResearch } : {}),
+    // `itResearch` is the legacy JSON field name. The report is now
+    // vertical-aware and is used for Janitorial and Fleet as well.
+    ...(itResearch ? { itResearch } : {}),
   };
 }
 
@@ -871,7 +873,7 @@ export async function deriveOpportunityForPersistence(
     phone: input.phone,
     employeeCount: input.employeeCount,
   };
-  if (vertical === "it_services" && clientId) {
+  if (clientId) {
     // The saved report's campaign industry was produced by the server. Keep it
     // through ordinary edits instead of accepting a client-provided report or
     // silently replacing it with a newly inferred actual industry.
@@ -898,9 +900,9 @@ export async function deriveOpportunityForPersistence(
         );
       if (priorServerIntelligence && sameIdentity) return priorServerIntelligence;
       if (priorServerIntelligence) {
-        throw new Error("IT intelligence could not be refreshed after the prospect identity changed; the saved prospect was not updated.");
+        throw new Error("Opportunity intelligence could not be refreshed after the prospect identity changed; the saved prospect was not updated.");
       }
-      throw new Error("IT intelligence research could not be completed; the prospect was not saved with an unverified client snapshot.");
+      throw new Error("Opportunity research could not be completed; the prospect was not saved with an unverified client snapshot.");
     }
   }
   const [officialSignals, publicBreachSignals] = await Promise.all([

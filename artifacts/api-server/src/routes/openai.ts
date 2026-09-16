@@ -7,6 +7,7 @@ import { getVerticalConfig } from "../lib/verticals";
 import { sellerContext, sellerIntelligenceProfile } from "../lib/prospectMatching";
 import { evaluateEmailRelevance } from "../lib/emailRelevance";
 import { emailSignalAccuracyInputs, opportunityEmailContext } from "../lib/opportunityIntelligence";
+import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
 // Call the Replit model farm directly via fetch — the SDK appends /v1 which breaks routing
 async function chatComplete(messages: {role: string; content: string}[], maxTokens = 600): Promise<string> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
@@ -102,10 +103,11 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
     // The sender is the authenticated client — use their real business name so the
     // AI never invents a company (e.g. "CleanPro"). A signature is appended later by
     // composeEmail(), so the model must NOT write its own sign-off.
-    const [client] = await db
+    let [client] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, req.clientId));
+    if (client) client = await ensureCurrentSellerResearch(req.clientId, client);
     const vc = getVerticalConfig(client?.vertical);
     const businessName = client?.businessName?.trim();
     const seller = sellerIntelligenceProfile(client);
