@@ -14,7 +14,7 @@ export default function Home() {
         </div>
 
         <div className="relative space-y-4">
-          <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[.2em] text-[#80b2d7]">A quieter way to grow</p>
+          <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[.2em] text-[#80b2d7]">A fastest way to grow</p>
           <h1 className="text-4xl md:text-6xl font-bold tracking-[-.04em] text-white">
             iSDRX AI to Build Pipeline for <span className="text-[#7eb4dc]">Commercial Companies</span>
           </h1>
