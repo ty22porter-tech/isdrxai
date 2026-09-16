@@ -5,6 +5,7 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { ItResearch } from './itResearch';
 import type { OpportunityIntelligenceLabel } from './opportunityIntelligenceLabel';
 import type { OpportunityIntelligenceScoreConfidence } from './opportunityIntelligenceScoreConfidence';
 import type { OpportunityIntelligenceVersion } from './opportunityIntelligenceVersion';
@@ -31,4 +32,6 @@ export interface OpportunityIntelligence {
   potentialNeeds: string[];
   recommendedOutreach: string;
   generatedAt: Date;
+  itResearch?: ItResearch;
+  researchProof?: string;
 }

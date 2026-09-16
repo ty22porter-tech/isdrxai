@@ -19,7 +19,8 @@ import { enrichPerson } from "../lib/apollo";
 import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import { deriveOpportunityForPersistence, upgradeStoredOpportunityIntelligence } from "../lib/opportunityIntelligence";
+import { buildOpportunityIntelligence, deriveOpportunityForPersistence, upgradeStoredOpportunityIntelligence } from "../lib/opportunityIntelligence";
+import { attachResearchProof, verifiedResearchProof } from "../lib/itOpportunityResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -41,12 +42,31 @@ async function trustedProspectValues(
   vertical: string,
   client?: typeof usersTable.$inferSelect,
   priorServerIntelligence?: any,
+  priorIdentity?: any,
 ): Promise<any> {
   const { opportunityIntelligence: requestedIntelligence, ...values } = input;
+  // Only unsaved search results need the durable handoff. Saved records use
+  // their existing server snapshot and may be freshly researched on identity
+  // changes; a client cannot turn an old proof into an edit authorization.
+  if (vertical === "it_services" && requestedIntelligence?.itResearch && !priorServerIntelligence) {
+    const verified = client?.id
+      ? verifiedResearchProof(requestedIntelligence.researchProof, client.id, values as any, client)
+      : undefined;
+    if (!verified) {
+      throw new Error("The IT research handoff has expired or is invalid. Refresh research before saving this prospect.");
+    }
+    const intelligence = attachResearchProof(
+      buildOpportunityIntelligence(values as any, vertical, client, [], verified),
+      client!.id,
+      values as any,
+      client,
+    );
+    return { ...values, opportunityIntelligence: intelligence };
+  }
   const opportunityIntelligence = await deriveOpportunityForPersistence({
     ...values,
     opportunityIntelligence: requestedIntelligence,
-  } as any, vertical, client, priorServerIntelligence);
+  } as any, vertical, client, priorServerIntelligence, client?.id, priorIdentity);
   return { ...values, opportunityIntelligence };
 }
 
@@ -162,11 +182,28 @@ router.post("/bulk", async (req, res) => {
   const seenEmails = new Set(existingByEmail.keys());
   const validRows: { index: number; values: any }[] = [];
   const updateRows: { index: number; prospectId: number; input: any }[] = [];
-  const trustedInputs = await Promise.all(prospects.map(async prospectInput => {
-    const rawEmail = (prospectInput.email ?? "").trim().toLowerCase();
-    if (!prospectInput.companyName?.trim() || !EMAIL_RE.test(rawEmail)) return prospectInput;
-    if (existingByEmail.has(rawEmail) && duplicateStrategy !== "update") return prospectInput;
-    return trustedProspectValues(prospectInput, vertical, client, existingByEmail.get(rawEmail)?.opportunityIntelligence);
+  const trustedInputs: any[] = new Array(prospects.length);
+  const researchQueue = prospects.map((_, index) => index);
+  // Keep external IT research bounded for bulk persistence. A proof normally
+  // avoids research entirely; without one, preserve the route's existing
+  // all-or-nothing failure behavior rather than silently saving partial data.
+  await Promise.all(Array.from({ length: Math.min(3, prospects.length) }, async () => {
+    while (researchQueue.length) {
+      const index = researchQueue.shift();
+      if (index === undefined) return;
+      const prospectInput = prospects[index];
+      const rawEmail = (prospectInput.email ?? "").trim().toLowerCase();
+      trustedInputs[index] = (!prospectInput.companyName?.trim() || !EMAIL_RE.test(rawEmail)
+        || (existingByEmail.has(rawEmail) && duplicateStrategy !== "update"))
+        ? prospectInput
+        : await trustedProspectValues(
+          prospectInput,
+          vertical,
+          client,
+          existingByEmail.get(rawEmail)?.opportunityIntelligence,
+          existingByEmail.get(rawEmail),
+        );
+    }
   }));
   for (let i = 0; i < prospects.length; i++) {
     const input = trustedInputs[i];
@@ -311,7 +348,7 @@ router.patch("/:id", async (req, res) => {
     && Object.keys(body).some(key => intelligenceInputs.has(key));
   if (shouldRecomputeIntelligence) {
     const merged = { ...existing, ...body, opportunityIntelligence: existing.opportunityIntelligence };
-    const trusted = await trustedProspectValues(merged, vertical, client, existing.opportunityIntelligence);
+    const trusted = await trustedProspectValues(merged, vertical, client, existing.opportunityIntelligence, existing);
     updateValues.opportunityIntelligence = trusted.opportunityIntelligence;
   } else {
     delete updateValues.opportunityIntelligence;

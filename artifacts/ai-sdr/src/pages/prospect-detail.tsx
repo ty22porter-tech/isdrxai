@@ -12,7 +12,10 @@ import {
   useGenerateCallScript,
   useCreateCall,
   useCreateAppointment,
+  useRefreshOpportunityIntelligence,
+  refreshOpportunityIntelligence,
   getGetProspectQueryKey,
+  getListProspectsQueryKey,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -124,6 +127,13 @@ export default function ProspectDetail() {
   const createEmail = useCreateEmail();
   const generateCallScript = useGenerateCallScript();
   const createCall = useCreateCall();
+  const refreshIntelligence = useRefreshOpportunityIntelligence({
+    mutation: {
+      mutationFn: ({ data }) => refreshOpportunityIntelligence(data, {
+        signal: AbortSignal.timeout(100_000),
+      }),
+    },
+  });
 
   const handleStatusChange = (newStatus: string) => {
     updateProspect.mutate(
@@ -252,6 +262,26 @@ export default function ProspectDetail() {
         }
       }
     );
+  };
+
+  const handleRefreshIntelligence = async () => {
+    if (!prospect) return;
+    try {
+      const data = await refreshIntelligence.mutateAsync({
+        data: {
+          prospectId: prospect.id,
+          selectedIndustry: prospect.opportunityIntelligence?.itResearch?.selectedIndustry || prospect.industry,
+        }
+      });
+      toast({ title: "Intelligence Refreshed" });
+      // Patch cache instead of invalidating to prevent refetch loops
+      queryClient.setQueryData(getGetProspectQueryKey(prospectId), (old: any) =>
+        old ? { ...old, opportunityIntelligence: data.opportunityIntelligence } : old
+      );
+      queryClient.invalidateQueries({ queryKey: getListProspectsQueryKey() });
+    } catch (err: any) {
+      toast({ title: "Failed to refresh intelligence", description: err?.data?.error || err?.message || "An error occurred", variant: "destructive" });
+    }
   };
 
   if (isLoading) return <Layout><div className="p-8">Loading prospect data...</div></Layout>;
@@ -482,8 +512,27 @@ export default function ProspectDetail() {
             <OpportunityIntelligenceView
               intelligence={prospect.opportunityIntelligence}
               className="bg-card border rounded-lg p-6 shadow-sm"
+              vertical={me?.vertical}
+              onRefresh={handleRefreshIntelligence}
+              isRefreshing={refreshIntelligence.isPending}
             />
           </div>
+        )}
+
+        {!prospect.opportunityIntelligence && me?.vertical === "it_services" && (
+          <Card data-testid="empty-opportunity-intelligence">
+            <CardHeader>
+              <CardTitle>Opportunity Intelligence</CardTitle>
+              <CardDescription>
+                Research current industry challenges, company-specific concerns, and solutions from your confirmed offerings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={handleRefreshIntelligence} disabled={refreshIntelligence.isPending}>
+                {refreshIntelligence.isPending ? "Refreshing..." : "Refresh Intelligence"}
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         <Tabs defaultValue="timeline" className="w-full">

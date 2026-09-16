@@ -55,11 +55,13 @@ import type {
   ListEmailsParams,
   ListProspectsParams,
   OpenaiGenerateEmailRequest,
+  OpportunityIntelligenceRefreshResult,
   Prospect,
   ProspectInput,
   ProspectLead,
   ProspectSearchRequest,
   ProspectUpdate,
+  RefreshOpportunityIntelligenceRequest,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -2362,6 +2364,76 @@ export const useEnrichLeads = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getEnrichLeadsMutationOptions(options));
+    }
+
+export const getRefreshOpportunityIntelligenceUrl = () => {
+
+
+
+
+  return `/api/ai/opportunity-intelligence/refresh`
+}
+
+/**
+ * @summary Perform fresh cited IT opportunity research for a saved or unsaved prospect
+ */
+export const refreshOpportunityIntelligence = async (refreshOpportunityIntelligenceRequest: RefreshOpportunityIntelligenceRequest, options?: RequestInit): Promise<OpportunityIntelligenceRefreshResult> => {
+
+  return customFetch<OpportunityIntelligenceRefreshResult>(getRefreshOpportunityIntelligenceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(refreshOpportunityIntelligenceRequest)
+  }
+);}
+
+
+
+
+export const getRefreshOpportunityIntelligenceMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshOpportunityIntelligence>>, TError,{data: BodyType<RefreshOpportunityIntelligenceRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshOpportunityIntelligence>>, TError,{data: BodyType<RefreshOpportunityIntelligenceRequest>}, TContext> => {
+
+const mutationKey = ['refreshOpportunityIntelligence'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshOpportunityIntelligence>>, {data: BodyType<RefreshOpportunityIntelligenceRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  refreshOpportunityIntelligence(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshOpportunityIntelligenceMutationResult = NonNullable<Awaited<ReturnType<typeof refreshOpportunityIntelligence>>>
+    export type RefreshOpportunityIntelligenceMutationBody = BodyType<RefreshOpportunityIntelligenceRequest>
+    export type RefreshOpportunityIntelligenceMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Perform fresh cited IT opportunity research for a saved or unsaved prospect
+ */
+export const useRefreshOpportunityIntelligence = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshOpportunityIntelligence>>, TError,{data: BodyType<RefreshOpportunityIntelligenceRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshOpportunityIntelligence>>,
+        TError,
+        {data: BodyType<RefreshOpportunityIntelligenceRequest>},
+        TContext
+      > => {
+      return useMutation(getRefreshOpportunityIntelligenceMutationOptions(options));
     }
 
 export const getGetDashboardStatsUrl = () => {

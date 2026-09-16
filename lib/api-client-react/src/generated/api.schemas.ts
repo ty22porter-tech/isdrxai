@@ -164,6 +164,86 @@ export interface OpportunitySignal {
   points: number;
 }
 
+export type ItResearchIndustryRelationship = typeof ItResearchIndustryRelationship[keyof typeof ItResearchIndustryRelationship];
+
+
+export const ItResearchIndustryRelationship = {
+  match: 'match',
+  serves_industry: 'serves_industry',
+  mismatch: 'mismatch',
+  uncertain: 'uncertain',
+} as const;
+
+export interface ResearchSource {
+  title: string;
+  url: string;
+  /** @nullable */
+  publishedDate?: string | null;
+}
+
+export interface ItIndustryChallenge {
+  title: string;
+  explanation: string;
+  businessImpact: string;
+  sources: ResearchSource[];
+}
+
+export type ItProspectConcernClassification = typeof ItProspectConcernClassification[keyof typeof ItProspectConcernClassification];
+
+
+export const ItProspectConcernClassification = {
+  Verified: 'Verified',
+  Strong_Indicator: 'Strong Indicator',
+  'Industry-Based_Possibility': 'Industry-Based Possibility',
+} as const;
+
+export type ItProspectConcernConfidence = typeof ItProspectConcernConfidence[keyof typeof ItProspectConcernConfidence];
+
+
+export const ItProspectConcernConfidence = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export interface ItProspectConcern {
+  id: string;
+  title: string;
+  explanation: string;
+  businessImpact: string;
+  evidence: string;
+  classification: ItProspectConcernClassification;
+  confidence: ItProspectConcernConfidence;
+  sources: ResearchSource[];
+}
+
+export interface ItResearchRecommendation {
+  concernId: string;
+  prospectConcern: string;
+  offering: string;
+  howItHelps: string;
+  businessValue: string;
+  outreachAngle: string;
+  discoveryQuestion: string;
+}
+
+export interface ItResearch {
+  selectedIndustry: string;
+  /** @nullable */
+  actualIndustry: string | null;
+  industryRelationship: ItResearchIndustryRelationship;
+  industryExplanation: string;
+  industrySources: ResearchSource[];
+  lastResearched: string;
+  warnings: string[];
+  /** @maxItems 5 */
+  industryChallenges: ItIndustryChallenge[];
+  /** @maxItems 5 */
+  prospectConcerns: ItProspectConcern[];
+  /** @maxItems 5 */
+  recommendations: ItResearchRecommendation[];
+}
+
 export interface OpportunityIntelligence {
   version: OpportunityIntelligenceVersion;
   /**
@@ -184,6 +264,8 @@ export interface OpportunityIntelligence {
   potentialNeeds: string[];
   recommendedOutreach: string;
   generatedAt: string;
+  itResearch?: ItResearch;
+  researchProof?: string;
 }
 
 export interface Prospect {
@@ -588,6 +670,65 @@ export interface EnrichLeadsResult {
   /** Run-level error message (e.g. plan blocked or missing API key). */
   error?: string;
   results: EnrichLeadsResultResultsItem[];
+}
+
+export type RefreshOpportunityIntelligenceRequestLead = {
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  companyName: string;
+  /**
+     * @maxLength 2048
+     * @nullable
+     */
+  website?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  industry?: string | null;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 10000000
+     * @nullable
+     */
+  employeeCount?: number | null;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  contactName?: string | null;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  contactTitle?: string | null;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  source?: string | null;
+};
+
+export interface RefreshOpportunityIntelligenceRequest {
+  /** @minimum 1 */
+  prospectId?: number;
+  lead?: RefreshOpportunityIntelligenceRequestLead;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  selectedIndustry: string;
+}
+
+export interface OpportunityIntelligenceRefreshResult {
+  opportunityIntelligence: OpportunityIntelligence;
 }
 
 export type ProspectLeadConfidence = typeof ProspectLeadConfidence[keyof typeof ProspectLeadConfidence];

@@ -116,6 +116,11 @@ async function resolvePublicUrl(url: URL): Promise<PinnedHost> {
 
 async function pinnedRequest(url: URL, pinned: PinnedHost): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: string }> {
   return new Promise((resolve, reject) => {
+    let absoluteTimer: ReturnType<typeof setTimeout> | undefined;
+    const finish = <T>(callback: (value: T) => void, value: T) => {
+      if (absoluteTimer) clearTimeout(absoluteTimer);
+      callback(value);
+    };
     const transport = url.protocol === "https:" ? httpsRequest : httpRequest;
     const req = transport(url, {
       method: "GET",
@@ -125,7 +130,7 @@ async function pinnedRequest(url: URL, pinned: PinnedHost): Promise<{ status: nu
     }, response => {
       const contentType = String(response.headers["content-type"] || "").toLowerCase();
       const declared = Number(response.headers["content-length"] || 0);
-      if (declared > MAX_RESPONSE_BYTES) { response.destroy(); reject(new Error("Response too large")); return; }
+      if (declared > MAX_RESPONSE_BYTES) { response.destroy(); finish(reject, new Error("Response too large")); return; }
       const chunks: Buffer[] = [];
       let size = 0;
       response.on("data", (chunk: Buffer) => {
@@ -133,11 +138,12 @@ async function pinnedRequest(url: URL, pinned: PinnedHost): Promise<{ status: nu
         if (size > MAX_RESPONSE_BYTES) response.destroy(new Error("Response too large"));
         else chunks.push(chunk);
       });
-      response.on("error", reject);
-      response.on("end", () => resolve({ status: response.statusCode || 0, headers: response.headers, body: Buffer.concat(chunks).toString("utf8") }));
+      response.on("error", error => finish(reject, error));
+      response.on("end", () => finish(resolve, { status: response.statusCode || 0, headers: response.headers, body: Buffer.concat(chunks).toString("utf8") }));
     });
     req.setTimeout(REQUEST_TIMEOUT_MS, () => req.destroy(new Error("Website request timed out")));
-    req.on("error", reject);
+    absoluteTimer = setTimeout(() => req.destroy(new Error("Website request absolute timeout")), REQUEST_TIMEOUT_MS);
+    req.on("error", error => finish(reject, error));
     req.end();
   });
 }
@@ -489,15 +495,18 @@ export function getCachedOfficialResearch(lead: ResearchLead): OpportunitySignal
   return entry.signals.map(signal => ({ ...signal }));
 }
 
-export async function researchOfficialWebsite(lead: ResearchLead): Promise<OpportunitySignal[]> {
+export async function researchOfficialWebsiteDetailed(
+  lead: ResearchLead,
+  options: { force?: boolean } = {},
+): Promise<{ signals: OpportunitySignal[]; accessible: boolean }> {
   const key = officialResearchCacheKey(lead);
-  if (!key) return [];
-  const cached = getCachedOfficialResearch(lead);
-  if (cached) return cached;
+  if (!key) return { signals: [], accessible: false };
+  const cached = options.force ? undefined : getCachedOfficialResearch(lead);
+  if (cached) return { signals: cached, accessible: true };
   const existingResearch = inFlight.get(key);
-  if (existingResearch) return (await existingResearch).map(signal => ({ ...signal }));
+  if (existingResearch) return { signals: (await existingResearch).map(signal => ({ ...signal })), accessible: true };
   const research = withResearchSlot(async () => {
-    const secondCheck = getCachedOfficialResearch(lead);
+    const secondCheck = options.force ? undefined : getCachedOfficialResearch(lead);
     if (secondCheck) return secondCheck;
     let signals: OpportunitySignal[] = [];
     try {
@@ -523,8 +532,13 @@ export async function researchOfficialWebsite(lead: ResearchLead): Promise<Oppor
   });
   inFlight.set(key, research);
   try {
-    return (await research).map(signal => ({ ...signal }));
+    const signals = (await research).map(signal => ({ ...signal }));
+    return { signals, accessible: signals.length > 0 };
   } finally {
     inFlight.delete(key);
   }
+}
+
+export async function researchOfficialWebsite(lead: ResearchLead): Promise<OpportunitySignal[]> {
+  return (await researchOfficialWebsiteDetailed(lead)).signals;
 }

@@ -62,6 +62,12 @@ export const listProspectsResponseOpportunityIntelligenceOneBreakdownMax = 6;
 export const listProspectsResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const listProspectsResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
 
+export const listProspectsResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax = 5;
+
+export const listProspectsResponseOpportunityIntelligenceOneItResearchProspectConcernsMax = 5;
+
+export const listProspectsResponseOpportunityIntelligenceOneItResearchRecommendationsMax = 5;
+
 
 
 export const ListProspectsResponseItem = zod.object({
@@ -110,7 +116,54 @@ export const ListProspectsResponseItem = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(listProspectsResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(listProspectsResponseOpportunityIntelligenceOneItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(listProspectsResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
   "squareFootage": zod.number().nullish(),
@@ -140,6 +193,12 @@ export const createProspectBodyOpportunityIntelligenceBreakdownMax = 6;
 
 export const createProspectBodyOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const createProspectBodyOpportunityIntelligenceSignalsItemPointsMax = 30;
+
+export const createProspectBodyOpportunityIntelligenceItResearchIndustryChallengesMax = 5;
+
+export const createProspectBodyOpportunityIntelligenceItResearchProspectConcernsMax = 5;
+
+export const createProspectBodyOpportunityIntelligenceItResearchRecommendationsMax = 5;
 
 
 
@@ -188,7 +247,54 @@ export const CreateProspectBody = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(createProspectBodyOpportunityIntelligenceItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(createProspectBodyOpportunityIntelligenceItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(createProspectBodyOpportunityIntelligenceItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }).optional(),
   "employeeCount": zod.number().optional(),
   "squareFootage": zod.number().optional(),
@@ -209,6 +315,12 @@ export const createProspectResponseOpportunityIntelligenceOneBreakdownMax = 6;
 
 export const createProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const createProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
+
+export const createProspectResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax = 5;
+
+export const createProspectResponseOpportunityIntelligenceOneItResearchProspectConcernsMax = 5;
+
+export const createProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax = 5;
 
 
 
@@ -258,7 +370,54 @@ export const CreateProspectResponse = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(createProspectResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(createProspectResponseOpportunityIntelligenceOneItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(createProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
   "squareFootage": zod.number().nullish(),
@@ -287,6 +446,12 @@ export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceBreakdow
 
 export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceSignalsItemPointsMax = 30;
+
+export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchIndustryChallengesMax = 5;
+
+export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchProspectConcernsMax = 5;
+
+export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchRecommendationsMax = 5;
 
 export const bulkCreateProspectsBodyDuplicateStrategyDefault = `skip`;
 
@@ -336,7 +501,54 @@ export const BulkCreateProspectsBody = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }).optional(),
   "employeeCount": zod.number().optional(),
   "squareFootage": zod.number().optional(),
@@ -359,6 +571,12 @@ export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligen
 
 export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneSignalsItemPointsMax = 30;
+
+export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchIndustryChallengesMax = 5;
+
+export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchProspectConcernsMax = 5;
+
+export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchRecommendationsMax = 5;
 
 
 
@@ -417,7 +635,54 @@ export const BulkCreateProspectsResponse = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
   "squareFootage": zod.number().nullish(),
@@ -489,6 +754,12 @@ export const getProspectResponseOpportunityIntelligenceOneBreakdownMax = 6;
 export const getProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const getProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
 
+export const getProspectResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax = 5;
+
+export const getProspectResponseOpportunityIntelligenceOneItResearchProspectConcernsMax = 5;
+
+export const getProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax = 5;
+
 
 
 export const GetProspectResponse = zod.object({
@@ -537,7 +808,54 @@ export const GetProspectResponse = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(getProspectResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(getProspectResponseOpportunityIntelligenceOneItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(getProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
   "squareFootage": zod.number().nullish(),
@@ -585,6 +903,12 @@ export const updateProspectResponseOpportunityIntelligenceOneBreakdownMax = 6;
 
 export const updateProspectResponseOpportunityIntelligenceOneSignalsItemPointsMin = 0;
 export const updateProspectResponseOpportunityIntelligenceOneSignalsItemPointsMax = 30;
+
+export const updateProspectResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax = 5;
+
+export const updateProspectResponseOpportunityIntelligenceOneItResearchProspectConcernsMax = 5;
+
+export const updateProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax = 5;
 
 
 
@@ -634,7 +958,54 @@ export const UpdateProspectResponse = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(updateProspectResponseOpportunityIntelligenceOneItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(updateProspectResponseOpportunityIntelligenceOneItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(updateProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }),zod.null()]).optional(),
   "employeeCount": zod.number().nullish(),
   "squareFootage": zod.number().nullish(),
@@ -1071,6 +1442,12 @@ export const prospectSearchResponseOpportunityIntelligenceBreakdownMax = 6;
 export const prospectSearchResponseOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const prospectSearchResponseOpportunityIntelligenceSignalsItemPointsMax = 30;
 
+export const prospectSearchResponseOpportunityIntelligenceItResearchIndustryChallengesMax = 5;
+
+export const prospectSearchResponseOpportunityIntelligenceItResearchProspectConcernsMax = 5;
+
+export const prospectSearchResponseOpportunityIntelligenceItResearchRecommendationsMax = 5;
+
 
 
 export const ProspectSearchResponseItem = zod.object({
@@ -1131,7 +1508,54 @@ export const ProspectSearchResponseItem = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(prospectSearchResponseOpportunityIntelligenceItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(prospectSearchResponseOpportunityIntelligenceItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(prospectSearchResponseOpportunityIntelligenceItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }).optional()
 })
 export const ProspectSearchResponse = zod.array(ProspectSearchResponseItem)
@@ -1171,6 +1595,12 @@ export const enrichLeadsResponseResultsItemOpportunityIntelligenceBreakdownMax =
 
 export const enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMin = 0;
 export const enrichLeadsResponseResultsItemOpportunityIntelligenceSignalsItemPointsMax = 30;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchIndustryChallengesMax = 5;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchProspectConcernsMax = 5;
+
+export const enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchRecommendationsMax = 5;
 
 
 
@@ -1220,10 +1650,205 @@ export const EnrichLeadsResponse = zod.object({
   "whyTarget": zod.string(),
   "potentialNeeds": zod.array(zod.string()),
   "recommendedOutreach": zod.string(),
-  "generatedAt": zod.coerce.date()
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
 }).optional(),
   "error": zod.string().optional()
 }))
+})
+
+
+/**
+ * @summary Perform fresh cited IT opportunity research for a saved or unsaved prospect
+ */
+
+export const refreshOpportunityIntelligenceBodyLeadCompanyNameMax = 240;
+
+export const refreshOpportunityIntelligenceBodyLeadWebsiteMax = 2048;
+
+export const refreshOpportunityIntelligenceBodyLeadIndustryMax = 160;
+
+export const refreshOpportunityIntelligenceBodyLeadLocationMax = 240;
+
+export const refreshOpportunityIntelligenceBodyLeadEmployeeCountMax = 10000000;
+
+export const refreshOpportunityIntelligenceBodyLeadContactNameMax = 240;
+
+export const refreshOpportunityIntelligenceBodyLeadContactTitleMax = 240;
+
+export const refreshOpportunityIntelligenceBodyLeadSourceMax = 240;
+
+export const refreshOpportunityIntelligenceBodySelectedIndustryMax = 160;
+
+
+
+export const RefreshOpportunityIntelligenceBody = zod.object({
+  "prospectId": zod.number().min(1).optional(),
+  "lead": zod.object({
+  "companyName": zod.string().min(1).max(refreshOpportunityIntelligenceBodyLeadCompanyNameMax),
+  "website": zod.string().max(refreshOpportunityIntelligenceBodyLeadWebsiteMax).nullish(),
+  "industry": zod.string().max(refreshOpportunityIntelligenceBodyLeadIndustryMax).nullish(),
+  "location": zod.string().max(refreshOpportunityIntelligenceBodyLeadLocationMax).nullish(),
+  "employeeCount": zod.number().min(1).max(refreshOpportunityIntelligenceBodyLeadEmployeeCountMax).nullish(),
+  "contactName": zod.string().max(refreshOpportunityIntelligenceBodyLeadContactNameMax).nullish(),
+  "contactTitle": zod.string().max(refreshOpportunityIntelligenceBodyLeadContactTitleMax).nullish(),
+  "source": zod.string().max(refreshOpportunityIntelligenceBodyLeadSourceMax).nullish()
+}).optional(),
+  "selectedIndustry": zod.string().min(1).max(refreshOpportunityIntelligenceBodySelectedIndustryMax)
+})
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceScoreMin = 0;
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceScoreMax = 100;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownItemPointsMin = 0;
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownItemPointsMax = 30;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownItemMaxPointsMax = 30;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownMin = 6;
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownMax = 6;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceSignalsItemPointsMin = 0;
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceSignalsItemPointsMax = 30;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchIndustryChallengesMax = 5;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchProspectConcernsMax = 5;
+
+export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchRecommendationsMax = 5;
+
+
+
+export const RefreshOpportunityIntelligenceResponse = zod.object({
+  "opportunityIntelligence": zod.object({
+  "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "score": zod.number().min(refreshOpportunityIntelligenceResponseOpportunityIntelligenceScoreMin).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceScoreMax),
+  "label": zod.enum(['High Priority', 'Strong Fit', 'Possible Fit', 'Low Priority']),
+  "scoreConfidence": zod.enum(['high', 'medium', 'low']),
+  "definition": zod.string(),
+  "breakdown": zod.array(zod.object({
+  "key": zod.enum(['company_industry_fit', 'verified_buying_signals', 'seller_prospect_match', 'decision_maker_match', 'signal_freshness', 'business_need_potential']),
+  "label": zod.string(),
+  "points": zod.number().min(refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownItemPointsMin).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownItemPointsMax),
+  "maxPoints": zod.number().min(1).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownItemMaxPointsMax),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.string())
+})).min(refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownMin).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceBreakdownMax),
+  "signals": zod.array(zod.object({
+  "signalType": zod.string(),
+  "signalTitle": zod.string(),
+  "signalDescription": zod.string(),
+  "signalClassification": zod.enum(['verified', 'implication', 'unconfirmed']),
+  "confidenceLevel": zod.enum(['high', 'medium', 'low']),
+  "freshness": zod.enum(['recent', 'active', 'older', 'stale', 'unknown']),
+  "sourceName": zod.string().optional(),
+  "sourceURL": zod.string().url().optional(),
+  "sourceDate": zod.coerce.date().optional(),
+  "dateDiscovered": zod.coerce.date(),
+  "dateVerified": zod.coerce.date().optional(),
+  "supportingEvidence": zod.string().optional(),
+  "relatedSellerCapability": zod.string().optional(),
+  "potentialBusinessImpact": zod.string().optional(),
+  "points": zod.number().min(refreshOpportunityIntelligenceResponseOpportunityIntelligenceSignalsItemPointsMin).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceSignalsItemPointsMax)
+})),
+  "whyTarget": zod.string(),
+  "potentialNeeds": zod.array(zod.string()),
+  "recommendedOutreach": zod.string(),
+  "generatedAt": zod.coerce.date(),
+  "itResearch": zod.object({
+  "selectedIndustry": zod.string(),
+  "actualIndustry": zod.string().nullable(),
+  "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
+  "industryExplanation": zod.string(),
+  "industrySources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+})),
+  "lastResearched": zod.coerce.date(),
+  "warnings": zod.array(zod.string()),
+  "industryChallenges": zod.array(zod.object({
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchIndustryChallengesMax),
+  "prospectConcerns": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "explanation": zod.string(),
+  "businessImpact": zod.string(),
+  "evidence": zod.string(),
+  "classification": zod.enum(['Verified', 'Strong Indicator', 'Industry-Based Possibility']),
+  "confidence": zod.enum(['high', 'medium', 'low']),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchProspectConcernsMax),
+  "recommendations": zod.array(zod.object({
+  "concernId": zod.string(),
+  "prospectConcern": zod.string(),
+  "offering": zod.string(),
+  "howItHelps": zod.string(),
+  "businessValue": zod.string(),
+  "outreachAngle": zod.string(),
+  "discoveryQuestion": zod.string()
+})).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchRecommendationsMax)
+}).optional(),
+  "researchProof": zod.string().optional()
+})
 })
 
 

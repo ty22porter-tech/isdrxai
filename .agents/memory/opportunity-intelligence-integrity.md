@@ -5,6 +5,24 @@ description: Trust, evidence, and separation rules for Opportunity Scores.
 
 Opportunity Intelligence is a server-derived snapshot. Never trust client-supplied score arithmetic; recompute supplied snapshots from trusted prospect fields and current seller context. Preserve null for legacy or manual prospects that have no snapshot.
 
+For IT Services, the research-based sections supersede the older narrative restrictions below: **Industry IT Challenges**, **Prospect IT Concerns**, and **Recommended Solutions and Outreach**. Industry-based possibilities are explicitly requested and allowed when labeled as possibilities, never promoted to verified buying signals. Keep the older generic-fallback restrictions for other verticals.
+
+**Why:** The user's IT research specification deliberately separates industry context, company evidence, and seller solutions. Suppressing every industry-based possibility would contradict that request; treating one as verified would also contradict it.
+
+**How to apply:** Preserve source links, uncertainty, selected-versus-actual industry distinctions, and positive business-value explanations. Match only confirmed seller offerings. Use actual researched business classification in company-specific outreach when the selected search industry differs.
+
+A prospect publishing a customer story or industry threat report does not establish an operational problem at that prospect, even when several citations share its official domain.
+
+**Why:** In live IT research, a technology vendor's healthcare materials were mistaken for evidence that the vendor itself faced healthcare-provider concerns. Domain identity proves the publisher, not the subject of a claim.
+
+**How to apply:** Distinguish company operations from customer/industry context before granting Verified or Strong Indicator labels. Keep customer and industry context explicitly conditional.
+
+The report reviewed in search must survive saving after an application restart or on another server instance. Do not rely only on a process-local cache or silently replace a reviewed report with different research during Add.
+
+**Why:** Published autoscale instances do not share memory, while users can restore search results days later. The trust boundary must protect report integrity without making saves depend on the original process.
+
+**How to apply:** Preserve authenticated server-issued research handoffs across search, enrichment, refresh, and save. Rebuild score arithmetic on the server; reject invalid or outdated handoffs with a clear refresh instruction.
+
 **Why:** Client snapshots can be stale or tampered with, while search-listing facts establish business identity and contactability but do not prove purchases, hiring, expansion, budgets, provider changes, or other buying events.
 
 **How to apply:** Keep verified facts, implications, and unconfirmed signals separate. Verified buying signals get full weight, implications limited weight, and unknowns zero. Keep the Opportunity Score completely independent from engagement score and Hot/Medium/Low behavior. Factual email clauses must each be grounded in verified evidence or explicitly conditional.

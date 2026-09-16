@@ -89,6 +89,15 @@ async function fetchHhsRecords(): Promise<HhsBreachRecord[]> {
   if (cache && cache.expiresAt > Date.now()) return cache.records;
   if (inFlight) return inFlight;
   inFlight = new Promise((resolve, reject) => {
+    let absoluteTimer: ReturnType<typeof setTimeout> | undefined;
+    const fail = (error: Error) => {
+      if (absoluteTimer) clearTimeout(absoluteTimer);
+      reject(error);
+    };
+    const succeed = (records: HhsBreachRecord[]) => {
+      if (absoluteTimer) clearTimeout(absoluteTimer);
+      resolve(records);
+    };
     const req = httpsRequest(HHS_BREACH_REPORT_URL, {
       method: "GET",
       headers: {
@@ -98,7 +107,7 @@ async function fetchHhsRecords(): Promise<HhsBreachRecord[]> {
     }, response => {
       if ((response.statusCode || 0) < 200 || (response.statusCode || 0) >= 300) {
         response.resume();
-        reject(new Error(`HHS breach portal returned ${response.statusCode || 0}`));
+        fail(new Error(`HHS breach portal returned ${response.statusCode || 0}`));
         return;
       }
       const chunks: Buffer[] = [];
@@ -108,11 +117,12 @@ async function fetchHhsRecords(): Promise<HhsBreachRecord[]> {
         if (size > MAX_RESPONSE_BYTES) response.destroy(new Error("HHS breach portal response too large"));
         else chunks.push(chunk);
       });
-      response.on("error", reject);
-      response.on("end", () => resolve(parseHhsBreachRecords(Buffer.concat(chunks).toString("utf8"))));
+      response.on("error", fail);
+      response.on("end", () => succeed(parseHhsBreachRecords(Buffer.concat(chunks).toString("utf8"))));
     });
     req.setTimeout(REQUEST_TIMEOUT_MS, () => req.destroy(new Error("HHS breach portal request timed out")));
-    req.on("error", reject);
+    absoluteTimer = setTimeout(() => req.destroy(new Error("HHS breach portal absolute timeout")), REQUEST_TIMEOUT_MS);
+    req.on("error", fail);
     req.end();
   });
   try {

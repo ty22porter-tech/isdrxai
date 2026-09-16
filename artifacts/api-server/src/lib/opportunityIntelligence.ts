@@ -11,6 +11,12 @@ import {
 } from "./prospectMatching";
 import { researchOfficialWebsite } from "./officialWebsiteResearch";
 import { researchPublicBreachRecords } from "./publicBreachResearch";
+import {
+  getTrustedItResearch,
+  researchItOpportunityIntelligence,
+  type ItResearch,
+  itResearchEmailContext,
+} from "./itOpportunityResearch";
 
 export const OPPORTUNITY_SCORE_DEFINITION =
   "The Opportunity Score measures how strongly this prospect matches your company, target customer profile, verified signals, and potential business need. It does not represent the probability that the prospect will make a purchase.";
@@ -369,6 +375,7 @@ export function buildOpportunityIntelligence(
   vertical: string,
   client?: typeof usersTable.$inferSelect,
   researchedSignals: OpportunitySignal[] = [],
+  itResearch?: ItResearch,
 ): OpportunityIntelligence {
   const generatedAt = new Date().toISOString();
   const seller = sellerIntelligenceProfile(client);
@@ -840,6 +847,7 @@ export function buildOpportunityIntelligence(
     potentialNeeds,
     recommendedOutreach,
     generatedAt,
+    ...(vertical === "it_services" && itResearch ? { itResearch } : {}),
   };
 }
 
@@ -848,6 +856,8 @@ export async function deriveOpportunityForPersistence(
   vertical: string,
   client?: typeof usersTable.$inferSelect,
   priorServerIntelligence?: OpportunityIntelligence | null,
+  clientId?: string,
+  priorIdentity?: Pick<PersistedOpportunityInput, "companyName" | "website">,
 ): Promise<OpportunityIntelligence | undefined> {
   if (!input.opportunityIntelligence) return undefined;
   const lead = {
@@ -861,6 +871,38 @@ export async function deriveOpportunityForPersistence(
     phone: input.phone,
     employeeCount: input.employeeCount,
   };
+  if (vertical === "it_services" && clientId) {
+    // The saved report's campaign industry was produced by the server. Keep it
+    // through ordinary edits instead of accepting a client-provided report or
+    // silently replacing it with a newly inferred actual industry.
+    const selectedIndustry = priorServerIntelligence?.itResearch?.selectedIndustry?.trim() || input.industry;
+    const cached = getTrustedItResearch(clientId, lead, selectedIndustry, client);
+    if (cached) {
+      return buildOpportunityIntelligence(lead, vertical, client, cached.signals, cached.itResearch);
+    }
+    try {
+      const researched = await researchItOpportunityIntelligence({
+        clientId,
+        lead,
+        selectedIndustry,
+        client,
+      });
+      return buildOpportunityIntelligence(lead, vertical, client, researched.signals, researched.itResearch);
+    } catch {
+      // Updating a saved prospect's ordinary fields must not delete a useful
+      // server-generated research report when its refresh path is unavailable.
+      const sameIdentity = !priorIdentity
+        || (
+          priorIdentity.companyName.trim().toLowerCase() === input.companyName.trim().toLowerCase()
+          && (priorIdentity.website ?? "").trim().toLowerCase() === (input.website ?? "").trim().toLowerCase()
+        );
+      if (priorServerIntelligence && sameIdentity) return priorServerIntelligence;
+      if (priorServerIntelligence) {
+        throw new Error("IT intelligence could not be refreshed after the prospect identity changed; the saved prospect was not updated.");
+      }
+      throw new Error("IT intelligence research could not be completed; the prospect was not saved with an unverified client snapshot.");
+    }
+  }
   const [officialSignals, publicBreachSignals] = await Promise.all([
     researchOfficialWebsite(lead),
     researchPublicBreachRecords(lead),
@@ -931,19 +973,28 @@ ${verified.length ? verified.map(signal => `- ${signal.signalTitle}: ${signal.si
 POTENTIAL IMPLICATIONS — must use may/could/if language:
 ${implications.length ? implications.map(signal => `- ${signal.signalDescription}`).join("\n") : "- None"}
 UNCONFIRMED — never state as fact:
-${unconfirmed.length ? unconfirmed.map(signal => `- ${signal.signalTitle}`).join("\n") : "- None"}`;
+${unconfirmed.length ? unconfirmed.map(signal => `- ${signal.signalTitle}`).join("\n") : "- None"}
+${itResearchEmailContext(value)}`;
 }
 
 export function emailSignalAccuracyInputs(value: OpportunityIntelligence | null | undefined) {
+  const verifiedItResearch = value?.itResearch?.prospectConcerns
+    .filter(concern => concern.classification === "Verified")
+    .map(concern => `${concern.title}: ${concern.evidence}`) ?? [];
+  const conditionalItResearch = value?.itResearch?.prospectConcerns
+    .filter(concern => concern.classification !== "Verified")
+    .map(concern => concern.title) ?? [];
   return {
     verifiedProspectContext: value?.signals
       .filter(signal => signal.signalClassification === "verified")
-      .map(signal => `${signal.signalTitle} ${signal.signalDescription}`) ?? [],
+      .map(signal => `${signal.signalTitle} ${signal.signalDescription}`)
+      .concat(verifiedItResearch) ?? [],
     verifiedProspectSignalTypes: value?.signals
       .filter(signal => signal.signalClassification === "verified")
       .map(signal => signal.signalType) ?? [],
     unconfirmedProspectTopics: value?.signals
       .filter(signal => signal.signalClassification === "unconfirmed")
-      .map(signal => signal.signalTitle) ?? [],
+      .map(signal => signal.signalTitle)
+      .concat(conditionalItResearch) ?? [],
   };
 }

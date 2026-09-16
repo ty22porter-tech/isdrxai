@@ -30,6 +30,47 @@ export interface OpportunityScoreCategory {
   evidence: string[];
 }
 
+export interface ResearchSource {
+  title: string;
+  url: string;
+  publishedDate?: string | null;
+}
+
+export interface ItResearch {
+  selectedIndustry: string;
+  actualIndustry: string | null;
+  industryRelationship: "match" | "serves_industry" | "mismatch" | "uncertain";
+  industryExplanation: string;
+  industrySources: ResearchSource[];
+  lastResearched: string | Date;
+  warnings: string[];
+  industryChallenges: Array<{
+    title: string;
+    explanation: string;
+    businessImpact: string;
+    sources: ResearchSource[];
+  }>;
+  prospectConcerns: Array<{
+    id: string;
+    title: string;
+    explanation: string;
+    businessImpact: string;
+    evidence: string;
+    classification: "Verified" | "Strong Indicator" | "Industry-Based Possibility";
+    confidence: "high" | "medium" | "low";
+    sources: ResearchSource[];
+  }>;
+  recommendations: Array<{
+    concernId: string;
+    prospectConcern: string;
+    offering: string;
+    howItHelps: string;
+    businessValue: string;
+    outreachAngle: string;
+    discoveryQuestion: string;
+  }>;
+}
+
 export interface OpportunityIntelligence {
   version: 1 | 2 | 3;
   score: number;
@@ -42,6 +83,10 @@ export interface OpportunityIntelligence {
   potentialNeeds: string[];
   recommendedOutreach: string;
   generatedAt: string | Date;
+  /** IT Services-only current, cited research report. */
+  itResearch?: ItResearch;
+  /** Signed server research handoff for stateless search-to-save flows. */
+  researchProof?: string;
 }
 
 export const prospectsTable = pgTable("prospects", {

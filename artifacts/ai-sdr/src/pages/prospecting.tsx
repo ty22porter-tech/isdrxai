@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useProspectSearch, useCreateProspect, useBulkCreateProspects, useEnrichLeads, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
+import { useProspectSearch, useCreateProspect, useBulkCreateProspects, useEnrichLeads, useRefreshOpportunityIntelligence, refreshOpportunityIntelligence, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
 import type { ProspectLead } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -145,6 +145,7 @@ type ProspectingSnapshot = {
   cancelledRemaining: number[] | null;
   duplicateStrategy: "skip" | "update";
   enrichment?: [number, EnrichStatus][];
+  addedProspectIds?: [number, number][];
 };
 
 const storageKeyForUser = (userId: string) => `prospecting:inprogress:${userId}`;
@@ -198,6 +199,12 @@ export function applyEnrichmentResults(
     const snap = snapshot[i];
     // Identity check: the lead we enriched must still be the lead at this slot.
     if (!snap || snap.companyName !== lead.companyName || snap.email !== lead.email) return lead;
+
+    const leadVersion = (lead as any)._intelligenceVersion || 0;
+    const snapVersion = (snap as any)._intelligenceVersion || 0;
+    const isNewerIntelligence = leadVersion > snapVersion;
+    const useEnrichIntel = !isNewerIntelligence && r.opportunityIntelligence !== undefined;
+
     return {
       ...lead,
       contactName: r.status === "enriched" ? r.contactName ?? lead.contactName : lead.contactName,
@@ -205,12 +212,12 @@ export function applyEnrichmentResults(
       email: r.status === "enriched" ? r.email ?? lead.email : lead.email,
       phone: r.status === "enriched" ? r.phone || lead.phone : lead.phone,
       estimatedEmployees: r.employeeCount ?? lead.estimatedEmployees,
-      opportunityIntelligence: r.opportunityIntelligence ?? lead.opportunityIntelligence,
-      opportunityScore: r.opportunityIntelligence?.score ?? lead.opportunityScore,
-      scoreLabel: r.opportunityIntelligence?.label ?? lead.scoreLabel,
-      whyTarget: r.opportunityIntelligence?.whyTarget ?? lead.whyTarget,
-      potentialNeeds: r.opportunityIntelligence?.potentialNeeds ?? lead.potentialNeeds,
-      recommendedOutreach: r.opportunityIntelligence?.recommendedOutreach ?? lead.recommendedOutreach,
+      opportunityIntelligence: useEnrichIntel ? r.opportunityIntelligence : lead.opportunityIntelligence,
+      opportunityScore: useEnrichIntel && r.opportunityIntelligence?.score != null ? r.opportunityIntelligence.score : lead.opportunityScore,
+      scoreLabel: useEnrichIntel && r.opportunityIntelligence?.label ? r.opportunityIntelligence.label : lead.scoreLabel,
+      whyTarget: useEnrichIntel && r.opportunityIntelligence?.whyTarget ? r.opportunityIntelligence.whyTarget : lead.whyTarget,
+      potentialNeeds: useEnrichIntel && r.opportunityIntelligence?.potentialNeeds ? r.opportunityIntelligence.potentialNeeds : lead.potentialNeeds,
+      recommendedOutreach: useEnrichIntel && r.opportunityIntelligence?.recommendedOutreach ? r.opportunityIntelligence.recommendedOutreach : lead.recommendedOutreach,
     };
   });
 }
@@ -231,9 +238,12 @@ export default function Prospecting() {
   const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [enrichment, setEnrichment] = useState<Map<number, EnrichStatus>>(new Map());
+  const [addedProspectIds, setAddedProspectIds] = useState<Map<number, number>>(new Map());
+  const [refreshing, setRefreshing] = useState<Set<number>>(new Set());
   const [confirmSearchOpen, setConfirmSearchOpen] = useState(false);
   const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
   const [restorable, setRestorable] = useState<ProspectingSnapshot | null>(null);
+  const [lastSearchedParams, setLastSearchedParams] = useState<ProspectingSnapshot["params"] | null>(null);
   const cancelAddAllRef = useRef(false);
   const hydratedRef = useRef(false);
   // True from the moment hydration finds a restorable snapshot until the user
@@ -271,10 +281,18 @@ export default function Prospecting() {
   const createProspect = useCreateProspect();
   const bulkCreateProspects = useBulkCreateProspects();
   const enrichLeadsMutation = useEnrichLeads();
+  const refreshIntelligenceMutation = useRefreshOpportunityIntelligence({
+    mutation: {
+      mutationFn: ({ data }) => refreshOpportunityIntelligence(data, {
+        signal: AbortSignal.timeout(100_000),
+      }),
+    },
+  });
   // Monotonically increasing enrichment run ID. Callbacks from a run that is
   // no longer current (a newer search or enrichment started) are ignored, so
   // a slow Apollo response for search A can never touch search B's results.
   const enrichRunRef = useRef(0);
+  const searchRunIdRef = useRef(0);
 
   // Automatically look up the real decision-maker (name + email) for each
   // fresh search result via Apollo, replacing the "Owner" / contact@….invalid
@@ -357,17 +375,30 @@ export default function Prospecting() {
       if (overrideParams.compliancePriority) setCompliancePriority(overrideParams.compliancePriority);
     }
 
+    const currentParams = {
+      city: searchCity,
+      state: searchState,
+      industry: searchIndustry,
+      count: searchCount,
+      employeeRange: searchEmployeeRange,
+      compliancePriority: searchCompliancePriority,
+    };
+    setLastSearchedParams(currentParams);
+
     restorePendingRef.current = false;
     if (user?.id) clearAutopilotProspectSelection(user.id);
     setRestorable(null);
     setLeads([]);
     setAdded(new Set());
+    setAddedProspectIds(new Map());
     setSkipped(new Set());
     setFailures(new Map());
     setCancelledRemaining(null);
+    setRefreshing(new Set());
     // Invalidate any in-flight enrichment run from the previous list so its
     // late response can't overwrite the new search's leads.
     enrichRunRef.current++;
+    searchRunIdRef.current++;
     setEnrichment(new Map());
     searchMutation.mutate(
       {
@@ -402,6 +433,62 @@ export default function Prospecting() {
           }),
       }
     );
+  };
+
+  const handleRefreshLead = async (lead: ProspectLead, index: number) => {
+    setRefreshing((prev) => new Set([...prev, index]));
+    const selectedIndustry = lead.opportunityIntelligence?.itResearch?.selectedIndustry || lastSearchedParams?.industry || industry;
+    const runId = searchRunIdRef.current;
+    const prospectId = addedProspectIds.get(index);
+    try {
+      const data = await refreshIntelligenceMutation.mutateAsync({
+        data: {
+          ...(prospectId ? { prospectId } : {
+            lead: {
+              companyName: lead.companyName,
+              website: lead.website,
+              industry: lead.industry,
+              location: lead.city && lead.state ? `${lead.city}, ${lead.state}` : lead.city || lead.state || undefined,
+              employeeCount: lead.estimatedEmployees,
+              contactName: lead.contactName,
+              contactTitle: lead.contactTitle,
+            }
+          }),
+          selectedIndustry,
+        }
+      });
+      if (searchRunIdRef.current !== runId) return;
+      setLeads((prev) => {
+        // Guard: ensure the lead at this index is still the same business
+        const current = prev[index];
+        if (!current || current.companyName !== lead.companyName) return prev;
+        const intel = data.opportunityIntelligence;
+        const next = [...prev];
+        next[index] = {
+          ...current,
+          opportunityIntelligence: intel,
+          opportunityScore: intel?.score ?? current.opportunityScore,
+          scoreLabel: intel?.label ?? current.scoreLabel,
+          whyTarget: intel?.whyTarget ?? current.whyTarget,
+          potentialNeeds: intel?.potentialNeeds ?? current.potentialNeeds,
+          recommendedOutreach: intel?.recommendedOutreach ?? current.recommendedOutreach,
+          _intelligenceVersion: ((current as any)._intelligenceVersion || 0) + 1,
+        } as ProspectLead;
+        return next;
+      });
+      toast({ title: "Intelligence Refreshed for " + lead.companyName });
+    } catch (err: any) {
+      if (searchRunIdRef.current !== runId) return;
+      toast({ title: "Failed to refresh intelligence", description: err?.data?.error || err?.message || "Could not refresh.", variant: "destructive" });
+    } finally {
+      if (searchRunIdRef.current === runId) {
+        setRefreshing((prev) => {
+          const next = new Set(prev);
+          next.delete(index);
+          return next;
+        });
+      }
+    }
   };
 
   const handleSearch = () => {
@@ -458,6 +545,9 @@ export default function Prospecting() {
         onSuccess: (prospect) => {
           if (user?.id && prospect?.id) {
             addToAutopilotProspectSelection(user.id, [prospect.id]);
+          }
+          if (prospect?.id) {
+            setAddedProspectIds((prev) => new Map(prev).set(idx, prospect.id));
           }
           setAdded((prev) => new Set([...prev, idx]));
           setFailures((prev) => {
@@ -548,6 +638,15 @@ export default function Prospecting() {
           } else {
             totalFailed += result.failed;
           }
+          setAddedProspectIds((prev) => {
+            const next = new Map(prev);
+            result.results.forEach((r) => {
+              if (r.success && r.prospect?.id) {
+                next.set(chunk[r.index].idx, r.prospect.id);
+              }
+            });
+            return next;
+          });
           setAdded((prev) => {
             const next = new Set(prev);
             result.results.forEach((r) => {
@@ -688,7 +787,7 @@ export default function Prospecting() {
     const snap: ProspectingSnapshot = {
       savedAt: Date.now(),
       vertical,
-      params: { city, state, industry, count, employeeRange, compliancePriority },
+      params: lastSearchedParams || { city, state, industry, count, employeeRange, compliancePriority },
       leads,
       added: [...added],
       skipped: [...skipped],
@@ -698,9 +797,10 @@ export default function Prospecting() {
       // "pending" never survives a page leave — the in-flight lookup is gone,
       // so it's saved as "failed" (lookup can be retried by searching again).
       enrichment: [...enrichment.entries()].map(([i, s]) => [i, s === "pending" ? "failed" : s] as [number, EnrichStatus]),
+      addedProspectIds: [...addedProspectIds.entries()],
     };
     try { localStorage.setItem(storageKey, JSON.stringify(snap)); } catch { /* ignore quota */ }
-  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, enrichment, city, state, industry, count, employeeRange, compliancePriority, vertical]);
+  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, enrichment, addedProspectIds, lastSearchedParams, city, state, industry, count, employeeRange, compliancePriority, vertical]);
 
   const restorableRemaining = restorable
     ? restorable.leads.filter((_, i) => !restorable.added.includes(i)).length
@@ -744,6 +844,7 @@ export default function Prospecting() {
   const handleRestore = () => {
     const snap = restorable;
     if (!snap) return;
+    searchRunIdRef.current++;
     restorePendingRef.current = false;
     setCity(snap.params.city);
     setState(snap.params.state);
@@ -751,9 +852,11 @@ export default function Prospecting() {
     setCount(snap.params.count);
     if (snap.params.employeeRange) setEmployeeRange(snap.params.employeeRange);
     if (snap.params.compliancePriority) setCompliancePriority(snap.params.compliancePriority);
+    setLastSearchedParams(snap.params);
     setLeads(snap.leads);
     const addedSet = new Set(snap.added);
     setAdded(addedSet);
+    setAddedProspectIds(new Map(snap.addedProspectIds ?? []));
     setSkipped(new Set(snap.skipped));
     setFailures(new Map(snap.failures));
     setCancelledRemaining(snap.cancelledRemaining && snap.cancelledRemaining.length ? new Set(snap.cancelledRemaining) : null);
@@ -1205,7 +1308,13 @@ export default function Prospecting() {
                                   <DialogHeader>
                                     <DialogTitle>Opportunity Intelligence</DialogTitle>
                                   </DialogHeader>
-                                  <OpportunityIntelligenceView intelligence={lead.opportunityIntelligence} isDialog={true} />
+                                  <OpportunityIntelligenceView
+                                    intelligence={lead.opportunityIntelligence}
+                                    isDialog={true}
+                                    vertical={me?.vertical}
+                                    onRefresh={() => handleRefreshLead(lead, idx)}
+                                    isRefreshing={refreshing.has(idx)}
+                                  />
                                 </DialogContent>
                               </Dialog>
                             )}
@@ -1217,7 +1326,13 @@ export default function Prospecting() {
 
                         <Separator className="my-2.5" />
                         {lead.opportunityIntelligence ? (
-                          <OpportunityIntelligenceView intelligence={lead.opportunityIntelligence} compact />
+                          <OpportunityIntelligenceView
+                            intelligence={lead.opportunityIntelligence}
+                            compact
+                            vertical={me?.vertical}
+                            onRefresh={() => handleRefreshLead(lead, idx)}
+                            isRefreshing={refreshing.has(idx)}
+                          />
                         ) : (
                           <>
                             <p className="text-xs text-muted-foreground">

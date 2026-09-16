@@ -84,7 +84,6 @@ describe("seller intelligence fallback", () => {
 
 import {
   placeToLeadBase,
-  addItOverlay,
   addFleetOverlay,
   websiteDomain,
   searchRealBusinesses,
@@ -179,58 +178,6 @@ describe("placeToLeadBase", () => {
   it("falls back to 'Local business' industry label when industry is 'All Industries'", () => {
     const lead = placeToLeadBase(PLACE, "Chicago", "IL", "All Industries", "janitorial");
     expect(lead.industry).toBe("Local business");
-  });
-});
-
-// ─── addItOverlay ─────────────────────────────────────────────────────────────
-describe("addItOverlay", () => {
-  it("adds opportunityScore (0–100) and scoreLabel", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Healthcare", "it_services");
-    const lead = addItOverlay(base, "Healthcare");
-    expect(lead.opportunityScore).toBeGreaterThanOrEqual(0);
-    expect(lead.opportunityScore).toBeLessThanOrEqual(100);
-    expect(["High Priority","Strong Fit","Possible Fit","Low Priority"]).toContain(lead.scoreLabel);
-  });
-
-  it("adds non-empty potentialNeeds array", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Healthcare", "it_services");
-    const lead = addItOverlay(base, "Healthcare");
-    expect(Array.isArray(lead.potentialNeeds)).toBe(true);
-    expect(lead.potentialNeeds!.length).toBeGreaterThan(0);
-  });
-
-  it("adds complianceConsideration mentioning HIPAA for Healthcare", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Healthcare", "it_services");
-    const lead = addItOverlay(base, "Healthcare");
-    expect(lead.complianceConsideration).toMatch(/HIPAA/i);
-  });
-
-  it("adds recommendedOutreach string", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Healthcare", "it_services");
-    const lead = addItOverlay(base, "Healthcare");
-    expect(typeof lead.recommendedOutreach).toBe("string");
-    expect(lead.recommendedOutreach!.length).toBeGreaterThan(0);
-  });
-
-  it("sets vertical to 'it_services'", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Healthcare", "it_services");
-    const lead = addItOverlay(base, "Healthcare");
-    expect(lead.vertical).toBe("it_services");
-  });
-
-  it("produces stable (deterministic) scores for the same company name", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Retail", "it_services");
-    const a = addItOverlay(base, "Retail");
-    const b = addItOverlay(base, "Retail");
-    expect(a.opportunityScore).toBe(b.opportunityScore);
-    expect(a.scoreLabel).toBe(b.scoreLabel);
-  });
-
-  it("falls back gracefully for unknown industry", () => {
-    const base = placeToLeadBase(PLACE, "Chicago", "IL", "Unknown", "it_services");
-    const lead = addItOverlay(base, "Unknown");
-    expect(lead.opportunityScore).toBeGreaterThanOrEqual(0);
-    expect(Array.isArray(lead.potentialNeeds)).toBe(true);
   });
 });
 

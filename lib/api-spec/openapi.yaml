@@ -629,6 +629,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/EnrichLeadsResult"
 
+  /ai/opportunity-intelligence/refresh:
+    post:
+      operationId: refreshOpportunityIntelligence
+      tags: [ai]
+      summary: Perform fresh cited IT opportunity research for a saved or unsaved prospect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshOpportunityIntelligenceRequest"
+      responses:
+        "200":
+          description: Fresh opportunity intelligence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpportunityIntelligenceRefreshResult"
+        "404":
+          description: Prospect not found or not owned by the authenticated tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: IT intelligence is available only to IT Services tenants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "502":
+          description: Current research could not be completed; a saved report was not changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
   /stats/dashboard:
     get:
       operationId: getDashboardStats
@@ -1366,6 +1403,55 @@ components:
               error:
                 type: string
 
+    RefreshOpportunityIntelligenceRequest:
+      type: object
+      required: [selectedIndustry]
+      properties:
+        prospectId:
+          type: integer
+          minimum: 1
+        lead:
+          type: object
+          required: [companyName]
+          properties:
+            companyName:
+              type: string
+              minLength: 1
+              maxLength: 240
+            website:
+              type: ["string", "null"]
+              maxLength: 2048
+            industry:
+              type: ["string", "null"]
+              maxLength: 160
+            location:
+              type: ["string", "null"]
+              maxLength: 240
+            employeeCount:
+              type: ["integer", "null"]
+              minimum: 1
+              maximum: 10000000
+            contactName:
+              type: ["string", "null"]
+              maxLength: 240
+            contactTitle:
+              type: ["string", "null"]
+              maxLength: 240
+            source:
+              type: ["string", "null"]
+              maxLength: 240
+        selectedIndustry:
+          type: string
+          minLength: 1
+          maxLength: 160
+
+    OpportunityIntelligenceRefreshResult:
+      type: object
+      required: [opportunityIntelligence]
+      properties:
+        opportunityIntelligence:
+          $ref: "#/components/schemas/OpportunityIntelligence"
+
     ProspectLead:
       type: object
       required: [companyName, contactName, contactTitle, email, phone, industry, city, state, whyTarget, confidence]
@@ -1498,6 +1584,118 @@ components:
           items:
             type: string
 
+    ResearchSource:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+        publishedDate:
+          type: ["string", "null"]
+          format: date-time
+
+    ItIndustryChallenge:
+      type: object
+      required: [title, explanation, businessImpact, sources]
+      properties:
+        title:
+          type: string
+        explanation:
+          type: string
+        businessImpact:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResearchSource"
+
+    ItProspectConcern:
+      type: object
+      required: [id, title, explanation, businessImpact, evidence, classification, confidence, sources]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        explanation:
+          type: string
+        businessImpact:
+          type: string
+        evidence:
+          type: string
+        classification:
+          type: string
+          enum: [Verified, Strong Indicator, Industry-Based Possibility]
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResearchSource"
+
+    ItResearchRecommendation:
+      type: object
+      required: [concernId, prospectConcern, offering, howItHelps, businessValue, outreachAngle, discoveryQuestion]
+      properties:
+        concernId:
+          type: string
+        prospectConcern:
+          type: string
+        offering:
+          type: string
+        howItHelps:
+          type: string
+        businessValue:
+          type: string
+        outreachAngle:
+          type: string
+        discoveryQuestion:
+          type: string
+
+    ItResearch:
+      type: object
+      required: [selectedIndustry, actualIndustry, industryRelationship, industryExplanation, industrySources, lastResearched, warnings, industryChallenges, prospectConcerns, recommendations]
+      properties:
+        selectedIndustry:
+          type: string
+        actualIndustry:
+          type: ["string", "null"]
+        industryRelationship:
+          type: string
+          enum: [match, serves_industry, mismatch, uncertain]
+        industryExplanation:
+          type: string
+        industrySources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResearchSource"
+        lastResearched:
+          type: string
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
+        industryChallenges:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/ItIndustryChallenge"
+        prospectConcerns:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/ItProspectConcern"
+        recommendations:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/ItResearchRecommendation"
+
     OpportunityIntelligence:
       type: object
       required: [version, score, label, scoreConfidence, definition, breakdown, signals, whyTarget, potentialNeeds, recommendedOutreach, generatedAt]
@@ -1538,6 +1736,10 @@ components:
         generatedAt:
           type: string
           format: date-time
+        itResearch:
+          $ref: "#/components/schemas/ItResearch"
+        researchProof:
+          type: string
 
     DashboardStats:
       type: object

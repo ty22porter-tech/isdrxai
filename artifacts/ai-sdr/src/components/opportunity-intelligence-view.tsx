@@ -1,5 +1,6 @@
 import {
   Activity,
+  AlertTriangle,
   Archive,
   BarChart,
   BriefcaseBusiness,
@@ -12,19 +13,25 @@ import {
   Info,
   Lightbulb,
   Minus,
+  RefreshCw,
   Target,
   Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { OpportunityIntelligence, OpportunitySignal } from "@workspace/api-client-react";
+import { ITResearchView } from "./it-research-view";
 
 interface OpportunityIntelligenceViewProps {
   intelligence: OpportunityIntelligence;
   className?: string;
   isDialog?: boolean;
   compact?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  vertical?: string;
 }
 
 const NO_BUYING_SIGNAL = "No meaningful company-specific buying signal found yet.";
@@ -253,7 +260,14 @@ export function OpportunityIntelligenceView({
   intelligence,
   className = "",
   compact = false,
+  onRefresh,
+  isRefreshing = false,
+  vertical,
 }: OpportunityIntelligenceViewProps) {
+  const isIT = vertical === "it_services";
+  const hasITResearch = !!intelligence?.itResearch;
+  const isLegacyIT = isIT && !hasITResearch;
+
   const signals = Array.isArray(intelligence?.signals) ? intelligence.signals.filter(Boolean) : [];
   const companyInformation = signals.filter(
     (signal) => signal.signalClassification === "verified" && isVerifiedCompanyInformation(signal),
@@ -282,7 +296,35 @@ export function OpportunityIntelligenceView({
     .slice(0, 5);
   const displayRecommendedOutreach = conciseOutreachText(intelligence?.recommendedOutreach);
 
+  const extIntel = intelligence as OpportunityIntelligence & { researchError?: string };
+
+  if (extIntel.researchError) {
+    return (
+      <Card className={`border-destructive/20 bg-destructive/5 shadow-none ${className}`} data-testid="error-research">
+        <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+          <div className="rounded-full bg-destructive/10 p-3">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-semibold text-destructive">Research Failed</h4>
+            <p className="text-sm text-destructive/80 max-w-md mx-auto">
+              {extIntel.researchError}
+            </p>
+          </div>
+          {onRefresh && (
+            <Button onClick={onRefresh} disabled={isRefreshing} variant="destructive" className="mt-2 shadow-none">
+              {isRefreshing ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Retrying...</> : <><RefreshCw className="mr-2 h-4 w-4" /> Retry Intelligence</>}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (compact) {
+    if (hasITResearch && intelligence.itResearch) {
+      return <ITResearchView research={intelligence.itResearch} compact />;
+    }
     const positiveOpportunities = compactPositiveText(
       displayPotentialOpportunities
         .map(opportunity => /[.!?]$/.test(opportunity.trim()) ? opportunity.trim() : `${opportunity.trim()}.`)
@@ -333,9 +375,17 @@ export function OpportunityIntelligenceView({
                 {generatedAt && <span className="flex items-center gap-1.5 text-muted-foreground"><History className="h-3.5 w-3.5" /> Generated: {generatedAt}</span>}
               </div>
             </div>
+            {onRefresh && !isLegacyIT && (
+              <div className="shrink-0 mt-3 sm:mt-0">
+                <Button size="sm" variant="outline" onClick={onRefresh} disabled={isRefreshing}>
+                  <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                  {isRefreshing ? "Refreshing..." : "Refresh Intelligence"}
+                </Button>
+              </div>
+            )}
           </div>
 
-          {displayWhyTarget && (
+          {displayWhyTarget && !hasITResearch && !isLegacyIT && (
             <Card className="border-primary/15 bg-primary/5 shadow-none">
               <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Why Target</CardTitle></CardHeader>
               <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayWhyTarget}</p></CardContent>
@@ -372,36 +422,61 @@ export function OpportunityIntelligenceView({
         </>
       )}
 
-      {hiringSignals.length > 0 && (
-        <section className="space-y-2">
-          {hiringSignals.map((signal, index) => <HiringSignal key={`${signal.signalTitle}-${index}`} signal={signal} index={index} />)}
-        </section>
-      )}
-
-      <div className="grid grid-cols-1 gap-5">
-        <SignalSection title="Verified Company Information" signals={companyInformation} kind="company" />
-        <SignalSection title="Verified Buying Signals" signals={verifiedBuyingSignals} kind="verified" emptyMessage={NO_BUYING_SIGNAL} />
-        <SignalSection title="Potential Implications" signals={implications} kind="implication" />
-        <SignalSection title="Unconfirmed" signals={unconfirmed} kind="unconfirmed" />
-      </div>
-
-      {displayPotentialOpportunities.length > 0 && (
-        <Card className="border-primary/20 bg-primary/5 shadow-none">
-          <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Lightbulb className="h-4 w-4 text-primary" /> Potential Opportunities</CardTitle></CardHeader>
-          <CardContent>
-            <ul className="space-y-1.5 text-sm text-foreground/90">
-              {displayPotentialOpportunities.map((opportunity, index) => <li key={index} className="flex gap-2"><span className="text-primary">→</span><span>{opportunity}</span></li>)}
-            </ul>
-            <p className="mt-3 text-xs text-muted-foreground">Unconfirmed — validate during discovery before presenting these as prospect requirements.</p>
+      {isLegacyIT ? (
+        <Card className="border-amber-200 bg-amber-50/50 shadow-none dark:border-amber-900/50 dark:bg-amber-900/10">
+          <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+            <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
+              <RefreshCw className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-semibold text-amber-800 dark:text-amber-400">Research Update Available</h4>
+              <p className="text-sm text-amber-700 dark:text-amber-300 max-w-md mx-auto">
+                This prospect was evaluated using an older intelligence model. Refresh to generate specific IT challenges, concerns, and recommended solutions based on current research.
+              </p>
+            </div>
+            {onRefresh && (
+              <Button onClick={onRefresh} disabled={isRefreshing} className="bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-none mt-2">
+                {isRefreshing ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Researching...</> : <><Zap className="mr-2 h-4 w-4" /> Refresh Intelligence</>}
+              </Button>
+            )}
           </CardContent>
         </Card>
-      )}
+      ) : hasITResearch && intelligence.itResearch ? (
+        <ITResearchView research={intelligence.itResearch} />
+      ) : (
+        <>
+          {hiringSignals.length > 0 && (
+            <section className="space-y-2">
+              {hiringSignals.map((signal, index) => <HiringSignal key={`${signal.signalTitle}-${index}`} signal={signal} index={index} />)}
+            </section>
+          )}
 
-      {displayRecommendedOutreach && (
-        <Card className="border-primary/20 bg-primary/5 shadow-none">
-          <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Recommended Outreach</CardTitle></CardHeader>
-          <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayRecommendedOutreach}</p></CardContent>
-        </Card>
+          <div className="grid grid-cols-1 gap-5">
+            <SignalSection title="Verified Company Information" signals={companyInformation} kind="company" />
+            <SignalSection title="Verified Buying Signals" signals={verifiedBuyingSignals} kind="verified" emptyMessage={NO_BUYING_SIGNAL} />
+            <SignalSection title="Potential Implications" signals={implications} kind="implication" />
+            <SignalSection title="Unconfirmed" signals={unconfirmed} kind="unconfirmed" />
+          </div>
+
+          {displayPotentialOpportunities.length > 0 && (
+            <Card className="border-primary/20 bg-primary/5 shadow-none">
+              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Lightbulb className="h-4 w-4 text-primary" /> Potential Opportunities</CardTitle></CardHeader>
+              <CardContent>
+                <ul className="space-y-1.5 text-sm text-foreground/90">
+                  {displayPotentialOpportunities.map((opportunity, index) => <li key={index} className="flex gap-2"><span className="text-primary">→</span><span>{opportunity}</span></li>)}
+                </ul>
+                <p className="mt-3 text-xs text-muted-foreground">Unconfirmed — validate during discovery before presenting these as prospect requirements.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {displayRecommendedOutreach && (
+            <Card className="border-primary/20 bg-primary/5 shadow-none">
+              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Recommended Outreach</CardTitle></CardHeader>
+              <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayRecommendedOutreach}</p></CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
