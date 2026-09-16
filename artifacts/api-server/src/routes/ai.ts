@@ -19,6 +19,7 @@ import {
   potentialNeedsForSeller,
   sellerIntelligenceProfile,
 } from "../lib/prospectMatching";
+import { EmailGenerationError, generateProspectEmailDraft } from "../lib/emailGeneration";
 import { buildOpportunityIntelligence } from "../lib/opportunityIntelligence";
 import { researchPublicBreachRecords } from "../lib/publicBreachResearch";
 import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
@@ -34,46 +35,6 @@ import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
-
-function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect, client: typeof usersTable.$inferSelect | undefined, tone: string = "professional") {
-  const { companyName, contactName, industry, city, state, squareFootage, employeeCount } = prospect;
-  const firstName = contactName.split(" ")[0];
-  const seller = sellerIntelligenceProfile(client);
-  const senderName = client?.senderName?.trim() || seller.name || "our team";
-  const businessName = seller.name || "our team";
-  const sq = squareFootage ? `${squareFootage.toLocaleString()} sq ft` : null;
-  const emp = employeeCount ? `${employeeCount}-person` : null;
-  const vertical = getVerticalConfig(client?.vertical).key;
-  const researchIndustry = prospect.opportunityIntelligence?.itResearch?.actualIndustry || industry;
-
-  const offering = seller.services[0] || seller.capabilities[0] || "a relevant solution";
-  const subjects = [`A question about ${companyName}`, `${companyName} and ${researchIndustry}`, `${offering} for ${companyName}`];
-  const subject = subjects[Math.floor(Math.random() * subjects.length)];
-
-  const openings = tone === "casual"
-    ? [`Hey ${firstName},`, `Hi ${firstName},`]
-    : [`Dear ${firstName},`, `Hello ${firstName},`];
-  const opening = openings[Math.floor(Math.random() * openings.length)];
-
-  const match = industryMatch(researchIndustry, vertical);
-  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products];
-  const claims = seller.ready
-    ? `${businessName} offers ${sellerOffers.slice(0, 3).join(", ")}.${seller.differentiators[0] ? ` ${seller.differentiators[0]}.` : ""}`
-    : "I’m reaching out with a brief, discovery-led question rather than assuming what solution would fit.";
-  const researchRecommendation = prospect.opportunityIntelligence?.itResearch?.recommendations[0];
-  const researchContext = researchRecommendation
-    ? `${researchRecommendation.outreachAngle} ${researchRecommendation.discoveryQuestion}`
-    : `${match.operation} ${companyName}'s specific situation is something we'd want to understand rather than assume.`;
-  const body = `${opening}
-
-${researchContext}
-
-${claims}
-
-Would you be open to a short conversation about ${match.challenges[0]}${seller.ctas[0] ? ` — ${seller.ctas[0]}` : "?"}`;
-
-  return { subject, body };
-}
 
 function generateCallScript(prospect: typeof prospectsTable.$inferSelect, client: typeof usersTable.$inferSelect | undefined, objective: string = "set appointment") {
   const { companyName, contactName, industry, city, squareFootage } = prospect;
@@ -189,13 +150,21 @@ CLOSE (1:30 – 2:00)
 }
 
 router.post("/generate-email", requireEntitlement, async (req, res) => {
-  const body = GenerateEmailBody.parse(req.body);
-  const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
-  if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-  let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
-  client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
-  const result = generatePersonalizedEmail(prospect, client, body.tone);
-  return res.json(result);
+  try {
+    const body = GenerateEmailBody.parse(req.body);
+    const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
+    if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+    let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
+    client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
+    const result = await generateProspectEmailDraft(prospect, client, body.tone);
+    return res.json({ subject: result.subject, body: result.body });
+  } catch (err) {
+    if (err instanceof EmailGenerationError) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    req.log?.error?.({ err }, "AI generate-email failed");
+    return res.status(500).json({ error: "Failed to generate an evidence-safe AI email draft. Please try again." });
+  }
 });
 
 router.post("/generate-call-script", requireEntitlement, async (req, res) => {

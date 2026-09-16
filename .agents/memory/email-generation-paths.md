@@ -5,23 +5,20 @@ description: The multiple content-generation paths in ai-sdr and the rules every
 
 # Content-generation paths (there is more than one — check all)
 
-There are at least three places that produce outreach copy. A bug fixed in one does
+There are multiple paths that produce outreach copy. A bug fixed in one does
 NOT fix the others — verify the actual caller before assuming a path is dead.
 
 **Why:** An explanation once incorrectly attributed the prospect-detail button to the LLM route. A later email contained internal research instructions because its actual path assembled report fields directly.
 
 **How to apply:** Trace the UI hook through its generated URL before describing or changing generation. Research advice such as “Focus on…” is input for a writer, not customer-facing email text; never treat a recommendation's messaging instructions as a finished paragraph.
 
-- **`api-server/src/routes/ai.ts`** — DETERMINISTIC template (not AI). Serves
-  `/api/ai/generate-email` + `/api/ai/generate-call-script`. Called by the frontend
-  **`prospect-detail.tsx`** ("Regenerate" button + call-script preview) via generated
-  hooks `useGenerateEmail` / `useGenerateCallScript`. Recognizable output: fixed subject
-  lines like "Commercial cleaning proposal for {company}" / "Janitorial services tailored
-  for {industry} facilities in {city}" and a bulleted value-prop list.
-- **`api-server/src/routes/openai.ts`** — real LLM path, `/api/openai/generate-email`.
-  Called by `sequences.tsx` and `campaigns.tsx`.
-- **`ai-sdr/src/lib/email-ai.ts`** — CLIENT-SIDE fallback template (`generateEmailForStep`),
-  used only when the API call fails/doesn't override. Signs off as "Your SDR Team".
+- Prospect email drafts must follow a coherent concern → currently supported seller offering → potential value → one natural question structure.
+  **Why:** Directly assembling research advice and discovery questions produced awkward emails that did not explain the seller's relevant solution.
+  **How to apply:** Use research as structured writing context, validate a saved recommendation against the current seller catalog, and reject persistent internal-instruction leakage instead of returning a raw-template fallback.
+
+- Keep OpenAI-written outreach warm, expressive, natural, and appointment-oriented; include researched industry concerns only when relevant to the prospect's actual business.
+  **Why:** The user explicitly wants human-sounding emails that build interest and invite a positive reply or appointment, not rigid research summaries. Industry context should improve relevance without asserting unverified company problems.
+  **How to apply:** Connect a relevant concern to a supported seller service and business value, then ask one low-pressure meeting question. Use plain conditional language for possibilities, not repetitive hedging or alarmist claims.
 
 ## Rules every generator must obey
 - **Load the authenticated client and inject `senderName`/`businessName`.** Never bake a

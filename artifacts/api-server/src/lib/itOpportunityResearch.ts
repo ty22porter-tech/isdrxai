@@ -793,11 +793,37 @@ export function itResearchEmailContext(value: OpportunityIntelligence | null | u
   if (!research) return "";
   const sellerVertical = (research as ItResearch).sellerVertical;
   const label = sellerVertical === "it_services" || !sellerVertical ? "IT " : "";
-  const verified = research.prospectConcerns.filter(concern => concern.classification === "Verified");
-  const conditional = research.prospectConcerns.filter(concern => concern.classification !== "Verified");
+  const savedProspectConcerns = research.prospectConcerns ?? [];
+  const verified = savedProspectConcerns.filter(concern => concern.classification === "Verified");
+  const conditional = savedProspectConcerns.filter(concern => concern.classification !== "Verified");
+  const actualIndustry = research.actualIndustry?.trim();
+  const actualIndustryTakesPrecedence = Boolean(
+    actualIndustry
+      && (research.industryRelationship === "serves_industry" || research.industryRelationship === "mismatch"),
+  );
+  // industryChallenges are background about the selected campaign industry.
+  // When research found that the company serves that industry or belongs to a
+  // different one, carrying those challenges into an email would silently turn
+  // unrelated industry patterns into prospect claims. In that case the actual
+  // industry remains useful context, but the selected-industry challenges do
+  // not.
+  const savedIndustryChallenges = research.industryChallenges ?? [];
+  const industryChallenges = actualIndustryTakesPrecedence ? [] : savedIndustryChallenges;
+  const industryChallengeContext = industryChallenges.length
+    ? industryChallenges.map(challenge =>
+      `- ${challenge.title}: ${challenge.explanation} Potential impact: ${challenge.businessImpact}`,
+    ).join("\n")
+    : "- None available for this prospect's applicable industry.";
+  const industryBackground = actualIndustryTakesPrecedence
+    ? `RESEARCHED INDUSTRY BACKGROUND (optional fit context):
+- The prospect's researched actual industry is ${actualIndustry}. Prefer that industry for general relevance. Do not apply selected-campaign industry challenges to this company.`
+    : `RESEARCHED INDUSTRY CHALLENGES (OPTIONAL BACKGROUND ONLY — general patterns, not verified prospect conditions):
+${industryChallengeContext}`;
   return `${label}RESEARCH ACCURACY:
 VERIFIED COMPANY CONCERNS — may be stated only with their cited evidence:
 ${verified.length ? verified.map(concern => `- ${concern.title}: ${concern.evidence}`).join("\n") : "- None"}
 DISCOVERY CONTEXT — must be stated conditionally, never as a company fact:
-${conditional.length ? conditional.map(concern => `- ${concern.title}: ${concern.explanation}`).join("\n") : "- None"}`;
+${conditional.length ? conditional.map(concern => `- ${concern.title}: ${concern.explanation}`).join("\n") : "- None"}
+${industryBackground}
+Do not mention research labels, sources, or internal classifications in customer-facing copy.`;
 }
