@@ -56,7 +56,7 @@ function generatePersonalizedEmail(prospect: typeof prospectsTable.$inferSelect,
   const opening = openings[Math.floor(Math.random() * openings.length)];
 
   const match = industryMatch(researchIndustry, vertical);
-  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
+  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products];
   const claims = seller.ready
     ? `${businessName} offers ${sellerOffers.slice(0, 3).join(", ")}.${seller.differentiators[0] ? ` ${seller.differentiators[0]}.` : ""}`
     : "I’m reaching out with a brief, discovery-led question rather than assuming what solution would fit.";

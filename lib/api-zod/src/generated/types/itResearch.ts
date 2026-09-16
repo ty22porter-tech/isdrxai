@@ -12,6 +12,7 @@ import type { ItResearchRecommendation } from './itResearchRecommendation';
 import type { ResearchSource } from './researchSource';
 
 export interface ItResearch {
+  sellerCompanyName?: string;
   selectedIndustry: string;
   /** @nullable */
   actualIndustry: string | null;

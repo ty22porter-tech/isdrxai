@@ -35,6 +35,7 @@ interface OpportunityIntelligenceViewProps {
 }
 
 const NO_BUYING_SIGNAL = "No meaningful company-specific buying signal found yet.";
+const SELLER_SOURCES_REFRESH_GUIDANCE = "Refresh Intelligence to verify seller sources";
 
 const SCORE_COLORS: Record<string, string> = {
   "High Priority": "bg-primary/10 text-primary border-primary/20",
@@ -335,7 +336,10 @@ export function OpportunityIntelligenceView({
     const rows = [
       { label: "Why target", value: displayWhyTarget },
       { label: "Potential needs", value: positiveOpportunities },
-      { label: "Recommended outreach", value: displayRecommendedOutreach },
+      // Older reports only contain messaging-oriented outreach text. Do not
+      // present that copy as a seller solution; direct users to refresh so
+      // the structured report can verify offerings and sources.
+      { label: "Outreach", value: displayRecommendedOutreach ? SELLER_SOURCES_REFRESH_GUIDANCE : "" },
     ].filter((row) => row.value);
 
     if (rows.length === 0) return null;
@@ -424,7 +428,7 @@ export function OpportunityIntelligenceView({
         </>
       )}
 
-      {isLegacyReport ? (
+      {isLegacyReport && (
         <Card className="border-amber-200 bg-amber-50/50 shadow-none dark:border-amber-900/50 dark:bg-amber-900/10">
           <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
             <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
@@ -437,6 +441,9 @@ export function OpportunityIntelligenceView({
                   ? "This prospect was evaluated using an older intelligence model. Refresh to generate specific IT challenges, concerns, and recommended solutions based on current research."
                   : "This prospect was evaluated using an older intelligence model. Refresh to generate current industry challenges, prospect concerns, and recommended solutions based on current seller research."}
               </p>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300" data-testid="legacy-seller-sources-guidance">
+                {SELLER_SOURCES_REFRESH_GUIDANCE}
+              </p>
             </div>
             {onRefresh && (
               <Button onClick={onRefresh} disabled={isRefreshing} className="bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-none mt-2">
@@ -445,7 +452,9 @@ export function OpportunityIntelligenceView({
             )}
           </CardContent>
         </Card>
-      ) : hasStructuredResearch && intelligence.itResearch ? (
+      )}
+
+      {hasStructuredResearch && intelligence.itResearch ? (
         <ITResearchView research={intelligence.itResearch} sellerVertical={vertical} />
       ) : (
         <>
@@ -476,8 +485,8 @@ export function OpportunityIntelligenceView({
 
           {displayRecommendedOutreach && (
             <Card className="border-primary/20 bg-primary/5 shadow-none">
-              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Recommended Outreach</CardTitle></CardHeader>
-              <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayRecommendedOutreach}</p></CardContent>
+              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Lightbulb className="h-4 w-4 text-primary" /> Outreach</CardTitle></CardHeader>
+              <CardContent><p className="text-sm leading-relaxed text-foreground/90">{SELLER_SOURCES_REFRESH_GUIDANCE}</p></CardContent>
             </Card>
           )}
         </>

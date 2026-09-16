@@ -105,8 +105,7 @@ export function sellerIntelligenceProfile(user?: User | null): SellerIntelligenc
     ready: Boolean(seller.name && (
       seller.services.length ||
       seller.products.length ||
-      seller.capabilities.length ||
-      seller.valuePropositions.length
+      seller.capabilities.length
     )),
   };
 }
@@ -187,7 +186,7 @@ export function potentialNeedsForSeller(
     );
   }
   const solutions = prioritizeApprovedOffers(
-    [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions],
+    [...seller.capabilities, ...seller.services, ...seller.products],
     sellerPriorityServices(user),
   );
   return match.challenges.map((challenge, index) => {
@@ -204,7 +203,7 @@ export function genericOutreach(user: User | undefined, industry: string | null 
     return `Lead with a discovery question about ${match.challenges[0]}; seller-specific capabilities are unavailable, so do not make a product claim.`;
   }
   const offer = prioritizeApprovedOffers(
-    [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions],
+    [...seller.capabilities, ...seller.services, ...seller.products],
     sellerPriorityServices(user),
   )[0];
   const outcome = seller.outcomes[0] || match.outcome;

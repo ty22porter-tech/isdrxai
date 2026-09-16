@@ -86,5 +86,7 @@ export * from './prospectUpdate';
 export * from './refreshOpportunityIntelligenceRequest';
 export * from './refreshOpportunityIntelligenceRequestLead';
 export * from './researchSource';
+export * from './sellerEvidence';
+export * from './sellerEvidenceAvailability';
 export * from './uploadUrlRequest';
 export * from './uploadUrlResponse';

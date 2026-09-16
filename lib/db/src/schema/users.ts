@@ -19,6 +19,23 @@ export interface SellerIntelligenceEditable {
   sellerCTAs: string[];
 }
 
+export interface SellerResearchSource {
+  title: string;
+  url: string;
+  publishedDate?: string | null;
+}
+
+/**
+ * Server-validated evidence for the exact seller fact/value it supports.
+ * This intentionally lives on the profile (rather than on the editable
+ * settings shape) so a client cannot claim that a user-entered offer came
+ * from an internet source.
+ */
+export type SellerFactEvidence = Partial<Record<
+  Exclude<keyof SellerIntelligenceEditable, "sellerCompanyName">,
+  Record<string, string[]>
+>>;
+
 export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
   status: "ready" | "needs_review" | "limited";
   sellerCompanyName: string | null;
@@ -46,12 +63,10 @@ export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
   /** ISO timestamp used by the UI as the public research provenance marker. */
   researchedGenerated?: string;
   researchMethod?: "responses_web_search";
-  researchSources?: Array<{
-    title: string;
-    url: string;
-    publishedDate?: string | null;
-  }>;
+  researchSources?: SellerResearchSource[];
   researchGenerated?: SellerIntelligenceEditable;
+  /** Evidence retained for each validated generated field/value. */
+  factEvidence?: SellerFactEvidence;
 }
 
 export const usersTable = pgTable("users", {
@@ -80,7 +95,7 @@ export const usersTable = pgTable("users", {
   website: text("website"),
   sellerDifferentiatorsInput: text("seller_differentiators_input"),
   sellerServicePriorities: text("seller_service_priorities"),
-  /** Derived only from the account holder's public company website. */
+  /** Derived from server-validated seller company-name research and Settings facts. */
   sellerIntelligenceProfile: jsonb("seller_intelligence_profile").$type<SellerIntelligenceProfile | null>(),
   mobilePhone: text("mobile_phone"),
   companyLogoPath: text("company_logo_path"),

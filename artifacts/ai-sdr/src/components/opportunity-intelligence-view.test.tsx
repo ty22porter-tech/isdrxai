@@ -46,7 +46,7 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.queryByText(/…/)).not.toBeInTheDocument();
   });
 
-  it("removes repeated legacy employee-profile copy and keeps one concise outreach", () => {
+  it("removes repeated legacy employee-profile copy and replaces old outreach scripting with refresh guidance", () => {
     render(
       <OpportunityIntelligenceView
         compact
@@ -61,8 +61,11 @@ describe("OpportunityIntelligenceView", () => {
 
     expect(screen.queryByText("Why target:")).not.toBeInTheDocument();
     expect(screen.queryByText("Potential needs:")).not.toBeInTheDocument();
-    expect(screen.getByText(/ask how its 63-person team handles onboarding/)).toBeInTheDocument();
+    expect(screen.getByTestId("section-opportunity-intelligence-compact")).toHaveTextContent(
+      "Outreach: Refresh Intelligence to verify seller sources",
+    );
     expect(screen.queryByText(/tailor the approach/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ask how its 63-person team handles onboarding/)).not.toBeInTheDocument();
   });
 
   it("removes repeated legacy employee-profile copy from the expanded view", () => {
@@ -79,7 +82,10 @@ describe("OpportunityIntelligenceView", () => {
 
     expect(screen.queryByText("Why Target")).not.toBeInTheDocument();
     expect(screen.queryByText("Potential Opportunities")).not.toBeInTheDocument();
-    expect(screen.getByText(/ask how its 63-person team handles onboarding/)).toBeInTheDocument();
+    expect(screen.getByTestId("legacy-seller-sources-guidance")).toHaveTextContent(
+      "Refresh Intelligence to verify seller sources",
+    );
+    expect(screen.queryByText(/ask how its 63-person team handles onboarding/)).not.toBeInTheDocument();
   });
 
   it("shows the prospect criteria that earned score points", () => {
@@ -143,8 +149,9 @@ describe("OpportunityIntelligenceView", () => {
     expect(screen.getByText("Why target:")).toBeInTheDocument();
     expect(screen.getByText("Potential needs:")).toBeInTheDocument();
     expect(screen.queryByText("Verified signal:")).not.toBeInTheDocument();
-    expect(screen.getByText("Recommended outreach:")).toBeInTheDocument();
+    expect(screen.getByText("Outreach:")).toBeInTheDocument();
     expect(screen.getByText(/actively hiring service technicians/)).toBeInTheDocument();
+    expect(screen.getByText("Refresh Intelligence to verify seller sources")).toBeInTheDocument();
     expect(screen.queryByText(/No meaningful/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Unverified fleet size/)).not.toBeInTheDocument();
     expect(screen.queryByText(/third opportunity/)).not.toBeInTheDocument();

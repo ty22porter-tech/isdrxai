@@ -1,13 +1,47 @@
 import { ExternalLink, Target, AlertTriangle, Lightbulb, Briefcase, Zap, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ItResearch, ResearchSource, ItIndustryChallenge, ItProspectConcern, ItResearchRecommendation } from "@workspace/api-client-react";
+import type { ItResearch, ResearchSource, ItIndustryChallenge, ItProspectConcern, ItResearchRecommendation } from "@workspace/api-client-react";
 
-export function SourcesList({ sources }: { sources: ResearchSource[] }) {
+type SellerEvidenceAvailability = "source_backed" | "user_approved" | "unavailable";
+
+/**
+ * Seller evidence is optional while older intelligence reports are still in
+ * circulation. Keep this local extension until the shared API types include
+ * the new report fields.
+ */
+type SellerEvidence = {
+  availability: SellerEvidenceAvailability;
+  basis?: string;
+  sources: ResearchSource[];
+};
+
+type SellerAwareRecommendation = ItResearchRecommendation & {
+  sellerEvidence?: SellerEvidence;
+};
+
+type SellerAwareResearch = Omit<ItResearch, "recommendations"> & {
+  sellerCompanyName?: string | null;
+  recommendations?: SellerAwareRecommendation[];
+};
+
+export function SourcesList({
+  sources,
+  heading = "Sources",
+  note,
+  basis,
+}: {
+  sources: ResearchSource[];
+  heading?: string;
+  note?: string;
+  basis?: string;
+}) {
   if (!sources || sources.length === 0) return null;
   return (
     <div className="mt-3 space-y-1.5 border-t pt-2.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Sources</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{heading}</p>
+      {note && <p className="text-xs text-muted-foreground">{note}</p>}
+      {basis && <p className="text-xs text-muted-foreground">{basis}</p>}
       <ul className="space-y-1">
         {sources.map((source, idx) => (
           <li key={idx} className="text-xs">
@@ -27,7 +61,7 @@ export function ITResearchView({
   compact,
   sellerVertical,
 }: {
-  research: ItResearch;
+  research: SellerAwareResearch;
   compact?: boolean;
   /** Legacy reports can exist under itResearch for non-IT seller verticals. */
   sellerVertical?: string;
@@ -35,6 +69,14 @@ export function ITResearchView({
   const isITSeller = sellerVertical === "it_services";
   const industryChallengesHeading = isITSeller ? "Industry IT Challenges" : "Industry Challenges";
   const prospectConcernsHeading = isITSeller ? "Prospect IT Concerns" : "Prospect Concerns";
+  const firstRecommendation = research.recommendations?.[0];
+  const compactRecommendation = firstRecommendation
+    ? [firstRecommendation.offering, firstRecommendation.howItHelps].filter(Boolean).join(" — ")
+    : "";
+  const sellerCompanyName = research.sellerCompanyName?.trim();
+  const outreachIntro = sellerCompanyName
+    ? `Products and services from ${sellerCompanyName} that could address this prospect’s concerns.`
+    : "Products and services that could address this prospect’s concerns.";
 
   if (compact) {
     return (
@@ -54,10 +96,10 @@ export function ITResearchView({
             {research.prospectConcerns[0].title} ({research.prospectConcerns[0].classification})
           </p>
         )}
-        {research.recommendations?.[0] && (
+        {compactRecommendation && (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Outreach: </span>
-            {research.recommendations[0].outreachAngle}
+            <span className="font-medium text-foreground">Product or service: </span>
+            {compactRecommendation}
           </p>
         )}
       </div>
@@ -165,33 +207,69 @@ export function ITResearchView({
 
       <section className="space-y-3">
         <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          <Lightbulb className="h-4 w-4" /> Recommended Solutions and Outreach
+          <Lightbulb className="h-4 w-4" /> Outreach
         </h4>
+        <p className="text-sm text-muted-foreground">{outreachIntro}</p>
         {research.recommendations && research.recommendations.length > 0 ? (
           <div className="grid gap-3">
             {research.recommendations.map((rec, i) => (
               <Card key={i} className="border-primary/20 bg-primary/5 shadow-none">
                 <CardContent className="p-4 space-y-3">
-                  <div>
-                    <h5 className="font-semibold text-sm text-primary mb-1">Solution: {rec.offering}</h5>
-                    <p className="text-sm text-foreground/90">{rec.howItHelps}</p>
-                  </div>
+                  <h5 className="font-semibold text-sm text-primary">
+                    Product or service: {rec.offering}
+                  </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs border-t border-primary/10 pt-3">
                     <div>
-                      <strong className="block text-foreground mb-0.5">Business Value</strong>
-                      <span className="text-muted-foreground">{rec.businessValue}</span>
-                    </div>
-                    <div>
-                      <strong className="block text-foreground mb-0.5">Addresses Concern</strong>
+                      <strong className="block text-foreground mb-0.5">Prospect concern</strong>
                       <span className="text-muted-foreground">{rec.prospectConcern}</span>
                     </div>
-                    <div className="md:col-span-2">
-                      <strong className="block text-foreground mb-0.5">Outreach Angle</strong>
-                      <span className="text-muted-foreground">{rec.outreachAngle}</span>
+                    <div>
+                      <strong className="block text-foreground mb-0.5">How it helps</strong>
+                      <span className="text-muted-foreground">{rec.howItHelps}</span>
                     </div>
-                    <div className="md:col-span-2 bg-background/50 p-2 rounded border border-primary/10">
-                      <strong className="block text-primary mb-0.5">Discovery Question</strong>
-                      <span className="text-foreground/90 italic">"{rec.discoveryQuestion}"</span>
+                    <div>
+                      <strong className="block text-foreground mb-0.5">Business value</strong>
+                      <span className="text-muted-foreground">{rec.businessValue}</span>
+                    </div>
+                    <div className="md:col-span-2">
+                      {rec.sellerEvidence?.availability === "source_backed" && rec.sellerEvidence.sources?.length > 0 ? (
+                        <SourcesList
+                          sources={rec.sellerEvidence.sources}
+                          heading="Seller sources"
+                          note="Internet sources verified for this offering."
+                          basis={rec.sellerEvidence.basis}
+                        />
+                      ) : rec.sellerEvidence?.availability === "user_approved" ? (
+                        <div className="mt-3 space-y-1.5 border-t pt-2.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Seller sources</p>
+                          <p className="text-xs text-muted-foreground">User-confirmed sources (not internet-verified).</p>
+                          {rec.sellerEvidence.basis && <p className="text-xs text-muted-foreground">{rec.sellerEvidence.basis}</p>}
+                          {rec.sellerEvidence.sources?.length > 0 && (
+                            <ul className="space-y-1">
+                              {rec.sellerEvidence.sources.map((source, sourceIndex) => (
+                                <li key={sourceIndex} className="text-xs">
+                                  <a
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                                    data-testid={`link-seller-source-${sourceIndex}`}
+                                  >
+                                    {source.title} <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                  {source.publishedDate && <span className="ml-2 text-muted-foreground">({new Date(source.publishedDate).toLocaleDateString()})</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-3 space-y-1.5 border-t pt-2.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Seller sources</p>
+                          <p className="text-xs text-muted-foreground">Refresh Intelligence to verify seller sources</p>
+                          {rec.sellerEvidence?.basis && <p className="text-xs text-muted-foreground">{rec.sellerEvidence.basis}</p>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -200,7 +278,7 @@ export function ITResearchView({
           </div>
         ) : (
           <p className="rounded-lg border bg-muted/25 p-3 text-sm text-muted-foreground" data-testid="empty-recommended-solutions">
-            No supported matching offering found in this report. Refresh seller research or review the seller research profile for current offerings.
+            No supported matching offering found in this report. Refresh Intelligence to verify seller sources.
           </p>
         )}
       </section>

@@ -381,7 +381,9 @@ export function buildOpportunityIntelligence(
   const seller = sellerIntelligenceProfile(client);
   const sellerName = currentSellerName(seller.name);
   const match = industryMatch(lead.industry, vertical);
-  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
+  // Benefits/value propositions are context, not saleable products or
+  // services. Only concrete catalog fields may be selected as an offering.
+  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products];
   const approvedIcpSolutions = ["it_services", "fleet_wraps"].includes(vertical)
     ? sellerPriorityServices(client)
     : [];

@@ -7,6 +7,12 @@ Opportunity Intelligence is a server-derived snapshot. Never trust client-suppli
 
 The research-based sections supersede the older narrative restrictions below: **Industry Challenges**, **Prospect Concerns**, and **Recommended Solutions and Outreach**, contextualized by the seller's “Your Industry.” IT Services uses the IT-specific titles. Industry-based possibilities are explicitly requested and allowed when labeled as possibilities, never promoted to verified buying signals.
 
+The Outreach area should explain which concrete seller products or services could solve each prospect concern, not display an email pitch or discovery-question script.
+
+**Why:** The user explicitly clarified that “Outreach” means a seller-solution answer grounded in internet research of Settings Seller Company Name. Merely adding outreach messaging to concern cards did not answer that question.
+
+**How to apply:** Show the offering, the concern it addresses, how it helps, and business value. Cite evidence for that specific offering; a generic company source list is not proof of every service. Distinguish user-confirmed offerings from publicly researched ones.
+
 **Why:** The user's IT research specification deliberately separates industry context, company evidence, and seller solutions. Suppressing every industry-based possibility would contradict that request; treating one as verified would also contradict it.
 
 **How to apply:** Preserve source links, uncertainty, selected-versus-actual industry distinctions, and positive business-value explanations. Match only confirmed seller offerings. Use actual researched business classification in company-specific outreach when the selected search industry differs.

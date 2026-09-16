@@ -118,7 +118,6 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
       ...seller.capabilities,
       ...seller.services,
       ...seller.products,
-      ...seller.valuePropositions,
     ];
     const offeringFocus = seller.ready && sellerOffers.length
       ? ` For this email, emphasize the configured seller capability "${sellerOffers[(Math.max(1, Number(step)) - 1) % sellerOffers.length]}".`

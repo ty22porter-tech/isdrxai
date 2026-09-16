@@ -5,6 +5,7 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { SellerEvidence } from './sellerEvidence';
 
 export interface ItResearchRecommendation {
   concernId: string;
@@ -14,4 +15,5 @@ export interface ItResearchRecommendation {
   businessValue: string;
   outreachAngle: string;
   discoveryQuestion: string;
+  sellerEvidence: SellerEvidence;
 }

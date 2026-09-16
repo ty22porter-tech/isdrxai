@@ -83,7 +83,7 @@ async function generateStepEmail(
 
   const senderInfo = `The sender's company is "${senderBusinessName}".`;
   const noSignature = `End the email immediately after the call to action. Do NOT add any sign-off, signature, sender name, company name line, phone number, email address, or placeholder tokens like [Your Name] or [Your Company] — a signature is appended automatically afterward.`;
-  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products, ...seller.valuePropositions];
+  const sellerOffers = [...seller.capabilities, ...seller.services, ...seller.products];
   const sellerOffer = sellerOffers[0] || "a possible solution";
   const sellerCta = seller.ctas[0] || "a brief conversation";
   const focusClause = seller.ready && sellerOffers.length

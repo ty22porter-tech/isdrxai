@@ -1,5 +1,10 @@
 import { db, usersTable } from "@workspace/db";
-import type { SellerIntelligenceEditable, SellerIntelligenceProfile, User } from "@workspace/db";
+import type {
+  SellerFactEvidence,
+  SellerIntelligenceEditable,
+  SellerIntelligenceProfile,
+  User,
+} from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import {
   SELLER_RESEARCH_VERSION,
@@ -297,6 +302,43 @@ function factEvidenceUrls(
     .filter(url => sourceByUrl.has(url));
 }
 
+function validatedFactEvidence(
+  result: SellerResearchPayload,
+  sourceByUrl: Map<string, ResearchSourceWithIdentity>,
+): SellerFactEvidence {
+  const evidence: SellerFactEvidence = {};
+  const facts = result.facts ?? {};
+  const fields = [
+    "sellerServices",
+    "sellerProducts",
+    "sellerCapabilities",
+    "sellerDifferentiators",
+    "sellerCertifications",
+    "sellerIndustriesServed",
+    "sellerBusinessOutcomes",
+    "sellerProblemsSolved",
+    "sellerProofPoints",
+    "sellerPortfolioExamples",
+    "sellerValuePropositions",
+    "sellerTypicalCustomers",
+    "sellerCTAs",
+  ] as const;
+  for (const fieldName of fields) {
+    const raw = facts[fieldName] ?? result[fieldName];
+    const values = strings(raw, fieldName === "sellerProofPoints" || fieldName === "sellerPortfolioExamples" || fieldName === "sellerCTAs" ? 12 : 16);
+    const fieldEvidence: Record<string, string[]> = {};
+    for (const value of values) {
+      const sources = factEvidenceUrls(result, fieldName, value, sourceByUrl)
+        .filter((url, index, all) => all.indexOf(url) === index);
+      if (sources.length) fieldEvidence[value] = sources;
+    }
+    if (Object.keys(fieldEvidence).length) {
+      evidence[fieldName] = fieldEvidence;
+    }
+  }
+  return evidence;
+}
+
 function factsFromResult(
   result: SellerResearchPayload,
   sourceByUrl: Map<string, ResearchSourceWithIdentity>,
@@ -382,14 +424,14 @@ export function parseSellerResearchResponse(
   }
 
   const generated = factsFromResult(result, sourceByUrl);
+  const factEvidence = validatedFactEvidence(result, sourceByUrl);
   // The account's Settings name is canonical. A model may identify a former
   // name or brand alias, but it cannot silently rename the tenant.
   generated.sellerCompanyName = input.companyName.trim();
   const usable = Boolean(
     generated.sellerServices.length
     || generated.sellerProducts.length
-    || generated.sellerCapabilities.length
-    || generated.sellerValuePropositions.length,
+    || generated.sellerCapabilities.length,
   );
   const hasReviewDepth = Boolean(
     generated.sellerDifferentiators.length
@@ -419,6 +461,7 @@ export function parseSellerResearchResponse(
     researchMethod: "responses_web_search",
     researchSources: sources.map(({ likelyOfficial: _likelyOfficial, ...source }) => source),
     researchGenerated: generated,
+    ...(Object.keys(factEvidence).length ? { factEvidence } : {}),
     ...(usable ? {} : { analysisError: "The company name search did not contain enough explicit, source-backed offerings." }),
   };
   return SellerIntelligenceProfileSchema.parse(profile);

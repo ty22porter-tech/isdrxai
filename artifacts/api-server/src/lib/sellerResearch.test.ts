@@ -79,7 +79,7 @@ describe("seller company-name research", () => {
       vertical: "janitorial",
       website: null,
     });
-    expect(profile.researchVersion).toBe(2);
+    expect(profile.researchVersion).toBe(3);
     expect(profile.researchStatus).toBe("ready");
     expect(profile.researchIdentity).toEqual({
       companyName: "Acme Clean",
@@ -92,6 +92,9 @@ describe("seller company-name research", () => {
       url: "https://acme-clean.example/services",
       publishedDate: "2026-08-01T00:00:00.000Z",
     });
+    expect(profile.factEvidence?.sellerServices?.["commercial cleaning"]).toEqual([
+      "https://acme-clean.example/services",
+    ]);
     expect(profile.sellerWebsite).toBeNull();
   });
 
@@ -184,7 +187,7 @@ describe("seller company-name research", () => {
     const profile = {
       ...buildGenericSellerProfile(null, "janitorial", "legacy"),
       sellerCompanyName: "Acme Clean",
-      researchVersion: 2,
+       researchVersion: 3,
       researchStatus: "ready" as const,
       researchIdentity: {
         companyName: "Acme Clean",

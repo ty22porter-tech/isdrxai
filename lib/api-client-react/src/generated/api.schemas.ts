@@ -217,6 +217,21 @@ export interface ItProspectConcern {
   sources: ResearchSource[];
 }
 
+export type SellerEvidenceAvailability = typeof SellerEvidenceAvailability[keyof typeof SellerEvidenceAvailability];
+
+
+export const SellerEvidenceAvailability = {
+  source_backed: 'source_backed',
+  user_approved: 'user_approved',
+  unavailable: 'unavailable',
+} as const;
+
+export interface SellerEvidence {
+  availability: SellerEvidenceAvailability;
+  basis?: string;
+  sources: ResearchSource[];
+}
+
 export interface ItResearchRecommendation {
   concernId: string;
   prospectConcern: string;
@@ -225,9 +240,11 @@ export interface ItResearchRecommendation {
   businessValue: string;
   outreachAngle: string;
   discoveryQuestion: string;
+  sellerEvidence: SellerEvidence;
 }
 
 export interface ItResearch {
+  sellerCompanyName?: string;
   selectedIndustry: string;
   /** @nullable */
   actualIndustry: string | null;

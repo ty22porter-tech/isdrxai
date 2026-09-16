@@ -39,6 +39,8 @@ export interface ResearchSource {
 export interface ItResearch {
   /** Seller vertical that contextualized this report; legacy field name retained for API compatibility. */
   sellerVertical?: "janitorial" | "it_services" | "fleet_wraps" | string;
+  /** Canonical Settings company name (or the resolved seller name when Settings is unavailable). */
+  sellerCompanyName?: string;
   selectedIndustry: string;
   actualIndustry: string | null;
   industryRelationship: "match" | "serves_industry" | "mismatch" | "uncertain";
@@ -70,7 +72,14 @@ export interface ItResearch {
     businessValue: string;
     outreachAngle: string;
     discoveryQuestion: string;
+    sellerEvidence: SellerEvidence;
   }>;
+}
+
+export interface SellerEvidence {
+  availability: "source_backed" | "user_approved" | "unavailable";
+  basis?: string;
+  sources: ResearchSource[];
 }
 
 export interface OpportunityIntelligence {

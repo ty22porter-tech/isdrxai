@@ -118,6 +118,7 @@ export const ListProspectsResponseItem = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -160,7 +161,16 @@ export const ListProspectsResponseItem = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(listProspectsResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -249,6 +259,7 @@ export const CreateProspectBody = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -291,7 +302,16 @@ export const CreateProspectBody = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(createProspectBodyOpportunityIntelligenceItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -372,6 +392,7 @@ export const CreateProspectResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -414,7 +435,16 @@ export const CreateProspectResponse = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(createProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -503,6 +533,7 @@ export const BulkCreateProspectsBody = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -545,7 +576,16 @@ export const BulkCreateProspectsBody = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -637,6 +677,7 @@ export const BulkCreateProspectsResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -679,7 +720,16 @@ export const BulkCreateProspectsResponse = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -810,6 +860,7 @@ export const GetProspectResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -852,7 +903,16 @@ export const GetProspectResponse = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(getProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -960,6 +1020,7 @@ export const UpdateProspectResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -1002,7 +1063,16 @@ export const UpdateProspectResponse = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(updateProspectResponseOpportunityIntelligenceOneItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -1510,6 +1580,7 @@ export const ProspectSearchResponseItem = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -1552,7 +1623,16 @@ export const ProspectSearchResponseItem = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(prospectSearchResponseOpportunityIntelligenceItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -1652,6 +1732,7 @@ export const EnrichLeadsResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -1694,7 +1775,16 @@ export const EnrichLeadsResponse = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()
@@ -1802,6 +1892,7 @@ export const RefreshOpportunityIntelligenceResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
   "industryRelationship": zod.enum(['match', 'serves_industry', 'mismatch', 'uncertain']),
@@ -1844,7 +1935,16 @@ export const RefreshOpportunityIntelligenceResponse = zod.object({
   "howItHelps": zod.string(),
   "businessValue": zod.string(),
   "outreachAngle": zod.string(),
-  "discoveryQuestion": zod.string()
+  "discoveryQuestion": zod.string(),
+  "sellerEvidence": zod.object({
+  "availability": zod.enum(['source_backed', 'user_approved', 'unavailable']),
+  "basis": zod.string().optional(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string().url(),
+  "publishedDate": zod.coerce.date().nullish()
+}))
+})
 })).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceItResearchRecommendationsMax)
 }).optional(),
   "researchProof": zod.string().optional()

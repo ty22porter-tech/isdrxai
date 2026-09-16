@@ -310,6 +310,84 @@ describe("IT opportunity research", () => {
     expect(report?.warnings.join(" ")).toMatch(/Fewer than three industry IT challenges|No confirmed tenant offering/i);
   });
 
+  it("keeps seller evidence scoped to the exact catalog offering and never trusts model URLs", () => {
+    const sourceBackedSeller = {
+      ...seller,
+      sellerIntelligenceProfile: {
+        ...seller.sellerIntelligenceProfile,
+        factEvidence: {
+          sellerServices: {
+            "backup and disaster recovery": ["https://example.com/company-news"],
+          },
+        },
+        researchSources: [{
+          title: "SecurePath services",
+          url: "https://example.com/company-news",
+          publishedDate: "2026-08-01T00:00:00.000Z",
+        }],
+      },
+    } as any;
+    const reportInput = structuredClone(response);
+    const body = JSON.parse((reportInput.output[1] as any).content[0].text);
+    const offering = approvedOfferingsForResearch(sourceBackedSeller)
+      .find(item => item.offering === "backup and disaster recovery")!;
+    body.recommendations[0].offeringId = offering.id;
+    body.recommendations[0].sellerEvidence = {
+      availability: "source_backed",
+      sources: [{ title: "Invented model source", url: "https://model-invented.example/source" }],
+    };
+    (reportInput.output[1] as any).content[0].text = JSON.stringify(body);
+    const report = parseItOpportunityResearchResponse(reportInput, {
+      selectedIndustry: "Manufacturing",
+      companyName: "Example Health",
+      website: "https://example.com",
+    }, sourceBackedSeller)!;
+    expect(report.recommendations[0]?.sellerEvidence).toEqual({
+      availability: "source_backed",
+      basis: "This exact seller offering was validated in company-name research.",
+      sources: [{
+        title: "SecurePath services",
+        url: "https://example.com/company-news",
+        publishedDate: "2026-08-01T00:00:00.000Z",
+      }],
+    });
+  });
+
+  it("labels user-approved offer overrides without borrowing generated source evidence", () => {
+    const userApproved = {
+      ...seller,
+      sellerIntelligenceProfile: {
+        ...seller.sellerIntelligenceProfile,
+        userOverrides: {
+          sellerServices: ["approved by settings"],
+        },
+        factEvidence: {
+          sellerServices: {
+            "approved by settings": ["https://example.com/company-news"],
+          },
+        },
+      },
+    } as any;
+    const offering = approvedOfferingsForResearch(userApproved)
+      .find(item => item.offering === "approved by settings");
+    expect(offering?.sellerEvidence).toEqual({
+      availability: "user_approved",
+      basis: "This offering was explicitly approved or edited in Settings.",
+      sources: [],
+    });
+  });
+
+  it("does not put benefit-only value propositions in the saleable offering catalog", () => {
+    const offers = approvedOfferingsForResearch({
+      ...seller,
+      sellerIntelligenceProfile: {
+        ...seller.sellerIntelligenceProfile,
+        sellerValuePropositions: ["reduce downtime"],
+      },
+    } as any);
+    expect(offers.map(item => item.offering)).not.toContain("reduce downtime");
+  });
+
   it("surfaces a research-service failure instead of returning an invented refresh", async () => {
     const priorBase = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
     const priorKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;

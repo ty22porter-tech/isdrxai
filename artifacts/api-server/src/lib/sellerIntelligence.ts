@@ -59,11 +59,23 @@ export const SellerIntelligenceProfileSchema = SellerIntelligenceEditableSchema.
     publishedDate: z.string().datetime().nullable().optional(),
   })).max(20).optional(),
   researchGenerated: SellerIntelligenceEditableSchema.optional(),
+  /**
+   * Source-backed evidence is retained by exact field/value. It is not part
+   * of SellerIntelligenceEditable so Settings updates cannot submit or
+   * replace server-derived provenance.
+   */
+  factEvidence: z.record(
+    z.string().trim().min(1).max(80),
+    z.record(
+      z.string().trim().min(1).max(500),
+      z.array(z.string().url()).max(3),
+    ),
+  ).optional(),
 });
 type ParsedSellerIntelligenceProfile = z.infer<typeof SellerIntelligenceProfileSchema>;
 
 /** Bump when the company-name research contract or extraction rules change. */
-export const SELLER_RESEARCH_VERSION = 2;
+export const SELLER_RESEARCH_VERSION = 3;
 
 type CrawlPage = { url: string; text: string };
 export type CrawledWebsite = { website: string; pages: CrawlPage[]; text: string };
@@ -382,8 +394,7 @@ export function applySellerIntelligenceSources(
   const usable = Boolean(merged.sellerCompanyName && (
     merged.sellerServices.length ||
     merged.sellerProducts.length ||
-    merged.sellerCapabilities.length ||
-    merged.sellerValuePropositions.length
+    merged.sellerCapabilities.length
   ));
   const status: SellerIntelligenceProfile["status"] = !usable
     ? "limited"

@@ -1639,7 +1639,7 @@ components:
 
     ItResearchRecommendation:
       type: object
-      required: [concernId, prospectConcern, offering, howItHelps, businessValue, outreachAngle, discoveryQuestion]
+      required: [concernId, prospectConcern, offering, howItHelps, businessValue, outreachAngle, discoveryQuestion, sellerEvidence]
       properties:
         concernId:
           type: string
@@ -1655,11 +1655,29 @@ components:
           type: string
         discoveryQuestion:
           type: string
+        sellerEvidence:
+          $ref: "#/components/schemas/SellerEvidence"
+
+    SellerEvidence:
+      type: object
+      required: [availability, sources]
+      properties:
+        availability:
+          type: string
+          enum: [source_backed, user_approved, unavailable]
+        basis:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResearchSource"
 
     ItResearch:
       type: object
       required: [selectedIndustry, actualIndustry, industryRelationship, industryExplanation, industrySources, lastResearched, warnings, industryChallenges, prospectConcerns, recommendations]
       properties:
+        sellerCompanyName:
+          type: string
         selectedIndustry:
           type: string
         actualIndustry:
