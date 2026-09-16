@@ -8,6 +8,10 @@ description: The multiple content-generation paths in ai-sdr and the rules every
 There are at least three places that produce outreach copy. A bug fixed in one does
 NOT fix the others — verify the actual caller before assuming a path is dead.
 
+**Why:** An explanation once incorrectly attributed the prospect-detail button to the LLM route. A later email contained internal research instructions because its actual path assembled report fields directly.
+
+**How to apply:** Trace the UI hook through its generated URL before describing or changing generation. Research advice such as “Focus on…” is input for a writer, not customer-facing email text; never treat a recommendation's messaging instructions as a finished paragraph.
+
 - **`api-server/src/routes/ai.ts`** — DETERMINISTIC template (not AI). Serves
   `/api/ai/generate-email` + `/api/ai/generate-call-script`. Called by the frontend
   **`prospect-detail.tsx`** ("Regenerate" button + call-script preview) via generated
