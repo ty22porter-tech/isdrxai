@@ -252,6 +252,17 @@ const STEP_META = [
   { num: 7, label: "Step 7 — Breakup Email",     sublabel: "final touch", color: "bg-red-500 text-white" },
 ];
 
+const GIFT_STEP_META = [
+  { num: 1, label: "Step 1 — Intro Email", sublabel: "sent immediately", color: "bg-primary text-primary-foreground", isLegacy: false },
+  { num: 2, label: "Step 2 — Professional Gift", sublabel: "if no reply (Gift Engine)", color: "bg-amber-500 text-white", isGift: true },
+  { num: 3, label: "Step 3 — Package Follow-up", sublabel: "after delivery", color: "bg-[#315f86] text-white", isLegacy: true, legacyNum: 2 },
+  { num: 4, label: "Step 4 — Value Add",         sublabel: "if no reply", color: "bg-[#4f7395] text-white", isLegacy: true, legacyNum: 3 },
+  { num: 5, label: "Step 5 — Case Study",        sublabel: "if no reply", color: "bg-amber-500 text-white", isLegacy: true, legacyNum: 4 },
+  { num: 6, label: "Step 6 — New Angle",         sublabel: "if no reply", color: "bg-orange-500 text-white", isLegacy: true, legacyNum: 5 },
+  { num: 7, label: "Step 7 — Last Attempt",      sublabel: "if no reply", color: "bg-red-500 text-white", isLegacy: true, legacyNum: 6 },
+  { num: 8, label: "Step 8 — Breakup Email",     sublabel: "final touch", color: "bg-red-700 text-white", isLegacy: true, legacyNum: 7 },
+];
+
 const FOLLOW_UP_KEYS = ["followUp1", "followUp2", "followUp3", "followUp4", "followUp5", "followUp6"] as const;
 
 const CAMPAIGN_PREVIEW_PROSPECT = {
@@ -276,6 +287,17 @@ function introPreviewSubject(campaignName: string, vertical: ClientVertical): st
 export default function Campaigns() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: giftSettings } = useQuery({
+    queryKey: ["gift-outreach-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/gift-outreach/settings");
+      if (!res.ok) return null;
+      return res.json();
+    }
+  });
+  const isGiftMode = giftSettings?.enabled === true;
+  const activeMeta = isGiftMode ? GIFT_STEP_META : STEP_META;
 
   const { data: me } = useQuery({
     queryKey: ["me"],
@@ -642,10 +664,30 @@ export default function Campaigns() {
   );
 
   const renderStepEditor = (
-    stepMeta: typeof STEP_META[number],
+    stepMeta: any,
     isIntro: boolean,
   ) => {
-    const followUpKey = isIntro ? null : (FOLLOW_UP_KEYS[stepMeta.num - 2] as keyof CampaignForm);
+    if (stepMeta.isGift) {
+      return (
+        <div key={stepMeta.num} className="space-y-3">
+          <Separator />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className={`h-5 w-5 rounded-full text-xs flex items-center justify-center font-bold shrink-0 ${stepMeta.color}`}>
+              {stepMeta.num}
+            </div>
+            <Label className="text-sm font-semibold">{stepMeta.label}</Label>
+            <span className="text-xs text-muted-foreground">({stepMeta.sublabel})</span>
+          </div>
+          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border border-dashed">
+            This step is managed automatically by the Professional Gift Outreach engine. The prospect will receive the physical gift and wait for delivery confirmation.
+          </div>
+        </div>
+      );
+    }
+    
+    // For legacy meta mapping, followUpKey needs to align with legacyNum if present
+    const legacyNum = stepMeta.legacyNum || stepMeta.num;
+    const followUpKey = isIntro ? null : (FOLLOW_UP_KEYS[legacyNum - 2] as keyof CampaignForm);
     const stepData = isIntro ? null : (form[followUpKey!] as SequenceStep);
 
     return (
@@ -769,9 +811,9 @@ export default function Campaigns() {
       {showEmailSteps && (
         <div className="space-y-4">
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs font-medium text-muted-foreground mb-1">7-Step Sequence</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">{isGiftMode ? "8-Step Gift Sequence" : "7-Step Sequence"}</p>
             <div className="flex flex-wrap gap-1">
-              {STEP_META.map(s => (
+              {activeMeta.map(s => (
                 <span key={s.num} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${s.color}`}>
                   {s.num}
                 </span>
@@ -782,8 +824,8 @@ export default function Campaigns() {
             </p>
           </div>
 
-          {renderStepEditor(STEP_META[0], true)}
-          {STEP_META.slice(1).map(meta => renderStepEditor(meta, false))}
+          {renderStepEditor(activeMeta[0], true)}
+          {activeMeta.slice(1).map(meta => renderStepEditor(meta, false))}
         </div>
       )}
 
@@ -902,7 +944,7 @@ export default function Campaigns() {
           {launchPreviewCampaign && (
             <div className="space-y-5">
               <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Campaign email steps">
-                {STEP_META.map(step => (
+                {activeMeta.map(step => (
                   <Button
                     key={step.num}
                     type="button"
@@ -911,7 +953,7 @@ export default function Campaigns() {
                     className="shrink-0 rounded-full"
                     onClick={() => setLaunchPreviewStep(step.num)}
                   >
-                    Email {step.num}
+                    {(step as any).isGift ? `Step ${step.num} (Gift)` : `Email ${step.num}`}
                   </Button>
                 ))}
               </div>

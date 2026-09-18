@@ -3,6 +3,21 @@ import { composeEmail, contactFirstName, mergeOutboundEmailTemplate } from "./em
 import { resolveReplyTo } from "./inboundAddressing";
 
 describe("composeEmail clean tracked-link display", () => {
+  it("composes hosted gift video, custom signature, footer and scheduling content exactly once", () => {
+    const result = composeEmail("Hi Pat,\n\nDid the gift arrive safely?", {
+      businessName: "Sender Co", outreachEmail: "sender@example.com", businessAddress: "123 Main St",
+      emailSignature: "Best,\nAlex\nDirector\nSender Co",
+    }, { companyName: "Prospect Co", unsubscribeToken: "unsub" }, undefined, {
+      token: "email-track",
+      contentBlock: { html: '<a href="https://example.com/watch/token">Watch Video</a><a href="https://example.com/watch/token/schedule">Schedule</a>', text: "Watch Video: https://example.com/watch/token" },
+    });
+    expect(result.html.match(/Best,/g)).toHaveLength(1);
+    expect(result.text.match(/Best,/g)).toHaveLength(1);
+    expect(result.html).toContain("Director");
+    expect(result.html.match(/Watch Video/g)).toHaveLength(1);
+    expect(result.html).toContain("/api/t/o/email-track");
+    expect(result.html).toContain("Unsubscribe");
+  });
   it("keeps tracked scheduling and website URLs clickable in HTML but hidden from visible text", () => {
     const result = composeEmail(
       "Thanks for your interest.",

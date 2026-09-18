@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EngagementTable } from "@/components/engagement-table";
 import { Link } from "wouter";
+import { useDashboardClock } from "@/hooks/use-dashboard-clock";
 
 function StatCard({ title, value, sub, icon, tooltip, href }: {
   title: string;
@@ -85,6 +86,12 @@ function useEngagementSummary() {
 }
 
 export default function Dashboard() {
+  const { data: me } = useQuery<{ timezone?: string | null }>({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<{ timezone?: string | null }>("/users/me"),
+    staleTime: 30_000,
+  });
+  const { greeting, dateLabel } = useDashboardClock(me?.timezone);
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats();
   const { data: activity, isLoading: activityLoading } = useGetActivityFeed({ limit: 10 });
   const { data: engagement, isLoading: engagementLoading } = useEngagementSummary();
@@ -95,13 +102,13 @@ export default function Dashboard() {
         <div className="flex items-end justify-between gap-4">
           <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary mb-2">Workspace / Overview</p>
-          <h2 className="text-[26px] font-semibold tracking-tight">Good morning, here’s the pulse.</h2>
+          <h2 className="text-[26px] font-semibold tracking-tight">{greeting}, here’s the pulse.</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Here's what's happening with your outreach pipeline today.
           </p>
           </div>
           <div className="hidden sm:block text-right text-xs text-muted-foreground">
-            <div className="font-medium text-foreground">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</div>
+            <div className="font-medium text-foreground">{dateLabel}</div>
             <div className="mt-1">Live pipeline view</div>
           </div>
         </div>

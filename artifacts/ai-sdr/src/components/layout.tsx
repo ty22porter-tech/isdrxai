@@ -25,6 +25,7 @@ import {
   Headset,
   TrendingUp,
   BarChart,
+  Gift,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const navigation = [
   { name: "Prospect Search", href: "/prospecting", icon: Telescope },
   { name: "Prospects", href: "/prospects", icon: Users },
   { name: "Campaigns", href: "/campaigns", icon: Send },
+  { name: "Gift Outreach", href: "/gift-outreach", icon: Gift },
   { name: "Sequences", href: "/sequences", icon: GitBranch },
   { name: "Emails", href: "/emails", icon: Mail },
   { name: "Calls", href: "/calls", icon: PhoneCall },

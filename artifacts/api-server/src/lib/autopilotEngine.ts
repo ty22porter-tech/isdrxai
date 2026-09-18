@@ -1,6 +1,6 @@
 import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable, emailLinksTable } from "@workspace/db";
 import type { OpportunityIntelligence } from "@workspace/db";
-import { eq, and, lte, isNull } from "drizzle-orm";
+import { eq, and, lte, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
 import { getClientEmailAttachments } from "./clientAttachments";
@@ -14,6 +14,8 @@ import { sellerContext, sellerIntelligenceProfile } from "./prospectMatching";
 import { evaluateEmailRelevance, type EmailRelevanceContext } from "./emailRelevance";
 import { emailSignalAccuracyInputs, opportunityEmailContext } from "./opportunityIntelligence";
 import { ensureCurrentSellerResearch } from "./sellerResearch";
+import { getGiftSettings, holdGiftEnrollment, processGiftOutreachQueue, assertGiftEnrollmentEligible } from "./giftOutreach";
+import { originalStepForGift, isGiftSendingWindow } from "./giftOutreachPolicy";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -198,7 +200,7 @@ interface CampaignSequenceStep {
 }
 
 // Same format the Campaigns/Sequences pages use: callScript JSON with followUp1..followUp6.
-function parseCampaignSequence(callScript?: string | null): CampaignSequenceStep[] {
+function parseCampaignSequence(callScript?: string | null, preservePositions = false): CampaignSequenceStep[] {
   if (!callScript) return [];
   try {
     const data = JSON.parse(callScript);
@@ -206,12 +208,12 @@ function parseCampaignSequence(callScript?: string | null): CampaignSequenceStep
     const steps: CampaignSequenceStep[] = [];
     keys.forEach((key, idx) => {
       const s = data[key];
-      if (s?.body && typeof s.body === "string" && s.body.trim()) {
+      if (preservePositions || (s?.body && typeof s.body === "string" && s.body.trim())) {
         steps.push({
           stepNumber: idx + 2,
-          dayDelay: typeof s.dayDelay === "number" && s.dayDelay > 0 ? s.dayDelay : 3,
-          subject: typeof s.subject === "string" ? s.subject : "",
-          body: s.body,
+          dayDelay: typeof s?.dayDelay === "number" && s.dayDelay > 0 ? s.dayDelay : 3,
+          subject: typeof s?.subject === "string" ? s.subject : "",
+          body: typeof s?.body === "string" ? s.body : "",
         });
       }
     });
@@ -223,6 +225,7 @@ function parseCampaignSequence(callScript?: string | null): CampaignSequenceStep
 
 export async function processAutopilotQueue(): Promise<void> {
   const now = new Date();
+  await processGiftOutreachQueue();
 
   const pending = await db
     .select()
@@ -264,10 +267,22 @@ export async function processAutopilotQueue(): Promise<void> {
       const [campaign] = enrollment.campaignId
         ? await db.select().from(campaignsTable).where(eq(campaignsTable.id, enrollment.campaignId))
         : [undefined];
-      const sequence = parseCampaignSequence(campaign?.callScript);
-      const totalSteps = sequence.length > 0 ? 1 + sequence.length : 3;
+      const sequence = parseCampaignSequence(campaign?.callScript, enrollment.giftMode);
+      const totalSteps = enrollment.giftMode ? 8 : sequence.length > 0 ? 1 + sequence.length : 3;
 
       const nextStep = enrollment.currentStep + 1;
+      if (enrollment.giftMode) {
+        // Master disabled is a pause, NOT a switch back to the original step numbering.
+        const giftSettings = await getGiftSettings(enrollment.clientId);
+        if (!giftSettings.enabled) continue;
+        await assertGiftEnrollmentEligible(enrollment);
+        if (nextStep === 2 || nextStep === 3) {
+          await holdGiftEnrollment(enrollment);
+          continue;
+        }
+        if (!isGiftSendingWindow(new Date(), giftSettings)) continue;
+      }
+      const originalStep = enrollment.giftMode ? originalStepForGift(nextStep)! : nextStep;
 
       if (nextStep > totalSteps) {
         await db.update(autopilotEnrollmentsTable)
@@ -282,8 +297,8 @@ export async function processAutopilotQueue(): Promise<void> {
       // Index-based: enrollment step 2 = first configured follow-up, step 3 = second, etc.
       // This keeps the cadence moving even if a middle follow-up was left blank.
       const vc = getVerticalConfig(client.vertical);
-      const seqStep = nextStep >= 2 ? sequence[nextStep - 2] : undefined;
-      if (seqStep) {
+      const seqStep = originalStep >= 2 ? sequence[originalStep - 2] : undefined;
+      if (seqStep?.body) {
         // Use the campaign's configured follow-up script for this step.
         subject = mergeOutboundEmailTemplate(seqStep.subject, prospect) || vc.stepSubject(nextStep, prospect.companyName);
         const mergedDraft = mergeOutboundEmailTemplate(seqStep.body, prospect);
@@ -306,8 +321,9 @@ export async function processAutopilotQueue(): Promise<void> {
         }
       } else {
         // Intro email (step 1) or campaigns without a configured sequence: AI-generated.
-        subject = vc.stepSubject(Math.min(nextStep, 3), prospect.companyName);
-        coreBody = await generateStepEmail(Math.min(nextStep, 3), prospect, client.businessName ?? "our company", vc, client);
+        const fallbackStep = enrollment.giftMode ? (nextStep === 1 ? 1 : nextStep === totalSteps ? 3 : 2) : Math.min(nextStep, 3);
+        subject = vc.stepSubject(fallbackStep, prospect.companyName);
+        coreBody = await generateStepEmail(fallbackStep, prospect, client.businessName ?? "our company", vc, client);
       }
 
       subject = mergeOutboundEmailTemplate(subject, prospect);
@@ -316,7 +332,7 @@ export async function processAutopilotQueue(): Promise<void> {
       // Step-based collateral: intro flyer files on step 1 only; the step 3/5
       // case studies are delivered as TRACKED "View" links (not file attachments)
       // so we can record whether the prospect actually engaged with them.
-      const caseStudy = nextStep === 3 ? client.step3CaseStudy : nextStep === 5 ? client.step5CaseStudy : null;
+      const caseStudy = originalStep === 3 ? client.step3CaseStudy : originalStep === 5 ? client.step5CaseStudy : null;
       const linkedFiles = caseStudy && typeof (caseStudy as any).path === "string" && typeof (caseStudy as any).name === "string"
         ? [{ name: (caseStudy as any).name as string, path: (caseStudy as any).path as string }]
         : [];
@@ -325,7 +341,19 @@ export async function processAutopilotQueue(): Promise<void> {
 
       const attachmentSource: unknown = nextStep === 1 ? client.attachments : null;
       const fileAttachments = await getClientEmailAttachments(attachmentSource, console);
+      await db.transaction(async tx => {
+      // Same lock as explicit gift opt-in/manual send: a stale standard queue item
+      // can never dispatch followUp1 after a concurrent gift conversion.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"gift-outreach:" + enrollment.clientId}))`);
+      const [fresh] = await tx.select().from(autopilotEnrollmentsTable).where(eq(autopilotEnrollmentsTable.id, enrollment.id)).for("update");
+      if (!fresh || fresh.status !== "active" || fresh.currentStep !== enrollment.currentStep || fresh.giftMode !== enrollment.giftMode) return;
+      if (fresh.giftMode) {
+        const giftSettings = await getGiftSettings(enrollment.clientId, tx);
+        if (!giftSettings.enabled || !isGiftSendingWindow(new Date(), giftSettings)) return;
+      }
+      if (fresh.giftMode) await assertGiftEnrollmentEligible(fresh, tx);
       const resendId = await sendEmail({
+        idempotencyKey: `autopilot-${enrollment.id}-step-${nextStep}`,
         attachments: fileAttachments.length > 0 ? fileAttachments : undefined,
         fromName: client.businessName?.trim() || currentOutreachEmail,
         fromEmail: client.sendingEmail ?? undefined,
@@ -338,7 +366,7 @@ export async function processAutopilotQueue(): Promise<void> {
       });
 
       const sentAt = new Date();
-      const [emailRow] = await db.insert(emailsTable).values({
+      const [emailRow] = await tx.insert(emailsTable).values({
         clientId: enrollment.clientId,
         prospectId: prospect.id,
         campaignId: enrollment.campaignId,
@@ -351,7 +379,7 @@ export async function processAutopilotQueue(): Promise<void> {
       }).returning();
 
       if (composed.trackedLinks.length > 0) {
-        await db.insert(emailLinksTable).values(composed.trackedLinks.map(l => ({
+        await tx.insert(emailLinksTable).values(composed.trackedLinks.map(l => ({
           emailId: emailRow.id,
           clientId: enrollment.clientId,
           prospectId: prospect.id,
@@ -362,7 +390,7 @@ export async function processAutopilotQueue(): Promise<void> {
         })));
       }
 
-      await db.insert(activityTable).values({
+      await tx.insert(activityTable).values({
         clientId: enrollment.clientId,
         type: "email_sent",
         description: `[Autopilot] Email ${nextStep}/${totalSteps} sent to ${prospect.companyName}: ${subject}`,
@@ -371,15 +399,17 @@ export async function processAutopilotQueue(): Promise<void> {
       });
 
       const upcoming = sequence.length > 0
-        ? sequence[nextStep - 1]
+        ? sequence[originalStep - 1]
         : undefined;
       const nextDelay = sequence.length > 0
         ? (upcoming ? upcoming.dayDelay * DAY_MS : undefined)
         : STEP_DELAYS_MS[nextStep + 1];
-      const nextSendAt = nextDelay !== undefined ? new Date(Date.now() + nextDelay) : null;
+      const nextSendAt = enrollment.giftMode && nextStep === 1 ? new Date()
+        : nextDelay !== undefined ? new Date(Date.now() + nextDelay)
+        : enrollment.giftMode ? new Date(Date.now() + 3 * DAY_MS) : null;
       const isDone = nextStep >= totalSteps;
 
-      await db.update(autopilotEnrollmentsTable)
+      await tx.update(autopilotEnrollmentsTable)
         .set({
           currentStep: nextStep,
           lastEmailSentAt: sentAt,
@@ -389,15 +419,16 @@ export async function processAutopilotQueue(): Promise<void> {
         })
         .where(eq(autopilotEnrollmentsTable.id, enrollment.id));
 
-      await db.update(prospectsTable)
+      await tx.update(prospectsTable)
         .set({ lastContactedAt: sentAt, status: "contacted" })
         .where(eq(prospectsTable.id, prospect.id));
 
       if (enrollment.campaignId) {
-        await db.update(campaignsTable)
+        await tx.update(campaignsTable)
           .set({ emailsSent: db.$count(emailsTable, and(eq(emailsTable.campaignId, enrollment.campaignId))) as any })
           .where(eq(campaignsTable.id, enrollment.campaignId));
       }
+      });
 
     } catch (err: any) {
       await db.update(autopilotEnrollmentsTable)
@@ -419,6 +450,7 @@ export async function processAutopilotQueue(): Promise<void> {
 
   for (const enrollment of repliedEnrollments) {
     try {
+      if (enrollment.giftMode) continue; // Gift cadence stops on reply; no automatic scheduling follow-up.
       const tone = enrollment.replyTone ?? "neutral";
       if (tone !== "positive") continue;
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useListEmails,
   useListCampaigns,
@@ -8,6 +8,11 @@ import {
   useUpdateEmail,
   getListEmailsQueryKey,
   getListCampaignsQueryKey,
+  listGiftOutreachRecords,
+  getGiftOutreachSettings,
+  type Campaign,
+  type Prospect,
+  type Email,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+import { giftSequenceProgress, listGiftEnrollments } from "@/lib/gift-outreach";
+import { Link } from "wouter";
 import {
   Mail,
   Send,
@@ -56,11 +63,15 @@ function daysSince(dateStr: string): number {
 }
 
 interface QueueEntry {
-  prospect: any;
-  campaign: any;
+  prospect: Prospect;
+  campaign: Campaign;
   step: SequenceStep;
   daysSinceLast: number;
   lastEmailId: number;
+  isGiftHeld?: boolean;
+  giftMode: boolean;
+  displayStep: number;
+  autopilotOwned: boolean;
 }
 
 export default function Sequences() {
@@ -70,33 +81,45 @@ export default function Sequences() {
   const { data: emails, isLoading: emailsLoading } = useListEmails();
   const { data: campaigns, isLoading: campaignsLoading } = useListCampaigns();
   const { data: prospects, isLoading: prospectsLoading } = useListProspects();
+  
+  const giftQuery = useQuery({
+    queryKey: ["gift-records-all"],
+    queryFn: () => listGiftOutreachRecords(),
+  });
+  const enrollmentQuery = useQuery({ queryKey: ["gift-autopilot-enrollments"], queryFn: listGiftEnrollments });
+  const settingsQuery = useQuery({ queryKey: ["gift-outreach-settings"], queryFn: () => getGiftOutreachSettings() });
+  const giftRecords = giftQuery.data;
+  const enrollments = enrollmentQuery.data;
+  const giftEnabled = settingsQuery.data?.enabled ?? false;
+  const gateError = giftQuery.error || enrollmentQuery.error || settingsQuery.error;
+
   const createEmail = useCreateEmail();
   const updateEmail = useUpdateEmail();
 
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [sending, setSending] = useState<Set<string>>(new Set());
 
-  const isLoading = emailsLoading || campaignsLoading || prospectsLoading;
+  const isLoading = emailsLoading || campaignsLoading || prospectsLoading || giftQuery.isLoading || enrollmentQuery.isLoading || settingsQuery.isLoading;
 
   const prospectMap = useMemo(() => {
-    const m: Record<number, any> = {};
+    const m: Record<number, Prospect> = {};
     (prospects ?? []).forEach(p => { m[p.id] = p; });
     return m;
   }, [prospects]);
 
   const campaignMap = useMemo(() => {
-    const m: Record<number, any> = {};
+    const m: Record<number, Campaign> = {};
     (campaigns ?? []).forEach(c => { m[c.id] = c; });
     return m;
   }, [campaigns]);
 
   const queue = useMemo((): QueueEntry[] => {
-    if (!emails || !campaigns) return [];
+    if (!emails || !campaigns || !giftRecords || !enrollments || gateError) return [];
 
     // Group emails by prospectId+campaignId
-    const groups: Record<string, any[]> = {};
+    const groups: Record<string, Email[]> = {};
     for (const email of emails) {
-      if (!email.campaignId) continue;
+      if (!email.campaignId || !email.sentAt || email.status === "draft") continue;
       const key = `${email.prospectId}:${email.campaignId}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(email);
@@ -120,32 +143,41 @@ export default function Sequences() {
 
       // Sort emails oldest → newest
       const sorted = [...emailGroup].sort(
-        (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+        (a, b) => new Date(a.sentAt!).getTime() - new Date(b.sentAt!).getTime()
       );
       const latest = sorted[sorted.length - 1];
 
       // If latest is replied, no follow-up needed
-      if (latest.status === "replied") continue;
+      if (sorted.some(email => email.status === "replied")) continue;
 
-      // Determine next step (step 1 = intro, step 2 = followUp1, etc.)
-      const stepsSent = sorted.length; // 1 = sent intro, 2 = sent follow-up, etc.
-      const nextStep = steps.find(s => s.stepNumber === stepsSent + 1);
+      const giftRecord = giftRecords.find(r => r.prospectId === prospectId && r.campaignId === campaignId);
+      const enrollment = enrollments.find(e => e.prospectId === prospectId && e.campaignId === campaignId);
+      const progress = giftSequenceProgress(sorted, giftRecord, enrollment, giftEnabled);
+      const nextStep = steps.find(s => s.stepNumber === progress.nextOriginalStep);
       if (!nextStep) continue;
-
-      const days = daysSince(latest.sentAt);
-      if (days >= nextStep.dayDelay) {
+      const isGiftHeld = progress.held;
+      // The package outcome starts the remaining cadence, including a skip
+      // (which has no email) or a package not yet present in the email cache.
+      const packageResolvedAt = giftRecord?.status === "skipped" ? giftRecord.updatedAt : giftRecord?.status === "sent" ? giftRecord.sentAt : null;
+      const anchor = progress.nextOriginalStep === 3 && packageResolvedAt ? packageResolvedAt : latest.sentAt!;
+      const days = daysSince(anchor);
+      if (days >= nextStep.dayDelay || isGiftHeld) {
         results.push({
           prospect,
           campaign,
           step: nextStep,
           daysSinceLast: Math.floor(days),
           lastEmailId: latest.id,
+          isGiftHeld,
+          giftMode: progress.giftMode,
+          displayStep: progress.displayStep,
+          autopilotOwned: progress.autopilotOwned,
         });
       }
     }
 
     return results.sort((a, b) => b.daysSinceLast - a.daysSinceLast);
-  }, [emails, campaigns, prospectMap, campaignMap]);
+  }, [emails, campaigns, prospectMap, campaignMap, giftRecords, enrollments, giftEnabled, gateError]);
 
   const byCampaign = useMemo(() => {
     const m: Record<number, QueueEntry[]> = {};
@@ -166,6 +198,7 @@ export default function Sequences() {
     entry: QueueEntry,
     sendMode: "single" | "bulk",
   ): Promise<{ ok: boolean; error?: string }> => {
+    if (entry.isGiftHeld || gateError || isLoading) return { ok: false, error: "This sequence is held. Use the gift record or Autopilot." };
     const key = `${entry.prospect.id}:${entry.campaign.id}`;
     setSending(prev => new Set(prev).add(key));
 
@@ -192,7 +225,7 @@ export default function Sequences() {
 
     const result = await new Promise<{ ok: boolean; error?: string }>(resolve => {
       createEmail.mutate(
-        { data: { prospectId: entry.prospect.id, campaignId: entry.campaign.id, subject, body, status: "sent" } },
+        { data: { prospectId: entry.prospect.id, campaignId: entry.campaign.id, subject, body, status: "sent", sequenceStep: entry.step.stepNumber } },
         {
           onSuccess: () => {
             trackEvent("email_sent", {
@@ -224,6 +257,7 @@ export default function Sequences() {
     let sent = 0;
     let firstError = "";
     for (const entry of entries) {
+      if (entry.isGiftHeld) continue;
       const { ok, error } = await sendFollowUp(entry, "bulk");
       if (ok) sent++;
       else if (!firstError && error) firstError = error;
@@ -293,7 +327,7 @@ export default function Sequences() {
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">How sequences work</p>
                 <p className="text-sm text-muted-foreground">
-                  Each active campaign has a 7-step email sequence. When a prospect doesn't reply within the configured days, they appear here for the next step. Use the Campaigns page to edit each step's script and timing.
+                  Standard campaigns retain their 7-step email sequence. Gift-enabled prospects use 8 steps: intro, gift action, package follow-up, then the original follow-ups 2–6. Autopilot owns every send for enrolled gift sequences; standalone gift records hold the package step until it is sent or explicitly skipped. Disabling gifts pauses existing gift sequences.
                 </p>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-primary font-medium">
                   <span>Step 1: Intro</span><span>→</span>
@@ -309,7 +343,9 @@ export default function Sequences() {
           </CardContent>
         </Card>
 
-        {isLoading ? (
+        {gateError ? (
+          <p role="alert" className="text-sm text-red-500">Unable to verify gift sequence holds. Sending is disabled: {gateError.message}</p>
+        ) : isLoading ? (
           <div className="space-y-4">
             {[1, 2].map(i => <Card key={i}><CardContent className="h-24 animate-pulse bg-muted rounded-xl mt-4" /></Card>)}
           </div>
@@ -347,10 +383,10 @@ export default function Sequences() {
                       <Button
                         size="sm"
                         onClick={e => { e.stopPropagation(); sendAllForCampaign(campaignId); }}
-                        disabled={createEmail.isPending}
+                        disabled={createEmail.isPending || entries.every(entry => entry.isGiftHeld)}
                       >
                         <Send className="mr-2 h-3.5 w-3.5" />
-                        Send All ({entries.length})
+                        Send All ({entries.filter(entry => !entry.isGiftHeld).length})
                       </Button>
                     </div>
                   </CardHeader>
@@ -377,7 +413,7 @@ export default function Sequences() {
 
                               <div className="flex items-center gap-2 shrink-0">
                                 <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${stepColor(entry.step.stepNumber)}`}>
-                                  {stepLabel(entry.step.stepNumber)}
+                                  {entry.giftMode ? `Step ${entry.displayStep}: ${entry.step.stepNumber === 2 ? "Gift Follow-Up" : stepLabel(entry.step.stepNumber)}` : stepLabel(entry.step.stepNumber)}
                                 </span>
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                   <Clock className="h-3 w-3" />
@@ -393,19 +429,25 @@ export default function Sequences() {
                                   <CheckCircle2 className="mr-1 h-3 w-3 text-green-600" />
                                   Replied
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-7 text-xs"
-                                  onClick={() => sendSingle(entry)}
-                                  disabled={isSending}
-                                >
-                                  {isSending ? (
-                                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Send className="mr-1 h-3 w-3" />
-                                  )}
-                                  Send
-                                </Button>
+                                {entry.isGiftHeld ? (
+                                  <Link href={entry.autopilotOwned ? "/autopilot" : `/prospects/${entry.prospect.id}`} className="text-xs text-amber-600 font-medium px-2 py-1 bg-amber-500/10 rounded border border-amber-500/20">
+                                    {entry.autopilotOwned ? "Managed by Autopilot" : !giftEnabled ? "Gift sequence paused" : "Manage gift record"}
+                                  </Link>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => sendSingle(entry)}
+                                    disabled={isSending}
+                                  >
+                                    {isSending ? (
+                                      <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Send className="mr-1 h-3 w-3" />
+                                    )}
+                                    Send
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           );

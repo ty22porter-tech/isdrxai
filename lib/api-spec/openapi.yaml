@@ -27,7 +27,527 @@ tags:
     description: Dashboard stats
   - name: Storage
     description: Object storage upload and serving endpoints.
+  - name: gift-videos
+    description: Managed personalized gift videos and engagement analytics
 paths:
+  /gift-outreach/settings:
+    get:
+      operationId: getGiftOutreachSettings
+      tags: [gift-outreach]
+      summary: Read Professional Gift Outreach settings (disabled and review required by default)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachSettings" }
+    patch:
+      operationId: patchGiftOutreachSettings
+      tags: [gift-outreach]
+      summary: Update settings; invalidate existing unsent approvals without remapping enrollments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftOutreachSettingsInput" }
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachSettings" }
+  /gift-outreach/records:
+    get:
+      operationId: listGiftOutreachRecords
+      tags: [gift-outreach]
+      parameters:
+        - { name: prospectId, in: query, schema: { type: integer } }
+        - { name: campaignId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Scoped gift records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GiftOutreachRecord" }
+    post:
+      operationId: createGiftOutreachRecord
+      tags: [gift-outreach]
+      summary: Create a prospect gift record; explicitly opt in an existing enrollment only before its first follow-up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftOutreachRecordInput" }
+      responses:
+        "201":
+          description: Created or existing record (idempotent per campaign/prospect)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-outreach/prospects/{prospectId}:
+    get:
+      operationId: listProspectGiftOutreachRecords
+      tags: [gift-outreach]
+      parameters:
+        - { name: prospectId, in: path, required: true, schema: { type: integer } }
+        - { name: campaignId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Scoped prospect gift records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-outreach/records/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: getGiftOutreachRecord
+      tags: [gift-outreach]
+      responses:
+        "200":
+          description: Gift record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+    patch:
+      operationId: patchGiftOutreachRecord
+      tags: [gift-outreach]
+      summary: Edit an unsent gift record; edits invalidate approval, and metadata edits invalidate the draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftOutreachRecordEdit" }
+      responses:
+        "200":
+          description: Updated gift record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-outreach/records/{id}/prepare:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: prepareGiftOutreachRecord
+      tags: [gift-outreach]
+      summary: Generate an unsent GPT-5.4 package follow-up draft
+      responses:
+        "200":
+          description: Draft record (no email sent)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-outreach/records/{id}/approve:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: approveGiftOutreachRecord
+      tags: [gift-outreach]
+      summary: Explicitly approve the current revision (required for review, manual, fallback or compliance risk)
+      responses:
+        "200":
+          description: Approved record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-outreach/records/{id}/send:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: sendGiftOutreachRecord
+      tags: [gift-outreach]
+      summary: Idempotently send a due approved follow-up within configured business hours
+      responses:
+        "200":
+          description: Provider-acknowledged sent record, or same previously sent record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+        "409":
+          description: Gift, time, approval, video, compliance, attempt, or stop gate blocked sending
+  /gift-outreach/records/{id}/skip:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: skipGiftOutreachRecord
+      tags: [gift-outreach]
+      summary: Explicitly skip the gift action and replacement package follow-up without replaying completed steps
+      responses:
+        "200":
+          description: Skipped record
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-videos/uploads/request-url:
+    post:
+      operationId: requestGiftVideoUploadUrl
+      tags: [gift-videos]
+      summary: Reserve a private managed-media upload and return its presigned PUT URL
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftVideoUploadInput" }
+      responses:
+        "200":
+          description: Upload reservation valid for 15 minutes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideoUploadReservation" }
+        "400":
+          description: Invalid type, media pairing, or size
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos:
+    post:
+      operationId: createGiftVideo
+      tags: [gift-videos]
+      summary: Create and attach a managed MP4 video to an unsent gift record
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftVideoInput" }
+      responses:
+        "201":
+          description: Created video
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideo" }
+        "400":
+          description: Invalid input or upload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "404":
+          description: Scoped gift record not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "409":
+          description: Gift record is sent, locked, or already has a video
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/dashboard:
+    get:
+      operationId: getGiftVideoDashboard
+      tags: [gift-videos]
+      summary: List scoped gift-video engagement cards
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      parameters:
+        - { name: campaignId, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: prospectId, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Dashboard cards and anonymous-tracking disclosure
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideoDashboard" }
+        "400":
+          description: Invalid filter
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: getGiftVideo
+      tags: [gift-videos]
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Scoped video
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideo" }
+        "404":
+          description: Scoped video not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    patch:
+      operationId: updateGiftVideo
+      tags: [gift-videos]
+      summary: Update an unsent video and invalidate gift approval
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftVideoUpdate" }
+      responses:
+        "200":
+          description: Updated video
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideo" }
+        "400":
+          description: Invalid input or upload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "404":
+          description: Scoped video or gift record not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "409":
+          description: Video is sent, locked, deleted, or detached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    delete:
+      operationId: deleteGiftVideo
+      tags: [gift-videos]
+      summary: Delete an unsent video, detach it, and revoke its public token
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideoDeleteResult" }
+        "404":
+          description: Scoped video or gift record not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "409":
+          description: Video is sent or locked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/{id}/events:
+    get:
+      operationId: getGiftVideoEvents
+      tags: [gift-videos]
+      summary: Get the scoped video, email, reply, and booking timeline newest first
+      security:
+        - ClerkBearer: []
+        - ClerkSession: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Engagement timeline and anonymous-tracking disclosure
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideoTimeline" }
+        "404":
+          description: Scoped video not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/watch/{token}:
+    get:
+      operationId: getGiftVideoWatchPage
+      tags: [gift-videos]
+      summary: Render the public self-contained native video player
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/GiftVideoToken" }
+      responses:
+        "200":
+          description: Player document
+          content:
+            text/html:
+              schema: { type: string }
+        "404":
+          description: Unavailable player document
+          content:
+            text/html:
+              schema: { type: string }
+        "410":
+          description: Expired player document
+          content:
+            text/html:
+              schema: { type: string }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/watch/{token}/media:
+    get:
+      operationId: streamGiftVideoMedia
+      tags: [gift-videos]
+      summary: Stream public MP4 media with byte-range support
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/GiftVideoToken" }
+        - { $ref: "#/components/parameters/ByteRange" }
+      responses:
+        "200":
+          description: Complete MP4
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+        "206":
+          description: Requested MP4 byte range
+          headers:
+            Content-Range: { schema: { type: string } }
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+        "404":
+          description: Token or media not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: Public link expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "416": { description: Unsatisfiable byte range }
+  /gift-videos/watch/{token}/poster:
+    get:
+      operationId: getGiftVideoPoster
+      tags: [gift-videos]
+      summary: Return a generated raster play-poster PNG without recording a click
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/GiftVideoToken" }
+      responses:
+        "200":
+          description: Generated PNG poster
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "404":
+          description: Token or optional thumbnail source not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: Public link expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/watch/{token}/thumbnail:
+    get:
+      operationId: streamGiftVideoThumbnail
+      tags: [gift-videos]
+      summary: Stream the optional custom thumbnail with byte-range support
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/GiftVideoToken" }
+        - { $ref: "#/components/parameters/ByteRange" }
+      responses:
+        "200":
+          description: Complete thumbnail
+          content:
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        "206":
+          description: Requested thumbnail byte range
+          headers:
+            Content-Range: { schema: { type: string } }
+          content:
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/webp: { schema: { type: string, format: binary } }
+        "404":
+          description: Token or custom thumbnail not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: Public link expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "416": { description: Unsatisfiable byte range }
+  /gift-videos/watch/{token}/progress:
+    post:
+      operationId: reportGiftVideoProgress
+      tags: [gift-videos]
+      summary: Report server-session and elapsed-time validated playback ranges
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/GiftVideoToken" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftVideoProgressInput" }
+      responses:
+        "200":
+          description: Accepted estimated watch percentage
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftVideoProgressResult" }
+        "400":
+          description: Invalid progress report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "403":
+          description: Cross-site playback report rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "404":
+          description: Public token not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: Public link or playback session expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /gift-videos/watch/{token}/schedule:
+    get:
+      operationId: redirectGiftVideoSchedule
+      tags: [gift-videos]
+      summary: Record scheduling-link engagement and redirect to the configured HTTPS URL
+      security: []
+      parameters:
+        - { $ref: "#/components/parameters/GiftVideoToken" }
+      responses:
+        "302":
+          description: Scheduling redirect
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+        "404":
+          description: Public token not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: Public link expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
   /:
     get:
       operationId: apiLivenessCheck
@@ -792,7 +1312,340 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
 components:
+  securitySchemes:
+    ClerkBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Clerk session token
+    ClerkSession:
+      type: apiKey
+      in: cookie
+      name: __session
+  parameters:
+    GiftVideoToken:
+      name: token
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
+    ByteRange:
+      name: Range
+      in: header
+      required: false
+      description: A single byte range
+      schema:
+        type: string
+        pattern: '^bytes=\d*-\d*$'
   schemas:
+    GiftVideoUploadInput:
+      type: object
+      additionalProperties: false
+      required: [kind, name, size, contentType]
+      properties:
+        kind: { type: string, enum: [video, thumbnail] }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size:
+          type: integer
+          minimum: 1
+          maximum: 104857600
+          description: MP4 maximum 100 MiB; thumbnail maximum 5 MiB
+        contentType:
+          type: string
+          enum: [video/mp4, image/png, image/jpeg, image/webp]
+          description: Video requires video/mp4; thumbnail requires PNG, JPEG, or WebP
+    GiftVideoUploadReservation:
+      type: object
+      additionalProperties: false
+      required: [uploadId, uploadURL, objectPath, expiresAt]
+      properties:
+        uploadId: { type: integer }
+        uploadURL:
+          type: string
+          format: uri
+          description: PUT the exact file bytes here with the reserved Content-Type
+        objectPath:
+          type: string
+          description: Informational private path; save uploadId rather than this value
+        expiresAt: { type: string, format: date-time }
+    GiftVideoFields:
+      type: object
+      required: [uploadId, title, prospectName, giftName, giftSentDate, cta, schedulingLink]
+      properties:
+        uploadId: { type: integer, minimum: 1 }
+        thumbnailUploadId:
+          type: [integer, "null"]
+          minimum: 1
+          description: A thumbnail reservation; null removes a custom thumbnail on update
+        title: { type: string, minLength: 1, maxLength: 200 }
+        prospectName: { type: string, minLength: 1, maxLength: 200 }
+        giftName: { type: string, minLength: 1, maxLength: 200 }
+        giftSentDate:
+          type: string
+          format: date
+        cta: { type: string, minLength: 1, maxLength: 500 }
+        schedulingLink:
+          type: string
+          format: uri
+          pattern: '^https://'
+        introduction: { type: string, maxLength: 3000, default: "" }
+        transcript: { type: string, maxLength: 30000, default: "" }
+        showNameOnThumbnail: { type: boolean, default: true }
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: Future timestamp, or null for no expiration
+    GiftVideoInput:
+      unevaluatedProperties: false
+      allOf:
+        - { $ref: "#/components/schemas/GiftVideoFields" }
+        - type: object
+          required: [recordId]
+          properties:
+            recordId: { type: integer, minimum: 1 }
+    GiftVideoUpdate:
+      type: object
+      additionalProperties: false
+      description: Any subset of editable video fields; recordId cannot be changed
+      properties:
+        uploadId: { type: integer, minimum: 1 }
+        thumbnailUploadId: { type: [integer, "null"], minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        prospectName: { type: string, minLength: 1, maxLength: 200 }
+        giftName: { type: string, minLength: 1, maxLength: 200 }
+        giftSentDate: { type: string, format: date }
+        cta: { type: string, minLength: 1, maxLength: 500 }
+        schedulingLink: { type: string, format: uri, pattern: '^https://' }
+        introduction: { type: string, maxLength: 3000 }
+        transcript: { type: string, maxLength: 30000 }
+        showNameOnThumbnail: { type: boolean }
+        expiresAt: { type: [string, "null"], format: date-time }
+    GiftVideo:
+      type: object
+      additionalProperties: false
+      required: [id, recordId, prospectId, campaignId, emailId, title, prospectName, giftName, giftSentDate, cta, schedulingLink, introduction, transcript, showNameOnThumbnail, expiresAt, durationSeconds, hasThumbnail, createdAt, updatedAt, watchUrl, posterUrl, analyticsAvailable]
+      properties:
+        id: { type: integer }
+        recordId: { type: integer }
+        prospectId: { type: integer }
+        campaignId: { type: integer }
+        emailId: { type: [integer, "null"] }
+        title: { type: string }
+        prospectName: { type: string }
+        giftName: { type: string }
+        giftSentDate: { type: string, format: date }
+        cta: { type: string }
+        schedulingLink: { type: string, format: uri }
+        introduction: { type: string }
+        transcript: { type: string }
+        showNameOnThumbnail: { type: boolean }
+        expiresAt: { type: [string, "null"], format: date-time }
+        durationSeconds: { type: number, minimum: 0 }
+        hasThumbnail: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        watchUrl: { type: string, format: uri-reference }
+        posterUrl: { type: string, format: uri-reference }
+        analyticsAvailable: { type: boolean, const: true }
+    GiftVideoDeleteResult:
+      type: object
+      additionalProperties: false
+      required: [deleted]
+      properties:
+        deleted: { type: boolean, const: true }
+    GiftVideoActions:
+      type: object
+      additionalProperties: false
+      required: [call, email, viewProspect, scheduleFollowUp]
+      properties:
+        call: { type: [string, "null"], description: tel URL when a phone number exists }
+        email: { type: string, description: mailto URL }
+        viewProspect: { type: string, pattern: '^/prospects/' }
+        scheduleFollowUp: { type: string, pattern: '^/prospects/.+\?action=schedule$' }
+    GiftVideoDashboardCard:
+      type: object
+      additionalProperties: false
+      required: [video, prospectId, prospectName, company, campaignId, campaignName, step, status, sentAt, delivered, deliveredAt, emailOpened, emailOpenedAt, videoClicked, firstClickedAt, lastClickedAt, totalClicks, uniqueClicks, repeatClicks, videoStarted, watchPercentage, analyticsAvailable, analyticsLabel, schedulingLinkClicked, discoveryCallBooked, replied, repliedAt, engagementScore, leadStrength, nextAction, actions]
+      properties:
+        video: { $ref: "#/components/schemas/GiftVideo" }
+        prospectId: { type: integer }
+        prospectName: { type: string }
+        company: { type: string }
+        campaignId: { type: integer }
+        campaignName: { type: string }
+        step: { type: string, const: "Step 3 – Gift Follow-Up" }
+        status:
+          type: string
+          enum: [Discovery Call Booked, Scheduling Link Clicked, Video Completed, Video Partially Watched, Video Started, Video Clicked, Video Not Clicked, Email Opened, Video Email Delivered, Video Email Sent, Video Email Scheduled]
+        sentAt: { type: [string, "null"], format: date-time }
+        delivered: { type: boolean }
+        deliveredAt: { type: [string, "null"], format: date-time }
+        emailOpened: { type: boolean }
+        emailOpenedAt: { type: [string, "null"], format: date-time }
+        videoClicked: { type: boolean }
+        firstClickedAt: { type: [string, "null"], format: date-time }
+        lastClickedAt: { type: [string, "null"], format: date-time }
+        totalClicks: { type: integer, minimum: 0 }
+        uniqueClicks: { type: integer, minimum: 0 }
+        repeatClicks: { type: integer, minimum: 0 }
+        videoStarted: { type: boolean }
+        watchPercentage: { type: number, minimum: 0, maximum: 100 }
+        analyticsAvailable: { type: boolean, const: true }
+        analyticsLabel: { type: string }
+        schedulingLinkClicked: { type: boolean }
+        discoveryCallBooked: { type: boolean }
+        replied: { type: boolean }
+        repliedAt: { type: [string, "null"], format: date-time }
+        engagementScore: { type: integer }
+        leadStrength: { type: string, enum: [Hot, Medium, Low] }
+        nextAction: { type: string }
+        actions: { $ref: "#/components/schemas/GiftVideoActions" }
+    GiftVideoDashboard:
+      type: object
+      additionalProperties: false
+      required: [cards, trackingNotice]
+      properties:
+        cards:
+          type: array
+          items: { $ref: "#/components/schemas/GiftVideoDashboardCard" }
+        trackingNotice: { type: string }
+    GiftVideoEvent:
+      type: object
+      additionalProperties: false
+      required: [id, type, occurredAt, isBot, isValid, detail, percentage]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        occurredAt: { type: string, format: date-time }
+        isBot: { type: boolean }
+        isValid: { type: boolean }
+        detail: { type: string }
+        percentage: { type: [number, "null"], minimum: 0, maximum: 100 }
+    GiftVideoTimeline:
+      type: object
+      additionalProperties: false
+      required: [events, trackingNotice]
+      properties:
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/GiftVideoEvent" }
+        trackingNotice: { type: string }
+    GiftVideoProgressInput:
+      type: object
+      additionalProperties: false
+      required: [sessionId, position, playing, seeking, ranges]
+      properties:
+        sessionId: { type: string, pattern: '^[a-f0-9]{48}$' }
+        position: { type: number, minimum: 0 }
+        playing: { type: boolean }
+        seeking: { type: boolean }
+        ranges:
+          type: array
+          maxItems: 100
+          items:
+            type: array
+            prefixItems:
+              - { type: number }
+              - { type: number }
+            minItems: 2
+            maxItems: 2
+    GiftVideoProgressResult:
+      type: object
+      additionalProperties: false
+      required: [watchPercentage]
+      properties:
+        watchPercentage: { type: [number, "null"], minimum: 0, maximum: 100 }
+        retryAfterMs:
+          type: integer
+          minimum: 1
+          description: Suggested delay before retrying when the report was throttled
+    GiftOutreachSettingsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled: { type: boolean, default: false }
+        defaultMethod: { type: string, enum: [email, video, per_prospect], default: email }
+        daysAfterDelivery: { type: integer, minimum: 1, maximum: 10, default: 1 }
+        sentOnlyBusinessDays: { type: integer, minimum: 3, maximum: 5, default: 3 }
+        industry: { type: string }
+        serviceDescriptions: { type: string }
+        discussionPoints: { type: string }
+        schedulingLink: { type: string, description: HTTPS URL or empty to use the prospect scheduling page }
+        emailSignature: { type: string, description: Plain-text replacement signature, composed exactly once }
+        videoHostingPreference: { type: string, enum: [managed] }
+        videoCta: { type: string }
+        businessHoursStart: { type: string, example: "09:00" }
+        businessHoursEnd: { type: string, example: "17:00" }
+        timezone: { type: string, example: America/New_York }
+        allowedDays:
+          type: array
+          minItems: 1
+          items: { type: integer, minimum: 1, maximum: 5 }
+          description: ISO weekdays Monday=1 through Friday=5; weekends excluded
+        automationLevel: { type: string, enum: [auto, review, manual], default: review }
+        videoFallback: { type: string, enum: [pause, email], default: pause }
+        maxFollowUpAttempts: { type: integer, minimum: 1, maximum: 5, default: 1 }
+    GiftOutreachSettings:
+      allOf:
+        - { $ref: "#/components/schemas/GiftOutreachSettingsInput" }
+        - type: object
+          required: [enabled, defaultMethod, daysAfterDelivery, sentOnlyBusinessDays, industry, serviceDescriptions, discussionPoints, schedulingLink, emailSignature, videoHostingPreference, videoCta, businessHoursStart, businessHoursEnd, timezone, allowedDays, automationLevel, videoFallback, maxFollowUpAttempts]
+    GiftOutreachRecordEdit:
+      type: object
+      properties:
+        giftSent: { type: boolean }
+        giftName: { type: string }
+        sentDate: { type: [string, "null"], description: Calendar date YYYY-MM-DD }
+        expectedDeliveryDate: { type: [string, "null"], description: Calendar date YYYY-MM-DD }
+        confirmedDeliveryDate: { type: [string, "null"], description: Manually confirmed actual delivery, not a carrier API claim }
+        carrier: { type: string }
+        trackingReference: { type: string }
+        amountSpent: { type: [string, "null"], description: Nonnegative decimal amount }
+        giftNote: { type: string }
+        preferredName: { type: string }
+        method: { type: [string, "null"], enum: [email, video, null] }
+        videoId: { type: [integer, "null"] }
+        complianceRisk: { type: boolean }
+        complianceNotes: { type: string }
+        draftSubject: { type: [string, "null"] }
+        draftBody: { type: [string, "null"] }
+    GiftOutreachRecordInput:
+      allOf:
+        - { $ref: "#/components/schemas/GiftOutreachRecordEdit" }
+        - type: object
+          required: [prospectId, campaignId]
+          properties:
+            prospectId: { type: integer }
+            campaignId: { type: integer }
+            optInEnrollment: { type: boolean, description: Explicitly opt a standard enrollment into gift mode; rejected after original followUp1 has been sent }
+    GiftOutreachRecord:
+      allOf:
+        - { $ref: "#/components/schemas/GiftOutreachRecordEdit" }
+        - type: object
+          required: [id, clientId, prospectId, campaignId, enrollmentId, enabledSnapshot, status, giftSent, giftName, sentDate, expectedDeliveryDate, confirmedDeliveryDate, deliverySource, carrier, trackingReference, amountSpent, giftNote, preferredName, method, videoId, complianceRisk, complianceNotes, draftSubject, draftBody, preparedMethod, dueAt, revision, approvedRevision, approvedAt, approvedBy, attempts, emailId, sentAt, lastError, createdAt, updatedAt]
+          properties:
+            id: { type: integer }
+            clientId: { type: string }
+            prospectId: { type: integer }
+            campaignId: { type: integer }
+            enrollmentId: { type: [integer, "null"] }
+            enabledSnapshot: { type: boolean }
+            status:
+              type: string
+              enum: [awaiting_gift, scheduled, needs_method, needs_video, review, ready, sending, sent, skipped, stopped, error]
+            deliverySource: { type: [string, "null"] }
+            preparedMethod: { type: [string, "null"], enum: [email, video, null] }
+            dueAt: { type: [string, "null"], format: date-time }
+            revision: { type: integer }
+            approvedRevision: { type: [integer, "null"] }
+            approvedAt: { type: [string, "null"], format: date-time }
+            approvedBy: { type: [string, "null"] }
+            attempts: { type: integer }
+            emailId: { type: [integer, "null"] }
+            sentAt: { type: [string, "null"], format: date-time }
+            lastError: { type: [string, "null"] }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
     UploadUrlRequest:
       type: object
       required: [name, size, contentType]
@@ -1144,6 +1997,11 @@ components:
           type: integer
         campaignId:
           type: integer
+        sequenceStep:
+          type: integer
+          minimum: 1
+          maximum: 7
+          description: Explicit original campaign step (intro=1, followUp1=2, followUp2..6=3..7), never the gift display number. Requires campaignId. Omit for an independent one-off email. Gift replacement followUp1 must use gift record actions; Autopilot-owned gift sequences cannot dispatch through this manual endpoint.
         subject:
           type: string
         body:
@@ -1326,6 +2184,8 @@ components:
           type: string
         count:
           type: integer
+          minimum: 1
+          maximum: 100
         employeeRange:
           type: string
           description: Optional employee-count range filter, e.g. "51-100" (IT Services vertical)

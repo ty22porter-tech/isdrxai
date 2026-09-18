@@ -49,6 +49,8 @@ export interface ComposeClient {
   mobilePhone?: string | null;
   companyLogoPath?: string | null;
   profilePhotoPath?: string | null;
+  /** Optional gift signature; replaces, never duplicates, the standard signature. */
+  emailSignature?: string | null;
 }
 
 export interface TrackedLinkSpec {
@@ -66,6 +68,8 @@ export interface TrackingOptions {
   token: string;
   /** Collateral delivered as tracked "View" links instead of file attachments. */
   linkedFiles?: { name: string; path: string }[];
+  /** Trusted server-rendered hosted-video block, never user-supplied HTML. */
+  contentBlock?: { html: string; text: string };
 }
 
 export interface ComposeResult {
@@ -118,7 +122,7 @@ export function composeEmail(
   const websiteTextDisplay = (raw: string) => raw;
 
   const business = client.businessName?.trim() || "Our Company";
-  const signatureLines = [
+  const signatureLines = client.emailSignature?.trim() ? client.emailSignature.trim().split("\n") : [
     "Best,",
     client.senderName?.trim() || business,
     client.senderName?.trim() ? business : "",
@@ -155,7 +159,7 @@ export function composeEmail(
   // tracked redirect in the plain-text alternative or saved email preview.
   const ctaText = cta ? `\n\n${cta.label}` : "";
   const text =
-    `${coreBody.trim()}${ctaText}${linkedFilesText}\n\n` +
+    `${coreBody.trim()}${tracking?.contentBlock ? `\n\n${tracking.contentBlock.text}` : ""}${ctaText}${linkedFilesText}\n\n` +
     `${signatureLines.join("\n")}\n\n` +
     `${addressLine}\n${footerIntro}\nPrefer not to hear from us? Unsubscribe: ${unsubscribePageUrl}`;
 
@@ -203,7 +207,7 @@ export function composeEmail(
   const logoCellHtml = logoUrl
     ? `<td style="vertical-align:middle;padding-left:40px"><img src="${logoUrl}" alt="${escapeHtml(business)}" width="120" style="display:block;max-width:120px;height:auto"></td>`
     : "";
-  const signatureHtml =
+  const signatureHtml = client.emailSignature?.trim() ? `<p>${signatureLines.map(escapeHtml).join("<br>")}</p>` :
     `<p style="margin:0 0 16px">Best,</p>` +
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px"><tr>` +
     `<td style="vertical-align:top;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.4">` +
@@ -221,7 +225,7 @@ export function composeEmail(
   const pixelHtml = tracking
     ? `<img src="${baseUrl}/api/t/o/${tracking.token}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px">`
     : "";
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${ctaHtml}${linkedFilesHtml}${signatureHtml}${footerHtml}${pixelHtml}</div>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111827;line-height:1.5">${bodyHtml}${tracking?.contentBlock?.html ?? ""}${ctaHtml}${linkedFilesHtml}${signatureHtml}${footerHtml}${pixelHtml}</div>`;
 
   return { text, html, unsubscribePageUrl, unsubscribeApiUrl, trackedLinks };
 }

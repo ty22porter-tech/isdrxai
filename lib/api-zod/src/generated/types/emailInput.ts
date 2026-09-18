@@ -9,6 +9,12 @@
 export interface EmailInput {
   prospectId: number;
   campaignId?: number;
+  /**
+     * Explicit original campaign step (intro=1, followUp1=2, followUp2..6=3..7), never the gift display number. Requires campaignId. Omit for an independent one-off email. Gift replacement followUp1 must use gift record actions; Autopilot-owned gift sequences cannot dispatch through this manual endpoint.
+     * @minimum 1
+     * @maximum 7
+     */
+  sequenceStep?: number;
   subject: string;
   body: string;
   status?: string;

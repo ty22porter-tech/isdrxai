@@ -3,6 +3,7 @@ import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTab
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { processAutopilotQueue } from "../lib/autopilotEngine";
+import { getGiftSettings } from "../lib/giftOutreach";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -88,8 +89,9 @@ router.post("/enroll", requireEntitlement, async (req, res) => {
       ));
     if (existing.length > 0) continue;
 
+    const giftMode = !!campaignId && (await getGiftSettings(req.clientId)).enabled;
     const [enrollment] = await db.insert(autopilotEnrollmentsTable)
-      .values({ clientId: req.clientId, campaignId: campaignId ?? null, prospectId, status: "active", nextSendAt })
+      .values({ clientId: req.clientId, campaignId: campaignId ?? null, prospectId, status: "active", nextSendAt, giftMode })
       .returning();
     results.push(serializeEnrollment(enrollment));
   }

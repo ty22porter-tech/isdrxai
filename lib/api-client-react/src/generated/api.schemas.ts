@@ -5,6 +5,513 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+export type GiftVideoUploadInputKind = typeof GiftVideoUploadInputKind[keyof typeof GiftVideoUploadInputKind];
+
+
+export const GiftVideoUploadInputKind = {
+  video: 'video',
+  thumbnail: 'thumbnail',
+} as const;
+
+/**
+ * Video requires video/mp4; thumbnail requires PNG, JPEG, or WebP
+ */
+export type GiftVideoUploadInputContentType = typeof GiftVideoUploadInputContentType[keyof typeof GiftVideoUploadInputContentType];
+
+
+export const GiftVideoUploadInputContentType = {
+  'video/mp4': 'video/mp4',
+  'image/png': 'image/png',
+  'image/jpeg': 'image/jpeg',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface GiftVideoUploadInput {
+  kind: GiftVideoUploadInputKind;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  name: string;
+  /**
+     * MP4 maximum 100 MiB; thumbnail maximum 5 MiB
+     * @minimum 1
+     * @maximum 104857600
+     */
+  size: number;
+  /** Video requires video/mp4; thumbnail requires PNG, JPEG, or WebP */
+  contentType: GiftVideoUploadInputContentType;
+}
+
+export interface GiftVideoUploadReservation {
+  uploadId: number;
+  /** PUT the exact file bytes here with the reserved Content-Type */
+  uploadURL: string;
+  /** Informational private path; save uploadId rather than this value */
+  objectPath: string;
+  expiresAt: string;
+}
+
+export interface GiftVideoFields {
+  /** @minimum 1 */
+  uploadId: number;
+  /**
+     * A thumbnail reservation; null removes a custom thumbnail on update
+     * @minimum 1
+     * @nullable
+     */
+  thumbnailUploadId?: number | null;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  prospectName: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  giftName: string;
+  giftSentDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  cta: string;
+  /** @pattern ^https:// */
+  schedulingLink: string;
+  /** @maxLength 3000 */
+  introduction?: string;
+  /** @maxLength 30000 */
+  transcript?: string;
+  showNameOnThumbnail?: boolean;
+  /**
+     * Future timestamp, or null for no expiration
+     * @nullable
+     */
+  expiresAt?: string | null;
+}
+
+export type GiftVideoInput = GiftVideoFields & {
+  /** @minimum 1 */
+  recordId: number;
+};
+
+/**
+ * Any subset of editable video fields; recordId cannot be changed
+ */
+export interface GiftVideoUpdate {
+  /** @minimum 1 */
+  uploadId?: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  thumbnailUploadId?: number | null;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title?: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  prospectName?: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  giftName?: string;
+  giftSentDate?: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  cta?: string;
+  /** @pattern ^https:// */
+  schedulingLink?: string;
+  /** @maxLength 3000 */
+  introduction?: string;
+  /** @maxLength 30000 */
+  transcript?: string;
+  showNameOnThumbnail?: boolean;
+  /** @nullable */
+  expiresAt?: string | null;
+}
+
+export interface GiftVideo {
+  id: number;
+  recordId: number;
+  prospectId: number;
+  campaignId: number;
+  /** @nullable */
+  emailId: number | null;
+  title: string;
+  prospectName: string;
+  giftName: string;
+  giftSentDate: string;
+  cta: string;
+  schedulingLink: string;
+  introduction: string;
+  transcript: string;
+  showNameOnThumbnail: boolean;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @minimum 0 */
+  durationSeconds: number;
+  hasThumbnail: boolean;
+  createdAt: string;
+  updatedAt: string;
+  watchUrl: string;
+  posterUrl: string;
+  analyticsAvailable: true;
+}
+
+export const GiftVideoDeleteResultValue = {
+  deleted: true,
+} as const;
+export type GiftVideoDeleteResult = typeof GiftVideoDeleteResultValue;
+
+export interface GiftVideoActions {
+  /**
+     * tel URL when a phone number exists
+     * @nullable
+     */
+  call: string | null;
+  /** mailto URL */
+  email: string;
+  /** @pattern ^/prospects/ */
+  viewProspect: string;
+  /** @pattern ^/prospects/.+\?action=schedule$ */
+  scheduleFollowUp: string;
+}
+
+export type GiftVideoDashboardCardStatus = typeof GiftVideoDashboardCardStatus[keyof typeof GiftVideoDashboardCardStatus];
+
+
+export const GiftVideoDashboardCardStatus = {
+  Discovery_Call_Booked: 'Discovery Call Booked',
+  Scheduling_Link_Clicked: 'Scheduling Link Clicked',
+  Video_Completed: 'Video Completed',
+  Video_Partially_Watched: 'Video Partially Watched',
+  Video_Started: 'Video Started',
+  Video_Clicked: 'Video Clicked',
+  Video_Not_Clicked: 'Video Not Clicked',
+  Email_Opened: 'Email Opened',
+  Video_Email_Delivered: 'Video Email Delivered',
+  Video_Email_Sent: 'Video Email Sent',
+  Video_Email_Scheduled: 'Video Email Scheduled',
+} as const;
+
+export type GiftVideoDashboardCardLeadStrength = typeof GiftVideoDashboardCardLeadStrength[keyof typeof GiftVideoDashboardCardLeadStrength];
+
+
+export const GiftVideoDashboardCardLeadStrength = {
+  Hot: 'Hot',
+  Medium: 'Medium',
+  Low: 'Low',
+} as const;
+
+export interface GiftVideoDashboardCard {
+  video: GiftVideo;
+  prospectId: number;
+  prospectName: string;
+  company: string;
+  campaignId: number;
+  campaignName: string;
+  step: 'Step 3 – Gift Follow-Up';
+  status: GiftVideoDashboardCardStatus;
+  /** @nullable */
+  sentAt: string | null;
+  delivered: boolean;
+  /** @nullable */
+  deliveredAt: string | null;
+  emailOpened: boolean;
+  /** @nullable */
+  emailOpenedAt: string | null;
+  videoClicked: boolean;
+  /** @nullable */
+  firstClickedAt: string | null;
+  /** @nullable */
+  lastClickedAt: string | null;
+  /** @minimum 0 */
+  totalClicks: number;
+  /** @minimum 0 */
+  uniqueClicks: number;
+  /** @minimum 0 */
+  repeatClicks: number;
+  videoStarted: boolean;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  watchPercentage: number;
+  analyticsAvailable: true;
+  analyticsLabel: string;
+  schedulingLinkClicked: boolean;
+  discoveryCallBooked: boolean;
+  replied: boolean;
+  /** @nullable */
+  repliedAt: string | null;
+  engagementScore: number;
+  leadStrength: GiftVideoDashboardCardLeadStrength;
+  nextAction: string;
+  actions: GiftVideoActions;
+}
+
+export interface GiftVideoDashboard {
+  cards: GiftVideoDashboardCard[];
+  trackingNotice: string;
+}
+
+export interface GiftVideoEvent {
+  id: string;
+  type: string;
+  occurredAt: string;
+  isBot: boolean;
+  isValid: boolean;
+  detail: string;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  percentage: number | null;
+}
+
+export interface GiftVideoTimeline {
+  events: GiftVideoEvent[];
+  trackingNotice: string;
+}
+
+export interface GiftVideoProgressInput {
+  /** @pattern ^[a-f0-9]{48}$ */
+  sessionId: string;
+  /** @minimum 0 */
+  position: number;
+  playing: boolean;
+  seeking: boolean;
+  /**
+     * @maxItems 100
+     * @items.minItems 2
+     * @items.maxItems 2
+     */
+  ranges: [number, number][];
+}
+
+export interface GiftVideoProgressResult {
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  watchPercentage: number | null;
+  /**
+     * Suggested delay before retrying when the report was throttled
+     * @minimum 1
+     */
+  retryAfterMs?: number;
+}
+
+export type GiftOutreachSettingsInputDefaultMethod = typeof GiftOutreachSettingsInputDefaultMethod[keyof typeof GiftOutreachSettingsInputDefaultMethod];
+
+
+export const GiftOutreachSettingsInputDefaultMethod = {
+  email: 'email',
+  video: 'video',
+  per_prospect: 'per_prospect',
+} as const;
+
+export type GiftOutreachSettingsInputVideoHostingPreference = typeof GiftOutreachSettingsInputVideoHostingPreference[keyof typeof GiftOutreachSettingsInputVideoHostingPreference];
+
+
+export const GiftOutreachSettingsInputVideoHostingPreference = {
+  managed: 'managed',
+} as const;
+
+export type GiftOutreachSettingsInputAutomationLevel = typeof GiftOutreachSettingsInputAutomationLevel[keyof typeof GiftOutreachSettingsInputAutomationLevel];
+
+
+export const GiftOutreachSettingsInputAutomationLevel = {
+  auto: 'auto',
+  review: 'review',
+  manual: 'manual',
+} as const;
+
+export type GiftOutreachSettingsInputVideoFallback = typeof GiftOutreachSettingsInputVideoFallback[keyof typeof GiftOutreachSettingsInputVideoFallback];
+
+
+export const GiftOutreachSettingsInputVideoFallback = {
+  pause: 'pause',
+  email: 'email',
+} as const;
+
+export interface GiftOutreachSettingsInput {
+  enabled?: boolean;
+  defaultMethod?: GiftOutreachSettingsInputDefaultMethod;
+  /**
+     * @minimum 1
+     * @maximum 10
+     */
+  daysAfterDelivery?: number;
+  /**
+     * @minimum 3
+     * @maximum 5
+     */
+  sentOnlyBusinessDays?: number;
+  industry?: string;
+  serviceDescriptions?: string;
+  discussionPoints?: string;
+  /** HTTPS URL or empty to use the prospect scheduling page */
+  schedulingLink?: string;
+  /** Plain-text replacement signature */
+  emailSignature?: string;
+  videoHostingPreference?: GiftOutreachSettingsInputVideoHostingPreference;
+  videoCta?: string;
+  businessHoursStart?: string;
+  businessHoursEnd?: string;
+  timezone?: string;
+  /**
+     * ISO weekdays Monday=1 through Friday=5; weekends excluded
+     * @minItems 1
+     * @items.minimum 1
+     * @items.maximum 5
+     */
+  allowedDays?: number[];
+  automationLevel?: GiftOutreachSettingsInputAutomationLevel;
+  videoFallback?: GiftOutreachSettingsInputVideoFallback;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  maxFollowUpAttempts?: number;
+}
+
+export type GiftOutreachSettings = GiftOutreachSettingsInput & { [key: string]: unknown } & Required<Pick<GiftOutreachSettingsInput & { [key: string]: unknown }, 'enabled' | 'defaultMethod' | 'daysAfterDelivery' | 'sentOnlyBusinessDays' | 'industry' | 'serviceDescriptions' | 'discussionPoints' | 'schedulingLink' | 'emailSignature' | 'videoHostingPreference' | 'videoCta' | 'businessHoursStart' | 'businessHoursEnd' | 'timezone' | 'allowedDays' | 'automationLevel' | 'videoFallback' | 'maxFollowUpAttempts'>>;
+
+/**
+ * @nullable
+ */
+export type GiftOutreachRecordEditMethod = typeof GiftOutreachRecordEditMethod[keyof typeof GiftOutreachRecordEditMethod] | null;
+
+
+export const GiftOutreachRecordEditMethod = {
+  email: 'email',
+  video: 'video',
+} as const;
+
+export interface GiftOutreachRecordEdit {
+  giftSent?: boolean;
+  giftName?: string;
+  /**
+     * Calendar date YYYY-MM-DD
+     * @nullable
+     */
+  sentDate?: string | null;
+  /**
+     * Calendar date YYYY-MM-DD
+     * @nullable
+     */
+  expectedDeliveryDate?: string | null;
+  /**
+     * Manually confirmed actual delivery
+     * @nullable
+     */
+  confirmedDeliveryDate?: string | null;
+  carrier?: string;
+  trackingReference?: string;
+  /**
+     * Nonnegative decimal amount
+     * @nullable
+     */
+  amountSpent?: string | null;
+  giftNote?: string;
+  preferredName?: string;
+  /** @nullable */
+  method?: GiftOutreachRecordEditMethod;
+  /** @nullable */
+  videoId?: number | null;
+  complianceRisk?: boolean;
+  complianceNotes?: string;
+  /** @nullable */
+  draftSubject?: string | null;
+  /** @nullable */
+  draftBody?: string | null;
+}
+
+export type GiftOutreachRecordInput = GiftOutreachRecordEdit & {
+  prospectId: number;
+  campaignId: number;
+  /** Explicitly opt a standard enrollment into gift mode; rejected after original followUp1 has been sent */
+  optInEnrollment?: boolean;
+};
+
+export type GiftOutreachRecordStatus = typeof GiftOutreachRecordStatus[keyof typeof GiftOutreachRecordStatus];
+
+
+export const GiftOutreachRecordStatus = {
+  awaiting_gift: 'awaiting_gift',
+  scheduled: 'scheduled',
+  needs_method: 'needs_method',
+  needs_video: 'needs_video',
+  review: 'review',
+  ready: 'ready',
+  sending: 'sending',
+  sent: 'sent',
+  skipped: 'skipped',
+  stopped: 'stopped',
+  error: 'error',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GiftOutreachRecordPreparedMethod = typeof GiftOutreachRecordPreparedMethod[keyof typeof GiftOutreachRecordPreparedMethod] | null;
+
+
+export const GiftOutreachRecordPreparedMethod = {
+  email: 'email',
+  video: 'video',
+} as const;
+
+export type GiftOutreachRecord = GiftOutreachRecordEdit & ({
+  id: number;
+  clientId: string;
+  prospectId: number;
+  campaignId: number;
+  /** @nullable */
+  enrollmentId: number | null;
+  enabledSnapshot: boolean;
+  status: GiftOutreachRecordStatus;
+  /** @nullable */
+  deliverySource: string | null;
+  /** @nullable */
+  preparedMethod: GiftOutreachRecordPreparedMethod;
+  /** @nullable */
+  dueAt: string | null;
+  revision: number;
+  /** @nullable */
+  approvedRevision: number | null;
+  /** @nullable */
+  approvedAt: string | null;
+  /** @nullable */
+  approvedBy: string | null;
+  attempts: number;
+  /** @nullable */
+  emailId: number | null;
+  /** @nullable */
+  sentAt: string | null;
+  /** @nullable */
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+});
+
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;
@@ -497,6 +1004,12 @@ export interface Email {
 export interface EmailInput {
   prospectId: number;
   campaignId?: number;
+  /**
+     * Explicit original campaign step (intro=1, followUp1=2, followUp2..6=3..7), never the gift display number. Requires campaignId. Omit for an independent one-off email. Gift replacement followUp1 must use gift record actions; Autopilot-owned gift sequences cannot dispatch through this manual endpoint.
+     * @minimum 1
+     * @maximum 7
+     */
+  sequenceStep?: number;
   subject: string;
   body: string;
   status?: string;
@@ -631,6 +1144,10 @@ export interface ProspectSearchRequest {
   city: string;
   state: string;
   industry: string;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
   count: number;
   /** Optional employee-count range filter, e.g. "51-100" (IT Services vertical) */
   employeeRange?: string;
@@ -845,6 +1362,31 @@ export interface ActivityItem {
   prospectName?: string | null;
   createdAt: string;
 }
+
+/**
+ * A single byte range
+ */
+export type ByteRangeParameter = string;
+
+export type ListGiftOutreachRecordsParams = {
+prospectId?: number;
+campaignId?: number;
+};
+
+export type ListProspectGiftOutreachRecordsParams = {
+campaignId?: number;
+};
+
+export type GetGiftVideoDashboardParams = {
+/**
+ * @minimum 1
+ */
+campaignId?: number;
+/**
+ * @minimum 1
+ */
+prospectId?: number;
+};
 
 export type ListProspectsParams = {
 status?: string;

@@ -215,6 +215,7 @@ function addFleetOverlay(lead: BaseLead, industry: string, client?: typeof users
 const PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 
 interface PlaceResult {
+  id?: string;
   displayName?: { text?: string };
   formattedAddress?: string;
   nationalPhoneNumber?: string;
@@ -232,41 +233,95 @@ function websiteDomain(uri?: string): string | undefined {
   }
 }
 
+const PLACES_PAGE_SIZE = 20;
+const PLACES_MAX_PAGES = 10;
+const PLACES_FETCH_TIMEOUT_MS = 10_000;
+
+function placeIdentity(place: PlaceResult): string {
+  if (place.id?.trim()) return `id:${place.id.trim()}`;
+  const normalize = (value?: string) => (value ?? "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
+  return `fallback:${normalize(place.displayName?.text)}|${normalize(place.formattedAddress)}`;
+}
+
 async function searchRealBusinesses(apiKey: string, city: string, state: string, industry: string, count: number): Promise<PlaceResult[]> {
   const industryLabel = industry && industry !== "All Industries" ? `${industry} ` : "";
   const textQuery = `${industryLabel}businesses in ${city}, ${state}`;
+  const desiredCount = Math.max(0, Math.min(Math.trunc(count), 100));
+  if (desiredCount === 0) return [];
+  const results: PlaceResult[] = [];
+  const identities = new Set<string>();
+  const seenPageTokens = new Set<string>();
+  let pageToken: string | undefined;
 
-  const resp = await fetch(PLACES_SEARCH_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.businessStatus",
-    },
-    body: JSON.stringify({ textQuery, pageSize: Math.min(count, 20) }),
-  });
-
-  if (!resp.ok) {
-    let detail = "";
+  for (let page = 1; page <= PLACES_MAX_PAGES && results.length < desiredCount; page += 1) {
+    let resp: Response;
     try {
-      const errBody = await resp.json() as { error?: { message?: string; status?: string } };
-      detail = errBody?.error?.message ?? "";
-    } catch { /* non-JSON error body */ }
+      resp = await fetch(PLACES_SEARCH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.businessStatus,nextPageToken",
+        },
+        body: JSON.stringify({
+          textQuery,
+          pageSize: Math.min(desiredCount, PLACES_PAGE_SIZE),
+          ...(pageToken ? { pageToken } : {}),
+        }),
+        signal: AbortSignal.timeout(PLACES_FETCH_TIMEOUT_MS),
+      });
+    } catch (err) {
+      const timedOut = err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
+      throw new ProspectSearchError(
+        timedOut ? 504 : 502,
+        timedOut
+          ? `Google Places search timed out while fetching page ${page}. No partial results were returned.`
+          : `Could not reach Google Places while fetching page ${page}. No partial results were returned.`,
+      );
+    }
 
-    if (resp.status === 400 && /API key not valid/i.test(detail)) {
-      throw new ProspectSearchError(401, "Your Google Maps API key isn't valid. Double-check that the key in your GOOGLE_MAPS_API_KEY secret was copied completely, with no extra spaces.");
+    if (!resp.ok) {
+      let detail = "";
+      try {
+        const errBody = await resp.json() as { error?: { message?: string; status?: string } };
+        detail = errBody?.error?.message ?? "";
+      } catch { /* non-JSON error body */ }
+
+      if (resp.status === 400 && /API key not valid/i.test(detail)) {
+        throw new ProspectSearchError(401, "Your Google Maps API key isn't valid. Double-check that the key in your GOOGLE_MAPS_API_KEY secret was copied completely, with no extra spaces.");
+      }
+      if (resp.status === 403) {
+        throw new ProspectSearchError(403, `Google rejected the request (permission denied). Make sure the "Places API (New)" is enabled for your key in Google Cloud Console.${detail ? ` Details: ${detail}` : ""}`);
+      }
+      if (resp.status === 429) {
+        throw new ProspectSearchError(429, "Google Places quota exceeded — wait a minute and try again, or check your quota in Google Cloud Console.");
+      }
+      throw new ProspectSearchError(502, `Google Places search failed on page ${page} (HTTP ${resp.status}); no partial results were returned.${detail ? ` Details: ${detail}` : ""}`);
     }
-    if (resp.status === 403) {
-      throw new ProspectSearchError(403, `Google rejected the request (permission denied). Make sure the "Places API (New)" is enabled for your key in Google Cloud Console.${detail ? ` Details: ${detail}` : ""}`);
+
+    let data: { places?: PlaceResult[]; nextPageToken?: string };
+    try {
+      data = await resp.json() as { places?: PlaceResult[]; nextPageToken?: string };
+    } catch {
+      throw new ProspectSearchError(502, `Google Places returned an invalid response on page ${page}; no partial results were returned.`);
     }
-    if (resp.status === 429) {
-      throw new ProspectSearchError(429, "Google Places quota exceeded — wait a minute and try again, or check your quota in Google Cloud Console.");
+
+    for (const place of data.places ?? []) {
+      if (place.businessStatus && place.businessStatus !== "OPERATIONAL") continue;
+      const identity = placeIdentity(place);
+      if (identities.has(identity)) continue;
+      identities.add(identity);
+      results.push(place);
+      if (results.length >= desiredCount) break;
     }
-    throw new ProspectSearchError(502, `Google Places search failed (HTTP ${resp.status}).${detail ? ` Details: ${detail}` : ""}`);
+
+    const nextPageToken = data.nextPageToken?.trim();
+    if (!nextPageToken || seenPageTokens.has(nextPageToken)) break;
+    seenPageTokens.add(nextPageToken);
+    pageToken = nextPageToken;
   }
 
-  const data = await resp.json() as { places?: PlaceResult[] };
-  return (data.places ?? []).filter((p) => !p.businessStatus || p.businessStatus === "OPERATIONAL");
+  return results;
 }
 
 class ProspectSearchError extends Error {
@@ -323,8 +378,12 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
 // This keeps unsupported LLM prose from turning implications into prospect facts.
 
 router.post("/prospect-search", requireEntitlement, async (req, res) => {
-  const body = ProspectSearchBody.parse(req.body);
-  const count = Math.min(body.count, 20);
+  const parsed = ProspectSearchBody.safeParse(req.body);
+  if (!parsed.success || !Number.isInteger(parsed.data.count)) {
+    return res.status(400).json({ error: "Prospect search request is invalid. Count must be a whole number from 1 to 100." });
+  }
+  const body = parsed.data;
+  const count = body.count;
   let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   if (!client) return res.status(404).json({ error: "User settings could not be found." });
   client = await ensureCurrentSellerResearch(req.clientId, client);

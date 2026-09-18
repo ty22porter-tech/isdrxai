@@ -13,3 +13,5 @@ export * from "./processed-inbound-emails";
 export * from "./trial-codes";
 export * from "./engagement";
 export * from "./conversion-events";
+export * from "./gift-outreach";
+export * from "./gift-videos";

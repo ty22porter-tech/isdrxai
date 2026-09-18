@@ -90,6 +90,8 @@ import {
   ProspectSearchError,
   type PlaceResult,
 } from "./ai";
+import aiRouter from "./ai";
+import { db } from "@workspace/db";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const PLACE: PlaceResult = {
@@ -231,6 +233,115 @@ describe("addFleetOverlay", () => {
 
 // ─── searchRealBusinesses ─────────────────────────────────────────────────────
 describe("searchRealBusinesses", () => {
+  it("retrieves 100 unique businesses across five pages with the required token and field mask", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      const request = JSON.parse(String(init.body)) as { textQuery: string; pageSize: number; pageToken?: string };
+      const page = request.pageToken ? Number(request.pageToken.replace("page-", "")) : 1;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          places: Array.from({ length: 20 }, (_, index) => ({
+            ...PLACE,
+            id: `place-${page}-${index}`,
+            displayName: { text: `Business ${page}-${index}` },
+          })),
+          ...(page < 5 ? { nextPageToken: `page-${page + 1}` } : {}),
+        }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const results = await searchRealBusinesses("key", "Chicago", "IL", "Healthcare", 100);
+
+    expect(results).toHaveLength(100);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    for (const [index, call] of fetchMock.mock.calls.entries()) {
+      const init = call[1] as RequestInit;
+      const body = JSON.parse(String(init.body));
+      expect(init.headers).toMatchObject({
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": "key",
+      });
+      expect((init.headers as Record<string, string>)["X-Goog-FieldMask"]).toContain("places.id");
+      expect((init.headers as Record<string, string>)["X-Goog-FieldMask"]).toContain("nextPageToken");
+      expect(body).toEqual({
+        textQuery: "Healthcare businesses in Chicago, IL",
+        pageSize: 20,
+        ...(index ? { pageToken: `page-${index + 1}` } : {}),
+      });
+    }
+  });
+
+  it("deduplicates by place id and fallback name/address while excluding closed businesses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        places: [
+          { ...PLACE, id: "same-id" },
+          { ...PLACE, id: "same-id", displayName: { text: "Duplicate by id" } },
+          { ...PLACE, id: undefined },
+          { ...PLACE, id: undefined, displayName: { text: "  RIVERSIDE   MEDICAL CENTER " }, formattedAddress: " 123 MAIN ST, CHICAGO, IL 60601 " },
+          { ...PLACE, id: "closed", businessStatus: "CLOSED_PERMANENTLY" },
+        ],
+      }),
+    }));
+
+    const results = await searchRealBusinesses("key", "Chicago", "IL", "Healthcare", 10);
+
+    expect(results).toHaveLength(2);
+    expect(results.every(place => place.businessStatus === "OPERATIONAL")).toBe(true);
+  });
+
+  it("stops when there is no next-page token", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ places: [{ ...PLACE, id: "only" }] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(searchRealBusinesses("key", "Chicago", "IL", "Healthcare", 100))
+      .resolves.toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops on a repeated next-page token", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true, status: 200,
+        json: async () => ({ places: [{ ...PLACE, id: "one" }], nextPageToken: "repeat" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true, status: 200,
+        json: async () => ({ places: [{ ...PLACE, id: "two" }], nextPageToken: "repeat" }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(searchRealBusinesses("key", "Chicago", "IL", "Healthcare", 100))
+      .resolves.toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails the complete search when a later page fails instead of returning partial results", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({
+        ok: true, status: 200,
+        json: async () => ({ places: [{ ...PLACE, id: "one" }], nextPageToken: "next" }),
+      })
+      .mockResolvedValueOnce({
+        ok: false, status: 500,
+        json: async () => ({ error: { message: "Provider failed" } }),
+      }));
+
+    await expect(searchRealBusinesses("key", "Chicago", "IL", "Healthcare", 100))
+      .rejects.toMatchObject({
+        status: 502,
+        message: expect.stringMatching(/page 2.*no partial results/i),
+      });
+  });
+
   it("returns filtered operational places on success", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
@@ -291,5 +402,29 @@ describe("searchRealBusinesses", () => {
     }));
     await expect(searchRealBusinesses("key", "Chicago", "IL", "Healthcare", 5))
       .rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe("prospect-search request validation", () => {
+  it.each([0, 101, 1.5])("returns 400 for invalid count %s before querying the database", async (count) => {
+    const routeLayer = (aiRouter as any).stack.find((layer: any) => layer.route?.path === "/prospect-search");
+    const handler = routeLayer.route.stack.at(-1).handle;
+    const req = {
+      body: { city: "Chicago", state: "IL", industry: "Healthcare", count },
+      clientId: "client-1",
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+    };
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    };
+
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Prospect search request is invalid. Count must be a whole number from 1 to 100.",
+    });
+    expect(db.select).not.toHaveBeenCalled();
   });
 });

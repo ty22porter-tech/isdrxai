@@ -29,6 +29,7 @@ import Unsubscribe from "@/pages/unsubscribe";
 import Caller from "@/pages/caller";
 import Leadership from "@/pages/leadership";
 import AdminLeadership from "@/pages/admin-leadership";
+import GiftOutreachDashboard from "@/pages/gift-outreach";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -254,6 +255,7 @@ function AppRoutes() {
             <Route path="/pricing" component={() => <ProtectedRoute component={Pricing} />} />
             <Route path="/admin" component={() => <ProtectedRoute component={Admin} entitlement />} />
             <Route path="/settings" component={() => <ProtectedRoute component={Settings} entitlement />} />
+            <Route path="/gift-outreach" component={() => <ProtectedRoute component={GiftOutreachDashboard} entitlement />} />
             <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} entitlement />} />
             <Route path="/caller" component={() => <ProtectedRoute component={Caller} entitlement />} />
             <Route component={FallbackRoute} />

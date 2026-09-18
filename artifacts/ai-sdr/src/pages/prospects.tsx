@@ -1150,7 +1150,7 @@ export default function Prospects() {
           : fallbackBody(p, vertical, me?.sellerIntelligenceProfile);
         const subject = defaultSubject(selectedCampaign.name, vertical);
         createEmail.mutate(
-          { data: { prospectId: p.id, campaignId: selectedCampaign.id, subject, body, status: "sent" } },
+          { data: { prospectId: p.id, campaignId: selectedCampaign.id, subject, body, status: "sent", sequenceStep: 1 } },
           {
             onSuccess: () => { sent++; resolve(); },
             onError: (err: any) => {

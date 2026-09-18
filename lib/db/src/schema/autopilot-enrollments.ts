@@ -9,6 +9,8 @@ export const autopilotEnrollmentsTable = pgTable("autopilot_enrollments", {
   prospectId: integer("prospect_id").notNull().references(() => prospectsTable.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("active"),
   currentStep: integer("current_step").notNull().default(0),
+  // Enrollment-local snapshot. Never reinterpret existing currentStep on settings toggles.
+  giftMode: boolean("gift_mode").notNull().default(false),
   nextSendAt: timestamp("next_send_at"),
   lastEmailSentAt: timestamp("last_email_sent_at"),
   repliedAt: timestamp("replied_at"),

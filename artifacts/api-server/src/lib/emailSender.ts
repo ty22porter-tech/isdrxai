@@ -33,6 +33,7 @@ export interface SendEmailOptions {
   html?: string;
   attachments?: EmailAttachment[];
   headers?: Record<string, string>;
+  idempotencyKey?: string;
 }
 
 /** Sends the email and returns the Resend message id (used to match delivery webhooks). */
@@ -50,7 +51,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<string | und
     html: html ?? `<p>${body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`,
     attachments: attachments?.map(a => ({ filename: a.filename, content: a.content })),
     headers,
-  });
+  }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
 
   if (error) throw new Error(error.message);
   return data?.id;

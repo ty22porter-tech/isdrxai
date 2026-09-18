@@ -6,6 +6,8 @@ import {
   automationRunsTable,
   notificationsTable,
   emailsTable,
+  giftVideosTable,
+  giftVideoEventsTable,
   type User,
 } from "@workspace/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
@@ -79,7 +81,11 @@ export type EngagementEventType =
   | "questionnaire_opened"
   | "questionnaire_submitted"
   | "positive_reply"
-  | "meeting_scheduled";
+  | "meeting_scheduled"
+  | "gift_video_click"
+  | "gift_video_half"
+  | "gift_video_complete"
+  | "gift_video_schedule";
 
 const VALID_CALENDLY_RE = /^https:\/\/(www\.)?calendly\.com\/.+/i;
 export function isValidCalendlyUrl(url: string | null | undefined): boolean {
@@ -88,6 +94,7 @@ export function isValidCalendlyUrl(url: string | null | undefined): boolean {
 
 interface EventContext {
   emailId?: number;
+  videoId?: number;
   campaignId?: number | null;
   /** Extra detail appended to the history reason. */
   detail?: string;
@@ -126,6 +133,38 @@ export async function recordEngagementEvent(
     const outcome = await db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(481516, ${prospectId})`);
 
+      const [giftVideo] = ctx.emailId ? await tx.select().from(giftVideosTable)
+        .where(and(eq(giftVideosTable.emailId, ctx.emailId), eq(giftVideosTable.prospectId, prospectId),
+          eq(giftVideosTable.clientId, prospect.clientId))).limit(1) : [];
+      // These URLs already have their own source-authoritative scoring. A generic
+      // email-link wrapper must never award base click points a second time.
+      if (giftVideo && (eventType === "link_click" || eventType === "calendly_click")) return null;
+      const giftTypes: Record<string, { source: string; points: number }> = {
+        gift_video_click: { source: "video_clicked", points: 10 },
+        gift_video_half: { source: "video_50", points: 5 },
+        gift_video_complete: { source: "video_100", points: 10 },
+        gift_video_schedule: { source: "scheduling_clicked", points: 10 },
+      };
+      const giftAward = giftTypes[eventType];
+      if (giftAward) {
+        if (!giftVideo || giftVideo.id !== ctx.videoId) return null;
+        const [source] = await tx.select({ id: giftVideoEventsTable.id }).from(giftVideoEventsTable).where(and(
+          eq(giftVideoEventsTable.videoId, giftVideo.id), eq(giftVideoEventsTable.type, giftAward.source),
+          eq(giftVideoEventsTable.isValid, true), eq(giftVideoEventsTable.isBot, false),
+          eq(giftVideoEventsTable.emailId, ctx.emailId!),
+        )).limit(1);
+        if (!source) return null;
+        const [awarded] = await tx.select({ id: scoreEventsTable.id }).from(scoreEventsTable).where(and(
+          eq(scoreEventsTable.prospectId, prospectId), eq(scoreEventsTable.emailId, ctx.emailId!),
+          eq(scoreEventsTable.eventType, eventType),
+        )).limit(1);
+        if (awarded) return null;
+      }
+      const giftOpens = giftVideo && eventType === "open" ? await tx.select({ id: scoreEventsTable.id })
+        .from(scoreEventsTable).where(and(eq(scoreEventsTable.emailId, ctx.emailId!),
+          eq(scoreEventsTable.eventType, "open"))) : [];
+      if (giftVideo && eventType === "open" && giftOpens.length >= 2) return null;
+
       const prior = await tx
         .select({ eventType: scoreEventsTable.eventType, n: sql<number>`count(*)::int` })
         .from(scoreEventsTable)
@@ -141,7 +180,7 @@ export async function recordEngagementEvent(
       switch (eventType) {
         case "open": {
           const nth = count("open") + 1;
-          points = nth === 1 ? p.open1 : nth === 2 ? p.open2 : nth === 3 ? p.open3 : p.openMore;
+          points = giftVideo ? 1 : nth === 1 ? p.open1 : nth === 2 ? p.open2 : nth === 3 ? p.open3 : p.openMore;
           reason = `Valid email open #${nth}`;
           break;
         }
@@ -179,6 +218,13 @@ export async function recordEngagementEvent(
           points = p.meetingScheduled;
           reason = "Meeting scheduled";
           break;
+        case "gift_video_click":
+        case "gift_video_half":
+        case "gift_video_complete":
+        case "gift_video_schedule":
+          points = giftAward.points;
+          reason = `Gift follow-up: ${giftAward.source} (anonymous link activity)`;
+          break;
       }
       if (ctx.detail) reason += ` — ${ctx.detail}`;
 
@@ -203,6 +249,8 @@ export async function recordEngagementEvent(
       const newScore = total;
       const prevScore = newScore - points;
       const prevLevel = interestLevelForScore(prevScore, settings);
+      // Hot is an engagement level, not proof of a meeting. Preserve the
+      // client's existing thresholds; booking flags come only from bookings.
       const newLevel = interestLevelForScore(newScore, settings);
 
       await tx.execute(sql`
@@ -216,7 +264,7 @@ export async function recordEngagementEvent(
       // 3rd valid open → enqueue ONE meeting-request follow-up per prospect per
       // campaign, delayed. The unique index is the idempotency key: a concurrent
       // duplicate insert is silently dropped by onConflictDoNothing.
-      if (eventType === "open" && count("open") + 1 === 3 && settings.autoFollowUpEnabled) {
+      if (!giftVideo && eventType === "open" && count("open") + 1 === 3 && settings.autoFollowUpEnabled) {
         await tx.insert(automationRunsTable).values({
           clientId: prospect.clientId,
           prospectId,

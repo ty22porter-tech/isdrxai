@@ -10,6 +10,10 @@ export interface ProspectSearchRequest {
   city: string;
   state: string;
   industry: string;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
   count: number;
   /** Optional employee-count range filter, e.g. "51-100" (IT Services vertical) */
   employeeRange?: string;

@@ -9,6 +9,1063 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Read Professional Gift Outreach settings (disabled and review required by default)
+ */
+export const getGiftOutreachSettingsResponseOneEnabledDefault = false;
+export const getGiftOutreachSettingsResponseOneDefaultMethodDefault = `email`;
+export const getGiftOutreachSettingsResponseOneDaysAfterDeliveryDefault = 1;
+export const getGiftOutreachSettingsResponseOneDaysAfterDeliveryMax = 10;
+
+export const getGiftOutreachSettingsResponseOneSentOnlyBusinessDaysDefault = 3;
+export const getGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMin = 3;
+export const getGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMax = 5;
+
+export const getGiftOutreachSettingsResponseOneAllowedDaysItemMax = 5;
+
+
+export const getGiftOutreachSettingsResponseOneAutomationLevelDefault = `review`;
+export const getGiftOutreachSettingsResponseOneVideoFallbackDefault = `pause`;
+export const getGiftOutreachSettingsResponseOneMaxFollowUpAttemptsDefault = 1;
+export const getGiftOutreachSettingsResponseOneMaxFollowUpAttemptsMax = 5;
+
+
+
+export const GetGiftOutreachSettingsResponse = zod.object({
+  "enabled": zod.boolean().default(getGiftOutreachSettingsResponseOneEnabledDefault),
+  "defaultMethod": zod.enum(['email', 'video', 'per_prospect']).default(getGiftOutreachSettingsResponseOneDefaultMethodDefault),
+  "daysAfterDelivery": zod.number().min(1).max(getGiftOutreachSettingsResponseOneDaysAfterDeliveryMax).default(getGiftOutreachSettingsResponseOneDaysAfterDeliveryDefault),
+  "sentOnlyBusinessDays": zod.number().min(getGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMin).max(getGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMax).default(getGiftOutreachSettingsResponseOneSentOnlyBusinessDaysDefault),
+  "industry": zod.string(),
+  "serviceDescriptions": zod.string(),
+  "discussionPoints": zod.string(),
+  "schedulingLink": zod.string().describe('HTTPS URL or empty to use the prospect scheduling page'),
+  "emailSignature": zod.string().describe('Plain-text replacement signature'),
+  "videoHostingPreference": zod.enum(['managed']),
+  "videoCta": zod.string(),
+  "businessHoursStart": zod.string(),
+  "businessHoursEnd": zod.string(),
+  "timezone": zod.string(),
+  "allowedDays": zod.array(zod.number().min(1).max(getGiftOutreachSettingsResponseOneAllowedDaysItemMax)).min(1).describe('ISO weekdays Monday=1 through Friday=5; weekends excluded'),
+  "automationLevel": zod.enum(['auto', 'review', 'manual']).default(getGiftOutreachSettingsResponseOneAutomationLevelDefault),
+  "videoFallback": zod.enum(['pause', 'email']).default(getGiftOutreachSettingsResponseOneVideoFallbackDefault),
+  "maxFollowUpAttempts": zod.number().min(1).max(getGiftOutreachSettingsResponseOneMaxFollowUpAttemptsMax).default(getGiftOutreachSettingsResponseOneMaxFollowUpAttemptsDefault)
+}).and(zod.object({
+
+}).passthrough())
+
+
+/**
+ * @summary Update settings; invalidate existing unsent approvals without remapping enrollments
+ */
+export const patchGiftOutreachSettingsBodyEnabledDefault = false;
+export const patchGiftOutreachSettingsBodyDefaultMethodDefault = `email`;
+export const patchGiftOutreachSettingsBodyDaysAfterDeliveryDefault = 1;
+export const patchGiftOutreachSettingsBodyDaysAfterDeliveryMax = 10;
+
+export const patchGiftOutreachSettingsBodySentOnlyBusinessDaysDefault = 3;
+export const patchGiftOutreachSettingsBodySentOnlyBusinessDaysMin = 3;
+export const patchGiftOutreachSettingsBodySentOnlyBusinessDaysMax = 5;
+
+export const patchGiftOutreachSettingsBodyAllowedDaysItemMax = 5;
+
+
+export const patchGiftOutreachSettingsBodyAutomationLevelDefault = `review`;
+export const patchGiftOutreachSettingsBodyVideoFallbackDefault = `pause`;
+export const patchGiftOutreachSettingsBodyMaxFollowUpAttemptsDefault = 1;
+export const patchGiftOutreachSettingsBodyMaxFollowUpAttemptsMax = 5;
+
+
+
+export const PatchGiftOutreachSettingsBody = zod.object({
+  "enabled": zod.boolean().default(patchGiftOutreachSettingsBodyEnabledDefault),
+  "defaultMethod": zod.enum(['email', 'video', 'per_prospect']).default(patchGiftOutreachSettingsBodyDefaultMethodDefault),
+  "daysAfterDelivery": zod.number().min(1).max(patchGiftOutreachSettingsBodyDaysAfterDeliveryMax).default(patchGiftOutreachSettingsBodyDaysAfterDeliveryDefault),
+  "sentOnlyBusinessDays": zod.number().min(patchGiftOutreachSettingsBodySentOnlyBusinessDaysMin).max(patchGiftOutreachSettingsBodySentOnlyBusinessDaysMax).default(patchGiftOutreachSettingsBodySentOnlyBusinessDaysDefault),
+  "industry": zod.string().optional(),
+  "serviceDescriptions": zod.string().optional(),
+  "discussionPoints": zod.string().optional(),
+  "schedulingLink": zod.string().optional().describe('HTTPS URL or empty to use the prospect scheduling page'),
+  "emailSignature": zod.string().optional().describe('Plain-text replacement signature'),
+  "videoHostingPreference": zod.enum(['managed']).optional(),
+  "videoCta": zod.string().optional(),
+  "businessHoursStart": zod.string().optional(),
+  "businessHoursEnd": zod.string().optional(),
+  "timezone": zod.string().optional(),
+  "allowedDays": zod.array(zod.number().min(1).max(patchGiftOutreachSettingsBodyAllowedDaysItemMax)).min(1).optional().describe('ISO weekdays Monday=1 through Friday=5; weekends excluded'),
+  "automationLevel": zod.enum(['auto', 'review', 'manual']).default(patchGiftOutreachSettingsBodyAutomationLevelDefault),
+  "videoFallback": zod.enum(['pause', 'email']).default(patchGiftOutreachSettingsBodyVideoFallbackDefault),
+  "maxFollowUpAttempts": zod.number().min(1).max(patchGiftOutreachSettingsBodyMaxFollowUpAttemptsMax).default(patchGiftOutreachSettingsBodyMaxFollowUpAttemptsDefault)
+})
+
+export const patchGiftOutreachSettingsResponseOneEnabledDefault = false;
+export const patchGiftOutreachSettingsResponseOneDefaultMethodDefault = `email`;
+export const patchGiftOutreachSettingsResponseOneDaysAfterDeliveryDefault = 1;
+export const patchGiftOutreachSettingsResponseOneDaysAfterDeliveryMax = 10;
+
+export const patchGiftOutreachSettingsResponseOneSentOnlyBusinessDaysDefault = 3;
+export const patchGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMin = 3;
+export const patchGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMax = 5;
+
+export const patchGiftOutreachSettingsResponseOneAllowedDaysItemMax = 5;
+
+
+export const patchGiftOutreachSettingsResponseOneAutomationLevelDefault = `review`;
+export const patchGiftOutreachSettingsResponseOneVideoFallbackDefault = `pause`;
+export const patchGiftOutreachSettingsResponseOneMaxFollowUpAttemptsDefault = 1;
+export const patchGiftOutreachSettingsResponseOneMaxFollowUpAttemptsMax = 5;
+
+
+
+export const PatchGiftOutreachSettingsResponse = zod.object({
+  "enabled": zod.boolean().default(patchGiftOutreachSettingsResponseOneEnabledDefault),
+  "defaultMethod": zod.enum(['email', 'video', 'per_prospect']).default(patchGiftOutreachSettingsResponseOneDefaultMethodDefault),
+  "daysAfterDelivery": zod.number().min(1).max(patchGiftOutreachSettingsResponseOneDaysAfterDeliveryMax).default(patchGiftOutreachSettingsResponseOneDaysAfterDeliveryDefault),
+  "sentOnlyBusinessDays": zod.number().min(patchGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMin).max(patchGiftOutreachSettingsResponseOneSentOnlyBusinessDaysMax).default(patchGiftOutreachSettingsResponseOneSentOnlyBusinessDaysDefault),
+  "industry": zod.string(),
+  "serviceDescriptions": zod.string(),
+  "discussionPoints": zod.string(),
+  "schedulingLink": zod.string().describe('HTTPS URL or empty to use the prospect scheduling page'),
+  "emailSignature": zod.string().describe('Plain-text replacement signature'),
+  "videoHostingPreference": zod.enum(['managed']),
+  "videoCta": zod.string(),
+  "businessHoursStart": zod.string(),
+  "businessHoursEnd": zod.string(),
+  "timezone": zod.string(),
+  "allowedDays": zod.array(zod.number().min(1).max(patchGiftOutreachSettingsResponseOneAllowedDaysItemMax)).min(1).describe('ISO weekdays Monday=1 through Friday=5; weekends excluded'),
+  "automationLevel": zod.enum(['auto', 'review', 'manual']).default(patchGiftOutreachSettingsResponseOneAutomationLevelDefault),
+  "videoFallback": zod.enum(['pause', 'email']).default(patchGiftOutreachSettingsResponseOneVideoFallbackDefault),
+  "maxFollowUpAttempts": zod.number().min(1).max(patchGiftOutreachSettingsResponseOneMaxFollowUpAttemptsMax).default(patchGiftOutreachSettingsResponseOneMaxFollowUpAttemptsDefault)
+}).and(zod.object({
+
+}).passthrough())
+
+
+export const ListGiftOutreachRecordsQueryParams = zod.object({
+  "prospectId": zod.coerce.number().optional(),
+  "campaignId": zod.coerce.number().optional()
+})
+
+export const ListGiftOutreachRecordsResponseItem = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+export const ListGiftOutreachRecordsResponse = zod.array(ListGiftOutreachRecordsResponseItem)
+
+
+/**
+ * @summary Create a prospect gift record; explicitly opt in an existing enrollment only before its first follow-up
+ */
+export const CreateGiftOutreachRecordBody = zod.object({
+  "giftSent": zod.boolean().optional(),
+  "giftName": zod.string().optional(),
+  "sentDate": zod.string().nullish().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullish().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullish().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string().optional(),
+  "trackingReference": zod.string().optional(),
+  "amountSpent": zod.string().nullish().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string().optional(),
+  "preferredName": zod.string().optional(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullish(),
+  "videoId": zod.number().nullish(),
+  "complianceRisk": zod.boolean().optional(),
+  "complianceNotes": zod.string().optional(),
+  "draftSubject": zod.string().nullish(),
+  "draftBody": zod.string().nullish()
+}).and(zod.object({
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "optInEnrollment": zod.boolean().optional().describe('Explicitly opt a standard enrollment into gift mode; rejected after original followUp1 has been sent')
+}))
+
+export const CreateGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+export const ListProspectGiftOutreachRecordsParams = zod.object({
+  "prospectId": zod.coerce.number()
+})
+
+export const ListProspectGiftOutreachRecordsQueryParams = zod.object({
+  "campaignId": zod.coerce.number().optional()
+})
+
+export const ListProspectGiftOutreachRecordsResponseItem = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+export const ListProspectGiftOutreachRecordsResponse = zod.array(ListProspectGiftOutreachRecordsResponseItem)
+
+
+export const GetGiftOutreachRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Edit an unsent gift record; edits invalidate approval, and metadata edits invalidate the draft
+ */
+export const PatchGiftOutreachRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PatchGiftOutreachRecordBody = zod.object({
+  "giftSent": zod.boolean().optional(),
+  "giftName": zod.string().optional(),
+  "sentDate": zod.string().nullish().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullish().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullish().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string().optional(),
+  "trackingReference": zod.string().optional(),
+  "amountSpent": zod.string().nullish().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string().optional(),
+  "preferredName": zod.string().optional(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullish(),
+  "videoId": zod.number().nullish(),
+  "complianceRisk": zod.boolean().optional(),
+  "complianceNotes": zod.string().optional(),
+  "draftSubject": zod.string().nullish(),
+  "draftBody": zod.string().nullish()
+})
+
+export const PatchGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Generate an unsent GPT-5.4 package follow-up draft
+ */
+export const PrepareGiftOutreachRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PrepareGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Explicitly approve the current revision (required for review, manual, fallback or compliance risk)
+ */
+export const ApproveGiftOutreachRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApproveGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Idempotently send a due approved follow-up within configured business hours
+ */
+export const SendGiftOutreachRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Explicitly skip the gift action and replacement package follow-up without replaying completed steps
+ */
+export const SkipGiftOutreachRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SkipGiftOutreachRecordResponse = zod.object({
+  "giftSent": zod.boolean(),
+  "giftName": zod.string(),
+  "sentDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "expectedDeliveryDate": zod.string().nullable().describe('Calendar date YYYY-MM-DD'),
+  "confirmedDeliveryDate": zod.string().nullable().describe('Manually confirmed actual delivery'),
+  "carrier": zod.string(),
+  "trackingReference": zod.string(),
+  "amountSpent": zod.string().nullable().describe('Nonnegative decimal amount'),
+  "giftNote": zod.string(),
+  "preferredName": zod.string(),
+  "method": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "videoId": zod.number().nullable(),
+  "complianceRisk": zod.boolean(),
+  "complianceNotes": zod.string(),
+  "draftSubject": zod.string().nullable(),
+  "draftBody": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.number(),
+  "clientId": zod.string(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "enrollmentId": zod.number().nullable(),
+  "enabledSnapshot": zod.boolean(),
+  "status": zod.enum(['awaiting_gift', 'scheduled', 'needs_method', 'needs_video', 'review', 'ready', 'sending', 'sent', 'skipped', 'stopped', 'error']),
+  "deliverySource": zod.string().nullable(),
+  "preparedMethod": zod.union([zod.literal('email'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "dueAt": zod.coerce.date().nullable(),
+  "revision": zod.number(),
+  "approvedRevision": zod.number().nullable(),
+  "approvedAt": zod.coerce.date().nullable(),
+  "approvedBy": zod.string().nullable(),
+  "attempts": zod.number(),
+  "emailId": zod.number().nullable(),
+  "sentAt": zod.coerce.date().nullable(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Reserve a private managed-media upload and return its presigned PUT URL
+ */
+export const requestGiftVideoUploadUrlBodyNameMax = 255;
+
+export const requestGiftVideoUploadUrlBodySizeMax = 104857600;
+
+
+
+export const RequestGiftVideoUploadUrlBody = zod.object({
+  "kind": zod.enum(['video', 'thumbnail']),
+  "name": zod.string().min(1).max(requestGiftVideoUploadUrlBodyNameMax),
+  "size": zod.number().min(1).max(requestGiftVideoUploadUrlBodySizeMax).describe('MP4 maximum 100 MiB; thumbnail maximum 5 MiB'),
+  "contentType": zod.enum(['video/mp4', 'image/png', 'image/jpeg', 'image/webp']).describe('Video requires video\/mp4; thumbnail requires PNG, JPEG, or WebP')
+})
+
+export const RequestGiftVideoUploadUrlResponse = zod.object({
+  "uploadId": zod.number(),
+  "uploadURL": zod.string().url().describe('PUT the exact file bytes here with the reserved Content-Type'),
+  "objectPath": zod.string().describe('Informational private path; save uploadId rather than this value'),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create and attach a managed MP4 video to an unsent gift record
+ */
+
+
+export const createGiftVideoBodyOneTitleMax = 200;
+
+export const createGiftVideoBodyOneProspectNameMax = 200;
+
+export const createGiftVideoBodyOneGiftNameMax = 200;
+
+export const createGiftVideoBodyOneCtaMax = 500;
+
+export const createGiftVideoBodyOneSchedulingLinkRegExp = new RegExp('^https:/');
+export const createGiftVideoBodyOneIntroductionDefault = ``;
+export const createGiftVideoBodyOneIntroductionMax = 3000;
+
+export const createGiftVideoBodyOneTranscriptDefault = ``;
+export const createGiftVideoBodyOneTranscriptMax = 30000;
+
+export const createGiftVideoBodyOneShowNameOnThumbnailDefault = true;
+
+
+export const CreateGiftVideoBody = zod.object({
+  "uploadId": zod.number().min(1),
+  "thumbnailUploadId": zod.number().min(1).nullish().describe('A thumbnail reservation; null removes a custom thumbnail on update'),
+  "title": zod.string().min(1).max(createGiftVideoBodyOneTitleMax),
+  "prospectName": zod.string().min(1).max(createGiftVideoBodyOneProspectNameMax),
+  "giftName": zod.string().min(1).max(createGiftVideoBodyOneGiftNameMax),
+  "giftSentDate": zod.coerce.date(),
+  "cta": zod.string().min(1).max(createGiftVideoBodyOneCtaMax),
+  "schedulingLink": zod.string().url().regex(createGiftVideoBodyOneSchedulingLinkRegExp),
+  "introduction": zod.string().max(createGiftVideoBodyOneIntroductionMax).default(createGiftVideoBodyOneIntroductionDefault),
+  "transcript": zod.string().max(createGiftVideoBodyOneTranscriptMax).default(createGiftVideoBodyOneTranscriptDefault),
+  "showNameOnThumbnail": zod.boolean().default(createGiftVideoBodyOneShowNameOnThumbnailDefault),
+  "expiresAt": zod.coerce.date().nullish().describe('Future timestamp, or null for no expiration')
+}).and(zod.object({
+  "recordId": zod.number().min(1)
+}))
+
+export const createGiftVideoResponseDurationSecondsMin = 0;
+
+
+
+export const CreateGiftVideoResponse = zod.object({
+  "id": zod.number(),
+  "recordId": zod.number(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "emailId": zod.number().nullable(),
+  "title": zod.string(),
+  "prospectName": zod.string(),
+  "giftName": zod.string(),
+  "giftSentDate": zod.coerce.date(),
+  "cta": zod.string(),
+  "schedulingLink": zod.string().url(),
+  "introduction": zod.string(),
+  "transcript": zod.string(),
+  "showNameOnThumbnail": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().min(createGiftVideoResponseDurationSecondsMin),
+  "hasThumbnail": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "watchUrl": zod.string(),
+  "posterUrl": zod.string(),
+  "analyticsAvailable": zod.boolean()
+})
+
+
+/**
+ * @summary List scoped gift-video engagement cards
+ */
+
+
+
+
+export const GetGiftVideoDashboardQueryParams = zod.object({
+  "campaignId": zod.coerce.number().min(1).optional(),
+  "prospectId": zod.coerce.number().min(1).optional()
+})
+
+export const getGiftVideoDashboardResponseCardsItemVideoDurationSecondsMin = 0;
+
+export const getGiftVideoDashboardResponseCardsItemTotalClicksMin = 0;
+
+export const getGiftVideoDashboardResponseCardsItemUniqueClicksMin = 0;
+
+export const getGiftVideoDashboardResponseCardsItemRepeatClicksMin = 0;
+
+export const getGiftVideoDashboardResponseCardsItemWatchPercentageMin = 0;
+export const getGiftVideoDashboardResponseCardsItemWatchPercentageMax = 100;
+
+export const getGiftVideoDashboardResponseCardsItemActionsViewProspectRegExp = new RegExp('^/prospects');
+export const getGiftVideoDashboardResponseCardsItemActionsScheduleFollowUpRegExp = new RegExp('^/prospects/.+\\?action=schedule$');
+
+
+export const GetGiftVideoDashboardResponse = zod.object({
+  "cards": zod.array(zod.object({
+  "video": zod.object({
+  "id": zod.number(),
+  "recordId": zod.number(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "emailId": zod.number().nullable(),
+  "title": zod.string(),
+  "prospectName": zod.string(),
+  "giftName": zod.string(),
+  "giftSentDate": zod.coerce.date(),
+  "cta": zod.string(),
+  "schedulingLink": zod.string().url(),
+  "introduction": zod.string(),
+  "transcript": zod.string(),
+  "showNameOnThumbnail": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().min(getGiftVideoDashboardResponseCardsItemVideoDurationSecondsMin),
+  "hasThumbnail": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "watchUrl": zod.string(),
+  "posterUrl": zod.string(),
+  "analyticsAvailable": zod.boolean()
+}),
+  "prospectId": zod.number(),
+  "prospectName": zod.string(),
+  "company": zod.string(),
+  "campaignId": zod.number(),
+  "campaignName": zod.string(),
+  "step": zod.literal("Step 3 – Gift Follow-Up"),
+  "status": zod.enum(['Discovery Call Booked', 'Scheduling Link Clicked', 'Video Completed', 'Video Partially Watched', 'Video Started', 'Video Clicked', 'Video Not Clicked', 'Email Opened', 'Video Email Delivered', 'Video Email Sent', 'Video Email Scheduled']),
+  "sentAt": zod.coerce.date().nullable(),
+  "delivered": zod.boolean(),
+  "deliveredAt": zod.coerce.date().nullable(),
+  "emailOpened": zod.boolean(),
+  "emailOpenedAt": zod.coerce.date().nullable(),
+  "videoClicked": zod.boolean(),
+  "firstClickedAt": zod.coerce.date().nullable(),
+  "lastClickedAt": zod.coerce.date().nullable(),
+  "totalClicks": zod.number().min(getGiftVideoDashboardResponseCardsItemTotalClicksMin),
+  "uniqueClicks": zod.number().min(getGiftVideoDashboardResponseCardsItemUniqueClicksMin),
+  "repeatClicks": zod.number().min(getGiftVideoDashboardResponseCardsItemRepeatClicksMin),
+  "videoStarted": zod.boolean(),
+  "watchPercentage": zod.number().min(getGiftVideoDashboardResponseCardsItemWatchPercentageMin).max(getGiftVideoDashboardResponseCardsItemWatchPercentageMax),
+  "analyticsAvailable": zod.boolean(),
+  "analyticsLabel": zod.string(),
+  "schedulingLinkClicked": zod.boolean(),
+  "discoveryCallBooked": zod.boolean(),
+  "replied": zod.boolean(),
+  "repliedAt": zod.coerce.date().nullable(),
+  "engagementScore": zod.number(),
+  "leadStrength": zod.enum(['Hot', 'Medium', 'Low']),
+  "nextAction": zod.string(),
+  "actions": zod.object({
+  "call": zod.string().nullable().describe('tel URL when a phone number exists'),
+  "email": zod.string().describe('mailto URL'),
+  "viewProspect": zod.string().regex(getGiftVideoDashboardResponseCardsItemActionsViewProspectRegExp),
+  "scheduleFollowUp": zod.string().regex(getGiftVideoDashboardResponseCardsItemActionsScheduleFollowUpRegExp)
+})
+})),
+  "trackingNotice": zod.string()
+})
+
+
+
+
+
+export const GetGiftVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const getGiftVideoResponseDurationSecondsMin = 0;
+
+
+
+export const GetGiftVideoResponse = zod.object({
+  "id": zod.number(),
+  "recordId": zod.number(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "emailId": zod.number().nullable(),
+  "title": zod.string(),
+  "prospectName": zod.string(),
+  "giftName": zod.string(),
+  "giftSentDate": zod.coerce.date(),
+  "cta": zod.string(),
+  "schedulingLink": zod.string().url(),
+  "introduction": zod.string(),
+  "transcript": zod.string(),
+  "showNameOnThumbnail": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().min(getGiftVideoResponseDurationSecondsMin),
+  "hasThumbnail": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "watchUrl": zod.string(),
+  "posterUrl": zod.string(),
+  "analyticsAvailable": zod.boolean()
+})
+
+
+/**
+ * @summary Update an unsent video and invalidate gift approval
+ */
+
+
+
+export const UpdateGiftVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+
+export const updateGiftVideoBodyTitleMax = 200;
+
+export const updateGiftVideoBodyProspectNameMax = 200;
+
+export const updateGiftVideoBodyGiftNameMax = 200;
+
+export const updateGiftVideoBodyCtaMax = 500;
+
+export const updateGiftVideoBodySchedulingLinkRegExp = new RegExp('^https:/');
+export const updateGiftVideoBodyIntroductionMax = 3000;
+
+export const updateGiftVideoBodyTranscriptMax = 30000;
+
+
+
+export const UpdateGiftVideoBody = zod.object({
+  "uploadId": zod.number().min(1).optional(),
+  "thumbnailUploadId": zod.number().min(1).nullish(),
+  "title": zod.string().min(1).max(updateGiftVideoBodyTitleMax).optional(),
+  "prospectName": zod.string().min(1).max(updateGiftVideoBodyProspectNameMax).optional(),
+  "giftName": zod.string().min(1).max(updateGiftVideoBodyGiftNameMax).optional(),
+  "giftSentDate": zod.coerce.date().optional(),
+  "cta": zod.string().min(1).max(updateGiftVideoBodyCtaMax).optional(),
+  "schedulingLink": zod.string().url().regex(updateGiftVideoBodySchedulingLinkRegExp).optional(),
+  "introduction": zod.string().max(updateGiftVideoBodyIntroductionMax).optional(),
+  "transcript": zod.string().max(updateGiftVideoBodyTranscriptMax).optional(),
+  "showNameOnThumbnail": zod.boolean().optional(),
+  "expiresAt": zod.coerce.date().nullish()
+}).describe('Any subset of editable video fields; recordId cannot be changed')
+
+export const updateGiftVideoResponseDurationSecondsMin = 0;
+
+
+
+export const UpdateGiftVideoResponse = zod.object({
+  "id": zod.number(),
+  "recordId": zod.number(),
+  "prospectId": zod.number(),
+  "campaignId": zod.number(),
+  "emailId": zod.number().nullable(),
+  "title": zod.string(),
+  "prospectName": zod.string(),
+  "giftName": zod.string(),
+  "giftSentDate": zod.coerce.date(),
+  "cta": zod.string(),
+  "schedulingLink": zod.string().url(),
+  "introduction": zod.string(),
+  "transcript": zod.string(),
+  "showNameOnThumbnail": zod.boolean(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "durationSeconds": zod.number().min(updateGiftVideoResponseDurationSecondsMin),
+  "hasThumbnail": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "watchUrl": zod.string(),
+  "posterUrl": zod.string(),
+  "analyticsAvailable": zod.boolean()
+})
+
+
+/**
+ * @summary Delete an unsent video, detach it, and revoke its public token
+ */
+
+
+
+export const DeleteGiftVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const DeleteGiftVideoResponse = zod.object({
+  "deleted": zod.boolean()
+})
+
+
+/**
+ * @summary Get the scoped video, email, reply, and booking timeline newest first
+ */
+
+
+
+export const GetGiftVideoEventsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const getGiftVideoEventsResponseEventsItemPercentageMin = 0;
+export const getGiftVideoEventsResponseEventsItemPercentageMax = 100;
+
+
+
+export const GetGiftVideoEventsResponse = zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "occurredAt": zod.coerce.date(),
+  "isBot": zod.boolean(),
+  "isValid": zod.boolean(),
+  "detail": zod.string(),
+  "percentage": zod.number().min(getGiftVideoEventsResponseEventsItemPercentageMin).max(getGiftVideoEventsResponseEventsItemPercentageMax).nullable()
+})),
+  "trackingNotice": zod.string()
+})
+
+
+/**
+ * @summary Render the public self-contained native video player
+ */
+export const getGiftVideoWatchPagePathTokenRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const GetGiftVideoWatchPageParams = zod.object({
+  "token": zod.coerce.string().regex(getGiftVideoWatchPagePathTokenRegExp)
+})
+
+export const GetGiftVideoWatchPageResponse = zod.unknown()
+
+
+/**
+ * @summary Stream public MP4 media with byte-range support
+ */
+export const streamGiftVideoMediaPathTokenRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const StreamGiftVideoMediaParams = zod.object({
+  "token": zod.coerce.string().regex(streamGiftVideoMediaPathTokenRegExp)
+})
+
+export const streamGiftVideoMediaHeaderRangeRegExp = new RegExp('^bytes=\\d*-\\d*$');
+
+
+export const StreamGiftVideoMediaHeader = zod.object({
+  "Range": zod.string().regex(streamGiftVideoMediaHeaderRangeRegExp).optional().describe('A single byte range')
+})
+
+export const StreamGiftVideoMediaResponse = zod.unknown()
+
+
+/**
+ * @summary Return a generated raster play-poster PNG without recording a click
+ */
+export const getGiftVideoPosterPathTokenRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const GetGiftVideoPosterParams = zod.object({
+  "token": zod.coerce.string().regex(getGiftVideoPosterPathTokenRegExp)
+})
+
+export const GetGiftVideoPosterResponse = zod.unknown()
+
+
+/**
+ * @summary Stream the optional custom thumbnail with byte-range support
+ */
+export const streamGiftVideoThumbnailPathTokenRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const StreamGiftVideoThumbnailParams = zod.object({
+  "token": zod.coerce.string().regex(streamGiftVideoThumbnailPathTokenRegExp)
+})
+
+export const streamGiftVideoThumbnailHeaderRangeRegExp = new RegExp('^bytes=\\d*-\\d*$');
+
+
+export const StreamGiftVideoThumbnailHeader = zod.object({
+  "Range": zod.string().regex(streamGiftVideoThumbnailHeaderRangeRegExp).optional().describe('A single byte range')
+})
+
+export const StreamGiftVideoThumbnailResponse = zod.unknown()
+
+
+/**
+ * @summary Report server-session and elapsed-time validated playback ranges
+ */
+export const reportGiftVideoProgressPathTokenRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const ReportGiftVideoProgressParams = zod.object({
+  "token": zod.coerce.string().regex(reportGiftVideoProgressPathTokenRegExp)
+})
+
+export const reportGiftVideoProgressBodySessionIdRegExp = new RegExp('^[a-f0-9]{48}$');
+export const reportGiftVideoProgressBodyPositionMin = 0;
+
+export const reportGiftVideoProgressBodyRangesMax = 100;
+
+
+
+export const ReportGiftVideoProgressBody = zod.object({
+  "sessionId": zod.string().regex(reportGiftVideoProgressBodySessionIdRegExp),
+  "position": zod.number().min(reportGiftVideoProgressBodyPositionMin),
+  "playing": zod.boolean(),
+  "seeking": zod.boolean(),
+  "ranges": zod.array(zod.tuple([zod.number(),
+zod.number()])).max(reportGiftVideoProgressBodyRangesMax)
+})
+
+export const reportGiftVideoProgressResponseWatchPercentageMin = 0;
+export const reportGiftVideoProgressResponseWatchPercentageMax = 100;
+
+
+
+
+export const ReportGiftVideoProgressResponse = zod.object({
+  "watchPercentage": zod.number().min(reportGiftVideoProgressResponseWatchPercentageMin).max(reportGiftVideoProgressResponseWatchPercentageMax).nullable(),
+  "retryAfterMs": zod.number().min(1).optional().describe('Suggested delay before retrying when the report was throttled')
+})
+
+
+/**
+ * @summary Record scheduling-link engagement and redirect to the configured HTTPS URL
+ */
+export const redirectGiftVideoSchedulePathTokenRegExp = new RegExp('^[a-f0-9]{64}$');
+
+
+export const RedirectGiftVideoScheduleParams = zod.object({
+  "token": zod.coerce.string().regex(redirectGiftVideoSchedulePathTokenRegExp)
+})
+
+export const RedirectGiftVideoScheduleResponse = zod.void()
+
+
+/**
  * @summary API base-path liveness check
  */
 export const ApiLivenessCheckResponse = zod.object({
@@ -1241,9 +2298,14 @@ export const ListEmailsResponse = zod.array(ListEmailsResponseItem)
 /**
  * @summary Save a sent email
  */
+export const createEmailBodySequenceStepMax = 7;
+
+
+
 export const CreateEmailBody = zod.object({
   "prospectId": zod.number(),
   "campaignId": zod.number().optional(),
+  "sequenceStep": zod.number().min(1).max(createEmailBodySequenceStepMax).optional().describe('Explicit original campaign step (intro=1, followUp1=2, followUp2..6=3..7), never the gift display number. Requires campaignId. Omit for an independent one-off email. Gift replacement followUp1 must use gift record actions; Autopilot-owned gift sequences cannot dispatch through this manual endpoint.'),
   "subject": zod.string(),
   "body": zod.string(),
   "status": zod.string().optional()
@@ -1489,11 +2551,15 @@ export const GenerateCallScriptResponse = zod.object({
 /**
  * @summary Search real local businesses (Google Places) for a given city, state, and industry
  */
+export const prospectSearchBodyCountMax = 100;
+
+
+
 export const ProspectSearchBody = zod.object({
   "city": zod.string(),
   "state": zod.string(),
   "industry": zod.string(),
-  "count": zod.number(),
+  "count": zod.number().min(1).max(prospectSearchBodyCountMax),
   "employeeRange": zod.string().optional().describe('Optional employee-count range filter, e.g. \"51-100\" (IT Services vertical)'),
   "compliancePriority": zod.string().optional().describe('Optional cybersecurity & compliance priority filter (IT Services vertical)')
 })

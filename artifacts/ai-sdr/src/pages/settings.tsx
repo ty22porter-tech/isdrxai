@@ -7,6 +7,7 @@ import { useUpload } from "@workspace/object-storage-web";
 import { Settings, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, ExternalLink, Building2, Zap, User, Phone, MapPin, ShieldCheck, XCircle, MinusCircle, RefreshCw, Inbox, ImageIcon, Camera, Paperclip, Trash2, FileText, Upload, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CompanyIntelligenceEditor, sellerResearchTimestamps } from "@/components/company-intelligence-editor";
+import { GiftOutreachSettingsPanel } from "@/components/gift-outreach-settings";
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(`/api${path}`, { credentials: "include", ...options });
@@ -1204,6 +1205,8 @@ export default function SettingsPage() {
             ) : "Save Settings"}
           </Button>
         </div>
+
+        <GiftOutreachSettingsPanel />
 
         {/* Admin note */}
         {!me?.platformEmailReady && (

@@ -21,6 +21,7 @@ import router from "./routes";
 import scheduleRouter from "./routes/schedule";
 import unsubscribeRouter from "./routes/unsubscribe";
 import { handleCalendlyWebhook } from "./routes/calendlyWebhook";
+import { giftVideoPublicRouter } from "./routes/gift-videos";
 
 const app: Express = express();
 
@@ -141,6 +142,8 @@ app.use("/api/conversion-events", express.json({ limit: "10kb" }), conversionEve
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Recipient links are capability-scoped and must work without an app login.
+app.use("/api/gift-videos", giftVideoPublicRouter);
 
 // 4. Clerk auth middleware
 app.use(

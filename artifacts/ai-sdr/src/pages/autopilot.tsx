@@ -86,7 +86,11 @@ export default function AutopilotPage() {
   const { data: campaigns = [] } = useQuery({
     queryKey: ["campaigns"],
     queryFn: () => apiFetch("/campaigns"),
-    enabled: enrollModal,
+  });
+
+  const { data: giftSettings } = useQuery({
+    queryKey: ["gift-outreach-settings"],
+    queryFn: () => apiFetch("/gift-outreach/settings"),
   });
 
   const { data: prospects = [] } = useQuery({
@@ -312,9 +316,33 @@ export default function AutopilotPage() {
 
         {/* Sequence explainer */}
         <div className="rounded-xl border bg-card p-6">
-          <h3 className="font-semibold mb-4">How Autopilot Works</h3>
+          <h3 className="font-semibold mb-1">How Autopilot Works</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {giftSettings?.enabled 
+              ? "When enrolling in a campaign, prospects will automatically receive your 8-Step Professional Gift sequence." 
+              : "When no campaign is selected, AI handles outreach with this standard 3-step sequence."}
+          </p>
           <div className="flex items-start gap-0">
-            {[
+            {giftSettings?.enabled ? [
+              { day: "Day 0", label: "Intro", desc: "First touch email", icon: Mail, color: "text-primary" },
+              { day: "Gift", label: "Send Gift", desc: "Managed by Gift Engine", icon: Mail, color: "text-amber-500" },
+              { day: "Post-Delivery", label: "Package Follow-up", desc: "Did it arrive safely?", icon: Mail, color: "text-[#315f86]" },
+              { day: "Ongoing", label: "5 More Steps", desc: "Standard follow-ups", icon: Mail, color: "text-indigo-400" },
+            ].map((step, i, arr) => (
+              <div key={step.day} className="flex items-start flex-1">
+                <div className="flex flex-col items-center">
+                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center ${step.color.replace("text-", "border-")} bg-card`}>
+                    <step.icon className={`w-4 h-4 ${step.color}`} />
+                  </div>
+                  {i < arr.length - 1 && <div className="w-px flex-1 bg-border mt-1" style={{ height: 20 }} />}
+                </div>
+                <div className="ml-3 pb-6 flex-1 pr-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{step.day}</div>
+                  <div className="font-medium text-sm mt-0.5">{step.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{step.desc}</div>
+                </div>
+              </div>
+            )) : [
               { day: "Day 0", label: "Cold Email", desc: "AI writes a personalized intro email and sends it immediately", icon: Mail, color: "text-primary" },
               { day: "Day 3", label: "Follow-up", desc: "If no reply, AI sends a short friendly follow-up", icon: Mail, color: "text-[#315f86]" },
               { day: "Day 7", label: "Final Touch", desc: "One last outreach — direct and respectful", icon: Mail, color: "text-indigo-400" },
@@ -327,7 +355,7 @@ export default function AutopilotPage() {
                   </div>
                   {i < arr.length - 1 && <div className="w-px flex-1 bg-border mt-1" style={{ height: 20 }} />}
                 </div>
-                <div className="ml-3 pb-6 flex-1">
+                <div className="ml-3 pb-6 flex-1 pr-2">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{step.day}</div>
                   <div className="font-medium text-sm mt-0.5">{step.label}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{step.desc}</div>
@@ -383,7 +411,7 @@ export default function AutopilotPage() {
               >
                 <option value="">No campaign — standard 3-step AI sequence</option>
                 {(campaigns as any[]).map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>{c.name} {giftSettings?.enabled ? "(8-Step Gift Sequence)" : "(7-Step Sequence)"}</option>
                 ))}
               </select>
             </div>

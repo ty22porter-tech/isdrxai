@@ -20,6 +20,8 @@ import storageRouter from "./storage";
 import engagementRouter from "./engagement";
 import notificationsRouter from "./notifications";
 import calendlyStatusRouter from "./calendlyStatus";
+import giftOutreachRouter from "./gift-outreach";
+import giftVideosRouter from "./gift-videos";
 
 const router: IRouter = Router();
 
@@ -43,6 +45,8 @@ router.use("/trial-codes", trialCodesRouter);
 router.use("/engagement", engagementRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/calendly", calendlyStatusRouter);
+router.use("/gift-outreach", giftOutreachRouter);
+router.use("/gift-videos", giftVideosRouter);
 router.use(storageRouter);
 
 export default router;

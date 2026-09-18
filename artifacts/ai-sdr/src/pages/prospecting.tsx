@@ -1049,17 +1049,18 @@ export default function Prospecting() {
                 <p className="text-xs text-muted-foreground">This is the selected prospect market, not your seller industry.</p>
               </div>
               <div className="space-y-2">
-                <Label>Count</Label>
+                <Label htmlFor="prospect-search-count">Count</Label>
                 <Select value={count} onValueChange={setCount}>
-                  <SelectTrigger>
+                  <SelectTrigger id="prospect-search-count">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["5","10","15","20"].map((n) => (
+                    {["5","10","15","20","25","50","75","100"].map((n) => (
                       <SelectItem key={n} value={n}>{n} prospects</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Up to 100 matching prospects. Larger searches take longer to research.</p>
               </div>
               {isIT && (
                 <>

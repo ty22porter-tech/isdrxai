@@ -11,6 +11,7 @@
 - [Admin bootstrap](admin-bootstrap.md) — no self-serve first admin; dev = direct SQL update; PROD DB is separate + read-only from tooling, promote via BOOTSTRAP_ADMIN_USER_ID env on startup then republish.
 - [Branding / rebrand sweep](branding-and-artifact-titles.md) — brand strings hide in hidden `.replit-artifact/artifact.toml` titles, index.html meta, video scenes, openapi.yaml; sweep `--hidden`. Stripe live product won't rename from seed change.
 - [Autopilot sequences](autopilot-sequences.md) — autopilot auto-sends campaign 7-step callScript sequence (index-based, per-step dayDelay); no sequence → legacy 3-step AI fallback; mirror shape changes in sequences.tsx too.
+- [Gift outreach decisions](gift-outreach-decisions.md) — written clarification requires eight gift steps or seven standard; preserve original content and distinguish manual delivery from carrier evidence.
 - [Stripe sync init](stripe-sync-init.md) — bundled runMigrations needs dist/migrations copy (build.mjs); syncBackfill requires {object:"all"} or it no-ops; connector is ghost → env-key fallback.
 - [Stripe entitlement](stripe-entitlement.md) — sync.processWebhook never sets users.status; webhook must reconcile status from stripe.subscriptions (_raw_data jsonb) or paying customers stay blocked.
 - [AI+ billing model](ai-plus-billing-model.md) — every subscription has a $995 launch fee; AI+ adds $1,000 onboarding plus a sales-assisted monthly service.

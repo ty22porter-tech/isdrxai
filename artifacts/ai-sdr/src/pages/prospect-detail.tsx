@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams } from "wouter";
+import { useState, useEffect } from "react";
+import { useParams, useLocation } from "wouter";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
   useGetProspect,
@@ -36,6 +36,7 @@ import {
 import { InterestBadge } from "@/components/interest-badge";
 import { EmailPreview } from "@/components/email-preview";
 import { OpportunityIntelligenceView } from "@/components/opportunity-intelligence-view";
+import { GiftRecordEditor } from "@/components/gift-record-editor";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -170,6 +171,19 @@ export default function ProspectDetail() {
   const [walkthroughTime, setWalkthroughTime] = useState("10:00");
   const [walkthroughLocation, setWalkthroughLocation] = useState("");
   const [walkthroughNotes, setWalkthroughNotes] = useState("");
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const actionParam = searchParams.get("action");
+  
+  useEffect(() => {
+    if (actionParam === "schedule") {
+      setWalkthroughOpen(true);
+    } else if (actionParam === "email") {
+      setEmailModalOpen(true);
+      if (!emailSubject) handleGenerateEmail();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionParam]);
 
   const handleBookWalkthrough = (e: React.FormEvent) => {
     e.preventDefault();
@@ -543,10 +557,11 @@ export default function ProspectDetail() {
         )}
 
         <Tabs defaultValue="timeline" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
             <TabsTrigger value="timeline">Activity</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
             <TabsTrigger value="calls">Calls</TabsTrigger>
+            <TabsTrigger value="gift">Gift Outreach</TabsTrigger>
           </TabsList>
           
           <TabsContent value="timeline" className="pt-6">
@@ -601,6 +616,14 @@ export default function ProspectDetail() {
                     })()}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="gift" className="pt-6">
+            <Card>
+              <CardContent className="p-6">
+                <GiftRecordEditor prospectId={prospectId} />
               </CardContent>
             </Card>
           </TabsContent>

@@ -7,6 +7,7 @@ import { getPublicAppUrl } from "../lib/publicUrl";
 import { logger } from "../lib/logger";
 import { recordEngagementEvent } from "../lib/engagementScoring";
 import { queueCalendlyClickFollowUp } from "../lib/calendlyConversion";
+import { botReason } from "../lib/trackingClassification";
 
 /**
  * Public engagement-tracking endpoints (no auth — keyed by unguessable
@@ -59,19 +60,6 @@ function getIp(req: Request): string {
  * prefetch grace period is the main guard, which is why opens are labeled an
  * estimate.
  */
-function botReason(userAgent: string): string | null {
-  const ua = userAgent.toLowerCase();
-  if (!ua) return "no-user-agent";
-  const patterns: [RegExp, string][] = [
-    [/barracuda|mimecast|proofpoint|forcepoint|fireeye|trendmicro|symantec|sophos|zscaler|urldefense/, "security-scanner"],
-    [/bot\b|crawler|spider|slurp|headless|phantomjs|selenium/, "bot"],
-    [/curl|wget|python-requests|python-urllib|go-http-client|okhttp|java\/|libwww/, "http-client"],
-    [/outlook-ios-fetcher|ms-office.*prefetch|bingpreview/, "prefetch"],
-  ];
-  for (const [re, reason] of patterns) if (re.test(ua)) return reason;
-  return null;
-}
-
 // --- Open pixel --------------------------------------------------------------
 router.get("/o/:token", async (req, res) => {
   // Always answer with the pixel immediately — tracking must never break rendering.

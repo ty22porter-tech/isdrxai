@@ -49,10 +49,28 @@ import type {
   GeneratedCallScript,
   GeneratedEmail,
   GetActivityFeedParams,
+  GetGiftVideoDashboardParams,
+  GiftOutreachRecord,
+  GiftOutreachRecordEdit,
+  GiftOutreachRecordInput,
+  GiftOutreachSettings,
+  GiftOutreachSettingsInput,
+  GiftVideo,
+  GiftVideoDashboard,
+  GiftVideoDeleteResult,
+  GiftVideoInput,
+  GiftVideoProgressInput,
+  GiftVideoProgressResult,
+  GiftVideoTimeline,
+  GiftVideoUpdate,
+  GiftVideoUploadInput,
+  GiftVideoUploadReservation,
   HealthStatus,
   ListAppointmentsParams,
   ListCallsParams,
   ListEmailsParams,
+  ListGiftOutreachRecordsParams,
+  ListProspectGiftOutreachRecordsParams,
   ListProspectsParams,
   OpenaiGenerateEmailRequest,
   OpportunityIntelligenceRefreshResult,
@@ -92,6 +110,1775 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetGiftOutreachSettingsUrl = () => {
+
+
+
+
+  return `/api/gift-outreach/settings`
+}
+
+/**
+ * @summary Read Professional Gift Outreach settings (disabled and review required by default)
+ */
+export const getGiftOutreachSettings = async ( options?: RequestInit): Promise<GiftOutreachSettings> => {
+
+  return customFetch<GiftOutreachSettings>(getGetGiftOutreachSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftOutreachSettingsQueryKey = () => {
+    return [
+    `/api/gift-outreach/settings`
+    ] as const;
+    }
+
+
+export const getGetGiftOutreachSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getGiftOutreachSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftOutreachSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftOutreachSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftOutreachSettings>>> = ({ signal }) => getGiftOutreachSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftOutreachSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftOutreachSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftOutreachSettings>>>
+export type GetGiftOutreachSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read Professional Gift Outreach settings (disabled and review required by default)
+ */
+
+export function useGetGiftOutreachSettings<TData = Awaited<ReturnType<typeof getGiftOutreachSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftOutreachSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftOutreachSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPatchGiftOutreachSettingsUrl = () => {
+
+
+
+
+  return `/api/gift-outreach/settings`
+}
+
+/**
+ * @summary Update settings; invalidate existing unsent approvals without remapping enrollments
+ */
+export const patchGiftOutreachSettings = async (giftOutreachSettingsInput: GiftOutreachSettingsInput, options?: RequestInit): Promise<GiftOutreachSettings> => {
+
+  return customFetch<GiftOutreachSettings>(getPatchGiftOutreachSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftOutreachSettingsInput)
+  }
+);}
+
+
+
+
+export const getPatchGiftOutreachSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchGiftOutreachSettings>>, TError,{data: BodyType<GiftOutreachSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchGiftOutreachSettings>>, TError,{data: BodyType<GiftOutreachSettingsInput>}, TContext> => {
+
+const mutationKey = ['patchGiftOutreachSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchGiftOutreachSettings>>, {data: BodyType<GiftOutreachSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  patchGiftOutreachSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchGiftOutreachSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof patchGiftOutreachSettings>>>
+    export type PatchGiftOutreachSettingsMutationBody = BodyType<GiftOutreachSettingsInput>
+    export type PatchGiftOutreachSettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update settings; invalidate existing unsent approvals without remapping enrollments
+ */
+export const usePatchGiftOutreachSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchGiftOutreachSettings>>, TError,{data: BodyType<GiftOutreachSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchGiftOutreachSettings>>,
+        TError,
+        {data: BodyType<GiftOutreachSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getPatchGiftOutreachSettingsMutationOptions(options));
+    }
+
+export const getListGiftOutreachRecordsUrl = (params?: ListGiftOutreachRecordsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/gift-outreach/records?${stringifiedParams}` : `/api/gift-outreach/records`
+}
+
+export const listGiftOutreachRecords = async (params?: ListGiftOutreachRecordsParams, options?: RequestInit): Promise<GiftOutreachRecord[]> => {
+
+  return customFetch<GiftOutreachRecord[]>(getListGiftOutreachRecordsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListGiftOutreachRecordsQueryKey = (params?: ListGiftOutreachRecordsParams,) => {
+    return [
+    `/api/gift-outreach/records`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListGiftOutreachRecordsQueryOptions = <TData = Awaited<ReturnType<typeof listGiftOutreachRecords>>, TError = ErrorType<unknown>>(params?: ListGiftOutreachRecordsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGiftOutreachRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGiftOutreachRecordsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGiftOutreachRecords>>> = ({ signal }) => listGiftOutreachRecords(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGiftOutreachRecords>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListGiftOutreachRecordsQueryResult = NonNullable<Awaited<ReturnType<typeof listGiftOutreachRecords>>>
+export type ListGiftOutreachRecordsQueryError = ErrorType<unknown>
+
+
+
+export function useListGiftOutreachRecords<TData = Awaited<ReturnType<typeof listGiftOutreachRecords>>, TError = ErrorType<unknown>>(
+ params?: ListGiftOutreachRecordsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGiftOutreachRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListGiftOutreachRecordsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateGiftOutreachRecordUrl = () => {
+
+
+
+
+  return `/api/gift-outreach/records`
+}
+
+/**
+ * @summary Create a prospect gift record; explicitly opt in an existing enrollment only before its first follow-up
+ */
+export const createGiftOutreachRecord = async (giftOutreachRecordInput: GiftOutreachRecordInput, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getCreateGiftOutreachRecordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftOutreachRecordInput)
+  }
+);}
+
+
+
+
+export const getCreateGiftOutreachRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGiftOutreachRecord>>, TError,{data: BodyType<GiftOutreachRecordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGiftOutreachRecord>>, TError,{data: BodyType<GiftOutreachRecordInput>}, TContext> => {
+
+const mutationKey = ['createGiftOutreachRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGiftOutreachRecord>>, {data: BodyType<GiftOutreachRecordInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGiftOutreachRecord(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGiftOutreachRecordMutationResult = NonNullable<Awaited<ReturnType<typeof createGiftOutreachRecord>>>
+    export type CreateGiftOutreachRecordMutationBody = BodyType<GiftOutreachRecordInput>
+    export type CreateGiftOutreachRecordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a prospect gift record; explicitly opt in an existing enrollment only before its first follow-up
+ */
+export const useCreateGiftOutreachRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGiftOutreachRecord>>, TError,{data: BodyType<GiftOutreachRecordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGiftOutreachRecord>>,
+        TError,
+        {data: BodyType<GiftOutreachRecordInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGiftOutreachRecordMutationOptions(options));
+    }
+
+export const getListProspectGiftOutreachRecordsUrl = (prospectId: number,
+    params?: ListProspectGiftOutreachRecordsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/gift-outreach/prospects/${prospectId}?${stringifiedParams}` : `/api/gift-outreach/prospects/${prospectId}`
+}
+
+export const listProspectGiftOutreachRecords = async (prospectId: number,
+    params?: ListProspectGiftOutreachRecordsParams, options?: RequestInit): Promise<GiftOutreachRecord[]> => {
+
+  return customFetch<GiftOutreachRecord[]>(getListProspectGiftOutreachRecordsUrl(prospectId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProspectGiftOutreachRecordsQueryKey = (prospectId: number,
+    params?: ListProspectGiftOutreachRecordsParams,) => {
+    return [
+    `/api/gift-outreach/prospects/${prospectId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListProspectGiftOutreachRecordsQueryOptions = <TData = Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>, TError = ErrorType<unknown>>(prospectId: number,
+    params?: ListProspectGiftOutreachRecordsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProspectGiftOutreachRecordsQueryKey(prospectId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>> = ({ signal }) => listProspectGiftOutreachRecords(prospectId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: prospectId !== null && prospectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListProspectGiftOutreachRecordsQueryResult = NonNullable<Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>>
+export type ListProspectGiftOutreachRecordsQueryError = ErrorType<unknown>
+
+
+
+export function useListProspectGiftOutreachRecords<TData = Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>, TError = ErrorType<unknown>>(
+ prospectId: number,
+    params?: ListProspectGiftOutreachRecordsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProspectGiftOutreachRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListProspectGiftOutreachRecordsQueryOptions(prospectId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetGiftOutreachRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-outreach/records/${id}`
+}
+
+export const getGiftOutreachRecord = async (id: number, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getGetGiftOutreachRecordUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftOutreachRecordQueryKey = (id: number,) => {
+    return [
+    `/api/gift-outreach/records/${id}`
+    ] as const;
+    }
+
+
+export const getGetGiftOutreachRecordQueryOptions = <TData = Awaited<ReturnType<typeof getGiftOutreachRecord>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftOutreachRecord>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftOutreachRecordQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftOutreachRecord>>> = ({ signal }) => getGiftOutreachRecord(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftOutreachRecord>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftOutreachRecordQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftOutreachRecord>>>
+export type GetGiftOutreachRecordQueryError = ErrorType<unknown>
+
+
+
+export function useGetGiftOutreachRecord<TData = Awaited<ReturnType<typeof getGiftOutreachRecord>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftOutreachRecord>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftOutreachRecordQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPatchGiftOutreachRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-outreach/records/${id}`
+}
+
+/**
+ * @summary Edit an unsent gift record; edits invalidate approval, and metadata edits invalidate the draft
+ */
+export const patchGiftOutreachRecord = async (id: number,
+    giftOutreachRecordEdit: GiftOutreachRecordEdit, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getPatchGiftOutreachRecordUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftOutreachRecordEdit)
+  }
+);}
+
+
+
+
+export const getPatchGiftOutreachRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchGiftOutreachRecord>>, TError,{id: number;data: BodyType<GiftOutreachRecordEdit>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchGiftOutreachRecord>>, TError,{id: number;data: BodyType<GiftOutreachRecordEdit>}, TContext> => {
+
+const mutationKey = ['patchGiftOutreachRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchGiftOutreachRecord>>, {id: number;data: BodyType<GiftOutreachRecordEdit>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchGiftOutreachRecord(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchGiftOutreachRecordMutationResult = NonNullable<Awaited<ReturnType<typeof patchGiftOutreachRecord>>>
+    export type PatchGiftOutreachRecordMutationBody = BodyType<GiftOutreachRecordEdit>
+    export type PatchGiftOutreachRecordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Edit an unsent gift record; edits invalidate approval, and metadata edits invalidate the draft
+ */
+export const usePatchGiftOutreachRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchGiftOutreachRecord>>, TError,{id: number;data: BodyType<GiftOutreachRecordEdit>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof patchGiftOutreachRecord>>,
+        TError,
+        {id: number;data: BodyType<GiftOutreachRecordEdit>},
+        TContext
+      > => {
+      return useMutation(getPatchGiftOutreachRecordMutationOptions(options));
+    }
+
+export const getPrepareGiftOutreachRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-outreach/records/${id}/prepare`
+}
+
+/**
+ * @summary Generate an unsent GPT-5.4 package follow-up draft
+ */
+export const prepareGiftOutreachRecord = async (id: number, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getPrepareGiftOutreachRecordUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPrepareGiftOutreachRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof prepareGiftOutreachRecord>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['prepareGiftOutreachRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof prepareGiftOutreachRecord>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  prepareGiftOutreachRecord(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PrepareGiftOutreachRecordMutationResult = NonNullable<Awaited<ReturnType<typeof prepareGiftOutreachRecord>>>
+
+    export type PrepareGiftOutreachRecordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate an unsent GPT-5.4 package follow-up draft
+ */
+export const usePrepareGiftOutreachRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof prepareGiftOutreachRecord>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getPrepareGiftOutreachRecordMutationOptions(options));
+    }
+
+export const getApproveGiftOutreachRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-outreach/records/${id}/approve`
+}
+
+/**
+ * @summary Explicitly approve the current revision (required for review, manual, fallback or compliance risk)
+ */
+export const approveGiftOutreachRecord = async (id: number, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getApproveGiftOutreachRecordUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getApproveGiftOutreachRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveGiftOutreachRecord>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['approveGiftOutreachRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveGiftOutreachRecord>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  approveGiftOutreachRecord(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveGiftOutreachRecordMutationResult = NonNullable<Awaited<ReturnType<typeof approveGiftOutreachRecord>>>
+
+    export type ApproveGiftOutreachRecordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Explicitly approve the current revision (required for review, manual, fallback or compliance risk)
+ */
+export const useApproveGiftOutreachRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveGiftOutreachRecord>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApproveGiftOutreachRecordMutationOptions(options));
+    }
+
+export const getSendGiftOutreachRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-outreach/records/${id}/send`
+}
+
+/**
+ * @summary Idempotently send a due approved follow-up within configured business hours
+ */
+export const sendGiftOutreachRecord = async (id: number, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getSendGiftOutreachRecordUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSendGiftOutreachRecordMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendGiftOutreachRecord>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['sendGiftOutreachRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendGiftOutreachRecord>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  sendGiftOutreachRecord(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendGiftOutreachRecordMutationResult = NonNullable<Awaited<ReturnType<typeof sendGiftOutreachRecord>>>
+
+    export type SendGiftOutreachRecordMutationError = ErrorType<void>
+
+    /**
+ * @summary Idempotently send a due approved follow-up within configured business hours
+ */
+export const useSendGiftOutreachRecord = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendGiftOutreachRecord>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSendGiftOutreachRecordMutationOptions(options));
+    }
+
+export const getSkipGiftOutreachRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-outreach/records/${id}/skip`
+}
+
+/**
+ * @summary Explicitly skip the gift action and replacement package follow-up without replaying completed steps
+ */
+export const skipGiftOutreachRecord = async (id: number, options?: RequestInit): Promise<GiftOutreachRecord> => {
+
+  return customFetch<GiftOutreachRecord>(getSkipGiftOutreachRecordUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSkipGiftOutreachRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof skipGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof skipGiftOutreachRecord>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['skipGiftOutreachRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof skipGiftOutreachRecord>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  skipGiftOutreachRecord(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SkipGiftOutreachRecordMutationResult = NonNullable<Awaited<ReturnType<typeof skipGiftOutreachRecord>>>
+
+    export type SkipGiftOutreachRecordMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Explicitly skip the gift action and replacement package follow-up without replaying completed steps
+ */
+export const useSkipGiftOutreachRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof skipGiftOutreachRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof skipGiftOutreachRecord>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSkipGiftOutreachRecordMutationOptions(options));
+    }
+
+export const getRequestGiftVideoUploadUrlUrl = () => {
+
+
+
+
+  return `/api/gift-videos/uploads/request-url`
+}
+
+/**
+ * @summary Reserve a private managed-media upload and return its presigned PUT URL
+ */
+export const requestGiftVideoUploadUrl = async (giftVideoUploadInput: GiftVideoUploadInput, options?: RequestInit): Promise<GiftVideoUploadReservation> => {
+
+  return customFetch<GiftVideoUploadReservation>(getRequestGiftVideoUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftVideoUploadInput)
+  }
+);}
+
+
+
+
+export const getRequestGiftVideoUploadUrlMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestGiftVideoUploadUrl>>, TError,{data: BodyType<GiftVideoUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestGiftVideoUploadUrl>>, TError,{data: BodyType<GiftVideoUploadInput>}, TContext> => {
+
+const mutationKey = ['requestGiftVideoUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestGiftVideoUploadUrl>>, {data: BodyType<GiftVideoUploadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestGiftVideoUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestGiftVideoUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestGiftVideoUploadUrl>>>
+    export type RequestGiftVideoUploadUrlMutationBody = BodyType<GiftVideoUploadInput>
+    export type RequestGiftVideoUploadUrlMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Reserve a private managed-media upload and return its presigned PUT URL
+ */
+export const useRequestGiftVideoUploadUrl = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestGiftVideoUploadUrl>>, TError,{data: BodyType<GiftVideoUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestGiftVideoUploadUrl>>,
+        TError,
+        {data: BodyType<GiftVideoUploadInput>},
+        TContext
+      > => {
+      return useMutation(getRequestGiftVideoUploadUrlMutationOptions(options));
+    }
+
+export const getCreateGiftVideoUrl = () => {
+
+
+
+
+  return `/api/gift-videos`
+}
+
+/**
+ * @summary Create and attach a managed MP4 video to an unsent gift record
+ */
+export const createGiftVideo = async (giftVideoInput: GiftVideoInput, options?: RequestInit): Promise<GiftVideo> => {
+
+  return customFetch<GiftVideo>(getCreateGiftVideoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftVideoInput)
+  }
+);}
+
+
+
+
+export const getCreateGiftVideoMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGiftVideo>>, TError,{data: BodyType<GiftVideoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGiftVideo>>, TError,{data: BodyType<GiftVideoInput>}, TContext> => {
+
+const mutationKey = ['createGiftVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGiftVideo>>, {data: BodyType<GiftVideoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGiftVideo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGiftVideoMutationResult = NonNullable<Awaited<ReturnType<typeof createGiftVideo>>>
+    export type CreateGiftVideoMutationBody = BodyType<GiftVideoInput>
+    export type CreateGiftVideoMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Create and attach a managed MP4 video to an unsent gift record
+ */
+export const useCreateGiftVideo = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGiftVideo>>, TError,{data: BodyType<GiftVideoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGiftVideo>>,
+        TError,
+        {data: BodyType<GiftVideoInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGiftVideoMutationOptions(options));
+    }
+
+export const getGetGiftVideoDashboardUrl = (params?: GetGiftVideoDashboardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/gift-videos/dashboard?${stringifiedParams}` : `/api/gift-videos/dashboard`
+}
+
+/**
+ * @summary List scoped gift-video engagement cards
+ */
+export const getGiftVideoDashboard = async (params?: GetGiftVideoDashboardParams, options?: RequestInit): Promise<GiftVideoDashboard> => {
+
+  return customFetch<GiftVideoDashboard>(getGetGiftVideoDashboardUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftVideoDashboardQueryKey = (params?: GetGiftVideoDashboardParams,) => {
+    return [
+    `/api/gift-videos/dashboard`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGiftVideoDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getGiftVideoDashboard>>, TError = ErrorType<ErrorEnvelope>>(params?: GetGiftVideoDashboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftVideoDashboardQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftVideoDashboard>>> = ({ signal }) => getGiftVideoDashboard(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftVideoDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftVideoDashboard>>>
+export type GetGiftVideoDashboardQueryError = ErrorType<ErrorEnvelope>
+
+
+/**
+ * @summary List scoped gift-video engagement cards
+ */
+
+export function useGetGiftVideoDashboard<TData = Awaited<ReturnType<typeof getGiftVideoDashboard>>, TError = ErrorType<ErrorEnvelope>>(
+ params?: GetGiftVideoDashboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftVideoDashboardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetGiftVideoUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-videos/${id}`
+}
+
+export const getGiftVideo = async (id: number, options?: RequestInit): Promise<GiftVideo> => {
+
+  return customFetch<GiftVideo>(getGetGiftVideoUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftVideoQueryKey = (id: number,) => {
+    return [
+    `/api/gift-videos/${id}`
+    ] as const;
+    }
+
+
+export const getGetGiftVideoQueryOptions = <TData = Awaited<ReturnType<typeof getGiftVideo>>, TError = ErrorType<ErrorEnvelope>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftVideoQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftVideo>>> = ({ signal }) => getGiftVideo(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftVideo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftVideoQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftVideo>>>
+export type GetGiftVideoQueryError = ErrorType<ErrorEnvelope>
+
+
+
+export function useGetGiftVideo<TData = Awaited<ReturnType<typeof getGiftVideo>>, TError = ErrorType<ErrorEnvelope>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftVideoQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateGiftVideoUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-videos/${id}`
+}
+
+/**
+ * @summary Update an unsent video and invalidate gift approval
+ */
+export const updateGiftVideo = async (id: number,
+    giftVideoUpdate: GiftVideoUpdate, options?: RequestInit): Promise<GiftVideo> => {
+
+  return customFetch<GiftVideo>(getUpdateGiftVideoUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftVideoUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateGiftVideoMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGiftVideo>>, TError,{id: number;data: BodyType<GiftVideoUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateGiftVideo>>, TError,{id: number;data: BodyType<GiftVideoUpdate>}, TContext> => {
+
+const mutationKey = ['updateGiftVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateGiftVideo>>, {id: number;data: BodyType<GiftVideoUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateGiftVideo(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateGiftVideoMutationResult = NonNullable<Awaited<ReturnType<typeof updateGiftVideo>>>
+    export type UpdateGiftVideoMutationBody = BodyType<GiftVideoUpdate>
+    export type UpdateGiftVideoMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Update an unsent video and invalidate gift approval
+ */
+export const useUpdateGiftVideo = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGiftVideo>>, TError,{id: number;data: BodyType<GiftVideoUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateGiftVideo>>,
+        TError,
+        {id: number;data: BodyType<GiftVideoUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateGiftVideoMutationOptions(options));
+    }
+
+export const getDeleteGiftVideoUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-videos/${id}`
+}
+
+/**
+ * @summary Delete an unsent video, detach it, and revoke its public token
+ */
+export const deleteGiftVideo = async (id: number, options?: RequestInit): Promise<GiftVideoDeleteResult> => {
+
+  return customFetch<GiftVideoDeleteResult>(getDeleteGiftVideoUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteGiftVideoMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGiftVideo>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteGiftVideo>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteGiftVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteGiftVideo>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteGiftVideo(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteGiftVideoMutationResult = NonNullable<Awaited<ReturnType<typeof deleteGiftVideo>>>
+
+    export type DeleteGiftVideoMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Delete an unsent video, detach it, and revoke its public token
+ */
+export const useDeleteGiftVideo = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGiftVideo>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteGiftVideo>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteGiftVideoMutationOptions(options));
+    }
+
+export const getGetGiftVideoEventsUrl = (id: number,) => {
+
+
+
+
+  return `/api/gift-videos/${id}/events`
+}
+
+/**
+ * @summary Get the scoped video, email, reply, and booking timeline newest first
+ */
+export const getGiftVideoEvents = async (id: number, options?: RequestInit): Promise<GiftVideoTimeline> => {
+
+  return customFetch<GiftVideoTimeline>(getGetGiftVideoEventsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftVideoEventsQueryKey = (id: number,) => {
+    return [
+    `/api/gift-videos/${id}/events`
+    ] as const;
+    }
+
+
+export const getGetGiftVideoEventsQueryOptions = <TData = Awaited<ReturnType<typeof getGiftVideoEvents>>, TError = ErrorType<ErrorEnvelope>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftVideoEventsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftVideoEvents>>> = ({ signal }) => getGiftVideoEvents(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftVideoEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftVideoEvents>>>
+export type GetGiftVideoEventsQueryError = ErrorType<ErrorEnvelope>
+
+
+/**
+ * @summary Get the scoped video, email, reply, and booking timeline newest first
+ */
+
+export function useGetGiftVideoEvents<TData = Awaited<ReturnType<typeof getGiftVideoEvents>>, TError = ErrorType<ErrorEnvelope>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftVideoEventsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetGiftVideoWatchPageUrl = (token: string,) => {
+
+
+
+
+  return `/api/gift-videos/watch/${token}`
+}
+
+/**
+ * @summary Render the public self-contained native video player
+ */
+export const getGiftVideoWatchPage = async (token: string, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getGetGiftVideoWatchPageUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftVideoWatchPageQueryKey = (token: string,) => {
+    return [
+    `/api/gift-videos/watch/${token}`
+    ] as const;
+    }
+
+
+export const getGetGiftVideoWatchPageQueryOptions = <TData = Awaited<ReturnType<typeof getGiftVideoWatchPage>>, TError = ErrorType<string | ErrorEnvelope>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoWatchPage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftVideoWatchPageQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftVideoWatchPage>>> = ({ signal }) => getGiftVideoWatchPage(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoWatchPage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftVideoWatchPageQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftVideoWatchPage>>>
+export type GetGiftVideoWatchPageQueryError = ErrorType<string | ErrorEnvelope>
+
+
+/**
+ * @summary Render the public self-contained native video player
+ */
+
+export function useGetGiftVideoWatchPage<TData = Awaited<ReturnType<typeof getGiftVideoWatchPage>>, TError = ErrorType<string | ErrorEnvelope>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoWatchPage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftVideoWatchPageQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStreamGiftVideoMediaUrl = (token: string,) => {
+
+
+
+
+  return `/api/gift-videos/watch/${token}/media`
+}
+
+/**
+ * @summary Stream public MP4 media with byte-range support
+ */
+export const streamGiftVideoMedia = async (token: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getStreamGiftVideoMediaUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStreamGiftVideoMediaQueryKey = (token: string,) => {
+    return [
+    `/api/gift-videos/watch/${token}/media`
+    ] as const;
+    }
+
+
+export const getStreamGiftVideoMediaQueryOptions = <TData = Awaited<ReturnType<typeof streamGiftVideoMedia>>, TError = ErrorType<ErrorEnvelope | void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamGiftVideoMedia>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamGiftVideoMediaQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamGiftVideoMedia>>> = ({ signal }) => streamGiftVideoMedia(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamGiftVideoMedia>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StreamGiftVideoMediaQueryResult = NonNullable<Awaited<ReturnType<typeof streamGiftVideoMedia>>>
+export type StreamGiftVideoMediaQueryError = ErrorType<ErrorEnvelope | void>
+
+
+/**
+ * @summary Stream public MP4 media with byte-range support
+ */
+
+export function useStreamGiftVideoMedia<TData = Awaited<ReturnType<typeof streamGiftVideoMedia>>, TError = ErrorType<ErrorEnvelope | void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamGiftVideoMedia>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStreamGiftVideoMediaQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetGiftVideoPosterUrl = (token: string,) => {
+
+
+
+
+  return `/api/gift-videos/watch/${token}/poster`
+}
+
+/**
+ * @summary Return a generated raster play-poster PNG without recording a click
+ */
+export const getGiftVideoPoster = async (token: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetGiftVideoPosterUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGiftVideoPosterQueryKey = (token: string,) => {
+    return [
+    `/api/gift-videos/watch/${token}/poster`
+    ] as const;
+    }
+
+
+export const getGetGiftVideoPosterQueryOptions = <TData = Awaited<ReturnType<typeof getGiftVideoPoster>>, TError = ErrorType<ErrorEnvelope>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoPoster>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGiftVideoPosterQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGiftVideoPoster>>> = ({ signal }) => getGiftVideoPoster(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoPoster>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGiftVideoPosterQueryResult = NonNullable<Awaited<ReturnType<typeof getGiftVideoPoster>>>
+export type GetGiftVideoPosterQueryError = ErrorType<ErrorEnvelope>
+
+
+/**
+ * @summary Return a generated raster play-poster PNG without recording a click
+ */
+
+export function useGetGiftVideoPoster<TData = Awaited<ReturnType<typeof getGiftVideoPoster>>, TError = ErrorType<ErrorEnvelope>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGiftVideoPoster>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGiftVideoPosterQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStreamGiftVideoThumbnailUrl = (token: string,) => {
+
+
+
+
+  return `/api/gift-videos/watch/${token}/thumbnail`
+}
+
+/**
+ * @summary Stream the optional custom thumbnail with byte-range support
+ */
+export const streamGiftVideoThumbnail = async (token: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getStreamGiftVideoThumbnailUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStreamGiftVideoThumbnailQueryKey = (token: string,) => {
+    return [
+    `/api/gift-videos/watch/${token}/thumbnail`
+    ] as const;
+    }
+
+
+export const getStreamGiftVideoThumbnailQueryOptions = <TData = Awaited<ReturnType<typeof streamGiftVideoThumbnail>>, TError = ErrorType<ErrorEnvelope | void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamGiftVideoThumbnail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamGiftVideoThumbnailQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamGiftVideoThumbnail>>> = ({ signal }) => streamGiftVideoThumbnail(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamGiftVideoThumbnail>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StreamGiftVideoThumbnailQueryResult = NonNullable<Awaited<ReturnType<typeof streamGiftVideoThumbnail>>>
+export type StreamGiftVideoThumbnailQueryError = ErrorType<ErrorEnvelope | void>
+
+
+/**
+ * @summary Stream the optional custom thumbnail with byte-range support
+ */
+
+export function useStreamGiftVideoThumbnail<TData = Awaited<ReturnType<typeof streamGiftVideoThumbnail>>, TError = ErrorType<ErrorEnvelope | void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamGiftVideoThumbnail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStreamGiftVideoThumbnailQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReportGiftVideoProgressUrl = (token: string,) => {
+
+
+
+
+  return `/api/gift-videos/watch/${token}/progress`
+}
+
+/**
+ * @summary Report server-session and elapsed-time validated playback ranges
+ */
+export const reportGiftVideoProgress = async (token: string,
+    giftVideoProgressInput: GiftVideoProgressInput, options?: RequestInit): Promise<GiftVideoProgressResult> => {
+
+  return customFetch<GiftVideoProgressResult>(getReportGiftVideoProgressUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftVideoProgressInput)
+  }
+);}
+
+
+
+
+export const getReportGiftVideoProgressMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportGiftVideoProgress>>, TError,{token: string;data: BodyType<GiftVideoProgressInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportGiftVideoProgress>>, TError,{token: string;data: BodyType<GiftVideoProgressInput>}, TContext> => {
+
+const mutationKey = ['reportGiftVideoProgress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportGiftVideoProgress>>, {token: string;data: BodyType<GiftVideoProgressInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  reportGiftVideoProgress(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportGiftVideoProgressMutationResult = NonNullable<Awaited<ReturnType<typeof reportGiftVideoProgress>>>
+    export type ReportGiftVideoProgressMutationBody = BodyType<GiftVideoProgressInput>
+    export type ReportGiftVideoProgressMutationError = ErrorType<ErrorEnvelope>
+
+    /**
+ * @summary Report server-session and elapsed-time validated playback ranges
+ */
+export const useReportGiftVideoProgress = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportGiftVideoProgress>>, TError,{token: string;data: BodyType<GiftVideoProgressInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reportGiftVideoProgress>>,
+        TError,
+        {token: string;data: BodyType<GiftVideoProgressInput>},
+        TContext
+      > => {
+      return useMutation(getReportGiftVideoProgressMutationOptions(options));
+    }
+
+export const getRedirectGiftVideoScheduleUrl = (token: string,) => {
+
+
+
+
+  return `/api/gift-videos/watch/${token}/schedule`
+}
+
+/**
+ * @summary Record scheduling-link engagement and redirect to the configured HTTPS URL
+ */
+export const redirectGiftVideoSchedule = async (token: string, options?: RequestInit): Promise<unknown> => {
+
+  return customFetch<unknown>(getRedirectGiftVideoScheduleUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getRedirectGiftVideoScheduleQueryKey = (token: string,) => {
+    return [
+    `/api/gift-videos/watch/${token}/schedule`
+    ] as const;
+    }
+
+
+export const getRedirectGiftVideoScheduleQueryOptions = <TData = Awaited<ReturnType<typeof redirectGiftVideoSchedule>>, TError = ErrorType<void | ErrorEnvelope>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof redirectGiftVideoSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getRedirectGiftVideoScheduleQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof redirectGiftVideoSchedule>>> = ({ signal }) => redirectGiftVideoSchedule(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof redirectGiftVideoSchedule>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type RedirectGiftVideoScheduleQueryResult = NonNullable<Awaited<ReturnType<typeof redirectGiftVideoSchedule>>>
+export type RedirectGiftVideoScheduleQueryError = ErrorType<void | ErrorEnvelope>
+
+
+/**
+ * @summary Record scheduling-link engagement and redirect to the configured HTTPS URL
+ */
+
+export function useRedirectGiftVideoSchedule<TData = Awaited<ReturnType<typeof redirectGiftVideoSchedule>>, TError = ErrorType<void | ErrorEnvelope>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof redirectGiftVideoSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getRedirectGiftVideoScheduleQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getApiLivenessCheckUrl = () => {
 
