@@ -1,0 +1,236 @@
+AUTOMATED GIFT OUTREACH SETTINGS
+
+Add a new Settings section named:
+
+“Professional Gift Outreach”
+
+This section controls the optional gift and package follow-up steps across the
+entire automated outreach campaign.
+
+MASTER SETTING
+
+Professional Gift Outreach:
+- Enabled
+- Disabled
+
+When enabled:
+- Convert the standard seven-step campaign into an eight-step campaign.
+- Add the Professional Gift action as Step 2.
+- Add the Package Follow-Up as Step 3.
+- Shift the remaining campaign steps forward.
+- Preserve all existing campaign content and delays.
+
+When disabled:
+- Use the standard seven-step campaign.
+
+STEP 3 FOLLOW-UP METHOD
+
+Allow the user to select a default:
+
+How would you like to follow up after sending a gift?
+- AI-Written Email
+- Personalized MP4 Video Email
+- Choose Separately for Each Prospect
+
+OPTION 1: AI-WRITTEN EMAIL
+
+Automatically generate a personalized package follow-up using:
+- Prospect’s preferred name
+- Prospect’s company
+- Gift sent
+- Date sent
+- User’s selected industry
+- Industry-specific operational priorities
+- User’s title and company
+- Scheduling link
+
+Use the approved Step 3 tone:
+- Warm
+- Conversational
+- Confident
+- Professionally personalized
+- Focused on moving the conversation forward
+- Not repetitive of the original gift note
+- Low-pressure discovery-call request
+
+Approved structure:
+
+Subject: Did the [Gift Name] arrive?
+
+Hi [Preferred Name],
+
+I wanted to check that the package I sent on [Date Sent] made it to you safely.
+I hope you’re enjoying the [Gift Name] and that it brings [short personalized
+statement connected to the gift].
+
+I would like to learn more about how [Prospect Company] currently manages
+[industry-relevant area]. [Brief explanation of two or three operational
+priorities.] Are any of those areas top of mind for you right now?
+
+I’d be glad to learn how you’re currently managing those priorities and share
+how we may be able to help. Would you be open to a quick conversation? You can
+choose a time that works best for you here: [Scheduling Link].
+
+Best,
+
+[User Title]
+[User Company]
+
+OPTION 2: PERSONALIZED MP4 VIDEO EMAIL
+
+Allow the user to upload an MP4 video for the individual prospect.
+
+Required fields:
+- MP4 video upload
+- Video title
+- Prospect name
+- Gift referenced
+- Date gift was sent
+- Written call-to-action
+- Scheduling link
+
+Optional fields:
+- Custom thumbnail
+- Video expiration date
+- Short written introduction
+- Captions or transcript
+
+Display the uploaded video inside the email as:
+- A personalized thumbnail with a play button
+- Prospect’s name on the thumbnail, when selected
+- A secure link to a mobile-friendly video landing page
+- A written call-to-action beneath the video
+- A scheduling button
+
+Do not attach a large MP4 file directly to the email. Host the video securely
+and place a clickable thumbnail in the email to improve deliverability.
+
+Suggested video email text:
+
+Subject: Did the [Gift Name] arrive?
+
+Hi [Preferred Name],
+
+I wanted to make sure the package I sent on [Date Sent] reached you safely. I
+recorded this short message for you.
+
+[PERSONALIZED VIDEO THUMBNAIL]
+
+I’d welcome an opportunity to learn more about your current priorities and
+explore whether we may be able to help.
+
+[WATCH VIDEO]
+[SCHEDULE A QUICK CONVERSATION]
+
+Best,
+
+[User Title]
+[User Company]
+
+AUTOMATION TIMING
+
+Schedule Step 3 using this priority:
+
+1. Carrier confirms delivery:
+   Send on the next business day.
+
+2. User enters an expected delivery date:
+   Send one business day after the expected delivery date.
+
+3. Only the sent date is available:
+   Send three to five business days after the sent date, based on the user’s
+   Settings preference.
+
+SETTINGS FIELDS
+
+Add:
+- Default follow-up method
+- Default number of business days after delivery
+- User’s selected industry
+- Service descriptions
+- Industry-specific operational discussion points
+- Default scheduling link
+- Email signature
+- Video hosting preference
+- Default video call-to-action
+- Business hours
+- Sending time zone
+- Allowed sending days
+- Automatic sending or approval required
+- Email fallback if the video is unavailable
+- Maximum follow-up attempts
+
+AUTOMATION LEVEL
+
+Allow the user to select:
+
+1. Fully Automated
+   AI prepares and sends the follow-up automatically according to the campaign
+   schedule.
+
+2. Review Before Sending
+   AI prepares the email or video email and requires user approval.
+
+3. Manual
+   AI prepares the content, but the user chooses when to send it.
+
+DEFAULT RECOMMENDATION
+
+Set “Review Before Sending” as the default until the user intentionally enables
+Fully Automated.
+
+GIFT CONFIRMATION REQUIREMENT
+
+Step 3 cannot be scheduled until:
+
+Gift sent? = Yes
+
+When Yes is selected, require:
+- Date sent
+- Gift name
+
+Also collect when available:
+- Expected delivery date
+- Carrier
+- Tracking number or link
+- Amount spent
+- Gift note used
+
+If Gift sent? = No:
+- Do not send the package follow-up.
+- Keep the record at Step 2.
+- Allow the user to mark the gift as sent or skip the step later.
+
+VIDEO TRACKING
+
+Track:
+- Video email delivered
+- Thumbnail clicked
+- Video started
+- 25%, 50%, 75% and 100% viewed
+- Scheduling link clicked
+- Reply received
+- Discovery call booked
+
+EMAIL TRACKING
+
+Track:
+- Email delivered
+- Email opened
+- Links clicked
+- Reply received
+- Discovery call booked
+
+FAILSAFE RULES
+
+- Never say the package was received unless delivery is confirmed.
+- Ask whether it arrived safely.
+- Do not send Step 3 before the expected delivery date.
+- Do not repeat the original gift note.
+- Do not send an email and video email simultaneously.
+- If an MP4 is missing or fails processing, pause the step or use the approved
+  email fallback based on Settings.
+- Prevent duplicate follow-ups.
+- Stop automated follow-ups when the prospect replies or books a meeting.
+- Require user approval before sending if gift-policy or compliance risks are
+  detected.

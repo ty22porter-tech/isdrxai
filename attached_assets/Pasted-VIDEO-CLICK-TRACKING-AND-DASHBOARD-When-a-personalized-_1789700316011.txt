@@ -1,0 +1,115 @@
+VIDEO CLICK TRACKING AND DASHBOARD
+
+When a personalized video email is sent, route the video thumbnail and
+“Watch Video” button through a unique tracked link assigned to:
+
+- Prospect ID
+- Campaign ID
+- Campaign step
+- Email ID
+- Video ID
+
+DASHBOARD STATUS
+
+Display one of these statuses:
+
+- Video Email Scheduled
+- Video Email Sent
+- Video Email Delivered
+- Email Opened
+- Video Not Clicked
+- Video Clicked
+- Video Started
+- Video Partially Watched
+- Video Completed
+- Scheduling Link Clicked
+- Discovery Call Booked
+
+VIDEO CLICK EVENT
+
+When the prospect clicks the video thumbnail or Watch Video button:
+
+1. Record “Video Clicked.”
+2. Capture the first-click date and time.
+3. Capture the most recent click date and time.
+4. Count total clicks.
+5. Distinguish unique clicks from repeated clicks.
+6. Update the prospect’s campaign timeline.
+7. Display the activity on the dashboard immediately.
+8. Notify the assigned user.
+9. Add the appropriate engagement-score points.
+
+Recommended engagement scoring:
+
+- Email opened: +1
+- Email opened more than once: +2 total
+- Video clicked: +10
+- Video watched at least 50%: +5 additional
+- Video watched completely: +10 additional
+- Scheduling link clicked: +10
+- Discovery call booked: Mark as Hot/Meeting Booked
+
+Do not award video-click points multiple times for repeated clicks. Repeated
+activity should still appear in the timeline.
+
+DASHBOARD VIDEO CARD
+
+Display:
+
+Prospect: [Prospect Name]
+Company: [Company]
+Video: [Video Title]
+Campaign: [Campaign Name]
+Step: Step 3 – Gift Follow-Up
+Sent: [Date and Time]
+Delivered: [Yes/No]
+Email Opened: [Yes/No]
+Video Clicked: [Yes/No]
+First Clicked: [Date and Time]
+Last Clicked: [Date and Time]
+Total Clicks: [Number]
+Watch Percentage: [Percentage]
+Scheduling Link Clicked: [Yes/No]
+Discovery Call Booked: [Yes/No]
+Engagement Score: [Score]
+Lead Strength: [Hot/Medium/Low]
+
+IMPORTANT TRACKING DISTINCTION
+
+Track these as separate events:
+
+1. Email opened
+2. Video thumbnail clicked
+3. Video playback started
+4. Watch percentage
+5. Scheduling link clicked
+
+A video click must not be recorded merely because the email was opened.
+
+If the MP4 is hosted on a player that supports playback analytics, track:
+- Video started
+- 25% watched
+- 50% watched
+- 75% watched
+- 100% watched
+
+If the hosting provider does not support playback analytics, track the thumbnail
+or Watch Video link click and display:
+
+“Video Clicked — Viewing Completion Unavailable.”
+
+HOT-LEAD ALERT
+
+When the prospect clicks the video, show an alert:
+
+“Dedrick Poole clicked the personalized video in Step 3 of the Gift Outreach
+campaign.”
+
+Include:
+- Time clicked
+- Engagement score
+- Recommended next action
+- Button to call
+- Button to email
+- Button to view prospect
+- Button to schedule follow-up
