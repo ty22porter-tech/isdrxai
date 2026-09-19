@@ -13,4 +13,5 @@ export const GiftProspectResearchFactType = {
   education: 'education',
   award: 'award',
   hobby: 'hobby',
+  affiliation: 'affiliation',
 } as const;

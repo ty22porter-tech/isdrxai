@@ -7,6 +7,7 @@
  */
 import type { GiftProspectResearchFact } from './giftProspectResearchFact';
 import type { GiftSuggestionIdea } from './giftSuggestionIdea';
+import type { ProspectGiftSuggestionsResearchProvider } from './prospectGiftSuggestionsResearchProvider';
 import type { ProspectGiftSuggestionsResearchStatus } from './prospectGiftSuggestionsResearchStatus';
 
 export interface ProspectGiftSuggestions {
@@ -29,4 +30,5 @@ export interface ProspectGiftSuggestions {
      * @maxItems 5
      */
   ideas: GiftSuggestionIdea[];
+  researchProvider?: ProspectGiftSuggestionsResearchProvider;
 }

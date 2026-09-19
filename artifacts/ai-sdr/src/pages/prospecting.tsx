@@ -30,10 +30,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { OpportunityIntelligenceView, sanitizeOpportunityLanguage } from "@/components/opportunity-intelligence-view";
+import { GiftSuggestionsPanel } from "@/components/gift-record-editor";
+import { ProspectGiftSuggestionPreview } from "@/components/prospect-gift-suggestion-preview";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { addToAutopilotProspectSelection, clearAutopilotProspectSelection } from "@/lib/autopilot-prospect-selection";
-import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw, Gift } from "lucide-react";
 
 const INDUSTRIES = [
   "Healthcare",
@@ -255,6 +257,7 @@ export default function Prospecting() {
   const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
   const [restorable, setRestorable] = useState<ProspectingSnapshot | null>(null);
   const [lastSearchedParams, setLastSearchedParams] = useState<ProspectingSnapshot["params"] | null>(null);
+  const [giftLeadIndex, setGiftLeadIndex] = useState<number | null>(null);
   const cancelAddAllRef = useRef(false);
   const hydratedRef = useRef(false);
   // True from the moment hydration finds a restorable snapshot until the user
@@ -421,6 +424,7 @@ export default function Prospecting() {
     setEnrichment(new Map());
     setEnrichmentErrors(new Map());
     setResearchWarnings(new Map());
+    setGiftLeadIndex(null);
     searchMutation.mutate(
       {
         data: {
@@ -1417,7 +1421,10 @@ export default function Prospecting() {
                         )}
                       </div>
 
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex flex-col gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setGiftLeadIndex(idx)}>
+                          <Gift className="mr-1.5 h-4 w-4" /> Gift Suggestions
+                        </Button>
                         {added.has(idx) ? (
                           <Button size="sm" variant="outline" disabled className="gap-1.5 text-green-700 border-green-300">
                             <Check className="h-4 w-4" /> Added
@@ -1450,6 +1457,31 @@ export default function Prospecting() {
           <div className="text-center py-16 text-muted-foreground text-sm">No results returned. Try different parameters.</div>
         )}
       </div>
+
+      <Dialog open={giftLeadIndex !== null} onOpenChange={open => { if (!open) setGiftLeadIndex(null); }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gift Suggestions{giftLeadIndex !== null && leads[giftLeadIndex] ? ` — ${leads[giftLeadIndex].contactName}` : ""}</DialogTitle>
+          </DialogHeader>
+          {giftLeadIndex !== null && leads[giftLeadIndex] && (() => {
+            const lead = leads[giftLeadIndex];
+            const savedProspectId = addedProspectIds.get(giftLeadIndex);
+            return savedProspectId
+              ? <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground"><strong>Saved prospect.</strong> Ideas can be persisted and include price comparison. Nothing is sent, enrolled, or purchased here.</p>
+                  <GiftSuggestionsPanel key={savedProspectId} prospectId={savedProspectId} />
+                </div>
+              : <ProspectGiftSuggestionPreview key={giftLeadIndex} identity={{
+                  contactName: lead.contactName,
+                  companyName: lead.companyName,
+                  industry: lead.industry,
+                  title: /pending/i.test(lead.contactTitle) ? null : lead.contactTitle,
+                  city: lead.city,
+                  state: lead.state,
+                }} />;
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmSearchOpen} onOpenChange={setConfirmSearchOpen}>
         <AlertDialogContent>

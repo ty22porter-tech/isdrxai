@@ -95,8 +95,8 @@ export interface GiftSuggestionIdea {
 
 export interface GiftProspectResearchFact {
   id: string;
-  type: "education" | "award" | "hobby";
-  classification: "degree" | "education" | "award_winner" | "nominee_finalist" | "public_hobby";
+  type: "education" | "award" | "hobby" | "affiliation";
+  classification: "degree" | "education" | "award_winner" | "nominee_finalist" | "public_hobby" | "public_affiliation";
   summary: string;
   evidence: string;
   url: string;
@@ -132,6 +132,8 @@ export interface ProspectGiftSuggestions {
   researchMessage: string;
   researchFacts: GiftProspectResearchFact[];
   ideas: GiftSuggestionIdea[];
+  /** Optional for compatibility with suggestions saved before provider tracking. */
+  researchProvider?: "google_search_grounding" | "openai_web_search_legacy";
 }
 
 export interface OpportunityIntelligence {

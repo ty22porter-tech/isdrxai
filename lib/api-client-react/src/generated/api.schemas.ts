@@ -400,6 +400,44 @@ export interface GiftSuggestionInput {
   budgetUsd: number;
 }
 
+export interface GiftSuggestionPreviewInput {
+  /**
+     * @minimum 10
+     * @maximum 100
+     */
+  budgetUsd: number;
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  contactName: string;
+  /**
+     * @minLength 2
+     * @maxLength 200
+     */
+  companyName: string;
+  /**
+     * @minLength 2
+     * @maxLength 160
+     */
+  industry: string;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  title?: string | null;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  city?: string | null;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  state?: string | null;
+}
+
 export type GiftSuggestionIdeaPersonalization = typeof GiftSuggestionIdeaPersonalization[keyof typeof GiftSuggestionIdeaPersonalization];
 
 
@@ -529,6 +567,7 @@ export const GiftProspectResearchFactType = {
   education: 'education',
   award: 'award',
   hobby: 'hobby',
+  affiliation: 'affiliation',
 } as const;
 
 export type GiftProspectResearchFactClassification = typeof GiftProspectResearchFactClassification[keyof typeof GiftProspectResearchFactClassification];
@@ -540,6 +579,7 @@ export const GiftProspectResearchFactClassification = {
   award_winner: 'award_winner',
   nominee_finalist: 'nominee_finalist',
   public_hobby: 'public_hobby',
+  public_affiliation: 'public_affiliation',
 } as const;
 
 export interface GiftProspectResearchFact {
@@ -572,6 +612,14 @@ export const ProspectGiftSuggestionsResearchStatus = {
   no_public_match: 'no_public_match',
 } as const;
 
+export type ProspectGiftSuggestionsResearchProvider = typeof ProspectGiftSuggestionsResearchProvider[keyof typeof ProspectGiftSuggestionsResearchProvider];
+
+
+export const ProspectGiftSuggestionsResearchProvider = {
+  google_search_grounding: 'google_search_grounding',
+  openai_web_search_legacy: 'openai_web_search_legacy',
+} as const;
+
 export interface ProspectGiftSuggestions {
   /**
      * @minimum 10
@@ -592,6 +640,7 @@ export interface ProspectGiftSuggestions {
      * @maxItems 5
      */
   ideas: GiftSuggestionIdea[];
+  researchProvider?: ProspectGiftSuggestionsResearchProvider;
 }
 
 export type GiftOutreachSettings = GiftOutreachSettingsInput & { [key: string]: unknown } & Required<Pick<GiftOutreachSettingsInput & { [key: string]: unknown }, 'enabled' | 'defaultMethod' | 'daysAfterDelivery' | 'sentOnlyBusinessDays' | 'industry' | 'serviceDescriptions' | 'discussionPoints' | 'schedulingLink' | 'emailSignature' | 'videoHostingPreference' | 'videoCta' | 'businessHoursStart' | 'businessHoursEnd' | 'timezone' | 'allowedDays' | 'automationLevel' | 'videoFallback' | 'maxFollowUpAttempts'>>;

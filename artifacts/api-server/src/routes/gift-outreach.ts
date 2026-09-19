@@ -7,11 +7,13 @@ import {
   GenerateProspectGiftSuggestionsResponse,
   GetProspectGiftSuggestionsResponse,
   CompareGiftSuggestionOffersResponse,
+  PreviewProspectGiftSuggestionsBody,
+  PreviewProspectGiftSuggestionsResponse,
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { GiftOutreachError, publicGiftRecord, getGiftSettings, updateGiftSettings, getGiftRecord, createGiftRecord, updateGiftRecord, prepareGiftRecord, approveGiftRecord, sendGiftRecord, skipGiftRecord } from "../lib/giftOutreach";
 import { giftRecordEditSchema, giftSettingsSchema } from "../lib/giftOutreachPolicy";
-import { generateGiftSuggestions, getProspectGiftSuggestions } from "../lib/giftSuggestions";
+import { generateGiftSuggestions, getProspectGiftSuggestions, previewGiftSuggestions } from "../lib/giftSuggestions";
 import { compareGiftSuggestionOffers } from "../lib/giftOfferComparison";
 
 const router = Router();
@@ -43,6 +45,10 @@ router.post("/prospects/:prospectId/suggestions", async (req, res) => {
   res.json(GenerateProspectGiftSuggestionsResponse.parse(
     await generateGiftSuggestions(req.clientId, id.parse(req.params.prospectId), input.budgetUsd),
   ));
+});
+router.post("/prospect-suggestion-preview", async (req, res) => {
+  const input = PreviewProspectGiftSuggestionsBody.parse(req.body);
+  res.json(PreviewProspectGiftSuggestionsResponse.parse(await previewGiftSuggestions(req.clientId, input)));
 });
 router.post("/prospects/:prospectId/suggestions/:ideaIndex/offers", async (req, res) => {
   res.json(CompareGiftSuggestionOffersResponse.parse(await compareGiftSuggestionOffers(

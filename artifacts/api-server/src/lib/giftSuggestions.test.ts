@@ -49,6 +49,7 @@ vi.mock("./giftOutreach", () => ({
 import {
   buildGiftSuggestionPrompt,
   generateGiftSuggestions,
+  previewGiftSuggestions,
   validateGiftSuggestionOutput,
   validateProspectGiftResearch,
 } from "./giftSuggestions";
@@ -145,6 +146,25 @@ describe("prospect gift suggestions", () => {
     expect(fake.state.updated).toEqual({ giftSuggestions: result });
   });
 
+  it("generates an unsaved preview without creating or updating a prospect or gift record", async () => {
+    const result = await previewGiftSuggestions(
+      "tenant-a",
+      {
+        budgetUsd: 25,
+        contactName: "Jamie Rivera",
+        companyName: "Acme",
+        industry: "Manufacturing",
+        title: "Operations Director",
+        city: "Columbus",
+        state: "OH",
+      },
+      vi.fn().mockResolvedValue(validOutput),
+      vi.fn().mockResolvedValue(emptyResearch),
+    );
+    expect(result).toMatchObject({ budgetUsd: 25, researchStatus: "no_public_match" });
+    expect(fake.state.updated).toBeNull();
+  });
+
   it("keeps identity-matched evidence and distinguishes nomination from a win", () => {
     const facts = validateProspectGiftResearch(researchPayload([
       {
@@ -200,6 +220,29 @@ describe("prospect gift suggestions", () => {
     expect(facts).toEqual([]);
   });
 
+  it("accepts a public affiliation only from a cited Google grounding support and declines unsupported ambiguity", () => {
+    const fact = {
+      type: "affiliation",
+      classification: "public_affiliation",
+      summary: "Jamie Rivera is a public alumna member of Alpha Example Sorority.",
+      evidence: "Jamie Rivera, Acme Operations Director in Columbus, is an alumna member of Alpha Example Sorority.",
+      identityEvidence: "Jamie Rivera is Acme Operations Director in Columbus.",
+      sourceIndex: 0,
+      identity: { nameMatched: true, companyMatched: true, roleOrLocationMatched: true },
+      publiclyStatedByProspect: false,
+    };
+    const payload = {
+      outputText: JSON.stringify({ facts: [fact] }),
+      groundingChunks: [{ web: { uri: "https://example.org/public-chamber-bio", title: "Public chamber bio" } }],
+      groundingSupports: [{ groundingChunkIndices: [0] }],
+    };
+    const identity = { name: "Jamie Rivera", company: "Acme", role: "Operations Director", location: "Columbus, OH" };
+    expect(validateProspectGiftResearch(payload, "2026-01-02T00:00:00.000Z", identity)).toEqual([
+      expect.objectContaining({ type: "affiliation", classification: "public_affiliation", url: "https://example.org/public-chamber-bio" }),
+    ]);
+    expect(validateProspectGiftResearch({ ...payload, groundingSupports: [] }, "2026-01-02T00:00:00.000Z", identity)).toEqual([]);
+  });
+
   it("requires personalized output to cite verified fact ids and labels no-match fallback", () => {
     const facts = [{
       id: "fact-1",
@@ -211,13 +254,13 @@ describe("prospect gift suggestions", () => {
       checkedAt: "2026-01-02T00:00:00.000Z",
     }];
     const personalized = JSON.parse(validOutput);
-    personalized.ideas[0] = {
-      ...personalized.ideas[0],
-      name: "State University notebook",
+    personalized.ideas = personalized.ideas.map((idea: any, index: number) => ({
+      ...idea,
+      name: `State University personalized item ${index + 1}`,
       whyFit: "Grounded in the confirmed State University degree.",
       personalization: "verified_fact",
       evidenceFactIds: ["fact-1"],
-    };
+    }));
     expect(validateGiftSuggestionOutput(JSON.stringify(personalized), 25, facts)[0].personalization).toBe("verified_fact");
     personalized.ideas[0].evidenceFactIds = ["invented"];
     expect(() => validateGiftSuggestionOutput(JSON.stringify(personalized), 25, facts)).toThrow("not meet");
@@ -230,8 +273,9 @@ describe("prospect gift suggestions", () => {
       legitimateOpportunityContext: null,
       seller: { company: "Seller", vertical: "it_services" },
     }, 50);
-    expect(prompt).toContain("College-branded goods are allowed only for a supplied education fact");
+    expect(prompt).toContain("college-branded tumbler");
     expect(prompt).toContain('every idea must be explicitly generic_fallback');
-    expect(prompt).toContain("nonsensitive hobby gift is allowed only");
+    expect(prompt).toContain("nonsensitive hobby gift");
+    expect(prompt).toContain("public_affiliation");
   });
 });

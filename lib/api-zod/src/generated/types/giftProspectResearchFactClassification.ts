@@ -15,4 +15,5 @@ export const GiftProspectResearchFactClassification = {
   award_winner: 'award_winner',
   nominee_finalist: 'nominee_finalist',
   public_hobby: 'public_hobby',
+  public_affiliation: 'public_affiliation',
 } as const;

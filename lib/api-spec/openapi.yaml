@@ -138,6 +138,26 @@ paths:
           description: Prospect not found for this tenant
         "502":
           description: AI provider failed or returned invalid suggestions
+  /gift-outreach/prospect-suggestion-preview:
+    post:
+      operationId: previewProspectGiftSuggestions
+      tags: [gift-outreach]
+      summary: Generate stateless gift suggestions for an unsaved authenticated prospect without creating any record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftSuggestionPreviewInput" }
+      responses:
+        "200":
+          description: Ephemeral suggestions; this endpoint performs no pipeline, gift-record, enrollment, send, or purchase writes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProspectGiftSuggestions" }
+        "400":
+          description: Invalid or insufficient prospect identity
+        "502":
+          description: Google grounded research or AI suggestion generation failed
   /gift-outreach/prospects/{prospectId}/suggestions/{ideaIndex}/offers:
     parameters:
       - { name: prospectId, in: path, required: true, schema: { type: integer } }
@@ -1659,6 +1679,18 @@ components:
       required: [budgetUsd]
       properties:
         budgetUsd: { type: integer, minimum: 10, maximum: 100, default: 25 }
+    GiftSuggestionPreviewInput:
+      type: object
+      additionalProperties: false
+      required: [budgetUsd, contactName, companyName, industry]
+      properties:
+        budgetUsd: { type: integer, minimum: 10, maximum: 100, default: 25 }
+        contactName: { type: string, minLength: 2, maxLength: 160 }
+        companyName: { type: string, minLength: 2, maxLength: 200 }
+        industry: { type: string, minLength: 2, maxLength: 160 }
+        title: { type: ["string", "null"], maxLength: 160 }
+        city: { type: ["string", "null"], maxLength: 120 }
+        state: { type: ["string", "null"], maxLength: 80 }
     GiftSuggestionIdea:
       type: object
       additionalProperties: false
@@ -1713,8 +1745,8 @@ components:
       required: [id, type, classification, summary, evidence, url, checkedAt]
       properties:
         id: { type: string, minLength: 1, maxLength: 80 }
-        type: { type: string, enum: [education, award, hobby] }
-        classification: { type: string, enum: [degree, education, award_winner, nominee_finalist, public_hobby] }
+        type: { type: string, enum: [education, award, hobby, affiliation] }
+        classification: { type: string, enum: [degree, education, award_winner, nominee_finalist, public_hobby, public_affiliation] }
         summary: { type: string, minLength: 1, maxLength: 300 }
         evidence: { type: string, minLength: 1, maxLength: 500 }
         url: { type: string, format: uri }
@@ -1737,6 +1769,9 @@ components:
           minItems: 3
           maxItems: 5
           items: { $ref: "#/components/schemas/GiftSuggestionIdea" }
+        researchProvider:
+          type: string
+          enum: [google_search_grounding, openai_web_search_legacy]
     GiftOutreachSettings:
       allOf:
         - { $ref: "#/components/schemas/GiftOutreachSettingsInput" }

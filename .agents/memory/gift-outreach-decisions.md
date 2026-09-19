@@ -26,3 +26,11 @@ description: Why gift mode has eight steps, approval defaults, and delivery evid
 - Gift personalization should prioritize sourced education, professional recognition, and explicitly public nonsensitive hobbies over generic business gifts.
   **Why:** The user rejected generic office-item recommendations as insufficiently personal and specifically requested ORBIE, BOMA, and IFMA recognition.
   **How to apply:** Preserve degree versus attendance and nominee versus winner distinctions. Match the person's identity, cite sources, and use labeled generic fallbacks rather than guessing interests.
+
+- Use actual Google Search grounding for prospect gift research, including accessible public social profiles, chambers, blogs, and confirmed Greek affiliations.
+  **Why:** The user explicitly requested Google research and personalized college/name/degree or fraternity/sorority gifts, not only generic merchandise.
+  **How to apply:** Do not substitute another search provider silently or infer religion, ethnicity, politics, or private traits from an affiliation. Previewing search-result gift ideas must not silently add a prospect to the pipeline.
+
+- Gemini grounded extraction can omit grounding metadata or exhaust the output budget on long structured responses.
+  **Why:** Live verification encountered both despite successful mocked tests.
+  **How to apply:** Keep grounding metadata mandatory, allow bounded retries, and verify real extraction after provider changes rather than trusting only model text.

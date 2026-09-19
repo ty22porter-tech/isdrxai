@@ -100,16 +100,16 @@ export function GiftRecordEditor({ prospectId, campaignId }: { prospectId: numbe
   );
 }
 
-function GiftSuggestionsPanel({
+export function GiftSuggestionsPanel({
   prospectId,
-  selectedGiftName,
+  selectedGiftName = null,
   onSelect,
-  selectionDisabled,
+  selectionDisabled = true,
 }: {
   prospectId: number;
-  selectedGiftName: string | null;
-  onSelect: (name: string | null) => void;
-  selectionDisabled: boolean;
+  selectedGiftName?: string | null;
+  onSelect?: (name: string | null) => void;
+  selectionDisabled?: boolean;
 }) {
   const [budget, setBudget] = useState("25");
   const suggestions = useGetProspectGiftSuggestions(prospectId);
@@ -176,7 +176,11 @@ function GiftSuggestionsPanel({
             <p className="text-sm">
               <strong>Research:</strong> {data.researchMessage}
             </p>
-            <p className="text-xs text-muted-foreground">Public sources checked with OpenAI Responses web search (not specifically Google).</p>
+            <p className="text-xs text-muted-foreground">
+              {data.researchProvider === "google_search_grounding"
+                ? "Public sources checked with Gemini Google Search grounding."
+                : "Legacy saved research; this record does not claim Google Search grounding."}
+            </p>
             {data.researchFacts.length > 0 && (
               <ul className="space-y-2">
                 {data.researchFacts.map(fact => (
@@ -187,7 +191,8 @@ function GiftSuggestionsPanel({
                           : fact.classification === "education" ? "Education (degree not confirmed)"
                             : fact.classification === "award_winner" ? "Award winner"
                               : fact.classification === "nominee_finalist" ? "Nominee / finalist"
-                                : "Publicly stated hobby"}
+                                : fact.classification === "public_affiliation" ? "Public affiliation"
+                                  : "Publicly stated hobby"}
                       </span>
                       <span>{fact.summary}</span>
                     </div>
@@ -223,9 +228,9 @@ function GiftSuggestionsPanel({
                      ideaIndex={ideaIndex}
                      savedComparison={idea.offerComparison}
                    />
-                  <Button size="sm" variant={selected ? "secondary" : "outline"} disabled={selectionDisabled} onClick={() => onSelect(idea.name)}>
-                    {selected ? "Selected for gift name" : "Use this idea"}
-                  </Button>
+                   {onSelect && <Button size="sm" variant={selected ? "secondary" : "outline"} disabled={selectionDisabled} onClick={() => onSelect(idea.name)}>
+                     {selected ? "Selected for gift name" : "Use this idea"}
+                   </Button>}
                 </article>
               );
             })}
@@ -236,7 +241,7 @@ function GiftSuggestionsPanel({
       {selectedGiftName && (
         <div className="flex items-center justify-between gap-3 rounded-md bg-primary/5 px-3 py-2 text-sm">
           <span>Pending choice: <strong>{selectedGiftName}</strong>. Save the gift record to apply it; nothing is purchased, approved, or sent.</span>
-          <Button variant="ghost" size="sm" onClick={() => onSelect(null)}><X className="mr-1 h-4 w-4" /> Clear</Button>
+           <Button variant="ghost" size="sm" onClick={() => onSelect?.(null)}><X className="mr-1 h-4 w-4" /> Clear</Button>
         </div>
       )}
     </section>

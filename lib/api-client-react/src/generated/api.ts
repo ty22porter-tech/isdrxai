@@ -58,6 +58,7 @@ import type {
   GiftOutreachSettings,
   GiftOutreachSettingsInput,
   GiftSuggestionInput,
+  GiftSuggestionPreviewInput,
   GiftVideo,
   GiftVideoDashboard,
   GiftVideoDeleteResult,
@@ -639,6 +640,76 @@ export const useGenerateProspectGiftSuggestions = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateProspectGiftSuggestionsMutationOptions(options));
+    }
+
+export const getPreviewProspectGiftSuggestionsUrl = () => {
+
+
+
+
+  return `/api/gift-outreach/prospect-suggestion-preview`
+}
+
+/**
+ * @summary Generate stateless gift suggestions for an unsaved authenticated prospect without creating any record
+ */
+export const previewProspectGiftSuggestions = async (giftSuggestionPreviewInput: GiftSuggestionPreviewInput, options?: RequestInit): Promise<ProspectGiftSuggestions> => {
+
+  return customFetch<ProspectGiftSuggestions>(getPreviewProspectGiftSuggestionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftSuggestionPreviewInput)
+  }
+);}
+
+
+
+
+export const getPreviewProspectGiftSuggestionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewProspectGiftSuggestions>>, TError,{data: BodyType<GiftSuggestionPreviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewProspectGiftSuggestions>>, TError,{data: BodyType<GiftSuggestionPreviewInput>}, TContext> => {
+
+const mutationKey = ['previewProspectGiftSuggestions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewProspectGiftSuggestions>>, {data: BodyType<GiftSuggestionPreviewInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewProspectGiftSuggestions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewProspectGiftSuggestionsMutationResult = NonNullable<Awaited<ReturnType<typeof previewProspectGiftSuggestions>>>
+    export type PreviewProspectGiftSuggestionsMutationBody = BodyType<GiftSuggestionPreviewInput>
+    export type PreviewProspectGiftSuggestionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate stateless gift suggestions for an unsaved authenticated prospect without creating any record
+ */
+export const usePreviewProspectGiftSuggestions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewProspectGiftSuggestions>>, TError,{data: BodyType<GiftSuggestionPreviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewProspectGiftSuggestions>>,
+        TError,
+        {data: BodyType<GiftSuggestionPreviewInput>},
+        TContext
+      > => {
+      return useMutation(getPreviewProspectGiftSuggestionsMutationOptions(options));
     }
 
 export const getCompareGiftSuggestionOffersUrl = (prospectId: number,

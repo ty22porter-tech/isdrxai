@@ -370,8 +370,8 @@ export const GetProspectGiftSuggestionsResponse = zod.union([zod.object({
   "researchMessage": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchMessageMax),
   "researchFacts": zod.array(zod.object({
   "id": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemIdMax),
-  "type": zod.enum(['education', 'award', 'hobby']),
-  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby']),
+  "type": zod.enum(['education', 'award', 'hobby', 'affiliation']),
+  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby', 'public_affiliation']),
   "summary": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemSummaryMax),
   "evidence": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemEvidenceMax),
   "url": zod.string().url(),
@@ -404,7 +404,8 @@ export const GetProspectGiftSuggestionsResponse = zod.union([zod.object({
   "sourceCheckedAt": zod.coerce.date()
 })).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersMax)
 }),zod.null()]).optional()
-})).min(getProspectGiftSuggestionsResponseOneIdeasMin).max(getProspectGiftSuggestionsResponseOneIdeasMax)
+})).min(getProspectGiftSuggestionsResponseOneIdeasMin).max(getProspectGiftSuggestionsResponseOneIdeasMax),
+  "researchProvider": zod.enum(['google_search_grounding', 'openai_web_search_legacy']).optional()
 }),zod.null()])
 
 
@@ -484,8 +485,8 @@ export const GenerateProspectGiftSuggestionsResponse = zod.object({
   "researchMessage": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchMessageMax),
   "researchFacts": zod.array(zod.object({
   "id": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemIdMax),
-  "type": zod.enum(['education', 'award', 'hobby']),
-  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby']),
+  "type": zod.enum(['education', 'award', 'hobby', 'affiliation']),
+  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby', 'public_affiliation']),
   "summary": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemSummaryMax),
   "evidence": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemEvidenceMax),
   "url": zod.string().url(),
@@ -518,7 +519,140 @@ export const GenerateProspectGiftSuggestionsResponse = zod.object({
   "sourceCheckedAt": zod.coerce.date()
 })).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersMax)
 }),zod.null()]).optional()
-})).min(generateProspectGiftSuggestionsResponseIdeasMin).max(generateProspectGiftSuggestionsResponseIdeasMax)
+})).min(generateProspectGiftSuggestionsResponseIdeasMin).max(generateProspectGiftSuggestionsResponseIdeasMax),
+  "researchProvider": zod.enum(['google_search_grounding', 'openai_web_search_legacy']).optional()
+})
+
+
+/**
+ * @summary Generate stateless gift suggestions for an unsaved authenticated prospect without creating any record
+ */
+export const previewProspectGiftSuggestionsBodyBudgetUsdDefault = 25;
+export const previewProspectGiftSuggestionsBodyBudgetUsdMin = 10;
+export const previewProspectGiftSuggestionsBodyBudgetUsdMax = 100;
+
+export const previewProspectGiftSuggestionsBodyContactNameMin = 2;
+export const previewProspectGiftSuggestionsBodyContactNameMax = 160;
+
+export const previewProspectGiftSuggestionsBodyCompanyNameMin = 2;
+export const previewProspectGiftSuggestionsBodyCompanyNameMax = 200;
+
+export const previewProspectGiftSuggestionsBodyIndustryMin = 2;
+export const previewProspectGiftSuggestionsBodyIndustryMax = 160;
+
+export const previewProspectGiftSuggestionsBodyTitleMax = 160;
+
+export const previewProspectGiftSuggestionsBodyCityMax = 120;
+
+export const previewProspectGiftSuggestionsBodyStateMax = 80;
+
+
+
+export const PreviewProspectGiftSuggestionsBody = zod.object({
+  "budgetUsd": zod.number().min(previewProspectGiftSuggestionsBodyBudgetUsdMin).max(previewProspectGiftSuggestionsBodyBudgetUsdMax).default(previewProspectGiftSuggestionsBodyBudgetUsdDefault),
+  "contactName": zod.string().min(previewProspectGiftSuggestionsBodyContactNameMin).max(previewProspectGiftSuggestionsBodyContactNameMax),
+  "companyName": zod.string().min(previewProspectGiftSuggestionsBodyCompanyNameMin).max(previewProspectGiftSuggestionsBodyCompanyNameMax),
+  "industry": zod.string().min(previewProspectGiftSuggestionsBodyIndustryMin).max(previewProspectGiftSuggestionsBodyIndustryMax),
+  "title": zod.string().max(previewProspectGiftSuggestionsBodyTitleMax).nullish(),
+  "city": zod.string().max(previewProspectGiftSuggestionsBodyCityMax).nullish(),
+  "state": zod.string().max(previewProspectGiftSuggestionsBodyStateMax).nullish()
+})
+
+export const previewProspectGiftSuggestionsResponseBudgetUsdMin = 10;
+export const previewProspectGiftSuggestionsResponseBudgetUsdMax = 100;
+
+export const previewProspectGiftSuggestionsResponseResearchMessageMax = 300;
+
+export const previewProspectGiftSuggestionsResponseResearchFactsItemIdMax = 80;
+
+export const previewProspectGiftSuggestionsResponseResearchFactsItemSummaryMax = 300;
+
+export const previewProspectGiftSuggestionsResponseResearchFactsItemEvidenceMax = 500;
+
+export const previewProspectGiftSuggestionsResponseResearchFactsMax = 12;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemNameMax = 120;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemDescriptionMax = 400;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMin = 10;
+export const previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax = 100;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMin = 10;
+export const previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax = 100;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemWhyFitMax = 400;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsItemMax = 80;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsMax = 5;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneGiftNameMax = 120;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneIdeaSignatureMax = 200;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemNameMax = 200;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemMerchantMax = 120;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMin = 0.01;
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMax = 100000;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMin = 0;
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMax = 10000;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemPriceExcerptMax = 500;
+
+export const previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersMax = 8;
+
+export const previewProspectGiftSuggestionsResponseIdeasMin = 3;
+export const previewProspectGiftSuggestionsResponseIdeasMax = 5;
+
+
+
+export const PreviewProspectGiftSuggestionsResponse = zod.object({
+  "budgetUsd": zod.number().min(previewProspectGiftSuggestionsResponseBudgetUsdMin).max(previewProspectGiftSuggestionsResponseBudgetUsdMax),
+  "generatedAt": zod.coerce.date(),
+  "researchStatus": zod.enum(['verified_facts', 'no_public_match']),
+  "researchMessage": zod.string().min(1).max(previewProspectGiftSuggestionsResponseResearchMessageMax),
+  "researchFacts": zod.array(zod.object({
+  "id": zod.string().min(1).max(previewProspectGiftSuggestionsResponseResearchFactsItemIdMax),
+  "type": zod.enum(['education', 'award', 'hobby', 'affiliation']),
+  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby', 'public_affiliation']),
+  "summary": zod.string().min(1).max(previewProspectGiftSuggestionsResponseResearchFactsItemSummaryMax),
+  "evidence": zod.string().min(1).max(previewProspectGiftSuggestionsResponseResearchFactsItemEvidenceMax),
+  "url": zod.string().url(),
+  "checkedAt": zod.coerce.date()
+})).max(previewProspectGiftSuggestionsResponseResearchFactsMax),
+  "ideas": zod.array(zod.object({
+  "name": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemNameMax),
+  "description": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemDescriptionMax),
+  "estimatedPriceMinUsd": zod.number().min(previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMin).max(previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax),
+  "estimatedPriceMaxUsd": zod.number().min(previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMin).max(previewProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax),
+  "whyFit": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemWhyFitMax),
+  "personalization": zod.enum(['verified_fact', 'generic_fallback']),
+  "evidenceFactIds": zod.array(zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsItemMax)).max(previewProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsMax),
+  "offerComparison": zod.union([zod.object({
+  "giftName": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneGiftNameMax),
+  "ideaSignature": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneIdeaSignatureMax),
+  "checkedAt": zod.coerce.date(),
+  "status": zod.enum(['offers_found', 'no_verified_offers']),
+  "rankingBasis": zod.enum(['lowest_verified_total', 'lowest_listed_item_price_delivery_unconfirmed', 'none']),
+  "taxKnown": zod.literal(false),
+  "offers": zod.array(zod.object({
+  "itemName": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemNameMax),
+  "merchant": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemMerchantMax),
+  "itemPriceUsd": zod.number().min(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMin).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMax),
+  "shippingKnown": zod.boolean(),
+  "shippingPriceUsd": zod.number().min(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMin).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMax).nullish(),
+  "availability": zod.enum(['available', 'unavailable', 'unknown']),
+  "url": zod.string().url(),
+  "priceExcerpt": zod.string().min(1).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemPriceExcerptMax),
+  "sourceCheckedAt": zod.coerce.date()
+})).max(previewProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersMax)
+}),zod.null()]).optional()
+})).min(previewProspectGiftSuggestionsResponseIdeasMin).max(previewProspectGiftSuggestionsResponseIdeasMax),
+  "researchProvider": zod.enum(['google_search_grounding', 'openai_web_search_legacy']).optional()
 })
 
 
