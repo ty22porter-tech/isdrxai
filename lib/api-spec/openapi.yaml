@@ -1826,7 +1826,7 @@ components:
           type: integer
         planBlocked:
           type: boolean
-          description: True when Apollo rejected the request because the account plan has no API access.
+          description: True when Apollo returned API_INACCESSIBLE. This can indicate endpoint/key scope or account-plan API access.
         errors:
           type: array
           items:
@@ -2230,7 +2230,7 @@ components:
       properties:
         planBlocked:
           type: boolean
-          description: True when Apollo rejected the request because the account plan has no API access.
+          description: True when Apollo returned API_INACCESSIBLE. This can indicate endpoint/key scope or account-plan API access.
         error:
           type: string
           description: Run-level error message (e.g. plan blocked or missing API key).
@@ -2262,6 +2262,9 @@ components:
                 $ref: "#/components/schemas/OpportunityIntelligence"
               error:
                 type: string
+              researchWarning:
+                type: string
+                description: Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable.
 
     RefreshOpportunityIntelligenceRequest:
       type: object

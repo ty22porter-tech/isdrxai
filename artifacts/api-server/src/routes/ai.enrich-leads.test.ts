@@ -15,10 +15,25 @@ vi.mock("../lib/sellerResearch", () => ({
 }));
 vi.mock("../lib/logger", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock("../lib/companyDemographicResearch", () => ({ researchCompanyDemographics: vi.fn() }));
+vi.mock("../lib/publicBreachResearch", () => ({ researchPublicBreachRecords: vi.fn(async () => []) }));
+vi.mock("../lib/itOpportunityResearch", () => {
+  class ItOpportunityResearchError extends Error {}
+  class ItOpportunityResearchTimeoutError extends ItOpportunityResearchError {}
+  return {
+    cacheTrustedItResearch: vi.fn(),
+    attachResearchProof: vi.fn((value) => value),
+    ItOpportunityResearchError,
+    ItOpportunityResearchTimeoutError,
+    researchItOpportunityIntelligence: vi.fn(),
+    withResearchPipelineTimeout: vi.fn(),
+  };
+});
 
 import router from "./ai";
 import { db } from "@workspace/db";
 import { enrichPerson } from "../lib/apollo";
+import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
+import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
 
 const handler = (router as any).stack.find((layer: any) => layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
 const leads = (count: number) => Array.from({ length: count }, (_, index) => ({
@@ -32,6 +47,8 @@ beforeEach(() => {
   vi.mocked(db.select).mockReturnValue({
     from: () => ({ where: async () => [{ id: "synthetic-client", vertical: "janitorial" }] }),
   } as any);
+  vi.mocked(researchCompanyDemographics).mockResolvedValue(undefined);
+  vi.mocked(researchItOpportunityIntelligence).mockResolvedValue({ signals: [], itResearch: undefined } as any);
 });
 
 describe("contact enrichment batch limits", () => {
@@ -61,5 +78,88 @@ describe("contact enrichment batch limits", () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(db.select).not.toHaveBeenCalled();
     expect(enrichPerson).not.toHaveBeenCalled();
+  });
+});
+
+describe("contact enrichment failure isolation", () => {
+  const realisticLead = (index: number) => ({
+    companyName: `Regional Manufacturing ${index}`,
+    email: `contact${index}@regional.invalid`,
+    website: `regional${index}.example`,
+    industry: "Manufacturing",
+    city: "Columbus",
+    state: "OH",
+  });
+  const person = {
+    contactName: "Jamie Rivera",
+    email: "jamie@regional.example",
+    title: "Operations Director",
+    phone: "555-0100",
+    linkedinUrl: null,
+    employeeCount: null,
+    organizationDescription: null,
+    website: "https://regional.example",
+  };
+
+  it("retains an Apollo contact when opportunity research throws", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person } as any);
+    vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("provider body must not escape"));
+    const res = response();
+    await handler({ body: { leads: [realisticLead(0)] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({
+      status: "enriched",
+      contactName: "Jamie Rivera",
+      email: "jamie@regional.example",
+      researchWarning: expect.stringContaining("Opportunity research was unavailable"),
+    });
+    expect(res.json.mock.calls[0][0].results[0].error).toBeUndefined();
+  });
+
+  it("isolates demographics failure and still retains the Apollo contact", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person } as any);
+    vi.mocked(researchCompanyDemographics).mockRejectedValue(new Error("private upstream detail"));
+    const res = response();
+    await handler({ body: { leads: [realisticLead(0)] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({
+      status: "enriched",
+      contactName: "Jamie Rivera",
+      researchWarning: expect.stringContaining("Company size research was unavailable"),
+    });
+  });
+
+  it("keeps an explicit Apollo failure failed with a useful safe error", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: false, planBlocked: false, error: "Apollo rate limit reached — try again in a minute." });
+    const res = response();
+    await handler({ body: { leads: [realisticLead(0)] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toEqual({
+      index: 0,
+      status: "failed",
+      error: "Apollo rate limit reached — try again in a minute.",
+    });
+  });
+
+  it("keeps no-person Apollo results as not_found even when optional research fails", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person: null });
+    vi.mocked(researchCompanyDemographics).mockRejectedValue(new Error("demographics unavailable"));
+    vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("research unavailable"));
+    const res = response();
+    await handler({ body: { leads: [realisticLead(0)] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({
+      index: 0,
+      status: "not_found",
+      researchWarning: expect.stringContaining("Company size research was unavailable"),
+    });
+  });
+
+  it("converts one unexpected lead exception to a failure while other leads succeed", async () => {
+    vi.mocked(enrichPerson)
+      .mockRejectedValueOnce(new Error("unexpected secret-bearing provider response"))
+      .mockResolvedValueOnce({ ok: true, person: { ...person, employeeCount: 25 } } as any);
+    const res = response();
+    await handler({ body: { leads: [realisticLead(0), realisticLead(1)] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results).toEqual([
+      { index: 0, status: "failed", error: "Contact lookup could not be completed for this lead. Try again." },
+      expect.objectContaining({ index: 1, status: "enriched", contactName: "Jamie Rivera" }),
+    ]);
   });
 });

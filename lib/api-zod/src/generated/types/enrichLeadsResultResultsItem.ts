@@ -20,4 +20,6 @@ export type EnrichLeadsResultResultsItem = {
   employeeCount?: number;
   opportunityIntelligence?: OpportunityIntelligence;
   error?: string;
+  /** Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable. */
+  researchWarning?: string;
 };

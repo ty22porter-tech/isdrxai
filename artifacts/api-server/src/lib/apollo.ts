@@ -3,9 +3,10 @@ import { logger } from "./logger";
 /**
  * Apollo.io people enrichment client.
  *
- * Requires APOLLO_API_KEY. Apollo blocks ALL API access on the Free plan —
- * calls return 403 API_INACCESSIBLE until the account is on any paid plan.
- * We surface that as { planBlocked: true } so the UI can explain it nicely.
+ * Requires APOLLO_API_KEY. Apollo can return 403 API_INACCESSIBLE when the key
+ * lacks access to the requested endpoint. This can be caused by endpoint/key
+ * scope or account-plan access, so the user-facing message must not diagnose a
+ * specific plan without evidence.
  *
  * Enrichment strategy:
  *  1. If the prospect already has a real (non-placeholder) email, use
@@ -145,7 +146,7 @@ export function isPlausibleCompanyMatch(rawPerson: any, target: {
 
   const reject = (reason: string) => {
     logger.warn(
-      { reason, targetCompany: target.companyName, targetDomain: target.domain ?? null, apolloOrg: orgName || null, apolloOrgDomain: orgDomain, apolloEmailDomain: emailDomain },
+      { reason },
       "Apollo match rejected as implausible",
     );
     return false;
@@ -224,16 +225,16 @@ async function handleApolloError(res: Response): Promise<ApolloResult | null> {
       ok: false,
       planBlocked,
       error: planBlocked
-        ? "Apollo's API is not available on your current (Free) Apollo plan. Upgrade to any paid Apollo plan to enable enrichment."
-        : "Apollo rejected the API key (403).",
+        ? "Apollo denied access to this enrichment endpoint (API_INACCESSIBLE). Check the API key's endpoint permissions and account API access; the required access may depend on the Apollo plan."
+        : "Apollo denied this enrichment request (403). Check the API key and its endpoint permissions.",
     };
   }
   if (res.status === 429) {
     return { ok: false, planBlocked: false, error: "Apollo rate limit reached — try again in a minute." };
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    logger.warn({ status: res.status, body: text.slice(0, 300) }, "Apollo enrichment unexpected response");
+    await res.body?.cancel().catch(() => undefined);
+    logger.warn({ status: res.status }, "Apollo enrichment unexpected response");
     return { ok: false, planBlocked: false, error: `Apollo returned ${res.status}` };
   }
   return null; // no error
@@ -266,7 +267,8 @@ async function matchByEmail(apiKey: string, input: {
       signal: AbortSignal.timeout(10_000),
     });
   } catch (err: any) {
-    return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
+    return { ok: false, planBlocked: false, error: timedOut ? "Apollo contact lookup timed out. Try again." : "Apollo contact lookup could not be reached. Try again." };
   }
 
   const errResult = await handleApolloError(res);
@@ -320,7 +322,8 @@ async function searchDecisionMaker(apiKey: string, input: {
         signal: AbortSignal.timeout(10_000),
       });
     } catch (err: any) {
-      return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+      const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
+      return { ok: false, planBlocked: false, error: timedOut ? "Apollo contact lookup timed out. Try again." : "Apollo contact lookup could not be reached. Try again." };
     }
     const errResult = await handleApolloError(res);
     if (errResult) return errResult;
@@ -339,7 +342,7 @@ async function searchDecisionMaker(apiKey: string, input: {
   }
   const people: any[] = search.people;
   if (!people.length) {
-    logger.info({ company: input.companyName, domain: domain ?? null }, "Apollo has no people listed for this company");
+    logger.info("Apollo has no people listed for requested company");
     return { ok: true, person: null };
   }
 
@@ -370,7 +373,8 @@ async function searchDecisionMaker(apiKey: string, input: {
         signal: AbortSignal.timeout(10_000),
       });
     } catch (err: any) {
-      return { ok: false, planBlocked: false, error: `Apollo request failed: ${err?.message ?? "network error"}` };
+      const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
+      return { ok: false, planBlocked: false, error: timedOut ? "Apollo contact lookup timed out. Try again." : "Apollo contact lookup could not be reached. Try again." };
     }
 
     const matchErr = await handleApolloError(matchRes);

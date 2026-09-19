@@ -8,7 +8,7 @@
 import type { EnrichLeadsResultResultsItem } from './enrichLeadsResultResultsItem';
 
 export interface EnrichLeadsResult {
-  /** True when Apollo rejected the request because the account plan has no API access. */
+  /** True when Apollo returned API_INACCESSIBLE. This can indicate endpoint/key scope or account-plan API access. */
   planBlocked?: boolean;
   /** Run-level error message (e.g. plan blocked or missing API key). */
   error?: string;

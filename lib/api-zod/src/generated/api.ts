@@ -1835,7 +1835,7 @@ export const BulkEnrichProspectsResponse = zod.object({
   "enriched": zod.number(),
   "skipped": zod.number(),
   "failed": zod.number(),
-  "planBlocked": zod.boolean().optional().describe('True when Apollo rejected the request because the account plan has no API access.'),
+  "planBlocked": zod.boolean().optional().describe('True when Apollo returned API_INACCESSIBLE. This can indicate endpoint\/key scope or account-plan API access.'),
   "errors": zod.array(zod.string()).optional()
 })
 
@@ -2751,7 +2751,7 @@ export const enrichLeadsResponseResultsItemOpportunityIntelligenceItResearchReco
 
 
 export const EnrichLeadsResponse = zod.object({
-  "planBlocked": zod.boolean().optional().describe('True when Apollo rejected the request because the account plan has no API access.'),
+  "planBlocked": zod.boolean().optional().describe('True when Apollo returned API_INACCESSIBLE. This can indicate endpoint\/key scope or account-plan API access.'),
   "error": zod.string().optional().describe('Run-level error message (e.g. plan blocked or missing API key).'),
   "results": zod.array(zod.object({
   "index": zod.number().describe('Index of the lead in the request array.'),
@@ -2855,7 +2855,8 @@ export const EnrichLeadsResponse = zod.object({
 }).optional(),
   "researchProof": zod.string().optional()
 }).optional(),
-  "error": zod.string().optional()
+  "error": zod.string().optional(),
+  "researchWarning": zod.string().optional().describe('Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable.')
 }))
 })
 

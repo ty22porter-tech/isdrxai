@@ -145,6 +145,8 @@ type ProspectingSnapshot = {
   cancelledRemaining: number[] | null;
   duplicateStrategy: "skip" | "update";
   enrichment?: [number, EnrichStatus][];
+  enrichmentErrors?: [number, string][];
+  researchWarnings?: [number, string][];
   addedProspectIds?: [number, number][];
 };
 
@@ -184,6 +186,8 @@ type EnrichLeadResult = {
   phone?: string;
   employeeCount?: number;
   opportunityIntelligence?: ProspectLead["opportunityIntelligence"];
+  error?: string;
+  researchWarning?: string;
 };
 
 // Apply Apollo enrichment results to the current lead list. `snapshot` is the
@@ -243,6 +247,8 @@ export default function Prospecting() {
   const [cancelledRemaining, setCancelledRemaining] = useState<Set<number> | null>(null);
   const [duplicateStrategy, setDuplicateStrategy] = useState<"skip" | "update">("skip");
   const [enrichment, setEnrichment] = useState<Map<number, EnrichStatus>>(new Map());
+  const [enrichmentErrors, setEnrichmentErrors] = useState<Map<number, string>>(new Map());
+  const [researchWarnings, setResearchWarnings] = useState<Map<number, string>>(new Map());
   const [addedProspectIds, setAddedProspectIds] = useState<Map<number, number>>(new Map());
   const [refreshing, setRefreshing] = useState<Set<number>>(new Set());
   const [confirmSearchOpen, setConfirmSearchOpen] = useState(false);
@@ -307,6 +313,8 @@ export default function Prospecting() {
     if (!searchLeads.length) return;
     const runId = ++enrichRunRef.current;
     setEnrichment(new Map(searchLeads.map((_, i) => [i, "pending" as EnrichStatus])));
+    setEnrichmentErrors(new Map());
+    setResearchWarnings(new Map());
     enrichLeadsMutation.mutate(
       {
         data: {
@@ -330,22 +338,26 @@ export default function Prospecting() {
             searchLeads.map((_, i) => [i, "failed" as EnrichStatus])
           );
           result.results.forEach((r) => statusMap.set(r.index, r.status));
+          setEnrichmentErrors(new Map(result.results.filter((r) => r.error).map((r) => [r.index, r.error!])));
+          setResearchWarnings(new Map(result.results.filter((r) => r.researchWarning).map((r) => [r.index, r.researchWarning!])));
           setLeads((prev) => applyEnrichmentResults(prev, searchLeads, result.results));
           setEnrichment(statusMap);
           if (result.planBlocked) {
             toast({
               title: "Contact lookup unavailable",
-              description: result.error || "Apollo's API is not available on the current plan — placeholder contacts were kept.",
+              description: result.error || "Apollo denied access to contact enrichment. Check the API key's endpoint permissions and account API access.",
               variant: "destructive",
             });
           }
         },
         onError: (err: any) => {
           if (enrichRunRef.current !== runId) return; // stale run
+          const reason = err?.data?.error || err?.message || "Contact lookup request failed. Try again.";
           setEnrichment((prev) => new Map([...prev].map(([i, s]) => [i, s === "pending" ? ("failed" as EnrichStatus) : s])));
+          setEnrichmentErrors(new Map(searchLeads.map((_, i) => [i, reason])));
           toast({
             title: "Contact lookup failed",
-            description: err?.data?.error || err?.message || "Couldn't look up decision-maker contacts. You can still add prospects and enrich them later from the pipeline.",
+            description: reason,
             variant: "destructive",
           });
         },
@@ -405,6 +417,8 @@ export default function Prospecting() {
     enrichRunRef.current++;
     searchRunIdRef.current++;
     setEnrichment(new Map());
+    setEnrichmentErrors(new Map());
+    setResearchWarnings(new Map());
     searchMutation.mutate(
       {
         data: {
@@ -802,10 +816,12 @@ export default function Prospecting() {
       // "pending" never survives a page leave — the in-flight lookup is gone,
       // so it's saved as "failed" (lookup can be retried by searching again).
       enrichment: [...enrichment.entries()].map(([i, s]) => [i, s === "pending" ? "failed" : s] as [number, EnrichStatus]),
+      enrichmentErrors: [...enrichmentErrors.entries()],
+      researchWarnings: [...researchWarnings.entries()],
       addedProspectIds: [...addedProspectIds.entries()],
     };
     try { localStorage.setItem(storageKey, JSON.stringify(snap)); } catch { /* ignore quota */ }
-  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, enrichment, addedProspectIds, lastSearchedParams, city, state, industry, count, employeeRange, compliancePriority, vertical]);
+  }, [storageKey, restorable, hasUnsavedList, leads, added, skipped, failures, cancelledRemaining, duplicateStrategy, enrichment, enrichmentErrors, researchWarnings, addedProspectIds, lastSearchedParams, city, state, industry, count, employeeRange, compliancePriority, vertical]);
 
   const restorableRemaining = restorable
     ? restorable.leads.filter((_, i) => !restorable.added.includes(i)).length
@@ -867,6 +883,8 @@ export default function Prospecting() {
     setCancelledRemaining(snap.cancelledRemaining && snap.cancelledRemaining.length ? new Set(snap.cancelledRemaining) : null);
     setDuplicateStrategy(snap.duplicateStrategy);
     setEnrichment(new Map(snap.enrichment ?? []));
+    setEnrichmentErrors(new Map(snap.enrichmentErrors ?? []));
+    setResearchWarnings(new Map(snap.researchWarnings ?? []));
     setRestorable(null);
     void reconcileWithPipeline(snap.leads, addedSet);
   };
@@ -1255,6 +1273,16 @@ export default function Prospecting() {
                             </Badge>
                           )}
                         </div>
+                        {enrichmentErrors.get(idx) && (
+                          <p className="mb-3 text-sm text-red-700" role="alert">
+                            Contact lookup failed: {enrichmentErrors.get(idx)}
+                          </p>
+                        )}
+                        {researchWarnings.get(idx) && (
+                          <p className="mb-3 text-sm text-amber-700" role="status">
+                            Research warning: {researchWarnings.get(idx)}
+                          </p>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm mb-3">
                           <div className="flex items-center gap-1.5 text-muted-foreground">

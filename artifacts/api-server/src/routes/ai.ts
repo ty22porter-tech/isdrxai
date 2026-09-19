@@ -498,7 +498,17 @@ type EnrichLeadResult = {
   employeeCount?: number;
   opportunityIntelligence?: ReturnType<typeof buildOpportunityIntelligence>;
   error?: string;
+  researchWarning?: string;
 };
+
+function enrichmentErrorCategory(err: unknown): string {
+  if (err instanceof ItOpportunityResearchTimeoutError) return "research_timeout";
+  if (err instanceof ItOpportunityResearchError) return "research_provider";
+  if (err instanceof Error && /rate limit|429/i.test(err.message)) return "rate_limit";
+  if (err instanceof Error && /not configured/i.test(err.message)) return "configuration";
+  if (err instanceof Error && /timeout|timed out/i.test(err.message)) return "timeout";
+  return "unexpected";
+}
 
 router.post("/enrich-leads", requireEntitlement, async (req, res) => {
   const parsed = EnrichLeadsBody.safeParse(req.body);
@@ -517,109 +527,127 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
   let runError: string | undefined;
 
   const processOne = async (index: number) => {
-    if (planBlocked) {
-      results.push({ index, status: "failed", error: runError });
-      return;
-    }
-    const lead = leads[index];
-    const result = await enrichPerson({
-      email: lead.email,
-      contactName: lead.contactName ?? null,
-      companyName: lead.companyName,
-      website: lead.website ?? null,
-      vertical,
-    });
-    if (!result.ok) {
-      if (result.planBlocked) {
-        planBlocked = true;
-        runError = result.error;
-      }
-      results.push({ index, status: "failed", error: result.error });
-      return;
-    }
-    const p = result.person;
-    // "Enriched" requires at least a real name or a real email — anything less
-    // is a not-found so the UI never claims a contact it doesn't have.
-    const contactFound = Boolean(p && (p.contactName || p.email));
-    const demographicResearch = p?.employeeCount
-      ? undefined
-      : await researchCompanyDemographics({
-          companyName: lead.companyName,
-          website: lead.website,
-          city: lead.city,
-          state: lead.state,
-          industry: lead.industry,
-        });
-    const employeeCount = p?.employeeCount ?? demographicResearch?.employeeCount;
-    let opportunityIntelligence: ReturnType<typeof buildOpportunityIntelligence> | undefined;
-    if (lead.industry && lead.city && lead.state) {
-      const intelligenceLead = {
-        companyName: lead.companyName,
-        contactTitle: p?.title ?? null,
-        employeeCount,
-        employeeCountSource: demographicResearch ? "AI-assisted public web research" : "Apollo company enrichment",
-        employeeCountSourceURL: demographicResearch?.sourceUrls[0],
-        employeeCountEvidence: demographicResearch?.explanation,
-        industry: lead.industry,
-        city: lead.city,
-        state: lead.state,
-        address: lead.address ?? null,
-        website: lead.website ?? null,
-        phone: p?.phone ?? lead.phone ?? null,
-      };
-      const apolloCompanySignal = p?.organizationDescription && p.website
-        ? [{
-            signalType: "company_operating_profile",
-            signalTitle: "Company operating profile",
-            signalDescription: p.organizationDescription,
-            signalClassification: "verified" as const,
-            confidenceLevel: "medium" as const,
-            freshness: "unknown" as const,
-            sourceName: "Apollo company enrichment",
-            sourceURL: p.website,
-            dateDiscovered: new Date().toISOString(),
-            dateVerified: new Date().toISOString(),
-            supportingEvidence: p.organizationDescription,
-            points: 0,
-          }]
-        : [];
-      try {
-        const [researched, publicBreachSignals] = await Promise.all([
-          // Search intelligence is held in a server-only tenant cache, so a
-          // client cannot forge its report while enriching an unsaved result.
-          researchItOpportunityIntelligence({
-            clientId: req.clientId,
-            lead: intelligenceLead,
-            selectedIndustry: lead.industry,
-            client,
-          }),
-          researchPublicBreachRecords(intelligenceLead),
-        ]);
-        const signals = [...researched.signals, ...publicBreachSignals, ...apolloCompanySignal];
-        cacheTrustedItResearch(req.clientId, intelligenceLead, lead.industry, client, {
-          itResearch: researched.itResearch,
-          signals,
-        });
-        opportunityIntelligence = attachResearchProof(
-          buildOpportunityIntelligence(intelligenceLead, vertical, client, signals, researched.itResearch),
-          req.clientId, intelligenceLead, client,
-        );
-      } catch (err) {
-        results.push({ index, status: "failed", error: err instanceof Error ? err.message : `${vertical} opportunity research failed` });
+    let phase = "apollo";
+    try {
+      if (planBlocked) {
+        logger.warn({ phase, index, category: "api_inaccessible" }, "Lead contact enrichment skipped");
+        results.push({ index, status: "failed", error: runError });
         return;
       }
+      const lead = leads[index];
+      const result = await enrichPerson({
+        email: lead.email,
+        contactName: lead.contactName ?? null,
+        companyName: lead.companyName,
+        website: lead.website ?? null,
+        vertical,
+      });
+      if (!result.ok) {
+        if (result.planBlocked) {
+          planBlocked = true;
+          runError = result.error;
+        }
+        logger.warn({ phase, index, category: result.planBlocked ? "api_inaccessible" : enrichmentErrorCategory(new Error(result.error)) }, "Lead contact enrichment failed");
+        results.push({ index, status: "failed", error: result.error });
+        return;
+      }
+      const p = result.person;
+      // "Enriched" requires at least a real name or a real email — anything less
+      // is a not-found so the UI never claims a contact it doesn't have.
+      const contactFound = Boolean(p && (p.contactName || p.email));
+      let demographicResearch: Awaited<ReturnType<typeof researchCompanyDemographics>> | undefined;
+      const warnings: string[] = [];
+      if (!p?.employeeCount) {
+        phase = "demographics";
+        try {
+          demographicResearch = await researchCompanyDemographics({
+            companyName: lead.companyName,
+            website: lead.website,
+            city: lead.city,
+            state: lead.state,
+            industry: lead.industry,
+          });
+        } catch (err) {
+          logger.warn({ phase, index, category: enrichmentErrorCategory(err) }, "Optional lead research failed");
+          warnings.push("Company size research was unavailable; contact enrichment was retained.");
+        }
+      }
+      const employeeCount = p?.employeeCount ?? demographicResearch?.employeeCount;
+      let opportunityIntelligence: ReturnType<typeof buildOpportunityIntelligence> | undefined;
+      if (lead.industry && lead.city && lead.state) {
+        const intelligenceLead = {
+          companyName: lead.companyName,
+          contactTitle: p?.title ?? null,
+          employeeCount,
+          employeeCountSource: demographicResearch ? "AI-assisted public web research" : "Apollo company enrichment",
+          employeeCountSourceURL: demographicResearch?.sourceUrls[0],
+          employeeCountEvidence: demographicResearch?.explanation,
+          industry: lead.industry,
+          city: lead.city,
+          state: lead.state,
+          address: lead.address ?? null,
+          website: lead.website ?? null,
+          phone: p?.phone ?? lead.phone ?? null,
+        };
+        const apolloCompanySignal = p?.organizationDescription && p.website
+          ? [{
+              signalType: "company_operating_profile",
+              signalTitle: "Company operating profile",
+              signalDescription: p.organizationDescription,
+              signalClassification: "verified" as const,
+              confidenceLevel: "medium" as const,
+              freshness: "unknown" as const,
+              sourceName: "Apollo company enrichment",
+              sourceURL: p.website,
+              dateDiscovered: new Date().toISOString(),
+              dateVerified: new Date().toISOString(),
+              supportingEvidence: p.organizationDescription,
+              points: 0,
+            }]
+          : [];
+        phase = "opportunity_research";
+        try {
+          const [researched, publicBreachSignals] = await Promise.all([
+            // Search intelligence is held in a server-only tenant cache, so a
+            // client cannot forge its report while enriching an unsaved result.
+            researchItOpportunityIntelligence({
+              clientId: req.clientId,
+              lead: intelligenceLead,
+              selectedIndustry: lead.industry,
+              client,
+            }),
+            researchPublicBreachRecords(intelligenceLead),
+          ]);
+          const signals = [...researched.signals, ...publicBreachSignals, ...apolloCompanySignal];
+          cacheTrustedItResearch(req.clientId, intelligenceLead, lead.industry, client, {
+            itResearch: researched.itResearch,
+            signals,
+          });
+          opportunityIntelligence = attachResearchProof(
+            buildOpportunityIntelligence(intelligenceLead, vertical, client, signals, researched.itResearch),
+            req.clientId, intelligenceLead, client,
+          );
+        } catch (err) {
+          logger.warn({ phase, index, category: enrichmentErrorCategory(err) }, "Optional lead research failed");
+          warnings.push("Opportunity research was unavailable; existing opportunity intelligence was kept.");
+        }
+      }
+      results.push({
+        index,
+        status: contactFound ? "enriched" : "not_found",
+        contactName: p?.contactName ?? undefined,
+        email: p?.email ?? undefined,
+        title: p?.title ?? undefined,
+        phone: p?.phone ?? undefined,
+        linkedinUrl: p?.linkedinUrl ?? undefined,
+        employeeCount,
+        opportunityIntelligence,
+        ...(warnings.length ? { researchWarning: warnings.join(" ") } : {}),
+      });
+    } catch (err) {
+      logger.error({ phase, index, category: enrichmentErrorCategory(err) }, "Unexpected per-lead enrichment exception");
+      results.push({ index, status: "failed", error: "Contact lookup could not be completed for this lead. Try again." });
     }
-    results.push({
-      index,
-      status: contactFound ? "enriched" : "not_found",
-      contactName: p?.contactName ?? undefined,
-      email: p?.email ?? undefined,
-      title: p?.title ?? undefined,
-      phone: p?.phone ?? undefined,
-      linkedinUrl: p?.linkedinUrl ?? undefined,
-      employeeCount,
-      opportunityIntelligence,
-    });
   };
 
   // Bounded concurrency (5 at a time) — same pattern as /prospects/bulk-enrich.
@@ -635,7 +663,14 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
   // Outcome summary — the one line that tells us in production logs whether
   // Apollo enrichment is actually finding contacts (or why not).
   const counts = results.reduce<Record<string, number>>((acc, r) => { acc[r.status] = (acc[r.status] ?? 0) + 1; return acc; }, {});
-  logger.info({ leads: leads.length, ...counts, planBlocked, ...(runError ? { error: runError } : {}) }, "Apollo enrichment run complete");
+  const failureReasons = results.reduce<Record<string, number>>((acc, r) => {
+    if (r.status === "failed") {
+      const reason = r.error === runError && planBlocked ? "api_inaccessible" : enrichmentErrorCategory(new Error(r.error ?? ""));
+      acc[reason] = (acc[reason] ?? 0) + 1;
+    }
+    return acc;
+  }, {});
+  logger.info({ requested: leads.length, outcomes: counts, failureReasons, planBlocked }, "Apollo enrichment run complete");
   return res.json({ results, planBlocked, ...(runError ? { error: runError } : {}) });
 });
 

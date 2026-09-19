@@ -879,7 +879,7 @@ export interface BulkEnrichResult {
   enriched: number;
   skipped: number;
   failed: number;
-  /** True when Apollo rejected the request because the account plan has no API access. */
+  /** True when Apollo returned API_INACCESSIBLE. This can indicate endpoint/key scope or account-plan API access. */
   planBlocked?: boolean;
   errors?: string[];
 }
@@ -1196,10 +1196,12 @@ export type EnrichLeadsResultResultsItem = {
   employeeCount?: number;
   opportunityIntelligence?: OpportunityIntelligence;
   error?: string;
+  /** Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable. */
+  researchWarning?: string;
 };
 
 export interface EnrichLeadsResult {
-  /** True when Apollo rejected the request because the account plan has no API access. */
+  /** True when Apollo returned API_INACCESSIBLE. This can indicate endpoint/key scope or account-plan API access. */
   planBlocked?: boolean;
   /** Run-level error message (e.g. plan blocked or missing API key). */
   error?: string;

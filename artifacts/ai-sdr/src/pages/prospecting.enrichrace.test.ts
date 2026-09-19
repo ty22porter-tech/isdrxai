@@ -50,6 +50,24 @@ describe("applyEnrichmentResults — stale-run safety", () => {
     expect(out[0].contactTitle).toBe("Facilities Manager");
   });
 
+  it("retains an enriched contact and existing intelligence when optional research is absent", () => {
+    const existingIntelligence = { score: 77, label: "Strong Fit", whyTarget: "Existing proof" } as any;
+    const current = [{ ...lead("Acme Cleaning", "contact@acme.invalid"), opportunityIntelligence: existingIntelligence }];
+    const snapshot = [{ ...current[0] }];
+    const out = applyEnrichmentResults(current, snapshot, [{
+      index: 0,
+      status: "enriched",
+      contactName: "Jane Doe",
+      email: "jane@acme.com",
+      title: "Operations Director",
+      researchWarning: "Opportunity research was unavailable; existing opportunity intelligence was kept.",
+    }]);
+
+    expect(out[0].contactName).toBe("Jane Doe");
+    expect(out[0].email).toBe("jane@acme.com");
+    expect(out[0].opportunityIntelligence).toBe(existingIntelligence);
+  });
+
   it("never writes search A's contacts onto search B's leads (index collision)", () => {
     // Search A was enriched, but search B has since replaced the list. The
     // lead at index 0 is now a different business.

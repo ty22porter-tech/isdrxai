@@ -10,7 +10,7 @@ export interface BulkEnrichResult {
   enriched: number;
   skipped: number;
   failed: number;
-  /** True when Apollo rejected the request because the account plan has no API access. */
+  /** True when Apollo returned API_INACCESSIBLE. This can indicate endpoint/key scope or account-plan API access. */
   planBlocked?: boolean;
   errors?: string[];
 }

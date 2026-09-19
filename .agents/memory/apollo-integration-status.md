@@ -15,3 +15,7 @@ Apollo enrichment is LIVE (user upgraded to paid plan and issued a properly-scop
 - Keep search batch capacity and automatic enrichment request capacity aligned.
   **Why:** A larger search succeeded while the separate enrichment validator rejected its result list before contacting Apollo; the UI misleadingly reported contact lookup unavailable.
   **How to apply:** Test the maximum search-sized batch against the enrichment endpoint, including generated request validation. Diagnose server validation errors before attributing this label to Apollo credentials or missing contacts.
+
+- Treat contact enrichment and optional company research as independent outcomes.
+  **Why:** The generic unavailable label could hide discarded valid contacts when subsequent research failed. Aggregate failure counts alone could not identify the production cause.
+  **How to apply:** Preserve verified contact fields, show research failures separately, and log safe phase-specific failure categories. Do not infer a production credential or research failure solely from a successful workspace Apollo call.
