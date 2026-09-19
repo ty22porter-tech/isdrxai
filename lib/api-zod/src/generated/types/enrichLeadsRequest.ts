@@ -10,7 +10,7 @@ import type { EnrichLeadsRequestLeadsItem } from './enrichLeadsRequestLeadsItem'
 export interface EnrichLeadsRequest {
   /**
      * @minItems 1
-     * @maxItems 20
+     * @maxItems 100
      */
   leads: EnrichLeadsRequestLeadsItem[];
 }

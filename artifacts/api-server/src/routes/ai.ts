@@ -501,7 +501,11 @@ type EnrichLeadResult = {
 };
 
 router.post("/enrich-leads", requireEntitlement, async (req, res) => {
-  const { leads } = EnrichLeadsBody.parse(req.body);
+  const parsed = EnrichLeadsBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Contact enrichment request is invalid. Provide 1 to 100 leads with a company name and email." });
+  }
+  const { leads } = parsed.data;
 
   let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   if (!client) return res.status(404).json({ error: "User settings could not be found." });

@@ -2710,7 +2710,7 @@ export const ProspectSearchResponse = zod.array(ProspectSearchResponseItem)
 /**
  * @summary Find the real decision-maker name and email for unsaved search leads (Apollo people search)
  */
-export const enrichLeadsBodyLeadsMax = 20;
+export const enrichLeadsBodyLeadsMax = 100;
 
 
 

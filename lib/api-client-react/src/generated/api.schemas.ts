@@ -1170,7 +1170,7 @@ export type EnrichLeadsRequestLeadsItem = {
 export interface EnrichLeadsRequest {
   /**
      * @minItems 1
-     * @maxItems 20
+     * @maxItems 100
      */
   leads: EnrichLeadsRequestLeadsItem[];
 }

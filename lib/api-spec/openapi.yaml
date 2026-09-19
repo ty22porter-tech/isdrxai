@@ -2200,7 +2200,7 @@ components:
         leads:
           type: array
           minItems: 1
-          maxItems: 20
+          maxItems: 100
           items:
             type: object
             required: [companyName, email]
