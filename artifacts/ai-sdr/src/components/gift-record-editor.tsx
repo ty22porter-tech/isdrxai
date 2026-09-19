@@ -13,6 +13,7 @@ import {
   type GiftOutreachRecord, type GiftOutreachRecordEdit, type GiftOutreachSettings,
 } from "@workspace/api-client-react";
 import { GiftVideoEditor } from "@/components/gift-video-editor";
+import { GiftShoppingLinks } from "@/components/gift-shopping-links";
 import { invalidateGiftQueries, listGiftEnrollments } from "@/lib/gift-outreach";
 
 export function GiftRecordEditor({ prospectId, campaignId }: { prospectId: number; campaignId?: number }) {
@@ -182,6 +183,7 @@ function GiftSuggestionsPanel({
                   </div>
                   <p className="text-sm">{idea.description}</p>
                   <p className="text-sm text-muted-foreground"><strong className="text-foreground">Why it may fit:</strong> {idea.whyFit}</p>
+                  <GiftShoppingLinks giftName={idea.name} />
                   <Button size="sm" variant={selected ? "secondary" : "outline"} disabled={selectionDisabled} onClick={() => onSelect(idea.name)}>
                     {selected ? "Selected for gift name" : "Use this idea"}
                   </Button>
