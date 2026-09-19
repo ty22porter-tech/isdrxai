@@ -25,6 +25,19 @@ import { giftVideoPublicRouter } from "./routes/gift-videos";
 
 const app: Express = express();
 
+// Research reports carry evidence, citations, and a signed handoff for every
+// lead. A realistic 100-lead batch is several MB, so these ingestion
+// endpoints need a larger (but still bounded) parser than ordinary API calls.
+// Keep the default parser at 100 KB for every other JSON endpoint.
+export const RESEARCH_PAYLOAD_JSON_LIMIT = "8mb";
+const researchPayloadJson = express.json({ limit: RESEARCH_PAYLOAD_JSON_LIMIT });
+const researchPayloadPaths = new Set([
+  "/api/ai/enrich-leads",
+  "/api/prospects",
+  "/api/prospects/bulk",
+]);
+const normalizedRequestPath = (path: string) => path.length > 1 ? path.replace(/\/+$/, "") : path;
+
 // 1. Stripe webhook BEFORE express.json() — needs raw Buffer
 app.post(
   "/api/stripe/webhook",
@@ -140,6 +153,12 @@ app.use("/api/demo-request", express.json({ limit: "50kb" }), demoRequestRouter)
 app.use("/api/contact-us", express.json({ limit: "50kb" }), contactUsRouter);
 app.use("/api/conversion-events", express.json({ limit: "10kb" }), conversionEventsRouter);
 
+app.use((req, res, next) => {
+  if (req.method === "POST" && researchPayloadPaths.has(normalizedRequestPath(req.path))) {
+    return researchPayloadJson(req, res, next);
+  }
+  return next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Recipient links are capability-scoped and must work without an app login.
@@ -163,6 +182,27 @@ app.use("/api", router);
 // deployment logs, then returns a generic 500 without leaking internals.
 app.use(
   (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const requestError = err as { status?: number; statusCode?: number; type?: string };
+    if (
+      requestError?.status === 413
+      || requestError?.statusCode === 413
+      || requestError?.type === "entity.too.large"
+    ) {
+      logger.warn(
+        { method: req.method, path: req.originalUrl?.split("?")[0] },
+        "Request payload exceeded the allowed size",
+      );
+      if (!res.headersSent) {
+        const researchPayload = researchPayloadPaths.has(normalizedRequestPath(req.path));
+        res.status(413).json({
+          error: researchPayload
+            ? "Request payload is too large. Reduce the request size or send fewer researched leads (maximum 100), then try again."
+            : "Request payload is too large. Reduce the request size and try again.",
+          code: "payload_too_large",
+        });
+      }
+      return;
+    }
     logger.error(
       { err, method: req.method, path: req.originalUrl?.split("?")[0] },
       "Unhandled request error (500)",

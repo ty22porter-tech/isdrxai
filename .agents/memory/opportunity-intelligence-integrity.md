@@ -5,6 +5,12 @@ description: Trust, evidence, and separation rules for Opportunity Scores.
 
 Opportunity Intelligence is a server-derived snapshot. Never trust client-supplied score arithmetic; recompute supplied snapshots from trusted prospect fields and current seller context. Preserve null for legacy or manual prospects that have no snapshot.
 
+Validate researched batches through real HTTP body parsing, not only direct route-handler tests.
+
+**Why:** Carrying signed research across enrichment and save increased a live request beyond Express's default 100 KB limit; handler-level tests passed while production rejected the request before reaching the handler.
+
+**How to apply:** Whenever research payloads grow, test realistic maximum-sized batches and oversized-request errors through middleware. Keep limits bounded and preserve raw webhook parsing.
+
 When enrichment changes fields bound to a research proof, verify the original snapshot against the original identity before rebuilding and re-signing with server-fetched changes. Do not retain an old proof alongside changed demographics, or loosen verification to make saving succeed.
 
 **Why:** Retaining research after optional research failure preserved contacts but caused pipeline saves to reject the now-mismatched research identity.
