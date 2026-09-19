@@ -173,7 +173,7 @@ function GiftSuggestionsPanel({
       {data && (
         <>
           <div className="grid gap-3 md:grid-cols-2">
-            {data.ideas.map(idea => {
+            {data.ideas.map((idea, ideaIndex) => {
               const selected = selectedGiftName === idea.name;
               return (
                 <article key={idea.name} className={`rounded-md border bg-background p-4 space-y-2 ${selected ? "border-primary ring-1 ring-primary" : ""}`}>
@@ -183,7 +183,13 @@ function GiftSuggestionsPanel({
                   </div>
                   <p className="text-sm">{idea.description}</p>
                   <p className="text-sm text-muted-foreground"><strong className="text-foreground">Why it may fit:</strong> {idea.whyFit}</p>
-                  <GiftShoppingLinks giftName={idea.name} />
+                   <GiftShoppingLinks
+                     key={`${data.generatedAt}:${prospectId}:${ideaIndex}:${idea.name}`}
+                     giftName={idea.name}
+                     prospectId={prospectId}
+                     ideaIndex={ideaIndex}
+                     savedComparison={idea.offerComparison}
+                   />
                   <Button size="sm" variant={selected ? "secondary" : "outline"} disabled={selectionDisabled} onClick={() => onSelect(idea.name)}>
                     {selected ? "Selected for gift name" : "Use this idea"}
                   </Button>

@@ -88,6 +88,29 @@ export interface GiftSuggestionIdea {
   estimatedPriceMinUsd: number;
   estimatedPriceMaxUsd: number;
   whyFit: string;
+  offerComparison?: GiftOfferComparison | null;
+}
+
+export interface GiftMerchantOffer {
+  itemName: string;
+  merchant: string;
+  itemPriceUsd: number;
+  shippingKnown: boolean;
+  shippingPriceUsd: number | null;
+  availability: "available" | "unavailable" | "unknown";
+  url: string;
+  priceExcerpt: string;
+  sourceCheckedAt: string;
+}
+
+export interface GiftOfferComparison {
+  giftName: string;
+  ideaSignature: string;
+  checkedAt: string;
+  status: "offers_found" | "no_verified_offers";
+  rankingBasis: "lowest_verified_total" | "lowest_listed_item_price_delivery_unconfirmed" | "none";
+  taxKnown: false;
+  offers: GiftMerchantOffer[];
 }
 
 export interface ProspectGiftSuggestions {

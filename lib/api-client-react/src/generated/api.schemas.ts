@@ -400,6 +400,84 @@ export interface GiftSuggestionInput {
   budgetUsd: number;
 }
 
+export type GiftOfferComparisonStatus = typeof GiftOfferComparisonStatus[keyof typeof GiftOfferComparisonStatus];
+
+
+export const GiftOfferComparisonStatus = {
+  offers_found: 'offers_found',
+  no_verified_offers: 'no_verified_offers',
+} as const;
+
+export type GiftOfferComparisonRankingBasis = typeof GiftOfferComparisonRankingBasis[keyof typeof GiftOfferComparisonRankingBasis];
+
+
+export const GiftOfferComparisonRankingBasis = {
+  lowest_verified_total: 'lowest_verified_total',
+  lowest_listed_item_price_delivery_unconfirmed: 'lowest_listed_item_price_delivery_unconfirmed',
+  none: 'none',
+} as const;
+
+export type GiftMerchantOfferAvailability = typeof GiftMerchantOfferAvailability[keyof typeof GiftMerchantOfferAvailability];
+
+
+export const GiftMerchantOfferAvailability = {
+  available: 'available',
+  unavailable: 'unavailable',
+  unknown: 'unknown',
+} as const;
+
+export interface GiftMerchantOffer {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  itemName: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  merchant: string;
+  /**
+     * @minimum 0.01
+     * @maximum 100000
+     */
+  itemPriceUsd: number;
+  shippingKnown: boolean;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     * @nullable
+     */
+  shippingPriceUsd?: number | null;
+  availability: GiftMerchantOfferAvailability;
+  url: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  priceExcerpt: string;
+  sourceCheckedAt: string;
+}
+
+export interface GiftOfferComparison {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  giftName: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  ideaSignature: string;
+  checkedAt: string;
+  status: GiftOfferComparisonStatus;
+  rankingBasis: GiftOfferComparisonRankingBasis;
+  taxKnown: false;
+  /** @maxItems 8 */
+  offers: GiftMerchantOffer[];
+}
+
 export interface GiftSuggestionIdea {
   /**
      * @minLength 1
@@ -426,6 +504,7 @@ export interface GiftSuggestionIdea {
      * @maxLength 400
      */
   whyFit: string;
+  offerComparison?: GiftOfferComparison | null;
 }
 
 export interface ProspectGiftSuggestions {

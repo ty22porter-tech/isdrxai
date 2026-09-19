@@ -18,3 +18,7 @@ description: Why gift mode has eight steps, approval defaults, and delivery evid
 - Gift recommendations are a pre-send decision aid, distinct from gift follow-up drafts. Choosing an idea never authorizes a purchase, marks delivery, or approves outreach.
   **Why:** The user explicitly wanted help choosing gifts, not directions to an existing post-send message editor. No purchasing or live retailer-price integration was authorized.
   **How to apply:** Keep ideas available before gift-record creation and use only known business context. Label generated prices as estimates, not current quotes.
+
+- Recommend merchants by comparable, source-supported cost, not a preferred store. Unknown shipping is not free shipping; conditional free shipping is not an unconditional offer.
+  **Why:** The user wants the most cost-effective merchant, including alternatives to official college stores. Item price alone cannot establish lowest delivered cost.
+  **How to apply:** Scope recommendations to checked offers, include confirmed shipping, exclude unknown taxes explicitly, and withhold a winner when evidence cannot support one.

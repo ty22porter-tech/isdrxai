@@ -138,6 +138,24 @@ paths:
           description: Prospect not found for this tenant
         "502":
           description: AI provider failed or returned invalid suggestions
+  /gift-outreach/prospects/{prospectId}/suggestions/{ideaIndex}/offers:
+    parameters:
+      - { name: prospectId, in: path, required: true, schema: { type: integer } }
+      - { name: ideaIndex, in: path, required: true, schema: { type: integer, minimum: 0, maximum: 4 } }
+    post:
+      operationId: compareGiftSuggestionOffers
+      tags: [gift-outreach]
+      summary: Research and persist current merchant offers for one saved gift idea
+      responses:
+        "200":
+          description: Source-validated current comparison, possibly with no verified offers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GiftOfferComparison" }
+        "404":
+          description: Prospect or saved gift idea not found for this tenant
+        "502":
+          description: Web research provider unavailable
   /gift-outreach/records/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: integer } }
@@ -1651,6 +1669,39 @@ components:
         estimatedPriceMinUsd: { type: integer, minimum: 1, maximum: 100 }
         estimatedPriceMaxUsd: { type: integer, minimum: 1, maximum: 100 }
         whyFit: { type: string, minLength: 1, maxLength: 400 }
+        offerComparison:
+          anyOf:
+            - { $ref: "#/components/schemas/GiftOfferComparison" }
+            - { type: "null" }
+    GiftMerchantOffer:
+      type: object
+      additionalProperties: false
+      required: [itemName, merchant, itemPriceUsd, shippingKnown, availability, url, priceExcerpt, sourceCheckedAt]
+      properties:
+        itemName: { type: string, minLength: 1, maxLength: 200 }
+        merchant: { type: string, minLength: 1, maxLength: 120 }
+        itemPriceUsd: { type: number, minimum: 0.01, maximum: 100000 }
+        shippingKnown: { type: boolean }
+        shippingPriceUsd: { type: ["number", "null"], minimum: 0, maximum: 10000 }
+        availability: { type: string, enum: [available, unavailable, unknown] }
+        url: { type: string, format: uri }
+        priceExcerpt: { type: string, minLength: 1, maxLength: 500 }
+        sourceCheckedAt: { type: string, format: date-time }
+    GiftOfferComparison:
+      type: object
+      additionalProperties: false
+      required: [giftName, ideaSignature, checkedAt, status, rankingBasis, taxKnown, offers]
+      properties:
+        giftName: { type: string, minLength: 1, maxLength: 120 }
+        ideaSignature: { type: string, minLength: 1, maxLength: 200 }
+        checkedAt: { type: string, format: date-time }
+        status: { type: string, enum: [offers_found, no_verified_offers] }
+        rankingBasis: { type: string, enum: [lowest_verified_total, lowest_listed_item_price_delivery_unconfirmed, none] }
+        taxKnown: { type: boolean, enum: [false] }
+        offers:
+          type: array
+          maxItems: 8
+          items: { $ref: "#/components/schemas/GiftMerchantOffer" }
     ProspectGiftSuggestions:
       type: object
       additionalProperties: false

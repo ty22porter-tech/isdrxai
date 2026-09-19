@@ -324,6 +324,24 @@ export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdM
 
 export const getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax = 400;
 
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneGiftNameMax = 120;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneIdeaSignatureMax = 200;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemItemNameMax = 200;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemMerchantMax = 120;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemItemPriceUsdMin = 0.01;
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemItemPriceUsdMax = 100000;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMin = 0;
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMax = 10000;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemPriceExcerptMax = 500;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersMax = 8;
+
 export const getProspectGiftSuggestionsResponseOneIdeasMin = 3;
 export const getProspectGiftSuggestionsResponseOneIdeasMax = 5;
 
@@ -337,7 +355,26 @@ export const GetProspectGiftSuggestionsResponse = zod.union([zod.object({
   "description": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemDescriptionMax),
   "estimatedPriceMinUsd": zod.number().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMax),
   "estimatedPriceMaxUsd": zod.number().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMax),
-  "whyFit": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax)
+  "whyFit": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax),
+  "offerComparison": zod.union([zod.object({
+  "giftName": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneGiftNameMax),
+  "ideaSignature": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneIdeaSignatureMax),
+  "checkedAt": zod.coerce.date(),
+  "status": zod.enum(['offers_found', 'no_verified_offers']),
+  "rankingBasis": zod.enum(['lowest_verified_total', 'lowest_listed_item_price_delivery_unconfirmed', 'none']),
+  "taxKnown": zod.literal(false),
+  "offers": zod.array(zod.object({
+  "itemName": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemItemNameMax),
+  "merchant": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemMerchantMax),
+  "itemPriceUsd": zod.number().min(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemItemPriceUsdMin).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemItemPriceUsdMax),
+  "shippingKnown": zod.boolean(),
+  "shippingPriceUsd": zod.number().min(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMin).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMax).nullish(),
+  "availability": zod.enum(['available', 'unavailable', 'unknown']),
+  "url": zod.string().url(),
+  "priceExcerpt": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersItemPriceExcerptMax),
+  "sourceCheckedAt": zod.coerce.date()
+})).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneOffersMax)
+}),zod.null()]).optional()
 })).min(getProspectGiftSuggestionsResponseOneIdeasMin).max(getProspectGiftSuggestionsResponseOneIdeasMax)
 }),zod.null()])
 
@@ -372,6 +409,24 @@ export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUs
 
 export const generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax = 400;
 
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneGiftNameMax = 120;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneIdeaSignatureMax = 200;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemNameMax = 200;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemMerchantMax = 120;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMin = 0.01;
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMax = 100000;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMin = 0;
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMax = 10000;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemPriceExcerptMax = 500;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersMax = 8;
+
 export const generateProspectGiftSuggestionsResponseIdeasMin = 3;
 export const generateProspectGiftSuggestionsResponseIdeasMax = 5;
 
@@ -385,8 +440,81 @@ export const GenerateProspectGiftSuggestionsResponse = zod.object({
   "description": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemDescriptionMax),
   "estimatedPriceMinUsd": zod.number().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax),
   "estimatedPriceMaxUsd": zod.number().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax),
-  "whyFit": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax)
+  "whyFit": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax),
+  "offerComparison": zod.union([zod.object({
+  "giftName": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneGiftNameMax),
+  "ideaSignature": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneIdeaSignatureMax),
+  "checkedAt": zod.coerce.date(),
+  "status": zod.enum(['offers_found', 'no_verified_offers']),
+  "rankingBasis": zod.enum(['lowest_verified_total', 'lowest_listed_item_price_delivery_unconfirmed', 'none']),
+  "taxKnown": zod.literal(false),
+  "offers": zod.array(zod.object({
+  "itemName": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemNameMax),
+  "merchant": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemMerchantMax),
+  "itemPriceUsd": zod.number().min(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMin).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemItemPriceUsdMax),
+  "shippingKnown": zod.boolean(),
+  "shippingPriceUsd": zod.number().min(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMin).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemShippingPriceUsdMax).nullish(),
+  "availability": zod.enum(['available', 'unavailable', 'unknown']),
+  "url": zod.string().url(),
+  "priceExcerpt": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersItemPriceExcerptMax),
+  "sourceCheckedAt": zod.coerce.date()
+})).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneOffersMax)
+}),zod.null()]).optional()
 })).min(generateProspectGiftSuggestionsResponseIdeasMin).max(generateProspectGiftSuggestionsResponseIdeasMax)
+})
+
+
+/**
+ * @summary Research and persist current merchant offers for one saved gift idea
+ */
+export const compareGiftSuggestionOffersPathIdeaIndexMin = 0;
+export const compareGiftSuggestionOffersPathIdeaIndexMax = 4;
+
+
+
+export const CompareGiftSuggestionOffersParams = zod.object({
+  "prospectId": zod.coerce.number(),
+  "ideaIndex": zod.coerce.number().min(compareGiftSuggestionOffersPathIdeaIndexMin).max(compareGiftSuggestionOffersPathIdeaIndexMax)
+})
+
+export const compareGiftSuggestionOffersResponseGiftNameMax = 120;
+
+export const compareGiftSuggestionOffersResponseIdeaSignatureMax = 200;
+
+export const compareGiftSuggestionOffersResponseOffersItemItemNameMax = 200;
+
+export const compareGiftSuggestionOffersResponseOffersItemMerchantMax = 120;
+
+export const compareGiftSuggestionOffersResponseOffersItemItemPriceUsdMin = 0.01;
+export const compareGiftSuggestionOffersResponseOffersItemItemPriceUsdMax = 100000;
+
+export const compareGiftSuggestionOffersResponseOffersItemShippingPriceUsdMin = 0;
+export const compareGiftSuggestionOffersResponseOffersItemShippingPriceUsdMax = 10000;
+
+export const compareGiftSuggestionOffersResponseOffersItemPriceExcerptMax = 500;
+
+export const compareGiftSuggestionOffersResponseOffersMax = 8;
+
+
+
+export const CompareGiftSuggestionOffersResponse = zod.object({
+  "giftName": zod.string().min(1).max(compareGiftSuggestionOffersResponseGiftNameMax),
+  "ideaSignature": zod.string().min(1).max(compareGiftSuggestionOffersResponseIdeaSignatureMax),
+  "checkedAt": zod.coerce.date(),
+  "status": zod.enum(['offers_found', 'no_verified_offers']),
+  "rankingBasis": zod.enum(['lowest_verified_total', 'lowest_listed_item_price_delivery_unconfirmed', 'none']),
+  "taxKnown": zod.literal(false),
+  "offers": zod.array(zod.object({
+  "itemName": zod.string().min(1).max(compareGiftSuggestionOffersResponseOffersItemItemNameMax),
+  "merchant": zod.string().min(1).max(compareGiftSuggestionOffersResponseOffersItemMerchantMax),
+  "itemPriceUsd": zod.number().min(compareGiftSuggestionOffersResponseOffersItemItemPriceUsdMin).max(compareGiftSuggestionOffersResponseOffersItemItemPriceUsdMax),
+  "shippingKnown": zod.boolean(),
+  "shippingPriceUsd": zod.number().min(compareGiftSuggestionOffersResponseOffersItemShippingPriceUsdMin).max(compareGiftSuggestionOffersResponseOffersItemShippingPriceUsdMax).nullish(),
+  "availability": zod.enum(['available', 'unavailable', 'unknown']),
+  "url": zod.string().url(),
+  "priceExcerpt": zod.string().min(1).max(compareGiftSuggestionOffersResponseOffersItemPriceExcerptMax),
+  "sourceCheckedAt": zod.coerce.date()
+})).max(compareGiftSuggestionOffersResponseOffersMax)
 })
 
 

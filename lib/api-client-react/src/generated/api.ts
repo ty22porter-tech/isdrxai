@@ -51,6 +51,7 @@ import type {
   GeneratedEmail,
   GetActivityFeedParams,
   GetGiftVideoDashboardParams,
+  GiftOfferComparison,
   GiftOutreachRecord,
   GiftOutreachRecordEdit,
   GiftOutreachRecordInput,
@@ -638,6 +639,78 @@ export const useGenerateProspectGiftSuggestions = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getGenerateProspectGiftSuggestionsMutationOptions(options));
+    }
+
+export const getCompareGiftSuggestionOffersUrl = (prospectId: number,
+    ideaIndex: number,) => {
+
+
+
+
+  return `/api/gift-outreach/prospects/${prospectId}/suggestions/${ideaIndex}/offers`
+}
+
+/**
+ * @summary Research and persist current merchant offers for one saved gift idea
+ */
+export const compareGiftSuggestionOffers = async (prospectId: number,
+    ideaIndex: number, options?: RequestInit): Promise<GiftOfferComparison> => {
+
+  return customFetch<GiftOfferComparison>(getCompareGiftSuggestionOffersUrl(prospectId,ideaIndex),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCompareGiftSuggestionOffersMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof compareGiftSuggestionOffers>>, TError,{prospectId: number;ideaIndex: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof compareGiftSuggestionOffers>>, TError,{prospectId: number;ideaIndex: number}, TContext> => {
+
+const mutationKey = ['compareGiftSuggestionOffers'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof compareGiftSuggestionOffers>>, {prospectId: number;ideaIndex: number}> = (props) => {
+          const {prospectId,ideaIndex} = props ?? {};
+
+          return  compareGiftSuggestionOffers(prospectId,ideaIndex,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompareGiftSuggestionOffersMutationResult = NonNullable<Awaited<ReturnType<typeof compareGiftSuggestionOffers>>>
+
+    export type CompareGiftSuggestionOffersMutationError = ErrorType<void>
+
+    /**
+ * @summary Research and persist current merchant offers for one saved gift idea
+ */
+export const useCompareGiftSuggestionOffers = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof compareGiftSuggestionOffers>>, TError,{prospectId: number;ideaIndex: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof compareGiftSuggestionOffers>>,
+        TError,
+        {prospectId: number;ideaIndex: number},
+        TContext
+      > => {
+      return useMutation(getCompareGiftSuggestionOffersMutationOptions(options));
     }
 
 export const getGetGiftOutreachRecordUrl = (id: number,) => {

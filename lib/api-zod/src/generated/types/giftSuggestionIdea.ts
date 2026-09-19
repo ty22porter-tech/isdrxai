@@ -5,6 +5,7 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { GiftOfferComparison } from './giftOfferComparison';
 
 export interface GiftSuggestionIdea {
   /**
@@ -32,4 +33,5 @@ export interface GiftSuggestionIdea {
      * @maxLength 400
      */
   whyFit: string;
+  offerComparison?: GiftOfferComparison | null;
 }

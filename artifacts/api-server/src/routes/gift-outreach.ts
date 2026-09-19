@@ -6,11 +6,13 @@ import {
   GenerateProspectGiftSuggestionsBody,
   GenerateProspectGiftSuggestionsResponse,
   GetProspectGiftSuggestionsResponse,
+  CompareGiftSuggestionOffersResponse,
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { GiftOutreachError, publicGiftRecord, getGiftSettings, updateGiftSettings, getGiftRecord, createGiftRecord, updateGiftRecord, prepareGiftRecord, approveGiftRecord, sendGiftRecord, skipGiftRecord } from "../lib/giftOutreach";
 import { giftRecordEditSchema, giftSettingsSchema } from "../lib/giftOutreachPolicy";
 import { generateGiftSuggestions, getProspectGiftSuggestions } from "../lib/giftSuggestions";
+import { compareGiftSuggestionOffers } from "../lib/giftOfferComparison";
 
 const router = Router();
 router.use(requireAuth);
@@ -41,6 +43,13 @@ router.post("/prospects/:prospectId/suggestions", async (req, res) => {
   res.json(GenerateProspectGiftSuggestionsResponse.parse(
     await generateGiftSuggestions(req.clientId, id.parse(req.params.prospectId), input.budgetUsd),
   ));
+});
+router.post("/prospects/:prospectId/suggestions/:ideaIndex/offers", async (req, res) => {
+  res.json(CompareGiftSuggestionOffersResponse.parse(await compareGiftSuggestionOffers(
+    req.clientId,
+    id.parse(req.params.prospectId),
+    z.coerce.number().int().min(0).max(4).parse(req.params.ideaIndex),
+  )));
 });
 router.post("/records", async (req, res) => {
   const input = giftRecordEditSchema.extend({ prospectId: id, campaignId: id, optInEnrollment: z.boolean().optional() }).parse(req.body);

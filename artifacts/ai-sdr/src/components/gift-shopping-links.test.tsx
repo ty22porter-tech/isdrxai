@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GiftShoppingLinks, giftShoppingLinks } from "./gift-shopping-links";
 
 afterEach(cleanup);
@@ -31,5 +32,42 @@ describe("gift shopping links", () => {
   it("does not render empty searches", () => {
     const { container } = render(<GiftShoppingLinks giftName="  " />);
     expect(container.innerHTML).toBe("");
+  });
+
+  it("shows precise checked-offer ranking, unknown tax, and real purchase links", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <GiftShoppingLinks
+          giftName="Desk notebook"
+          prospectId={7}
+          ideaIndex={0}
+          savedComparison={{
+            giftName: "Desk notebook",
+            ideaSignature: "saved-signature",
+            checkedAt: "2025-01-01T00:00:00.000Z",
+            status: "offers_found",
+            rankingBasis: "lowest_listed_item_price_delivery_unconfirmed",
+            taxKnown: false,
+            offers: [{
+              itemName: "Hardcover notebook",
+              merchant: "Example Stationer",
+              itemPriceUsd: 12.5,
+              shippingKnown: false,
+              shippingPriceUsd: null,
+              availability: "available",
+              url: "https://stationer.example/products/notebook",
+              priceExcerpt: "Hardcover notebook $12.50",
+              sourceCheckedAt: "2025-01-01T00:00:00.000Z",
+            }],
+          }}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText(/Lowest listed item price among checked offers; delivery unconfirmed/)).toBeTruthy();
+    expect(screen.getByText(/Taxes are unknown and excluded/)).toBeTruthy();
+    const purchaseLink = screen.getByRole("link", { name: /Example Stationer/ });
+    expect(purchaseLink.getAttribute("href")).toBe("https://stationer.example/products/notebook");
+    expect(purchaseLink.getAttribute("target")).toBe("_blank");
   });
 });
