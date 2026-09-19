@@ -101,3 +101,31 @@ mtime_ms = 1788836817475
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/a90ffaf3-5a1c-4e5f-a7ee-052984229eec/28c1fbfa-2148-4770-bd6f-d955b2acb5da"
 storage_version_token = "1788836824210379"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "vbswrljR4kye33EC2IHUp"
+uri = "file://deliverables/gift-suggestions-training/gift-suggestions-how-to.pdf"
+type = "pdf"
+title = "Gift Suggestions — Screenshot How-To Guide"
+description = "Five illustrated steps with actual app screenshots, numbered instructions, and matching HeyGen narration. All prospect data is fictional and labeled."
+logical_id = "655f0c33-c10c-4866-8b76-eb4dfca63ce2"
+content_hash = "sha256:12872b245250c7e77dfee9cc43382c24881702950f093042f5a2eede1a0554a0"
+size = 791096
+mtime_ms = 1789856646891
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/655f0c33-c10c-4866-8b76-eb4dfca63ce2/74e77075-b5a6-47b3-854f-39df6cf79a7c"
+storage_version_token = "1789856656386285"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "8gDqWHGHM6wrtSAjAxCVt"
+uri = "file://deliverables/gift-suggestions-heygen-kit.zip"
+type = "unspecified"
+title = "HeyGen Training Kit — Screenshots + Script"
+description = "Includes five PNG screenshots, scene-by-scene narration, a PDF guide, and a self-contained HTML guide."
+logical_id = "55f77968-2991-495d-a994-a19e6530e17b"
+content_hash = "sha256:a38384870d533c0b6cb88536cde4cee4b175060721b23bdc8babfbe890dd6961"
+size = 2506575
+mtime_ms = 1789856647232
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/55f77968-2991-495d-a994-a19e6530e17b/02af1fbc-bc7c-49e4-929d-44c5ef6aaa36"
+storage_version_token = "1789856657331930"
+content_type = "application/octet-stream"

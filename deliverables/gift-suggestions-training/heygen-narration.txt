@@ -1,0 +1,81 @@
+iSDRX AI — Gift Suggestions
+Screenshot-based HeyGen training script
+Approximately 2½–3 minutes
+
+SETUP: Use the numbered PNG files as scene backgrounds. Paste only the NARRATION for each scene into HeyGen. Screenshots show the real interface with fictional sample data, not live research or offers. Keep the sample-data banner visible. A small avatar inset should not cover controls. No video has been rendered or uploaded to HeyGen.
+
+SCENE 1: Find Gift Suggestions
+IMAGE: screenshots/01-prospect-search-gift-suggestions.png
+DURATION: About 25 seconds
+
+NARRATION:
+Start on Prospect Search and generate your leads. When the results appear, click Gift Suggestions on the prospect you want to research. You can explore ideas before adding the prospect to your pipeline. Opening this window does not save the prospect, start outreach, or purchase anything.
+
+ON-SCREEN ACTIONS:
+1. Open Prospect Search and click Generate Leads.
+2. On a result card, click Gift Suggestions—not Add—to explore ideas without saving the prospect.
+
+EDITOR NOTE: The screenshots use fictional people, companies, and sample responses in the actual app interface.
+
+----------------------------------------
+
+SCENE 2: Set a budget and generate ideas
+IMAGE: screenshots/02-unsaved-preview-budget-25.png
+DURATION: About 25 seconds
+
+NARRATION:
+Set your budget between ten and one hundred dollars, then click Generate ideas. The app will research publicly available information and prepare gift suggestions. This is an unsaved preview: the ideas are not retained when you close the window. If you want to keep working with this prospect, add them to your pipeline separately.
+
+ON-SCREEN ACTIONS:
+1. Enter a whole-dollar budget from $10 to $100.
+2. Click Generate ideas and wait for research to finish.
+
+EDITOR NOTE: Gift prices are estimates. Shipping, taxes, and customization may increase the final cost.
+
+----------------------------------------
+
+SCENE 3: Review the research and gift ideas
+IMAGE: screenshots/03-preview-generated-ideas-research-links.png
+DURATION: About 45 seconds
+
+NARRATION:
+Read the research summary before choosing a gift. Google-backed research is tried first, with an alternate public-web search when needed. Public sources may include LinkedIn or Facebook pages, company biographies, Chamber of Commerce profiles, blogs, and award pages. Private profiles are not accessed. When facts are confirmed, ideas can reflect a college, degree, hobby, or fraternity or sorority. In this sample, no personal facts were verified, so the ideas use the supplied name only. Retailer links open searches, not verified product listings.
+
+ON-SCREEN ACTIONS:
+1. Read the Research summary and any supporting source links.
+2. Review why each idea fits. A name-only gift is not evidence of a hobby or affiliation.
+3. Use the Amazon, Target, or Etsy search links to browse options.
+
+EDITOR NOTE: The sample research and suggestions are illustrative—not live research, endorsements, or purchase offers.
+
+----------------------------------------
+
+SCENE 4: Compare prices for a saved prospect
+IMAGE: screenshots/04-saved-ideas-compare-prices.png
+DURATION: About 25 seconds
+
+NARRATION:
+When you decide to save the prospect, close the preview and use Add on their search result. Reopen Gift Suggestions and generate saved ideas as needed. Saved prospects have a Compare prices option. Use it to check merchant offers for a particular gift. The original gift outreach location remains available too.
+
+ON-SCREEN ACTIONS:
+1. Use Add on the search result when you decide to save the prospect.
+2. Reopen Gift Suggestions and generate saved ideas as needed.
+3. Click Compare prices for the gift you want to investigate.
+
+EDITOR NOTE: The unsaved preview is not automatically carried into the saved prospect. This screenshot shows saved sample ideas.
+
+----------------------------------------
+
+SCENE 5: Check the full cost before buying
+IMAGE: screenshots/05-saved-compare-unknown-shipping.png
+DURATION: About 35 seconds
+
+NARRATION:
+Review the merchant result carefully. This example shows a listed item price of twenty-one dollars and ninety-nine cents, but shipping is unknown. That does not establish the lowest delivered cost. When shipping is confirmed, the app can compare item-and-shipping totals among checked offers. Always confirm price, availability, personalization, and taxes on the merchant's website. Choosing a gift does not purchase it, approve outreach, or mark it as sent. Check the recipient's employer gift policy before buying.
+
+ON-SCREEN ACTIONS:
+1. Review the listed item price, availability, and shipping status.
+2. Unknown shipping is not free shipping. Taxes are excluded.
+3. Confirm customization, employer gift policy, and the final checkout total.
+
+EDITOR NOTE: Sample Retailer and its price are training fixtures, not a real listing. No purchase is made by opening these links.
