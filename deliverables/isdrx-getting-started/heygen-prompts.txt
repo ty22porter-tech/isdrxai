@@ -1,0 +1,186 @@
+Copy-ready master prompt
+
+Create a clear, practical customer onboarding video titled “How to Use iSDRX AI.” Use the 12 scenes and narration below in order. Do not summarize away the setup, save-versus-send warnings, or final checklist. Use a friendly, professional presenter with a calm US English voice at approximately 130–140 words per minute. Suggested pronunciation: “eye ess dee ar ex, A I”; verify the brand pronunciation before export.
+
+Use a white background, navy-blue headings and accents, and clean sans-serif typography. Show the presenter full-size only in the introduction and closing. During demonstrations, prioritize readable screen recordings or actual screenshots, with a small presenter inset positioned away from controls. Use restrained cursor highlights and slow zooms. Add accurate captions. Keep music very quiet or omit it.
+
+Use only supplied actual app images and recordings. Do not invent app screens, buttons, customer records, testimonials, bookings, or performance statistics. If footage is missing, use an honest numbered instruction card with the exact labels from this script—not a fabricated app interface. Use fictional sample data and keep “TRAINING EXAMPLE — SAMPLE DATA” visible throughout demonstrations. Never display passwords, keys, real prospect details, or private account information.
+
+Treat the NARRATION blocks as spoken copy. Treat SCENE PROMPT, SCREEN ACTIONS, and ON-SCREEN TEXT as production directions only. Do not read those directions aloud. Do not show a live send action completing: use a safe demonstration account, stop before confirmation, and explain what the button does.
+
+
+
+Scene 1 — What you will learn
+
+Show a professional presenter beside the title “How to Use iSDRX AI.” Reveal five numbered labels: Set up, Find prospects, Create a campaign, Send outreach, Review results. Use a navy-and-white layout and an understated transition into the app.
+
+SCREEN ACTIONS:
+Show the signed-in Overview page if suitable training footage is available. Do not include admin-only navigation in this customer walkthrough.
+
+ON-SCREEN TEXT:
+Your first outreach workflow
+
+
+
+----------------------------------------
+
+Scene 2 — Set up your business
+
+Use actual Settings footage. Slowly highlight the company details, mailing address, booking link, and Save Settings button as they are mentioned. Show fictional business information. Never show credentials or suggest connecting Gmail with an app password.
+
+SCREEN ACTIONS:
+Settings → complete business fields → check email setup → Save Settings. If showing the first-login industry selector, capture it separately; do not imply it appears on every login.
+
+ON-SCREEN TEXT:
+Complete Settings before outreach
+Save Settings does not send a campaign
+
+
+
+----------------------------------------
+
+Scene 3 — Find relevant prospects
+
+Show the actual Prospect Search page. Highlight City, State, Industry, and Generate Leads in sequence. Show a short, clearly labeled transition while results load. Do not imply instant results or guaranteed verified contact details.
+
+SCREEN ACTIONS:
+Prospect Search → set targeting fields → Generate Leads → review results. Use sample responses or approved training records; no real lead research is required to make this video.
+
+ON-SCREEN TEXT:
+Choose your market → Generate Leads → Review
+
+
+
+----------------------------------------
+
+Scene 4 — Save or import prospects
+
+Show Add on a search result, then transition to the Prospects page. Highlight Add Prospect and Import CSV. Use a prominent but simple “Saved ≠ Sent” callout.
+
+SCREEN ACTIONS:
+Search result → Add → Prospects. For a separate import demonstration, use a tiny fictional CSV, preview it, and show success and error handling accurately. Do not import real customer data.
+
+ON-SCREEN TEXT:
+Saved does not mean sent
+
+
+
+----------------------------------------
+
+Scene 5 — Create and review your campaign
+
+Show the actual campaign editor. Highlight the name, offer description, AI generation control, editable message, follow-up steps, and response options. Zoom into a short fictional draft, not a wall of unreadable text. End with a “Review before sending” card.
+
+SCREEN ACTIONS:
+Campaigns → Create Campaign → fill fields → Generate with AI → review and edit → preview → save. Show Activate only for an approved training campaign, without enrolling recipients.
+
+ON-SCREEN TEXT:
+AI drafts. You review.
+Check the opening message AND follow-ups
+
+
+
+----------------------------------------
+
+Scene 6 — Choose a sending method
+
+Use a two-column instruction card: “Manual: Send Campaign Email” and “Automated: Autopilot.” Show actual manual-send dialog footage if available. Stop with the Send button visible, not clicked.
+
+SCREEN ACTIONS:
+Prospects → select sample recipients → Send Campaign Email → select active campaign. Stop before Send.
+
+ON-SCREEN TEXT:
+Send is a live email action
+
+
+
+----------------------------------------
+
+Scene 7 — Start Autopilot carefully
+
+Show actual Autopilot footage and the Add Prospects dialog. Highlight the campaign selector and selected-recipient count. Before the start control, display “Can send immediately.” Show the location of Pause on an existing fictional active row without inventing a successful send.
+
+SCREEN ACTIONS:
+Autopilot → Add Prospects → choose campaign → select prospects → review Start Autopilot count. Do not click Start Autopilot against real recipients while recording.
+
+ON-SCREEN TEXT:
+Start Autopilot can send immediately
+Pause stops future automation—not past emails
+
+
+
+----------------------------------------
+
+Scene 8 — Review activity and replies
+
+Show sample activity counters, then the actual Email Log with fictional rows. Highlight Sent At, Status, and Engagement. If showing the reply dialog, emphasize that its confirmation can respond automatically.
+
+SCREEN ACTIONS:
+Overview → Autopilot → Emails. Optional: open Log Reply on a training record and stop before Log & Auto-Respond.
+
+ON-SCREEN TEXT:
+Engagement is a signal—not a guaranteed lead
+Log & Auto-Respond may send a message
+
+
+
+----------------------------------------
+
+Scene 9 — Manage meeting follow-up
+
+Show the Calendly Booking Link field and then the actual Appointments page or an honest instruction card. Use three distinct labels: Invitation sent, Link clicked, Meeting confirmed. Do not animate a click turning automatically into a confirmed booking.
+
+SCREEN ACTIONS:
+Settings → review booking link → Appointments. Do not imply that every external Calendly booking is automatically synchronized for every account.
+
+ON-SCREEN TEXT:
+A booking-link click is not a confirmed meeting
+
+
+
+----------------------------------------
+
+Scene 10 — Optional: research a thoughtful gift
+
+Use the supplied real-interface gift screenshots. Show the $25 budget, then the no-verified-personal-facts research summary, then the comparison with unknown shipping. Retain the training-data banner. Do not claim the sample retailer is a real offer or infer hobbies from the fictional prospect’s name.
+
+SCREEN ACTIONS:
+Use gift screenshots 02, 03, and 05 in that order. Explain that unsaved previews are discarded when closed. Verify the recipient’s employer gift policy before any purchase. Gift Suggestions is advisory; optional Gift Outreach is a separate workflow and is not demonstrated here.
+
+ON-SCREEN TEXT:
+Research first. Verify the total. Check gift policy.
+No automatic purchase
+
+
+
+----------------------------------------
+
+Scene 11 — Optional: calling and your daily routine
+
+Use a clean daily-checklist card with an optional Caller Workspace inset only when genuine pilot-enabled footage is available. Do not depict a built-in phone dialer, automatic call placement, or synchronized recordings unless those functions are separately verified and demonstrated.
+
+SCREEN ACTIONS:
+Optional Caller Workspace → queue/outcome controls. Show feature availability honestly; do not expose administrator tools in the customer guide.
+
+ON-SCREEN TEXT:
+Daily: Replies → Meetings → Outreach → Next actions
+Calling features depend on account access
+
+
+
+----------------------------------------
+
+Scene 12 — Your first-session checklist
+
+Return to the presenter beside a five-item checklist. Finish on a navy-and-white title card: “Start with Settings.” Hold the final checklist for three seconds. Do not add promises of guaranteed meetings or sales.
+
+SCREEN ACTIONS:
+No live send. End on the checklist or Settings navigation.
+
+ON-SCREEN TEXT:
+1. Complete Settings
+2. Save prospects
+3. Review your campaign
+4. Choose how to send
+5. Review results
+

@@ -129,3 +129,31 @@ mtime_ms = 1789856647232
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/55f77968-2991-495d-a994-a19e6530e17b/02af1fbc-bc7c-49e4-929d-44c5ef6aaa36"
 storage_version_token = "1789856657331930"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "jjEX1qiil95iwAAhtf6OU"
+uri = "file://deliverables/isdrx-getting-started/heygen-video-guide.pdf"
+type = "pdf"
+title = "How to Use iSDRX AI — HeyGen Video Script"
+description = "A 12-scene customer walkthrough with full narration, scene prompts, on-screen text, and recording instructions. Approximately 6–7 minutes."
+logical_id = "ed9596e8-ee43-4348-ac39-9e667b28cfd4"
+content_hash = "sha256:626ce09b338ddff07bf4649e0338c44a8b26c73efdf970ab8a1e3cabafb30f3d"
+size = 94932
+mtime_ms = 1789861769252
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/ed9596e8-ee43-4348-ac39-9e667b28cfd4/1f1588fb-64f6-49e6-af70-584bde392335"
+storage_version_token = "1789861774967850"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "uHW1UwKZwauznSCRmxoKE"
+uri = "file://deliverables/isdrx-ai-heygen-training-kit.zip"
+type = "unspecified"
+title = "iSDRX AI — Complete HeyGen Training Kit"
+description = "PDF guide, editable script, narration-only text, copy-ready HeyGen prompts, HTML guide, and five Gift Suggestions screenshots."
+logical_id = "3341c4dd-fcc9-4407-a4f0-dc35f647dacd"
+content_hash = "sha256:a0885c4647be3159802b110bf4f3e84cf8801a753bc97200f936150490b2cf98"
+size = 958936
+mtime_ms = 1789861769948
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:803382ef-5306-4c34-b121-a23fb6c24de2/3341c4dd-fcc9-4407-a4f0-dc35f647dacd/1b675cbc-81e0-4dfc-9413-e88e0d8d5acf"
+storage_version_token = "1789861778964326"
+content_type = "application/octet-stream"

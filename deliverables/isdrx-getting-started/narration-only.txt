@@ -1,0 +1,72 @@
+HOW TO USE iSDRX AI — HEYGEN NARRATION
+Paste one scene at a time; do not read scene titles aloud.
+
+Scene 1 — What you will learn
+
+Welcome to iSDRX AI. In this walkthrough, you’ll set up your business, find prospects, create a campaign, and choose how to send your outreach. Then we’ll review results and explore gift suggestions. Start with a small, carefully reviewed group of prospects before expanding your outreach.
+
+----------------------------------------
+
+Scene 2 — Set up your business
+
+If you’re asked what kind of business you run, choose the option that matches your services. Next, open Settings. Confirm your seller industry and enter your Seller Company Name, your name, and phone number. Add your Business Mailing Address and Calendly Booking Link. Review your sending and reply-to details, then click Save Settings. If your platform sending address hasn’t been provisioned, ask your administrator to complete that setup before sending.
+
+----------------------------------------
+
+Scene 3 — Find relevant prospects
+
+Open Prospect Search. Enter the city and state you want to target, then choose the prospect industry. Depending on your business type, you may see additional filters. Click Generate Leads. Review the companies and available contact details before choosing your prospects. Research can return missing or unverified information, so don’t assume that every name or email address is confirmed.
+
+----------------------------------------
+
+Scene 4 — Save or import prospects
+
+Click Add on a result you want to keep, or use Add All after reviewing the full list. Adding a prospect saves it to your pipeline; it does not send an email. On the Prospects page, you can also choose Add Prospect to enter a contact manually, or Import CSV to bring in a list. Review the import results and resolve any failed rows.
+
+----------------------------------------
+
+Scene 5 — Create and review your campaign
+
+Open Campaigns and choose Create Campaign. Give the campaign a clear name, select its targeting details, and describe your offer. Use Generate with AI to help prepare the message, then review and edit the copy. Check your company details, claims, tone, and next step. Review the follow-up messages and timing too. Choose whether interested prospects should receive a meeting request or a questionnaire first. Save the campaign and activate it when it’s ready. Creating or activating a campaign does not, by itself, send it to prospects.
+
+----------------------------------------
+
+Scene 6 — Choose a sending method
+
+You have two main ways to send outreach. For a manual send, open Prospects, select the intended recipients, and choose Send Campaign Email. Select an active campaign and check everything before clicking Send. That final button sends email. If you want automated follow-ups instead, use Autopilot. Avoid enrolling people who are already receiving the same outreach through another workflow.
+
+----------------------------------------
+
+Scene 7 — Start Autopilot carefully
+
+Open Autopilot and click Add Prospects. If you see Quick setup needed, use Go to Settings and complete the missing details first. Choose your campaign and select the prospects you want to enroll. Without a campaign, the app offers a standard three-step AI sequence. Check the recipient count and sequence before continuing. Start Autopilot can begin sending immediately, so click it only when you’re ready. You can pause future automation, but pausing cannot recall emails already sent.
+
+----------------------------------------
+
+Scene 8 — Review activity and replies
+
+Return to Overview and Autopilot to review your activity. Open Emails to see the Email Log, including sent messages and available engagement indicators. Use those indicators as context, not proof that someone wants to buy. Review replies before deciding your next step. In Autopilot, Log Reply lets you enter a reply received elsewhere, but Log and Auto-Respond may send a response. It is not just a note-taking button.
+
+----------------------------------------
+
+Scene 9 — Manage meeting follow-up
+
+Keep your Calendly Booking Link current in Settings. Depending on the configured response rules, interested prospects may receive a meeting invitation automatically. Review Appointments and confirm booking details in Calendly when needed. Sending a booking link, clicking a link, and confirming a meeting are different events. If bookings aren’t appearing as expected, ask your administrator to check your account’s Calendly synchronization setup.
+
+----------------------------------------
+
+Scene 10 — Optional: research a thoughtful gift
+
+For a more personal approach, open Gift Suggestions on a prospect search result. Set a budget from ten to one hundred dollars and generate ideas. Read the research summary before choosing anything. If no personal facts are verified, the app may suggest general or name-personalized gifts instead. Retailer links are searches, not guaranteed listings. For a saved prospect, you can compare prices, but check shipping, taxes, and the final checkout total yourself. Gift Suggestions does not purchase or send a gift.
+
+----------------------------------------
+
+Scene 11 — Optional: calling and your daily routine
+
+If your administrator has enabled the caller pilot, use Caller Workspace to review assigned call tasks and record outcomes. If the pilot isn’t enabled, you can skip this step. For your daily routine, review replies and appointments, check active outreach, correct missing prospect details, and pause anything that needs attention. Keep the next action clear for each prospect.
+
+----------------------------------------
+
+Scene 12 — Your first-session checklist
+
+You’re ready to begin. Complete Settings, save a small group of relevant prospects, review a campaign, and choose manual sending or Autopilot. Check your recipients and message one more time before sending. Then return regularly to review replies and meetings. Remember: saving prepares your work. Send and Start Autopilot take action. Start small, review carefully, and build from there.
