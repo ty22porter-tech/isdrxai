@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GiftOfferComparison } from './giftOfferComparison';
+import type { GiftSuggestionIdeaPersonalization } from './giftSuggestionIdeaPersonalization';
 
 export interface GiftSuggestionIdea {
   /**
@@ -19,12 +20,12 @@ export interface GiftSuggestionIdea {
      */
   description: string;
   /**
-     * @minimum 1
+     * @minimum 10
      * @maximum 100
      */
   estimatedPriceMinUsd: number;
   /**
-     * @minimum 1
+     * @minimum 10
      * @maximum 100
      */
   estimatedPriceMaxUsd: number;
@@ -33,5 +34,12 @@ export interface GiftSuggestionIdea {
      * @maxLength 400
      */
   whyFit: string;
+  personalization: GiftSuggestionIdeaPersonalization;
+  /**
+     * @maxItems 5
+     * @items.minLength 1
+     * @items.maxLength 80
+     */
+  evidenceFactIds: string[];
   offerComparison?: GiftOfferComparison | null;
 }

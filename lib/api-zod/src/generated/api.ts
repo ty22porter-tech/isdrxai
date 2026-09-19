@@ -314,15 +314,31 @@ export const GetProspectGiftSuggestionsParams = zod.object({
 export const getProspectGiftSuggestionsResponseOneBudgetUsdMin = 10;
 export const getProspectGiftSuggestionsResponseOneBudgetUsdMax = 100;
 
+export const getProspectGiftSuggestionsResponseOneResearchMessageMax = 300;
+
+export const getProspectGiftSuggestionsResponseOneResearchFactsItemIdMax = 80;
+
+export const getProspectGiftSuggestionsResponseOneResearchFactsItemSummaryMax = 300;
+
+export const getProspectGiftSuggestionsResponseOneResearchFactsItemEvidenceMax = 500;
+
+export const getProspectGiftSuggestionsResponseOneResearchFactsMax = 12;
+
 export const getProspectGiftSuggestionsResponseOneIdeasItemNameMax = 120;
 
 export const getProspectGiftSuggestionsResponseOneIdeasItemDescriptionMax = 400;
 
+export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMin = 10;
 export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMax = 100;
 
+export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMin = 10;
 export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMax = 100;
 
 export const getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax = 400;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemEvidenceFactIdsItemMax = 80;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemEvidenceFactIdsMax = 5;
 
 export const getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneGiftNameMax = 120;
 
@@ -350,12 +366,25 @@ export const getProspectGiftSuggestionsResponseOneIdeasMax = 5;
 export const GetProspectGiftSuggestionsResponse = zod.union([zod.object({
   "budgetUsd": zod.number().min(getProspectGiftSuggestionsResponseOneBudgetUsdMin).max(getProspectGiftSuggestionsResponseOneBudgetUsdMax),
   "generatedAt": zod.coerce.date(),
+  "researchStatus": zod.enum(['verified_facts', 'no_public_match']),
+  "researchMessage": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchMessageMax),
+  "researchFacts": zod.array(zod.object({
+  "id": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemIdMax),
+  "type": zod.enum(['education', 'award', 'hobby']),
+  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby']),
+  "summary": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemSummaryMax),
+  "evidence": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemEvidenceMax),
+  "url": zod.string().url(),
+  "checkedAt": zod.coerce.date()
+})).max(getProspectGiftSuggestionsResponseOneResearchFactsMax),
   "ideas": zod.array(zod.object({
   "name": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemNameMax),
   "description": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemDescriptionMax),
-  "estimatedPriceMinUsd": zod.number().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMax),
-  "estimatedPriceMaxUsd": zod.number().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMax),
+  "estimatedPriceMinUsd": zod.number().min(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMin).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMax),
+  "estimatedPriceMaxUsd": zod.number().min(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMin).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMax),
   "whyFit": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax),
+  "personalization": zod.enum(['verified_fact', 'generic_fallback']),
+  "evidenceFactIds": zod.array(zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEvidenceFactIdsItemMax)).max(getProspectGiftSuggestionsResponseOneIdeasItemEvidenceFactIdsMax),
   "offerComparison": zod.union([zod.object({
   "giftName": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneGiftNameMax),
   "ideaSignature": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemOfferComparisonOneIdeaSignatureMax),
@@ -399,15 +428,31 @@ export const GenerateProspectGiftSuggestionsBody = zod.object({
 export const generateProspectGiftSuggestionsResponseBudgetUsdMin = 10;
 export const generateProspectGiftSuggestionsResponseBudgetUsdMax = 100;
 
+export const generateProspectGiftSuggestionsResponseResearchMessageMax = 300;
+
+export const generateProspectGiftSuggestionsResponseResearchFactsItemIdMax = 80;
+
+export const generateProspectGiftSuggestionsResponseResearchFactsItemSummaryMax = 300;
+
+export const generateProspectGiftSuggestionsResponseResearchFactsItemEvidenceMax = 500;
+
+export const generateProspectGiftSuggestionsResponseResearchFactsMax = 12;
+
 export const generateProspectGiftSuggestionsResponseIdeasItemNameMax = 120;
 
 export const generateProspectGiftSuggestionsResponseIdeasItemDescriptionMax = 400;
 
+export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMin = 10;
 export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax = 100;
 
+export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMin = 10;
 export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax = 100;
 
 export const generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax = 400;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsItemMax = 80;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsMax = 5;
 
 export const generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneGiftNameMax = 120;
 
@@ -435,12 +480,25 @@ export const generateProspectGiftSuggestionsResponseIdeasMax = 5;
 export const GenerateProspectGiftSuggestionsResponse = zod.object({
   "budgetUsd": zod.number().min(generateProspectGiftSuggestionsResponseBudgetUsdMin).max(generateProspectGiftSuggestionsResponseBudgetUsdMax),
   "generatedAt": zod.coerce.date(),
+  "researchStatus": zod.enum(['verified_facts', 'no_public_match']),
+  "researchMessage": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchMessageMax),
+  "researchFacts": zod.array(zod.object({
+  "id": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemIdMax),
+  "type": zod.enum(['education', 'award', 'hobby']),
+  "classification": zod.enum(['degree', 'education', 'award_winner', 'nominee_finalist', 'public_hobby']),
+  "summary": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemSummaryMax),
+  "evidence": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemEvidenceMax),
+  "url": zod.string().url(),
+  "checkedAt": zod.coerce.date()
+})).max(generateProspectGiftSuggestionsResponseResearchFactsMax),
   "ideas": zod.array(zod.object({
   "name": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemNameMax),
   "description": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemDescriptionMax),
-  "estimatedPriceMinUsd": zod.number().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax),
-  "estimatedPriceMaxUsd": zod.number().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax),
+  "estimatedPriceMinUsd": zod.number().min(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMin).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax),
+  "estimatedPriceMaxUsd": zod.number().min(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMin).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax),
   "whyFit": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax),
+  "personalization": zod.enum(['verified_fact', 'generic_fallback']),
+  "evidenceFactIds": zod.array(zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsItemMax)).max(generateProspectGiftSuggestionsResponseIdeasItemEvidenceFactIdsMax),
   "offerComparison": zod.union([zod.object({
   "giftName": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneGiftNameMax),
   "ideaSignature": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemOfferComparisonOneIdeaSignatureMax),

@@ -88,7 +88,19 @@ export interface GiftSuggestionIdea {
   estimatedPriceMinUsd: number;
   estimatedPriceMaxUsd: number;
   whyFit: string;
+  personalization: "verified_fact" | "generic_fallback";
+  evidenceFactIds: string[];
   offerComparison?: GiftOfferComparison | null;
+}
+
+export interface GiftProspectResearchFact {
+  id: string;
+  type: "education" | "award" | "hobby";
+  classification: "degree" | "education" | "award_winner" | "nominee_finalist" | "public_hobby";
+  summary: string;
+  evidence: string;
+  url: string;
+  checkedAt: string;
 }
 
 export interface GiftMerchantOffer {
@@ -116,6 +128,9 @@ export interface GiftOfferComparison {
 export interface ProspectGiftSuggestions {
   budgetUsd: number;
   generatedAt: string;
+  researchStatus: "verified_facts" | "no_public_match";
+  researchMessage: string;
+  researchFacts: GiftProspectResearchFact[];
   ideas: GiftSuggestionIdea[];
 }
 

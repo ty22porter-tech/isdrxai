@@ -1662,13 +1662,18 @@ components:
     GiftSuggestionIdea:
       type: object
       additionalProperties: false
-      required: [name, description, estimatedPriceMinUsd, estimatedPriceMaxUsd, whyFit]
+      required: [name, description, estimatedPriceMinUsd, estimatedPriceMaxUsd, whyFit, personalization, evidenceFactIds]
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
         description: { type: string, minLength: 1, maxLength: 400 }
-        estimatedPriceMinUsd: { type: integer, minimum: 1, maximum: 100 }
-        estimatedPriceMaxUsd: { type: integer, minimum: 1, maximum: 100 }
+        estimatedPriceMinUsd: { type: integer, minimum: 10, maximum: 100 }
+        estimatedPriceMaxUsd: { type: integer, minimum: 10, maximum: 100 }
         whyFit: { type: string, minLength: 1, maxLength: 400 }
+        personalization: { type: string, enum: [verified_fact, generic_fallback] }
+        evidenceFactIds:
+          type: array
+          maxItems: 5
+          items: { type: string, minLength: 1, maxLength: 80 }
         offerComparison:
           anyOf:
             - { $ref: "#/components/schemas/GiftOfferComparison" }
@@ -1702,13 +1707,31 @@ components:
           type: array
           maxItems: 8
           items: { $ref: "#/components/schemas/GiftMerchantOffer" }
+    GiftProspectResearchFact:
+      type: object
+      additionalProperties: false
+      required: [id, type, classification, summary, evidence, url, checkedAt]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 80 }
+        type: { type: string, enum: [education, award, hobby] }
+        classification: { type: string, enum: [degree, education, award_winner, nominee_finalist, public_hobby] }
+        summary: { type: string, minLength: 1, maxLength: 300 }
+        evidence: { type: string, minLength: 1, maxLength: 500 }
+        url: { type: string, format: uri }
+        checkedAt: { type: string, format: date-time }
     ProspectGiftSuggestions:
       type: object
       additionalProperties: false
-      required: [budgetUsd, generatedAt, ideas]
+      required: [budgetUsd, generatedAt, researchStatus, researchMessage, researchFacts, ideas]
       properties:
         budgetUsd: { type: integer, minimum: 10, maximum: 100 }
         generatedAt: { type: string, format: date-time }
+        researchStatus: { type: string, enum: [verified_facts, no_public_match] }
+        researchMessage: { type: string, minLength: 1, maxLength: 300 }
+        researchFacts:
+          type: array
+          maxItems: 12
+          items: { $ref: "#/components/schemas/GiftProspectResearchFact" }
         ideas:
           type: array
           minItems: 3

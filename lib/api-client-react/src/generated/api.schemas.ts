@@ -400,6 +400,14 @@ export interface GiftSuggestionInput {
   budgetUsd: number;
 }
 
+export type GiftSuggestionIdeaPersonalization = typeof GiftSuggestionIdeaPersonalization[keyof typeof GiftSuggestionIdeaPersonalization];
+
+
+export const GiftSuggestionIdeaPersonalization = {
+  verified_fact: 'verified_fact',
+  generic_fallback: 'generic_fallback',
+} as const;
+
 export type GiftOfferComparisonStatus = typeof GiftOfferComparisonStatus[keyof typeof GiftOfferComparisonStatus];
 
 
@@ -490,12 +498,12 @@ export interface GiftSuggestionIdea {
      */
   description: string;
   /**
-     * @minimum 1
+     * @minimum 10
      * @maximum 100
      */
   estimatedPriceMinUsd: number;
   /**
-     * @minimum 1
+     * @minimum 10
      * @maximum 100
      */
   estimatedPriceMaxUsd: number;
@@ -504,8 +512,65 @@ export interface GiftSuggestionIdea {
      * @maxLength 400
      */
   whyFit: string;
+  personalization: GiftSuggestionIdeaPersonalization;
+  /**
+     * @maxItems 5
+     * @items.minLength 1
+     * @items.maxLength 80
+     */
+  evidenceFactIds: string[];
   offerComparison?: GiftOfferComparison | null;
 }
+
+export type GiftProspectResearchFactType = typeof GiftProspectResearchFactType[keyof typeof GiftProspectResearchFactType];
+
+
+export const GiftProspectResearchFactType = {
+  education: 'education',
+  award: 'award',
+  hobby: 'hobby',
+} as const;
+
+export type GiftProspectResearchFactClassification = typeof GiftProspectResearchFactClassification[keyof typeof GiftProspectResearchFactClassification];
+
+
+export const GiftProspectResearchFactClassification = {
+  degree: 'degree',
+  education: 'education',
+  award_winner: 'award_winner',
+  nominee_finalist: 'nominee_finalist',
+  public_hobby: 'public_hobby',
+} as const;
+
+export interface GiftProspectResearchFact {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  id: string;
+  type: GiftProspectResearchFactType;
+  classification: GiftProspectResearchFactClassification;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  summary: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  evidence: string;
+  url: string;
+  checkedAt: string;
+}
+
+export type ProspectGiftSuggestionsResearchStatus = typeof ProspectGiftSuggestionsResearchStatus[keyof typeof ProspectGiftSuggestionsResearchStatus];
+
+
+export const ProspectGiftSuggestionsResearchStatus = {
+  verified_facts: 'verified_facts',
+  no_public_match: 'no_public_match',
+} as const;
 
 export interface ProspectGiftSuggestions {
   /**
@@ -514,6 +579,14 @@ export interface ProspectGiftSuggestions {
      */
   budgetUsd: number;
   generatedAt: string;
+  researchStatus: ProspectGiftSuggestionsResearchStatus;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  researchMessage: string;
+  /** @maxItems 12 */
+  researchFacts: GiftProspectResearchFact[];
   /**
      * @minItems 3
      * @maxItems 5

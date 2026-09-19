@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Gift, Sparkles, RefreshCw, X } from "lucide-react";
+import { ExternalLink, Loader2, Gift, Sparkles, RefreshCw, X } from "lucide-react";
 import {
   useListCampaigns, listProspectGiftOutreachRecords, getGiftOutreachSettings,
   createGiftOutreachRecord, patchGiftOutreachRecord, prepareGiftOutreachRecord,
@@ -133,7 +133,7 @@ function GiftSuggestionsPanel({
           <h3 id="gift-suggestions-heading" className="font-semibold flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" /> Gift Suggestions
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">Practical, professional ideas based only on known prospect and seller context.</p>
+          <p className="text-sm text-muted-foreground mt-1">Professional ideas grounded in identity-matched public research when available.</p>
         </div>
         <div className="flex items-end gap-2">
           <label className="text-xs font-medium">
@@ -155,7 +155,7 @@ function GiftSuggestionsPanel({
             disabled={!budgetValid || generate.isPending}
           >
             {generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : data ? <RefreshCw className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            {generate.isPending ? "Generating…" : data ? "Refresh ideas" : "Generate ideas"}
+            {generate.isPending ? "Researching prospect…" : data ? "Refresh ideas" : "Generate ideas"}
           </Button>
         </div>
       </div>
@@ -172,13 +172,46 @@ function GiftSuggestionsPanel({
       )}
       {data && (
         <>
+          <div className="rounded-md border bg-background p-3 space-y-2">
+            <p className="text-sm">
+              <strong>Research:</strong> {data.researchMessage}
+            </p>
+            <p className="text-xs text-muted-foreground">Public sources checked with OpenAI Responses web search (not specifically Google).</p>
+            {data.researchFacts.length > 0 && (
+              <ul className="space-y-2">
+                {data.researchFacts.map(fact => (
+                  <li key={fact.id} className="text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium">
+                        {fact.classification === "degree" ? "Confirmed degree"
+                          : fact.classification === "education" ? "Education (degree not confirmed)"
+                            : fact.classification === "award_winner" ? "Award winner"
+                              : fact.classification === "nominee_finalist" ? "Nominee / finalist"
+                                : "Publicly stated hobby"}
+                      </span>
+                      <span>{fact.summary}</span>
+                    </div>
+                    <a className="mt-1 inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline" href={fact.url} target="_blank" rel="noreferrer">
+                      Evidence: {fact.evidence} <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                    <span className="ml-2 text-xs text-muted-foreground">Checked {new Date(fact.checkedAt).toLocaleDateString()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="grid gap-3 md:grid-cols-2">
             {data.ideas.map((idea, ideaIndex) => {
               const selected = selectedGiftName === idea.name;
               return (
                 <article key={idea.name} className={`rounded-md border bg-background p-4 space-y-2 ${selected ? "border-primary ring-1 ring-primary" : ""}`}>
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-medium">{idea.name}</h4>
+                     <div>
+                       <h4 className="font-medium">{idea.name}</h4>
+                       <span className="text-xs text-muted-foreground">
+                         {idea.personalization === "verified_fact" ? "Personalized from verified public evidence" : "Generic business fallback"}
+                       </span>
+                     </div>
                     <span className="shrink-0 text-xs font-medium text-muted-foreground">Estimated ${idea.estimatedPriceMinUsd}–${idea.estimatedPriceMaxUsd} USD</span>
                   </div>
                   <p className="text-sm">{idea.description}</p>

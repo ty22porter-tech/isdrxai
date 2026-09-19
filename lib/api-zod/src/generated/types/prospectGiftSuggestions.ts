@@ -5,7 +5,9 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { GiftProspectResearchFact } from './giftProspectResearchFact';
 import type { GiftSuggestionIdea } from './giftSuggestionIdea';
+import type { ProspectGiftSuggestionsResearchStatus } from './prospectGiftSuggestionsResearchStatus';
 
 export interface ProspectGiftSuggestions {
   /**
@@ -14,6 +16,14 @@ export interface ProspectGiftSuggestions {
      */
   budgetUsd: number;
   generatedAt: Date;
+  researchStatus: ProspectGiftSuggestionsResearchStatus;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  researchMessage: string;
+  /** @maxItems 12 */
+  researchFacts: GiftProspectResearchFact[];
   /**
      * @minItems 3
      * @maxItems 5

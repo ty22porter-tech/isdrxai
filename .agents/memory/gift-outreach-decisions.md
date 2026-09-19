@@ -16,9 +16,13 @@ description: Why gift mode has eight steps, approval defaults, and delivery evid
   **How to apply:** Label manual delivery confirmation honestly until a carrier integration exists. Never infer receipt from an expected date, viewing from an email open, or a booking from a link click.
 
 - Gift recommendations are a pre-send decision aid, distinct from gift follow-up drafts. Choosing an idea never authorizes a purchase, marks delivery, or approves outreach.
-  **Why:** The user explicitly wanted help choosing gifts, not directions to an existing post-send message editor. No purchasing or live retailer-price integration was authorized.
+  **Why:** The user explicitly wanted help choosing gifts, not directions to an existing post-send message editor. Price research is authorized, automatic purchasing is not.
   **How to apply:** Keep ideas available before gift-record creation and use only known business context. Label generated prices as estimates, not current quotes.
 
 - Recommend merchants by comparable, source-supported cost, not a preferred store. Unknown shipping is not free shipping; conditional free shipping is not an unconditional offer.
   **Why:** The user wants the most cost-effective merchant, including alternatives to official college stores. Item price alone cannot establish lowest delivered cost.
   **How to apply:** Scope recommendations to checked offers, include confirmed shipping, exclude unknown taxes explicitly, and withhold a winner when evidence cannot support one.
+
+- Gift personalization should prioritize sourced education, professional recognition, and explicitly public nonsensitive hobbies over generic business gifts.
+  **Why:** The user rejected generic office-item recommendations as insufficiently personal and specifically requested ORBIE, BOMA, and IFMA recognition.
+  **How to apply:** Preserve degree versus attendance and nominee versus winner distinctions. Match the person's identity, cite sources, and use labeled generic fallbacks rather than guessing interests.

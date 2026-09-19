@@ -37,7 +37,10 @@ let requests: Array<{ url: string; method: string; body: Record<string, unknown>
 let suggestions: {
   budgetUsd: number;
   generatedAt: string;
-  ideas: Array<{ name: string; description: string; estimatedPriceMinUsd: number; estimatedPriceMaxUsd: number; whyFit: string }>;
+  researchStatus: "verified_facts" | "no_public_match";
+  researchMessage: string;
+  researchFacts: Array<{ id: string; type: "education" | "award" | "hobby"; classification: "degree" | "education" | "award_winner" | "nominee_finalist" | "public_hobby"; summary: string; evidence: string; url: string; checkedAt: string }>;
+  ideas: Array<{ name: string; description: string; estimatedPriceMinUsd: number; estimatedPriceMaxUsd: number; whyFit: string; personalization: "verified_fact" | "generic_fallback"; evidenceFactIds: string[] }>;
 } | null;
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { "Content-Type": "application/json" } });
 function mount(element: React.ReactNode) {
@@ -72,10 +75,13 @@ beforeEach(() => {
       suggestions = {
         budgetUsd: Number(body.budgetUsd),
         generatedAt: "2026-01-01T12:00:00Z",
+        researchStatus: "no_public_match",
+        researchMessage: "No public identity-matched facts were verified. Ideas are generic business fallbacks.",
+        researchFacts: [],
         ideas: [
-          { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful in a professional office." },
-          { name: "Reusable notebook", description: "A reusable work notebook.", estimatedPriceMinUsd: 18, estimatedPriceMaxUsd: 25, whyFit: "Supports everyday meeting notes." },
-          { name: "Team snack box", description: "A modest shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Can be shared with an office team." },
+          { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful in a professional office.", personalization: "generic_fallback", evidenceFactIds: [] },
+          { name: "Reusable notebook", description: "A reusable work notebook.", estimatedPriceMinUsd: 18, estimatedPriceMaxUsd: 25, whyFit: "Supports everyday meeting notes.", personalization: "generic_fallback", evidenceFactIds: [] },
+          { name: "Team snack box", description: "A modest shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Can be shared with an office team.", personalization: "generic_fallback", evidenceFactIds: [] },
         ],
       };
       return json(suggestions);
@@ -187,10 +193,13 @@ describe("gift record and managed video contracts", () => {
     suggestions = {
       budgetUsd: 25,
       generatedAt: "2026-01-01T12:00:00Z",
+      researchStatus: "no_public_match",
+      researchMessage: "No public identity-matched facts were verified. Ideas are generic business fallbacks.",
+      researchFacts: [],
       ideas: [
-        { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful in a professional office." },
-        { name: "Reusable notebook", description: "A reusable work notebook.", estimatedPriceMinUsd: 18, estimatedPriceMaxUsd: 25, whyFit: "Supports everyday meeting notes." },
-        { name: "Team snack box", description: "A modest shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Can be shared with an office team." },
+        { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful in a professional office.", personalization: "generic_fallback", evidenceFactIds: [] },
+        { name: "Reusable notebook", description: "A reusable work notebook.", estimatedPriceMinUsd: 18, estimatedPriceMaxUsd: 25, whyFit: "Supports everyday meeting notes.", personalization: "generic_fallback", evidenceFactIds: [] },
+        { name: "Team snack box", description: "A modest shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Can be shared with an office team.", personalization: "generic_fallback", evidenceFactIds: [] },
       ],
     };
     const user = userEvent.setup();
@@ -208,6 +217,34 @@ describe("gift record and managed video contracts", () => {
       giftName: "Desk organizer — blue",
     }));
     expect(requests.some(request => request.url.endsWith("/send"))).toBe(false);
+  });
+
+  it("renders persisted research evidence with precise status and a clickable source", async () => {
+    suggestions = {
+      budgetUsd: 50,
+      generatedAt: "2026-01-01T12:00:00Z",
+      researchStatus: "verified_facts",
+      researchMessage: "Found 1 verified public personalization fact.",
+      researchFacts: [{
+        id: "fact-1",
+        type: "award",
+        classification: "nominee_finalist",
+        summary: "Jamie was named an ORBIE finalist.",
+        evidence: "Jamie Rivera of Acme was named a 2025 ORBIE finalist.",
+        url: "https://example.org/orbie",
+        checkedAt: "2026-01-01T12:00:00Z",
+      }],
+      ideas: [
+        { name: "Congratulations notebook", description: "A professional notebook.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Acknowledges finalist recognition without calling it a win.", personalization: "verified_fact", evidenceFactIds: ["fact-1"] },
+        { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful at work.", personalization: "generic_fallback", evidenceFactIds: [] },
+        { name: "Team snack box", description: "A shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Useful for a team.", personalization: "generic_fallback", evidenceFactIds: [] },
+      ],
+    };
+    mount(<GiftRecordEditor prospectId={1} campaignId={2} />);
+    expect(await screen.findByText("Nominee / finalist")).toBeInTheDocument();
+    expect(screen.getByText("Jamie was named an ORBIE finalist.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Evidence: Jamie Rivera/ })).toHaveAttribute("href", "https://example.org/orbie");
+    expect(screen.getByText("Personalized from verified public evidence")).toBeInTheDocument();
   });
 
   it("clears generated mutation data and pending choice when navigating to another prospect", async () => {
