@@ -14,3 +14,7 @@ description: Why gift mode has eight steps, approval defaults, and delivery evid
 - Carrier delivery confirmation and a user-entered confirmation are different evidence sources. Video opens, thumbnail clicks, playback, and appointments are also distinct facts.
   **Why:** The user requires accurate delivery language and separate engagement measurements. No carrier tracking provider was selected during initial implementation.
   **How to apply:** Label manual delivery confirmation honestly until a carrier integration exists. Never infer receipt from an expected date, viewing from an email open, or a booking from a link click.
+
+- Gift recommendations are a pre-send decision aid, distinct from gift follow-up drafts. Choosing an idea never authorizes a purchase, marks delivery, or approves outreach.
+  **Why:** The user explicitly wanted help choosing gifts, not directions to an existing post-send message editor. No purchasing or live retailer-price integration was authorized.
+  **How to apply:** Keep ideas available before gift-record creation and use only known business context. Label generated prices as estimates, not current quotes.

@@ -34,11 +34,19 @@ let records: GiftOutreachRecord[];
 let video: GiftVideo;
 let enrollments: Array<{ id: number; prospectId: number; campaignId: number; currentStep: number; giftMode: boolean; status: string }>;
 let requests: Array<{ url: string; method: string; body: Record<string, unknown> }>;
+let suggestions: {
+  budgetUsd: number;
+  generatedAt: string;
+  ideas: Array<{ name: string; description: string; estimatedPriceMinUsd: number; estimatedPriceMaxUsd: number; whyFit: string }>;
+} | null;
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { "Content-Type": "application/json" } });
 function mount(element: React.ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
-  return client;
+  const view = render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+  return {
+    client,
+    rerender: (next: React.ReactNode) => view.rerender(<QueryClientProvider client={client}>{next}</QueryClientProvider>),
+  };
 }
 
 beforeEach(() => {
@@ -47,6 +55,7 @@ beforeEach(() => {
   video = { ...initialVideo };
   enrollments = [];
   requests = [];
+  suggestions = null;
   vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     const method = init?.method ?? "GET";
@@ -56,6 +65,21 @@ beforeEach(() => {
     if (url === "/api/gift-outreach/settings") return json(settings);
     if (url === "/api/autopilot/enrollments") return json(enrollments);
     if (url === "/api/gift-outreach/prospects/1") return json(records);
+    if (url === "/api/gift-outreach/prospects/2") return json([]);
+    if (url === "/api/gift-outreach/prospects/1/suggestions" && method === "GET") return json(suggestions);
+    if (url === "/api/gift-outreach/prospects/2/suggestions" && method === "GET") return json(null);
+    if (url === "/api/gift-outreach/prospects/1/suggestions" && method === "POST") {
+      suggestions = {
+        budgetUsd: Number(body.budgetUsd),
+        generatedAt: "2026-01-01T12:00:00Z",
+        ideas: [
+          { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful in a professional office." },
+          { name: "Reusable notebook", description: "A reusable work notebook.", estimatedPriceMinUsd: 18, estimatedPriceMaxUsd: 25, whyFit: "Supports everyday meeting notes." },
+          { name: "Team snack box", description: "A modest shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Can be shared with an office team." },
+        ],
+      };
+      return json(suggestions);
+    }
     if (url === "/api/gift-outreach/records" && method === "POST") {
       records = [{ ...initialRecord, ...body, videoId: null }];
       return json(records[0]);
@@ -156,6 +180,50 @@ describe("gift record and managed video contracts", () => {
     await user.click(await screen.findByRole("button", { name: "Start Gift Outreach" }));
     const request = requests.find(r => r.method === "POST" && r.url === "/api/gift-outreach/records");
     expect(request?.body).toEqual({ prospectId: 1, campaignId: 2 });
+  });
+
+  it("stages a generated idea in gift name and only persists it on Save Changes without sending", async () => {
+    records[0] = { ...initialRecord, giftSent: false, giftName: "", sentDate: null };
+    suggestions = {
+      budgetUsd: 25,
+      generatedAt: "2026-01-01T12:00:00Z",
+      ideas: [
+        { name: "Desk organizer", description: "A compact organizer.", estimatedPriceMinUsd: 15, estimatedPriceMaxUsd: 25, whyFit: "Useful in a professional office." },
+        { name: "Reusable notebook", description: "A reusable work notebook.", estimatedPriceMinUsd: 18, estimatedPriceMaxUsd: 25, whyFit: "Supports everyday meeting notes." },
+        { name: "Team snack box", description: "A modest shareable snack box.", estimatedPriceMinUsd: 20, estimatedPriceMaxUsd: 25, whyFit: "Can be shared with an office team." },
+      ],
+    };
+    const user = userEvent.setup();
+    mount(<GiftRecordEditor prospectId={1} campaignId={2} />);
+    await user.click((await screen.findAllByRole("button", { name: "Use this idea" }))[0]);
+    const giftName = screen.getByLabelText("Gift Name");
+    expect(giftName).toHaveValue("Desk organizer");
+    await user.clear(giftName);
+    await user.type(giftName, "Desk organizer — blue");
+    expect(giftName).toHaveValue("Desk organizer — blue");
+    expect(requests.filter(request => request.method !== "GET")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Send Manually" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() => expect(requests.find(request => request.url === "/api/gift-outreach/records/9" && request.method === "PATCH")?.body).toMatchObject({
+      giftName: "Desk organizer — blue",
+    }));
+    expect(requests.some(request => request.url.endsWith("/send"))).toBe(false);
+  });
+
+  it("clears generated mutation data and pending choice when navigating to another prospect", async () => {
+    records = [];
+    const user = userEvent.setup();
+    const view = mount(<GiftRecordEditor prospectId={1} campaignId={2} />);
+    await user.click(await screen.findByRole("button", { name: "Generate ideas" }));
+    await user.click((await screen.findAllByRole("button", { name: "Use this idea" }))[0]);
+    expect(screen.getByText(/Pending choice:/)).toHaveTextContent("Desk organizer");
+
+    view.rerender(<GiftRecordEditor prospectId={2} campaignId={2} />);
+
+    await waitFor(() => expect(requests.some(request => request.url === "/api/gift-outreach/prospects/2/suggestions")).toBe(true));
+    expect(screen.queryByText("Desk organizer")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pending choice:/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/No saved ideas yet/)).toBeInTheDocument();
   });
 
   it("uploads bytes and creates at the video namespace with editable required fields and settings defaults", async () => {

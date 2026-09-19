@@ -82,6 +82,20 @@ export interface SellerEvidence {
   sources: ResearchSource[];
 }
 
+export interface GiftSuggestionIdea {
+  name: string;
+  description: string;
+  estimatedPriceMinUsd: number;
+  estimatedPriceMaxUsd: number;
+  whyFit: string;
+}
+
+export interface ProspectGiftSuggestions {
+  budgetUsd: number;
+  generatedAt: string;
+  ideas: GiftSuggestionIdea[];
+}
+
 export interface OpportunityIntelligence {
   version: 1 | 2 | 3;
   score: number;
@@ -115,6 +129,8 @@ export const prospectsTable = pgTable("prospects", {
   notes: text("notes"),
   /** Seller-specific opportunity fit. Never used for engagement Hot/Medium/Low. */
   opportunityIntelligence: jsonb("opportunity_intelligence").$type<OpportunityIntelligence>(),
+  /** AI-generated, policy-conscious gift ideas scoped to this prospect and tenant. */
+  giftSuggestions: jsonb("gift_suggestions").$type<ProspectGiftSuggestions>(),
   employeeCount: integer("employee_count"),
   squareFootage: integer("square_footage"),
   vertical: text("vertical"),

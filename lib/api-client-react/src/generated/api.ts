@@ -56,6 +56,7 @@ import type {
   GiftOutreachRecordInput,
   GiftOutreachSettings,
   GiftOutreachSettingsInput,
+  GiftSuggestionInput,
   GiftVideo,
   GiftVideoDashboard,
   GiftVideoDeleteResult,
@@ -76,6 +77,7 @@ import type {
   OpenaiGenerateEmailRequest,
   OpportunityIntelligenceRefreshResult,
   Prospect,
+  ProspectGiftSuggestions,
   ProspectInput,
   ProspectLead,
   ProspectSearchRequest,
@@ -489,6 +491,154 @@ export function useListProspectGiftOutreachRecords<TData = Awaited<ReturnType<ty
 
 
 
+
+export const getGetProspectGiftSuggestionsUrl = (prospectId: number,) => {
+
+
+
+
+  return `/api/gift-outreach/prospects/${prospectId}/suggestions`
+}
+
+/**
+ * @summary Read persisted gift suggestions for an owned prospect
+ */
+export const getProspectGiftSuggestions = async (prospectId: number, options?: RequestInit): Promise<ProspectGiftSuggestions | null> => {
+
+  return customFetch<ProspectGiftSuggestions | null>(getGetProspectGiftSuggestionsUrl(prospectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProspectGiftSuggestionsQueryKey = (prospectId: number,) => {
+    return [
+    `/api/gift-outreach/prospects/${prospectId}/suggestions`
+    ] as const;
+    }
+
+
+export const getGetProspectGiftSuggestionsQueryOptions = <TData = Awaited<ReturnType<typeof getProspectGiftSuggestions>>, TError = ErrorType<unknown>>(prospectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProspectGiftSuggestions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProspectGiftSuggestionsQueryKey(prospectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProspectGiftSuggestions>>> = ({ signal }) => getProspectGiftSuggestions(prospectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: prospectId !== null && prospectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProspectGiftSuggestions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProspectGiftSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getProspectGiftSuggestions>>>
+export type GetProspectGiftSuggestionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read persisted gift suggestions for an owned prospect
+ */
+
+export function useGetProspectGiftSuggestions<TData = Awaited<ReturnType<typeof getProspectGiftSuggestions>>, TError = ErrorType<unknown>>(
+ prospectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProspectGiftSuggestions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProspectGiftSuggestionsQueryOptions(prospectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGenerateProspectGiftSuggestionsUrl = (prospectId: number,) => {
+
+
+
+
+  return `/api/gift-outreach/prospects/${prospectId}/suggestions`
+}
+
+/**
+ * @summary Generate and persist practical prospect-specific gift suggestions without sending or purchasing anything
+ */
+export const generateProspectGiftSuggestions = async (prospectId: number,
+    giftSuggestionInput: GiftSuggestionInput, options?: RequestInit): Promise<ProspectGiftSuggestions> => {
+
+  return customFetch<ProspectGiftSuggestions>(getGenerateProspectGiftSuggestionsUrl(prospectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(giftSuggestionInput)
+  }
+);}
+
+
+
+
+export const getGenerateProspectGiftSuggestionsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateProspectGiftSuggestions>>, TError,{prospectId: number;data: BodyType<GiftSuggestionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateProspectGiftSuggestions>>, TError,{prospectId: number;data: BodyType<GiftSuggestionInput>}, TContext> => {
+
+const mutationKey = ['generateProspectGiftSuggestions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateProspectGiftSuggestions>>, {prospectId: number;data: BodyType<GiftSuggestionInput>}> = (props) => {
+          const {prospectId,data} = props ?? {};
+
+          return  generateProspectGiftSuggestions(prospectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateProspectGiftSuggestionsMutationResult = NonNullable<Awaited<ReturnType<typeof generateProspectGiftSuggestions>>>
+    export type GenerateProspectGiftSuggestionsMutationBody = BodyType<GiftSuggestionInput>
+    export type GenerateProspectGiftSuggestionsMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate and persist practical prospect-specific gift suggestions without sending or purchasing anything
+ */
+export const useGenerateProspectGiftSuggestions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateProspectGiftSuggestions>>, TError,{prospectId: number;data: BodyType<GiftSuggestionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateProspectGiftSuggestions>>,
+        TError,
+        {prospectId: number;data: BodyType<GiftSuggestionInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateProspectGiftSuggestionsMutationOptions(options));
+    }
 
 export const getGetGiftOutreachRecordUrl = (id: number,) => {
 

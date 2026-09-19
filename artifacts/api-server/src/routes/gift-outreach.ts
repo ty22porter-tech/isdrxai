@@ -2,9 +2,15 @@ import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { z, ZodError } from "zod";
 import { db, giftOutreachRecordsTable } from "@workspace/db";
+import {
+  GenerateProspectGiftSuggestionsBody,
+  GenerateProspectGiftSuggestionsResponse,
+  GetProspectGiftSuggestionsResponse,
+} from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { GiftOutreachError, publicGiftRecord, getGiftSettings, updateGiftSettings, getGiftRecord, createGiftRecord, updateGiftRecord, prepareGiftRecord, approveGiftRecord, sendGiftRecord, skipGiftRecord } from "../lib/giftOutreach";
 import { giftRecordEditSchema, giftSettingsSchema } from "../lib/giftOutreachPolicy";
+import { generateGiftSuggestions, getProspectGiftSuggestions } from "../lib/giftSuggestions";
 
 const router = Router();
 router.use(requireAuth);
@@ -24,6 +30,17 @@ router.get("/prospects/:prospectId", async (req, res) => {
   const filters = [eq(giftOutreachRecordsTable.clientId, req.clientId), eq(giftOutreachRecordsTable.prospectId, id.parse(req.params.prospectId))];
   if (req.query.campaignId) filters.push(eq(giftOutreachRecordsTable.campaignId, id.parse(req.query.campaignId)));
   res.json((await db.select().from(giftOutreachRecordsTable).where(and(...filters)).orderBy(desc(giftOutreachRecordsTable.createdAt))).map(publicGiftRecord));
+});
+router.get("/prospects/:prospectId/suggestions", async (req, res) => {
+  res.json(GetProspectGiftSuggestionsResponse.parse(
+    await getProspectGiftSuggestions(req.clientId, id.parse(req.params.prospectId)),
+  ));
+});
+router.post("/prospects/:prospectId/suggestions", async (req, res) => {
+  const input = GenerateProspectGiftSuggestionsBody.parse(req.body);
+  res.json(GenerateProspectGiftSuggestionsResponse.parse(
+    await generateGiftSuggestions(req.clientId, id.parse(req.params.prospectId), input.budgetUsd),
+  ));
 });
 router.post("/records", async (req, res) => {
   const input = giftRecordEditSchema.extend({ prospectId: id, campaignId: id, optInEnrollment: z.boolean().optional() }).parse(req.body);

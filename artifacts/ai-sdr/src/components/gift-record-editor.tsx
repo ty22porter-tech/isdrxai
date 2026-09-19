@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Gift } from "lucide-react";
+import { Loader2, Gift, Sparkles, RefreshCw, X } from "lucide-react";
 import {
   useListCampaigns, listProspectGiftOutreachRecords, getGiftOutreachSettings,
   createGiftOutreachRecord, patchGiftOutreachRecord, prepareGiftOutreachRecord,
   approveGiftOutreachRecord, sendGiftOutreachRecord, skipGiftOutreachRecord,
+  useGetProspectGiftSuggestions, useGenerateProspectGiftSuggestions,
   type GiftOutreachRecord, type GiftOutreachRecordEdit, type GiftOutreachSettings,
 } from "@workspace/api-client-react";
 import { GiftVideoEditor } from "@/components/gift-video-editor";
@@ -19,6 +20,10 @@ export function GiftRecordEditor({ prospectId, campaignId }: { prospectId: numbe
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | undefined>(campaignId);
   const [method, setMethod] = useState<"email" | "video" | "">("");
   const [optInEnrollment, setOptInEnrollment] = useState(false);
+  const [selectedGiftName, setSelectedGiftName] = useState<string | null>(null);
+  useEffect(() => {
+    setSelectedGiftName(null);
+  }, [prospectId]);
   const campaigns = useListCampaigns();
   const records = useQuery({
     queryKey: ["gift-records", prospectId],
@@ -35,24 +40,40 @@ export function GiftRecordEditor({ prospectId, campaignId }: { prospectId: numbe
   const create = useMutation({
     mutationFn: () => createGiftOutreachRecord({
       prospectId, campaignId: selectedId!, method: effectiveMethod,
+      ...(selectedGiftName ? { giftName: selectedGiftName } : {}),
       ...(needsOptIn ? { optInEnrollment } : {}),
     }),
-    onSuccess: async () => { await invalidateGiftQueries(client); },
+    onSuccess: async () => { setSelectedGiftName(null); await invalidateGiftQueries(client); },
   });
   const error = records.error || settings.error || campaigns.error || enrollments.error;
-  if (error) return <p role="alert" className="text-sm text-red-500">Unable to load gift outreach: {error.message}</p>;
+  const suggestions = <GiftSuggestionsPanel
+    key={prospectId}
+    prospectId={prospectId}
+    selectedGiftName={selectedGiftName}
+    onSelect={setSelectedGiftName}
+    selectionDisabled={!!record && ["sending", "sent", "skipped", "stopped"].includes(record.status)}
+  />;
+  if (error) return <div className="space-y-6">{suggestions}<p role="alert" className="text-sm text-red-500">Unable to load gift outreach: {error.message}</p></div>;
   if (records.isLoading || settings.isLoading || enrollments.isLoading || campaigns.isLoading) {
-    return <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    return <div className="space-y-6">{suggestions}<div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div></div>;
   }
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {suggestions}
+      <div className="space-y-4 border-t pt-6">
       {!campaignId && <label className="block text-sm font-medium">Campaign
         <select className="ml-2 h-9 rounded-md border bg-background px-3 text-sm" value={selectedId ?? ""} onChange={e => { setSelectedCampaignId(Number(e.target.value) || undefined); setOptInEnrollment(false); }}>
           <option value="">Select a campaign</option>
           {campaigns.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </label>}
-      {record && settings.data ? <GiftRecordForm key={record.id} record={record} settings={settings.data} /> : (
+      {record && settings.data ? <GiftRecordForm
+        key={record.id}
+        record={record}
+        settings={settings.data}
+        selectedGiftName={selectedGiftName}
+        onSelectedGiftNameChange={setSelectedGiftName}
+      /> : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">No gift outreach record exists for this prospect and campaign.</p>
           <label className="block text-sm font-medium">Method
@@ -73,17 +94,139 @@ export function GiftRecordEditor({ prospectId, campaignId }: { prospectId: numbe
           {create.error && <p role="alert" className="text-sm text-red-500">{create.error.message}</p>}
         </div>
       )}
+      </div>
     </div>
   );
 }
 
-function GiftRecordForm({ record, settings }: { record: GiftOutreachRecord; settings: GiftOutreachSettings }) {
+function GiftSuggestionsPanel({
+  prospectId,
+  selectedGiftName,
+  onSelect,
+  selectionDisabled,
+}: {
+  prospectId: number;
+  selectedGiftName: string | null;
+  onSelect: (name: string | null) => void;
+  selectionDisabled: boolean;
+}) {
+  const [budget, setBudget] = useState("25");
+  const suggestions = useGetProspectGiftSuggestions(prospectId);
+  const generate = useGenerateProspectGiftSuggestions({
+    mutation: {
+      onSuccess: data => {
+        suggestions.refetch();
+        setBudget(String(data.budgetUsd));
+      },
+    },
+  });
+  const budgetNumber = Number(budget);
+  const budgetValid = Number.isInteger(budgetNumber) && budgetNumber >= 10 && budgetNumber <= 100;
+  const data = generate.data ?? suggestions.data;
+  const loadError = suggestions.error;
+  const generationError = generate.error;
+  return (
+    <section aria-labelledby="gift-suggestions-heading" className="rounded-lg border bg-muted/20 p-4 sm:p-5 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 id="gift-suggestions-heading" className="font-semibold flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" /> Gift Suggestions
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">Practical, professional ideas based only on known prospect and seller context.</p>
+        </div>
+        <div className="flex items-end gap-2">
+          <label className="text-xs font-medium">
+            Budget (USD)
+            <Input
+              className="mt-1 w-24"
+              type="number"
+              min={10}
+              max={100}
+              step={1}
+              value={budget}
+              onChange={event => setBudget(event.target.value)}
+              aria-invalid={!budgetValid}
+            />
+          </label>
+          <Button
+            variant={data ? "outline" : "default"}
+            onClick={() => generate.mutate({ prospectId, data: { budgetUsd: budgetNumber } })}
+            disabled={!budgetValid || generate.isPending}
+          >
+            {generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : data ? <RefreshCw className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            {generate.isPending ? "Generating…" : data ? "Refresh ideas" : "Generate ideas"}
+          </Button>
+        </div>
+      </div>
+      {!budgetValid && <p role="alert" className="text-sm text-red-500">Enter a whole-dollar budget from $10 to $100.</p>}
+      {suggestions.isLoading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading saved ideas…</div>}
+      {(loadError || generationError) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p role="alert" className="text-sm text-red-500">{generationError?.message ?? loadError?.message ?? "Unable to load gift suggestions."}</p>
+          <Button size="sm" variant="outline" disabled={!budgetValid || generate.isPending} onClick={() => generate.mutate({ prospectId, data: { budgetUsd: budgetNumber } })}>Retry</Button>
+        </div>
+      )}
+      {!suggestions.isLoading && !data && !loadError && !generationError && (
+        <p className="text-sm text-muted-foreground">No saved ideas yet. Generate ideas without starting a gift record or sending anything.</p>
+      )}
+      {data && (
+        <>
+          <div className="grid gap-3 md:grid-cols-2">
+            {data.ideas.map(idea => {
+              const selected = selectedGiftName === idea.name;
+              return (
+                <article key={idea.name} className={`rounded-md border bg-background p-4 space-y-2 ${selected ? "border-primary ring-1 ring-primary" : ""}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-medium">{idea.name}</h4>
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">Estimated ${idea.estimatedPriceMinUsd}–${idea.estimatedPriceMaxUsd} USD</span>
+                  </div>
+                  <p className="text-sm">{idea.description}</p>
+                  <p className="text-sm text-muted-foreground"><strong className="text-foreground">Why it may fit:</strong> {idea.whyFit}</p>
+                  <Button size="sm" variant={selected ? "secondary" : "outline"} disabled={selectionDisabled} onClick={() => onSelect(idea.name)}>
+                    {selected ? "Selected for gift name" : "Use this idea"}
+                  </Button>
+                </article>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">Prices are estimates, not live quotes. Confirm availability, recipient employer gift policies, and any government or regulated-industry restrictions before purchasing or sending.</p>
+        </>
+      )}
+      {selectedGiftName && (
+        <div className="flex items-center justify-between gap-3 rounded-md bg-primary/5 px-3 py-2 text-sm">
+          <span>Pending choice: <strong>{selectedGiftName}</strong>. Save the gift record to apply it; nothing is purchased, approved, or sent.</span>
+          <Button variant="ghost" size="sm" onClick={() => onSelect(null)}><X className="mr-1 h-4 w-4" /> Clear</Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function GiftRecordForm({
+  record,
+  settings,
+  selectedGiftName,
+  onSelectedGiftNameChange,
+}: {
+  record: GiftOutreachRecord;
+  settings: GiftOutreachSettings;
+  selectedGiftName: string | null;
+  onSelectedGiftNameChange: (name: string | null) => void;
+}) {
   const client = useQueryClient();
   const [local, setLocal] = useState<GiftOutreachRecordEdit>({});
   const [videoBusy, setVideoBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const current = { ...record, ...local };
-  const dirty = Object.keys(local).length > 0;
+  useEffect(() => {
+    if (!selectedGiftName) return;
+    setLocal(previous => {
+      if (!Object.hasOwn(previous, "giftName")) return previous;
+      const { giftName: _giftName, ...rest } = previous;
+      return rest;
+    });
+  }, [selectedGiftName]);
+  const current = { ...record, ...(selectedGiftName ? { giftName: selectedGiftName } : {}), ...local };
+  const dirty = Object.keys(local).length > 0 || (!!selectedGiftName && selectedGiftName !== record.giftName);
   const locked = ["sending", "sent", "skipped", "stopped"].includes(record.status);
   const update = (patch: GiftOutreachRecordEdit) => setLocal(previous => ({ ...previous, ...patch }));
   const cacheRecord = async (updated: GiftOutreachRecord) => {
@@ -91,8 +234,8 @@ function GiftRecordForm({ record, settings }: { record: GiftOutreachRecord; sett
     await invalidateGiftQueries(client);
   };
   const save = useMutation({
-    mutationFn: () => patchGiftOutreachRecord(record.id, local),
-    onSuccess: async updated => { await cacheRecord(updated); setLocal({}); setMessage("Saved. Changes require a fresh approval."); },
+    mutationFn: () => patchGiftOutreachRecord(record.id, { ...(selectedGiftName ? { giftName: selectedGiftName } : {}), ...local }),
+    onSuccess: async updated => { await cacheRecord(updated); setLocal({}); onSelectedGiftNameChange(null); setMessage("Saved. Changes require a fresh approval."); },
   });
   const actions = {
     prepare: prepareGiftOutreachRecord, approve: approveGiftOutreachRecord,
@@ -121,7 +264,7 @@ function GiftRecordForm({ record, settings }: { record: GiftOutreachRecord; sett
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => save.mutate()} disabled={!dirty || busy || videoBusy || locked || !validGift}>Save Changes</Button>
-          {dirty && <Button variant="ghost" size="sm" disabled={busy} onClick={() => setLocal({})}>Discard Changes</Button>}
+          {dirty && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { setLocal({}); onSelectedGiftNameChange(null); }}>Discard Changes</Button>}
           {!locked && !approved && <Button size="sm" onClick={() => action.mutate("approve")} disabled={guarded || !prepared}>Approve</Button>}
           {!locked && <Button size="sm" onClick={() => action.mutate("send")} disabled={guarded || !prepared || (requiresApproval && !approved) || record.status !== "ready"}>Send Manually</Button>}
           {!locked && <Button variant="secondary" size="sm" onClick={() => action.mutate("skip")} disabled={guarded}>Skip Gift</Button>}
@@ -138,9 +281,17 @@ function GiftRecordForm({ record, settings }: { record: GiftOutreachRecord; sett
       <fieldset disabled={locked || busy || videoBusy} className="grid md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <h4 className="font-medium text-sm border-b pb-2">Gift Details</h4>
+          <label className="block text-xs font-medium">
+            Gift Name{current.giftSent ? " *" : ""}
+            <Input
+              required={!!current.giftSent}
+              value={current.giftName ?? ""}
+              onChange={e => { onSelectedGiftNameChange(null); update({ giftName: e.target.value }); }}
+              placeholder="Choose an idea above or enter a gift"
+            />
+          </label>
           <label className="flex items-center gap-2 text-sm font-medium"><Switch checked={!!current.giftSent} onCheckedChange={giftSent => update({ giftSent })} /> Gift has been sent</label>
           {current.giftSent && <>
-            <label className="block text-xs font-medium">Gift Name *<Input required value={current.giftName ?? ""} onChange={e => update({ giftName: e.target.value })} /></label>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs font-medium">Date Sent *<Input required type="date" value={current.sentDate ?? ""} onChange={e => update({ sentDate: e.target.value || null })} /></label>
               <label className="text-xs font-medium">Expected Delivery<Input type="date" value={current.expectedDeliveryDate ?? ""} onChange={e => update({ expectedDeliveryDate: e.target.value || null })} /></label>

@@ -101,6 +101,43 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/GiftOutreachRecord" }
+  /gift-outreach/prospects/{prospectId}/suggestions:
+    parameters:
+      - { name: prospectId, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: getProspectGiftSuggestions
+      tags: [gift-outreach]
+      summary: Read persisted gift suggestions for an owned prospect
+      responses:
+        "200":
+          description: Suggestions, or null when none have been generated
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - { $ref: "#/components/schemas/ProspectGiftSuggestions" }
+                  - { type: "null" }
+    post:
+      operationId: generateProspectGiftSuggestions
+      tags: [gift-outreach]
+      summary: Generate and persist practical prospect-specific gift suggestions without sending or purchasing anything
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GiftSuggestionInput" }
+      responses:
+        "200":
+          description: Validated and persisted suggestions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProspectGiftSuggestions" }
+        "400":
+          description: Invalid budget
+        "404":
+          description: Prospect not found for this tenant
+        "502":
+          description: AI provider failed or returned invalid suggestions
   /gift-outreach/records/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: integer } }
@@ -1598,6 +1635,34 @@ components:
         automationLevel: { type: string, enum: [auto, review, manual], default: review }
         videoFallback: { type: string, enum: [pause, email], default: pause }
         maxFollowUpAttempts: { type: integer, minimum: 1, maximum: 5, default: 1 }
+    GiftSuggestionInput:
+      type: object
+      additionalProperties: false
+      required: [budgetUsd]
+      properties:
+        budgetUsd: { type: integer, minimum: 10, maximum: 100, default: 25 }
+    GiftSuggestionIdea:
+      type: object
+      additionalProperties: false
+      required: [name, description, estimatedPriceMinUsd, estimatedPriceMaxUsd, whyFit]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, minLength: 1, maxLength: 400 }
+        estimatedPriceMinUsd: { type: integer, minimum: 1, maximum: 100 }
+        estimatedPriceMaxUsd: { type: integer, minimum: 1, maximum: 100 }
+        whyFit: { type: string, minLength: 1, maxLength: 400 }
+    ProspectGiftSuggestions:
+      type: object
+      additionalProperties: false
+      required: [budgetUsd, generatedAt, ideas]
+      properties:
+        budgetUsd: { type: integer, minimum: 10, maximum: 100 }
+        generatedAt: { type: string, format: date-time }
+        ideas:
+          type: array
+          minItems: 3
+          maxItems: 5
+          items: { $ref: "#/components/schemas/GiftSuggestionIdea" }
     GiftOutreachSettings:
       allOf:
         - { $ref: "#/components/schemas/GiftOutreachSettingsInput" }

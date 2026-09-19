@@ -304,6 +304,92 @@ export const ListProspectGiftOutreachRecordsResponseItem = zod.object({
 export const ListProspectGiftOutreachRecordsResponse = zod.array(ListProspectGiftOutreachRecordsResponseItem)
 
 
+/**
+ * @summary Read persisted gift suggestions for an owned prospect
+ */
+export const GetProspectGiftSuggestionsParams = zod.object({
+  "prospectId": zod.coerce.number()
+})
+
+export const getProspectGiftSuggestionsResponseOneBudgetUsdMin = 10;
+export const getProspectGiftSuggestionsResponseOneBudgetUsdMax = 100;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemNameMax = 120;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemDescriptionMax = 400;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMax = 100;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMax = 100;
+
+export const getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax = 400;
+
+export const getProspectGiftSuggestionsResponseOneIdeasMin = 3;
+export const getProspectGiftSuggestionsResponseOneIdeasMax = 5;
+
+
+
+export const GetProspectGiftSuggestionsResponse = zod.union([zod.object({
+  "budgetUsd": zod.number().min(getProspectGiftSuggestionsResponseOneBudgetUsdMin).max(getProspectGiftSuggestionsResponseOneBudgetUsdMax),
+  "generatedAt": zod.coerce.date(),
+  "ideas": zod.array(zod.object({
+  "name": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemNameMax),
+  "description": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemDescriptionMax),
+  "estimatedPriceMinUsd": zod.number().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMinUsdMax),
+  "estimatedPriceMaxUsd": zod.number().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemEstimatedPriceMaxUsdMax),
+  "whyFit": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneIdeasItemWhyFitMax)
+})).min(getProspectGiftSuggestionsResponseOneIdeasMin).max(getProspectGiftSuggestionsResponseOneIdeasMax)
+}),zod.null()])
+
+
+/**
+ * @summary Generate and persist practical prospect-specific gift suggestions without sending or purchasing anything
+ */
+export const GenerateProspectGiftSuggestionsParams = zod.object({
+  "prospectId": zod.coerce.number()
+})
+
+export const generateProspectGiftSuggestionsBodyBudgetUsdDefault = 25;
+export const generateProspectGiftSuggestionsBodyBudgetUsdMin = 10;
+export const generateProspectGiftSuggestionsBodyBudgetUsdMax = 100;
+
+
+
+export const GenerateProspectGiftSuggestionsBody = zod.object({
+  "budgetUsd": zod.number().min(generateProspectGiftSuggestionsBodyBudgetUsdMin).max(generateProspectGiftSuggestionsBodyBudgetUsdMax).default(generateProspectGiftSuggestionsBodyBudgetUsdDefault)
+})
+
+export const generateProspectGiftSuggestionsResponseBudgetUsdMin = 10;
+export const generateProspectGiftSuggestionsResponseBudgetUsdMax = 100;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemNameMax = 120;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemDescriptionMax = 400;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax = 100;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax = 100;
+
+export const generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax = 400;
+
+export const generateProspectGiftSuggestionsResponseIdeasMin = 3;
+export const generateProspectGiftSuggestionsResponseIdeasMax = 5;
+
+
+
+export const GenerateProspectGiftSuggestionsResponse = zod.object({
+  "budgetUsd": zod.number().min(generateProspectGiftSuggestionsResponseBudgetUsdMin).max(generateProspectGiftSuggestionsResponseBudgetUsdMax),
+  "generatedAt": zod.coerce.date(),
+  "ideas": zod.array(zod.object({
+  "name": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemNameMax),
+  "description": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemDescriptionMax),
+  "estimatedPriceMinUsd": zod.number().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMinUsdMax),
+  "estimatedPriceMaxUsd": zod.number().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemEstimatedPriceMaxUsdMax),
+  "whyFit": zod.string().min(1).max(generateProspectGiftSuggestionsResponseIdeasItemWhyFitMax)
+})).min(generateProspectGiftSuggestionsResponseIdeasMin).max(generateProspectGiftSuggestionsResponseIdeasMax)
+})
+
+
 export const GetGiftOutreachRecordParams = zod.object({
   "id": zod.coerce.number()
 })

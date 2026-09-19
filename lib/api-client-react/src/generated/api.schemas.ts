@@ -392,6 +392,56 @@ export interface GiftOutreachSettingsInput {
   maxFollowUpAttempts?: number;
 }
 
+export interface GiftSuggestionInput {
+  /**
+     * @minimum 10
+     * @maximum 100
+     */
+  budgetUsd: number;
+}
+
+export interface GiftSuggestionIdea {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 400
+     */
+  description: string;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  estimatedPriceMinUsd: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  estimatedPriceMaxUsd: number;
+  /**
+     * @minLength 1
+     * @maxLength 400
+     */
+  whyFit: string;
+}
+
+export interface ProspectGiftSuggestions {
+  /**
+     * @minimum 10
+     * @maximum 100
+     */
+  budgetUsd: number;
+  generatedAt: string;
+  /**
+     * @minItems 3
+     * @maxItems 5
+     */
+  ideas: GiftSuggestionIdea[];
+}
+
 export type GiftOutreachSettings = GiftOutreachSettingsInput & { [key: string]: unknown } & Required<Pick<GiftOutreachSettingsInput & { [key: string]: unknown }, 'enabled' | 'defaultMethod' | 'daysAfterDelivery' | 'sentOnlyBusinessDays' | 'industry' | 'serviceDescriptions' | 'discussionPoints' | 'schedulingLink' | 'emailSignature' | 'videoHostingPreference' | 'videoCta' | 'businessHoursStart' | 'businessHoursEnd' | 'timezone' | 'allowedDays' | 'automationLevel' | 'videoFallback' | 'maxFollowUpAttempts'>>;
 
 /**
