@@ -649,6 +649,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Prospect"
+        "409":
+          description: The authenticated research handoff expired or no longer matches the prospect identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error, code]
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: [research_refresh_required]
 
   /prospects/bulk:
     post:
@@ -2223,6 +2236,10 @@ components:
                 type: string
               phone:
                 type: string
+              employeeCount:
+                type: integer
+              opportunityIntelligence:
+                $ref: "#/components/schemas/OpportunityIntelligence"
 
     EnrichLeadsResult:
       type: object

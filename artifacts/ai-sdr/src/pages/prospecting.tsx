@@ -328,6 +328,8 @@ export default function Prospecting() {
             state: l.state,
             address: l.address,
             phone: l.phone,
+            employeeCount: l.estimatedEmployees,
+            opportunityIntelligence: l.opportunityIntelligence,
           })),
         },
       },

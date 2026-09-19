@@ -235,6 +235,7 @@ describe("IT opportunity research", () => {
       expect(verifiedResearchProof(signed.researchProof, "tenant-a", lead, seller)?.selectedIndustry).toBe("Manufacturing");
       expect(verifiedResearchProof(signed.researchProof, "tenant-b", lead, seller)).toBeUndefined();
       expect(verifiedResearchProof(signed.researchProof, "tenant-a", { ...lead, website: "https://other.example" }, seller)).toBeUndefined();
+      expect(verifiedResearchProof(signed.researchProof, "tenant-a", { ...lead, employeeCount: 84 }, seller)).toBeUndefined();
     } finally {
       if (prior === undefined) delete process.env.SESSION_SECRET;
       else process.env.SESSION_SECRET = prior;

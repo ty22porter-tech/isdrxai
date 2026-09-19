@@ -5,6 +5,7 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { OpportunityIntelligence } from './opportunityIntelligence';
 
 export type EnrichLeadsRequestLeadsItem = {
   companyName: string;
@@ -16,4 +17,6 @@ export type EnrichLeadsRequestLeadsItem = {
   state?: string;
   address?: string;
   phone?: string;
+  employeeCount?: number;
+  opportunityIntelligence?: OpportunityIntelligence;
 };

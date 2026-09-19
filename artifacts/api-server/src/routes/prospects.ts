@@ -20,7 +20,7 @@ import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 import { buildOpportunityIntelligence, deriveOpportunityForPersistence, upgradeStoredOpportunityIntelligence } from "../lib/opportunityIntelligence";
-import { attachResearchProof, verifiedResearchProof } from "../lib/itOpportunityResearch";
+import { attachResearchProof, verifyResearchHandoff, type ResearchProofFailure } from "../lib/itOpportunityResearch";
 import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
 
 const router = Router();
@@ -38,7 +38,16 @@ async function currentClient(clientId: string) {
   return client;
 }
 
-async function trustedProspectValues(
+const RESEARCH_REFRESH_MESSAGE = "Opportunity research is no longer valid for this prospect. Refresh its intelligence, then try saving again.";
+
+export class ResearchHandoffError extends Error {
+  constructor(readonly reason: ResearchProofFailure) {
+    super(RESEARCH_REFRESH_MESSAGE);
+    this.name = "ResearchHandoffError";
+  }
+}
+
+export async function trustedProspectValues(
   input: Record<string, any>,
   vertical: string,
   client?: typeof usersTable.$inferSelect,
@@ -50,14 +59,20 @@ async function trustedProspectValues(
   // their existing server snapshot and may be freshly researched on identity
   // changes; a client cannot turn an old proof into an edit authorization.
   if (requestedIntelligence?.itResearch && !priorServerIntelligence) {
-    const verified = client?.id
-      ? verifiedResearchProof(requestedIntelligence.researchProof, client.id, values as any, client)
-      : undefined;
-    if (!verified) {
-      throw new Error("The opportunity research handoff has expired or is invalid. Refresh research before saving this prospect.");
+    const verification = client?.id
+      ? verifyResearchHandoff(requestedIntelligence.researchProof, client.id, values as any, client)
+      : { ok: false as const, reason: "invalid" as const };
+    if (!verification.ok) {
+      throw new ResearchHandoffError(verification.reason);
     }
     const intelligence = attachResearchProof(
-      buildOpportunityIntelligence(values as any, vertical, client, [], verified),
+      buildOpportunityIntelligence(
+        values as any,
+        vertical,
+        client,
+        verification.handoff.signals,
+        verification.handoff.itResearch,
+      ),
       client!.id,
       values as any,
       client,
@@ -155,7 +170,17 @@ router.post("/", async (req, res) => {
   let client = await currentClient(req.clientId);
   client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const vertical = clientVertical(client);
-  const values = await trustedProspectValues(body, vertical, client);
+  let values;
+  try {
+    values = await trustedProspectValues(body, vertical, client);
+  } catch (err) {
+    if (err instanceof ResearchHandoffError) {
+      req.log.warn({ reason: err.reason }, "Prospect save rejected because research handoff requires refresh");
+      res.status(409).json({ error: err.message, code: "research_refresh_required" });
+      return;
+    }
+    throw err;
+  }
   const [prospect] = await db.insert(prospectsTable).values({ ...values, clientId: req.clientId, status: "new", scheduleToken, vertical }).returning();
   await db.insert(activityTable).values({
     clientId: req.clientId,
@@ -197,20 +222,35 @@ router.post("/bulk", async (req, res) => {
       if (index === undefined) return;
       const prospectInput = prospects[index];
       const rawEmail = (prospectInput.email ?? "").trim().toLowerCase();
-      trustedInputs[index] = (!prospectInput.companyName?.trim() || !EMAIL_RE.test(rawEmail)
-        || (existingByEmail.has(rawEmail) && duplicateStrategy !== "update"))
-        ? prospectInput
-        : await trustedProspectValues(
+      if (!prospectInput.companyName?.trim() || !EMAIL_RE.test(rawEmail)
+        || (existingByEmail.has(rawEmail) && duplicateStrategy !== "update")) {
+        trustedInputs[index] = prospectInput;
+        continue;
+      }
+      try {
+        trustedInputs[index] = await trustedProspectValues(
           prospectInput,
           vertical,
           client,
           existingByEmail.get(rawEmail)?.opportunityIntelligence,
           existingByEmail.get(rawEmail),
         );
+      } catch (err) {
+        if (err instanceof ResearchHandoffError) {
+          trustedInputs[index] = { ...prospectInput, __researchHandoffError: err.message };
+          continue;
+        }
+        throw err;
+      }
     }
   }));
   for (let i = 0; i < prospects.length; i++) {
     const input = trustedInputs[i];
+    if (input.__researchHandoffError) {
+      failed++;
+      results.push({ index: i, success: false, error: input.__researchHandoffError });
+      continue;
+    }
     const email = (input.email ?? "").trim().toLowerCase();
     if (!input.companyName?.trim()) {
       failed++;

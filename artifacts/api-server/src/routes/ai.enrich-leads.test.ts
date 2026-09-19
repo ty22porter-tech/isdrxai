@@ -21,7 +21,8 @@ vi.mock("../lib/itOpportunityResearch", () => {
   class ItOpportunityResearchTimeoutError extends ItOpportunityResearchError {}
   return {
     cacheTrustedItResearch: vi.fn(),
-    attachResearchProof: vi.fn((value) => value),
+    attachResearchProof: vi.fn((value) => ({ ...value, researchProof: "updated-server-proof" })),
+    verifyResearchHandoff: vi.fn(() => ({ ok: false, reason: "missing" })),
     ItOpportunityResearchError,
     ItOpportunityResearchTimeoutError,
     researchItOpportunityIntelligence: vi.fn(),
@@ -34,6 +35,7 @@ import { db } from "@workspace/db";
 import { enrichPerson } from "../lib/apollo";
 import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
 import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
+import { verifyResearchHandoff } from "../lib/itOpportunityResearch";
 
 const handler = (router as any).stack.find((layer: any) => layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
 const leads = (count: number) => Array.from({ length: count }, (_, index) => ({
@@ -113,6 +115,96 @@ describe("contact enrichment failure isolation", () => {
       researchWarning: expect.stringContaining("Opportunity research was unavailable"),
     });
     expect(res.json.mock.calls[0][0].results[0].error).toBeUndefined();
+  });
+
+  it("re-signs trusted search research for Apollo demographics when optional research fails", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({
+      ok: true,
+      person: { ...person, employeeCount: 84 },
+    } as any);
+    vi.mocked(verifyResearchHandoff).mockReturnValue({
+      ok: true,
+      handoff: {
+        signals: [],
+        itResearch: {
+          selectedIndustry: "Manufacturing",
+          actualIndustry: "Manufacturing",
+          industryRelationship: "match",
+          industryExplanation: "Verified operating sector.",
+          industrySources: [],
+          lastResearched: new Date().toISOString(),
+          warnings: [],
+          industryChallenges: [],
+          prospectConcerns: [],
+          recommendations: [],
+        },
+      },
+    } as any);
+    vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("optional provider unavailable"));
+    const res = response();
+    await handler({
+      body: {
+        leads: [{
+          ...realisticLead(0),
+          opportunityIntelligence: {
+            version: 3,
+            score: 20,
+            label: "Low Priority",
+            scoreConfidence: "medium",
+            definition: "Server-derived snapshot",
+            breakdown: [
+              "company_industry_fit",
+              "verified_buying_signals",
+              "seller_prospect_match",
+              "decision_maker_match",
+              "signal_freshness",
+              "business_need_potential",
+            ].map((key) => ({
+              key,
+              label: key,
+              points: 0,
+              maxPoints: 20,
+              explanation: "",
+              evidence: [],
+            })),
+            signals: [],
+            whyTarget: "",
+            potentialNeeds: [],
+            recommendedOutreach: "",
+            generatedAt: "2025-01-01T00:00:00.000Z",
+            researchProof: "original-search-proof",
+            itResearch: {
+              selectedIndustry: "Manufacturing",
+              actualIndustry: "Manufacturing",
+              industryRelationship: "match",
+              industryExplanation: "Verified operating sector.",
+              industrySources: [],
+              lastResearched: "2025-01-01T00:00:00.000Z",
+              warnings: [],
+              industryChallenges: [],
+              prospectConcerns: [],
+              recommendations: [],
+            },
+          },
+        }],
+      },
+      clientId: "synthetic-client",
+    }, res);
+
+    expect(verifyResearchHandoff).toHaveBeenCalledWith(
+      "original-search-proof",
+      "synthetic-client",
+      expect.objectContaining({ companyName: "Regional Manufacturing 0", employeeCount: undefined }),
+      expect.objectContaining({ id: "synthetic-client" }),
+    );
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({
+      status: "enriched",
+      employeeCount: 84,
+      opportunityIntelligence: {
+        researchProof: "updated-server-proof",
+      },
+      researchWarning: expect.stringContaining("existing opportunity intelligence was kept"),
+    });
   });
 
   it("isolates demographics failure and still retains the Apollo contact", async () => {

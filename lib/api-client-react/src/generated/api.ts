@@ -36,6 +36,7 @@ import type {
   Campaign,
   CampaignInput,
   CampaignUpdate,
+  CreateProspect409,
   DashboardStats,
   DeepHealthStatus,
   Email,
@@ -2220,7 +2221,7 @@ export const createProspect = async (prospectInput: ProspectInput, options?: Req
 
 
 
-export const getCreateProspectMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateProspectMutationOptions = <TError = ErrorType<CreateProspect409>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProspect>>, TError,{data: BodyType<ProspectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createProspect>>, TError,{data: BodyType<ProspectInput>}, TContext> => {
 
@@ -2249,12 +2250,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateProspectMutationResult = NonNullable<Awaited<ReturnType<typeof createProspect>>>
     export type CreateProspectMutationBody = BodyType<ProspectInput>
-    export type CreateProspectMutationError = ErrorType<unknown>
+    export type CreateProspectMutationError = ErrorType<CreateProspect409>
 
     /**
  * @summary Create a prospect
  */
-export const useCreateProspect = <TError = ErrorType<unknown>,
+export const useCreateProspect = <TError = ErrorType<CreateProspect409>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProspect>>, TError,{data: BodyType<ProspectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createProspect>>,

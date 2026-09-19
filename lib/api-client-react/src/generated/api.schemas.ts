@@ -1165,6 +1165,8 @@ export type EnrichLeadsRequestLeadsItem = {
   state?: string;
   address?: string;
   phone?: string;
+  employeeCount?: number;
+  opportunityIntelligence?: OpportunityIntelligence;
 };
 
 export interface EnrichLeadsRequest {
@@ -1407,6 +1409,18 @@ sentFrom?: string;
  * @pattern ^\d{4}-\d{2}-\d{2}$
  */
 sentTo?: string;
+};
+
+export type CreateProspect409Code = typeof CreateProspect409Code[keyof typeof CreateProspect409Code];
+
+
+export const CreateProspect409Code = {
+  research_refresh_required: 'research_refresh_required',
+} as const;
+
+export type CreateProspect409 = {
+  error: string;
+  code: CreateProspect409Code;
 };
 
 export type ListEmailsParams = {

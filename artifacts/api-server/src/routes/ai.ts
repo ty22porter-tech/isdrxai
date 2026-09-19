@@ -26,6 +26,7 @@ import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
 import {
   cacheTrustedItResearch,
   attachResearchProof,
+  verifyResearchHandoff,
   ItOpportunityResearchError,
   ItOpportunityResearchTimeoutError,
   researchItOpportunityIntelligence,
@@ -535,6 +536,19 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         return;
       }
       const lead = leads[index];
+      const priorResearch = verifyResearchHandoff(
+        lead.opportunityIntelligence?.researchProof,
+        req.clientId,
+        {
+          companyName: lead.companyName,
+          website: lead.website,
+          industry: lead.industry,
+          city: lead.city,
+          state: lead.state,
+          employeeCount: lead.employeeCount,
+        },
+        client,
+      );
       const result = await enrichPerson({
         email: lead.email,
         contactName: lead.contactName ?? null,
@@ -630,6 +644,22 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         } catch (err) {
           logger.warn({ phase, index, category: enrichmentErrorCategory(err) }, "Optional lead research failed");
           warnings.push("Opportunity research was unavailable; existing opportunity intelligence was kept.");
+          if (priorResearch.ok) {
+            opportunityIntelligence = attachResearchProof(
+              buildOpportunityIntelligence(
+                intelligenceLead,
+                vertical,
+                client,
+                priorResearch.handoff.signals,
+                priorResearch.handoff.itResearch,
+              ),
+              req.clientId,
+              intelligenceLead,
+              client,
+            );
+          } else if (lead.opportunityIntelligence?.itResearch) {
+            warnings.push("Refresh opportunity research before saving because its secure handoff is no longer valid.");
+          }
         }
       }
       results.push({

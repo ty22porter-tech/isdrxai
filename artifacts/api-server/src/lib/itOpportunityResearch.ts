@@ -94,13 +94,25 @@ export function withResearchPipelineTimeout<T>(operation: Promise<T>, timeoutMs 
 }
 
 type ResearchProofPayload = {
-  v: 1;
+  v: 1 | 2;
   exp: number;
   clientId: string;
   sellerRevision: string;
   identity: string;
   itResearch: ItResearch;
+  signals?: OpportunitySignal[];
 };
+
+export type VerifiedResearchHandoff = {
+  itResearch: ItResearch;
+  signals: OpportunitySignal[];
+};
+
+export type ResearchProofFailure = "missing" | "invalid" | "expired" | "identity_changed";
+
+export type ResearchProofVerification =
+  | { ok: true; handoff: VerifiedResearchHandoff }
+  | { ok: false; reason: ResearchProofFailure };
 
 type CachedResearch = {
   expiresAt: number;
@@ -186,12 +198,13 @@ export function attachResearchProof(
 ): OpportunityIntelligence & { researchProof?: string } {
   if (!intelligence.itResearch) return intelligence;
   const payload: ResearchProofPayload = {
-    v: 1,
+    v: 2,
     exp: Date.now() + RESEARCH_PROOF_TTL_MS,
     clientId,
     sellerRevision: sellerRevision(client),
     identity: researchIdentity(lead),
     itResearch: intelligence.itResearch as ItResearch,
+    signals: intelligence.signals,
   };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return { ...intelligence, researchProof: `${encoded}.${signProof(encoded)}` };
@@ -203,24 +216,51 @@ export function verifiedResearchProof(
   lead: ItResearchLead,
   client?: typeof usersTable.$inferSelect,
 ): ItResearch | undefined {
-  if (typeof proof !== "string" || proof.length > 100_000) return undefined;
+  const result = verifyResearchHandoff(proof, clientId, lead, client);
+  return result.ok ? result.handoff.itResearch : undefined;
+}
+
+/**
+ * Verifies the complete server-issued research snapshot. The lead identity is
+ * matched exactly, including employee count, so browser-supplied demographic
+ * changes can never inherit trusted research. Enrichment may call this against
+ * its original input and then issue a new proof after applying server-fetched
+ * demographics.
+ */
+export function verifyResearchHandoff(
+  proof: unknown,
+  clientId: string,
+  lead: ItResearchLead,
+  client?: typeof usersTable.$inferSelect,
+): ResearchProofVerification {
+  if (typeof proof !== "string") return { ok: false, reason: "missing" };
+  if (proof.length > 100_000) return { ok: false, reason: "invalid" };
   const [encoded, signature, ...extra] = proof.split(".");
-  if (!encoded || !signature || extra.length) return undefined;
+  if (!encoded || !signature || extra.length) return { ok: false, reason: "invalid" };
   let expected: Buffer;
   let actual: Buffer;
   try {
     expected = Buffer.from(signProof(encoded), "base64url");
     actual = Buffer.from(signature, "base64url");
-    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return undefined;
+    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) {
+      return { ok: false, reason: "invalid" };
+    }
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as ResearchProofPayload;
     if (
-      payload.v !== 1 || !payload.itResearch || payload.exp < Date.now()
+      (payload.v !== 1 && payload.v !== 2) || !payload.itResearch
       || payload.clientId !== clientId || payload.sellerRevision !== sellerRevision(client)
-      || payload.identity !== researchIdentity(lead)
-    ) return undefined;
-    return payload.itResearch;
+    ) return { ok: false, reason: "invalid" };
+    if (payload.exp < Date.now()) return { ok: false, reason: "expired" };
+    if (payload.identity !== researchIdentity(lead)) return { ok: false, reason: "identity_changed" };
+    return {
+      ok: true,
+      handoff: {
+        itResearch: payload.itResearch,
+        signals: payload.v === 2 && Array.isArray(payload.signals) ? payload.signals : [],
+      },
+    };
   } catch {
-    return undefined;
+    return { ok: false, reason: "invalid" };
   }
 }
 

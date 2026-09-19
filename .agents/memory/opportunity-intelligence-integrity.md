@@ -5,6 +5,12 @@ description: Trust, evidence, and separation rules for Opportunity Scores.
 
 Opportunity Intelligence is a server-derived snapshot. Never trust client-supplied score arithmetic; recompute supplied snapshots from trusted prospect fields and current seller context. Preserve null for legacy or manual prospects that have no snapshot.
 
+When enrichment changes fields bound to a research proof, verify the original snapshot against the original identity before rebuilding and re-signing with server-fetched changes. Do not retain an old proof alongside changed demographics, or loosen verification to make saving succeed.
+
+**Why:** Retaining research after optional research failure preserved contacts but caused pipeline saves to reject the now-mismatched research identity.
+
+**How to apply:** Exercise search → enrichment → save as one flow, including optional research failures. Already-mismatched results must refresh rather than being silently trusted; reject invalid research with a recoverable message.
+
 The research-based sections supersede the older narrative restrictions below: **Industry Challenges**, **Prospect Concerns**, and **Recommended Solutions and Outreach**, contextualized by the seller's “Your Industry.” IT Services uses the IT-specific titles. Industry-based possibilities are explicitly requested and allowed when labeled as possibilities, never promoted to verified buying signals.
 
 The Outreach area should explain which concrete seller products or services could solve each prospect concern, not display an email pitch or discovery-question script.
