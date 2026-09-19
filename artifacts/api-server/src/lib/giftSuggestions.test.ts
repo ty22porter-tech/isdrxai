@@ -33,6 +33,7 @@ const fake = vi.hoisted(() => {
   };
   return { state, db, prospectsTable, usersTable };
 });
+const geminiGenerate = vi.hoisted(() => vi.fn());
 
 vi.mock("@workspace/db", () => ({
   db: fake.db,
@@ -40,6 +41,9 @@ vi.mock("@workspace/db", () => ({
   usersTable: fake.usersTable,
 }));
 vi.mock("drizzle-orm", () => ({ and: (...values: unknown[]) => values, eq: (...values: unknown[]) => values }));
+vi.mock("@workspace/integrations-gemini-ai", () => ({
+  getGeminiClient: () => ({ models: { generateContent: geminiGenerate } }),
+}));
 vi.mock("./giftOutreach", () => ({
   GiftOutreachError: class GiftOutreachError extends Error {
     constructor(message: string, public status = 409) { super(message); }
@@ -50,6 +54,7 @@ import {
   buildGiftSuggestionPrompt,
   generateGiftSuggestions,
   previewGiftSuggestions,
+  requestProspectGiftResearch,
   validateGiftSuggestionOutput,
   validateProspectGiftResearch,
 } from "./giftSuggestions";
@@ -73,6 +78,8 @@ function researchPayload(facts: any[]) {
 }
 
 beforeEach(() => {
+  geminiGenerate.mockReset();
+  vi.unstubAllGlobals();
   fake.state.prospects = [{
     id: 7,
     clientId: "tenant-a",
@@ -163,6 +170,116 @@ describe("prospect gift suggestions", () => {
     );
     expect(result).toMatchObject({ budgetUsd: 25, researchStatus: "no_public_match" });
     expect(fake.state.updated).toBeNull();
+  });
+
+  it("uses honestly labeled alternate public-web research when Gemini omits grounding metadata", async () => {
+    geminiGenerate.mockResolvedValue({ text: "ungrounded response", candidates: [{ content: {} }] });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(researchPayload([{
+      type: "education",
+      classification: "degree",
+      summary: "Jamie Rivera earned a bachelor's degree from State University.",
+      evidence: "Jamie Rivera, Acme Operations Director in Columbus, earned a bachelor's degree from State University.",
+      identityEvidence: "Jamie Rivera is Acme Operations Director in Columbus.",
+      url: "https://example.org/public-bio",
+      identity: { nameMatched: true, companyMatched: true, roleOrLocationMatched: true },
+      publiclyStatedByProspect: false,
+    }])), { status: 200, headers: { "Content-Type": "application/json" } })));
+    const payload = await requestProspectGiftResearch(
+      { name: "Jamie Rivera", company: "Acme", role: "Operations Director", location: "Columbus, OH" },
+      "janitorial",
+      "2026-01-02T00:00:00.000Z",
+    );
+    expect(payload.researchProvider).toBe("openai_web_search_legacy");
+    expect(validateProspectGiftResearch(payload, "2026-01-02T00:00:00.000Z", {
+      name: "Jamie Rivera", company: "Acme", role: "Operations Director", location: "Columbus, OH",
+    })).toHaveLength(1);
+  });
+
+  it("treats a malformed alternate response as research unavailable instead of a generation 502", async () => {
+    geminiGenerate.mockResolvedValue({ text: "ungrounded response", candidates: [{ content: {} }] });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      output_text: "not valid research json",
+      output: [{ type: "web_search_call", status: "incomplete" }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+    const payload = await requestProspectGiftResearch(
+      { name: "Jamie Rivera", company: "Acme", role: "Operations Director", location: "Columbus, OH" },
+      "janitorial",
+      "2026-01-02T00:00:00.000Z",
+    );
+    expect(payload).toMatchObject({ researchUnavailable: true, outputText: '{"facts":[]}' });
+
+    const result = await previewGiftSuggestions(
+      "tenant-a",
+      {
+        budgetUsd: 25,
+        contactName: "Jamie Rivera",
+        companyName: "Acme",
+        industry: "Manufacturing",
+        title: "Operations Director",
+      },
+      vi.fn().mockResolvedValue(validOutput),
+      vi.fn().mockResolvedValue(payload),
+    );
+    expect(result.researchStatus).toBe("research_unavailable");
+    expect(result.ideas).toHaveLength(3);
+  });
+
+  it("classifies grounded affiliation before college words, preserves finalist status, and drops only an overlong support", async () => {
+    const identityText = "Jamie Rivera, Acme Operations Director in Columbus";
+    geminiGenerate.mockResolvedValue({
+      text: "grounded public facts",
+      candidates: [{ groundingMetadata: {
+        webSearchQueries: ["Jamie Rivera Acme public bio"],
+        groundingChunks: [
+          { web: { uri: "https://example.org/bio", title: "Public bio" } },
+          { web: { uri: "https://example.org/awards", title: "Awards" } },
+        ],
+        groundingSupports: [
+          {
+            segment: { text: `${identityText}, is a university alumna and public sorority chapter member.` },
+            groundingChunkIndices: [0],
+          },
+          {
+            segment: { text: `${identityText}, was an award finalist among prior award winners.` },
+            groundingChunkIndices: [1],
+          },
+          {
+            segment: { text: `${identityText}, earned a bachelor's degree. ${"x".repeat(301)}` },
+            groundingChunkIndices: [0],
+          },
+        ],
+      } }],
+    });
+    const identity = { name: "Jamie Rivera", company: "Acme", role: "Operations Director", location: "Columbus, OH" };
+    const payload = await requestProspectGiftResearch(identity, "janitorial", "2026-01-02T00:00:00.000Z");
+    const facts = validateProspectGiftResearch(payload, "2026-01-02T00:00:00.000Z", identity);
+    expect(facts.map(fact => fact.classification)).toEqual(["public_affiliation", "nominee_finalist"]);
+  });
+
+  it("returns honest general ideas when both public research providers are unavailable", async () => {
+    const result = await previewGiftSuggestions(
+      "tenant-a",
+      {
+        budgetUsd: 25,
+        contactName: "Jamie Rivera",
+        companyName: "Acme",
+        industry: "Manufacturing",
+        title: "Operations Director",
+        city: "Columbus",
+        state: "OH",
+      },
+      vi.fn().mockResolvedValue(validOutput),
+      vi.fn().mockResolvedValue({
+        outputText: '{"facts":[]}',
+        groundingChunks: [],
+        groundingSupports: [],
+        researchUnavailable: true,
+      }),
+    );
+    expect(result.researchStatus).toBe("research_unavailable");
+    expect(result.researchMessage).toContain("providers were unavailable");
+    expect(result.researchFacts).toEqual([]);
+    expect(result.ideas.every(idea => idea.personalization === "generic_fallback")).toBe(true);
   });
 
   it("keeps identity-matched evidence and distinguishes nomination from a win", () => {

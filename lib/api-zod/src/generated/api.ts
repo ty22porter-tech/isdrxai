@@ -366,7 +366,7 @@ export const getProspectGiftSuggestionsResponseOneIdeasMax = 5;
 export const GetProspectGiftSuggestionsResponse = zod.union([zod.object({
   "budgetUsd": zod.number().min(getProspectGiftSuggestionsResponseOneBudgetUsdMin).max(getProspectGiftSuggestionsResponseOneBudgetUsdMax),
   "generatedAt": zod.coerce.date(),
-  "researchStatus": zod.enum(['verified_facts', 'no_public_match']),
+  "researchStatus": zod.enum(['verified_facts', 'no_public_match', 'research_unavailable']),
   "researchMessage": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchMessageMax),
   "researchFacts": zod.array(zod.object({
   "id": zod.string().min(1).max(getProspectGiftSuggestionsResponseOneResearchFactsItemIdMax),
@@ -481,7 +481,7 @@ export const generateProspectGiftSuggestionsResponseIdeasMax = 5;
 export const GenerateProspectGiftSuggestionsResponse = zod.object({
   "budgetUsd": zod.number().min(generateProspectGiftSuggestionsResponseBudgetUsdMin).max(generateProspectGiftSuggestionsResponseBudgetUsdMax),
   "generatedAt": zod.coerce.date(),
-  "researchStatus": zod.enum(['verified_facts', 'no_public_match']),
+  "researchStatus": zod.enum(['verified_facts', 'no_public_match', 'research_unavailable']),
   "researchMessage": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchMessageMax),
   "researchFacts": zod.array(zod.object({
   "id": zod.string().min(1).max(generateProspectGiftSuggestionsResponseResearchFactsItemIdMax),
@@ -613,7 +613,7 @@ export const previewProspectGiftSuggestionsResponseIdeasMax = 5;
 export const PreviewProspectGiftSuggestionsResponse = zod.object({
   "budgetUsd": zod.number().min(previewProspectGiftSuggestionsResponseBudgetUsdMin).max(previewProspectGiftSuggestionsResponseBudgetUsdMax),
   "generatedAt": zod.coerce.date(),
-  "researchStatus": zod.enum(['verified_facts', 'no_public_match']),
+  "researchStatus": zod.enum(['verified_facts', 'no_public_match', 'research_unavailable']),
   "researchMessage": zod.string().min(1).max(previewProspectGiftSuggestionsResponseResearchMessageMax),
   "researchFacts": zod.array(zod.object({
   "id": zod.string().min(1).max(previewProspectGiftSuggestionsResponseResearchFactsItemIdMax),

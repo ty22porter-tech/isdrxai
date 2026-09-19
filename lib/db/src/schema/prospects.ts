@@ -128,7 +128,7 @@ export interface GiftOfferComparison {
 export interface ProspectGiftSuggestions {
   budgetUsd: number;
   generatedAt: string;
-  researchStatus: "verified_facts" | "no_public_match";
+  researchStatus: "verified_facts" | "no_public_match" | "research_unavailable";
   researchMessage: string;
   researchFacts: GiftProspectResearchFact[];
   ideas: GiftSuggestionIdea[];

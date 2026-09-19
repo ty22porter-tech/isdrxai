@@ -46,7 +46,13 @@ export function ProspectGiftSuggestionPreview({ identity }: { identity: GiftPrev
       {result && <>
         <div className="rounded-md border bg-muted/20 p-3 space-y-2">
           <p className="text-sm"><strong>Research:</strong> {result.researchMessage}</p>
-          <p className="text-xs text-muted-foreground">Sources checked with Gemini Google Search grounding.</p>
+          <p className="text-xs text-muted-foreground">
+            {result.researchProvider === "google_search_grounding"
+              ? "Public sources checked with Gemini Google Search grounding."
+              : result.researchProvider === "openai_web_search_legacy"
+                ? "Google grounding was unavailable; public sources were checked with alternate OpenAI web search."
+                : "Public research was unavailable; these ideas use supplied business identity only."}
+          </p>
           <ul className="space-y-2">
             {result.researchFacts.map(fact => <li key={fact.id} className="text-sm">
               <span className="font-medium">{fact.summary}</span>{" "}

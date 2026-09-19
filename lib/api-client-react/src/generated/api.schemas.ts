@@ -610,6 +610,7 @@ export type ProspectGiftSuggestionsResearchStatus = typeof ProspectGiftSuggestio
 export const ProspectGiftSuggestionsResearchStatus = {
   verified_facts: 'verified_facts',
   no_public_match: 'no_public_match',
+  research_unavailable: 'research_unavailable',
 } as const;
 
 export type ProspectGiftSuggestionsResearchProvider = typeof ProspectGiftSuggestionsResearchProvider[keyof typeof ProspectGiftSuggestionsResearchProvider];

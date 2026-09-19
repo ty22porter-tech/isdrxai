@@ -179,7 +179,11 @@ export function GiftSuggestionsPanel({
             <p className="text-xs text-muted-foreground">
               {data.researchProvider === "google_search_grounding"
                 ? "Public sources checked with Gemini Google Search grounding."
-                : "Legacy saved research; this record does not claim Google Search grounding."}
+                : data.researchProvider === "openai_web_search_legacy"
+                  ? "Public sources checked with alternate OpenAI web search; this record does not claim Google Search grounding."
+                  : data.researchStatus === "research_unavailable"
+                    ? "Public research was unavailable; these ideas use supplied business identity only."
+                    : "Legacy saved research; this record does not claim Google Search grounding."}
             </p>
             {data.researchFacts.length > 0 && (
               <ul className="space-y-2">

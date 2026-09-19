@@ -221,14 +221,121 @@ export function buildProspectGiftResearchPrompt(
     : sellerVertical === "janitorial"
       ? "For professional recognition, prioritize verified BOMA or IFMA nominations, finalist status, or wins."
       : "Research relevant professional awards without treating association membership as an award.";
-  return `Today is ${checkedAt.slice(0, 10)}. Research this exact prospect for modest professional gift personalization:
+  return `Today is ${checkedAt.slice(0, 10)}. Use Google Search to research this exact prospect for modest professional gift personalization:
 ${JSON.stringify(identity)}
 
-You MUST execute Google Search before answering, even if you believe you know this person, and every returned fact must be backed by the resulting Google grounding metadata. Do not answer from model memory. Use public web pages only, including public LinkedIn or Facebook pages (never private/profile-gated content), chamber and employer bios, interviews/blogs, award pages, and alumni pages. Prevent same-name confusion: include a fact only when one source matches the full name AND company AND at least the stated role or location. Research (1) confirmed degree-granting colleges/universities, distinguishing degree from attendance; (2) professional awards, preserving nominee/finalist versus winner; (3) nonsensitive hobbies explicitly stated by the prospect or an official bio; and (4) explicitly public fraternity/sorority membership. ${awardFocus}
+You MUST execute Google Search before answering. Do not answer from memory. Return short plain-text bullet points, not JSON. Every bullet must be one independently cited factual sentence and repeat the prospect's full name, company, and stated role or location so identity cannot be confused. Use public web pages only, including public LinkedIn or Facebook pages (never private/profile-gated content), chamber and employer bios, interviews/blogs, award pages, and alumni pages. Include a fact only when its source matches the full name AND company AND at least the stated role or location. Research (1) confirmed degree-granting colleges/universities, distinguishing degree from attendance; (2) professional awards, preserving nominee/finalist versus winner; (3) nonsensitive hobbies explicitly stated by the prospect or an official bio; and (4) explicitly public fraternity/sorority membership. ${awardFocus}
 
 Never infer a hobby or membership from follows, photos, location, job, school, demographics, or stereotypes. Never infer politics, religion, ethnicity, or any sensitive trait from Greek-letter membership. Exclude private/family, health, religious, political, ethnic, or other sensitive facts. Association membership is not an award. evidence and identityEvidence must be faithful excerpts from the same cited page.
 
-Return JSON only: {"facts":[{"type":"education|award|hobby|affiliation","classification":"degree|education|award_winner|nominee_finalist|public_hobby|public_affiliation","summary":"precise fact","evidence":"claim excerpt","identityEvidence":"same-page identity excerpt with full name, company, role or location","sourceIndex":0,"identity":{"nameMatched":true,"companyMatched":true,"roleOrLocationMatched":true},"publiclyStatedByProspect":false}]}. sourceIndex is the zero-based Google grounding chunk supporting both identity and claim. Return {"facts":[]} when identity or evidence is insufficient.`;
+If no source supports such a fact, say exactly: NO VERIFIED PUBLIC PERSONALIZATION FACTS.`;
+}
+
+function classifyGroundedStatement(text: string) {
+  // Explicit Greek-organization membership wins over generic college words
+  // that may appear in the same alumni bio.
+  if (/\b(?:fraternity|sorority|chapter|initiated|alumnus|alumna|alumni member)\b/i.test(text)) {
+    return { type: "affiliation" as const, classification: "public_affiliation" as const };
+  }
+  if (/\b(?:bachelor|master|doctorate|doctoral|ph\.?d|mba|jd|degree|graduated|education|attended|university|college)\b/i.test(text)) {
+    return {
+      type: "education" as const,
+      classification: /\b(?:bachelor|master|doctorate|doctoral|ph\.?d|mba|jd|degree)\b/i.test(text)
+        ? "degree" as const : "education" as const,
+    };
+  }
+  if (/\b(?:award|winner|won|recipient|received|awarded|nominee|nominated|finalist|honou?r)\b/i.test(text)) {
+    return {
+      type: "award" as const,
+      // Never upgrade explicit nominee/finalist language because another
+      // award/winner word happens to occur in the same grounded segment.
+      classification: /\b(?:nominee|nominated|finalist)\b/i.test(text)
+        ? "nominee_finalist" as const : "award_winner" as const,
+    };
+  }
+  if (/\b(?:enjoys?|hobby|outside of work|spare time|free time|passion(?:ate)?|likes? to|avid)\b/i.test(text)) {
+    return { type: "hobby" as const, classification: "public_hobby" as const };
+  }
+  return null;
+}
+
+function normalizeGeminiGroundedResearch(response: any) {
+  const metadata = response?.candidates?.[0]?.groundingMetadata;
+  if (!Array.isArray(metadata?.groundingChunks) || !Array.isArray(metadata?.groundingSupports)) return null;
+  if (!metadata.groundingChunks.length || !metadata.groundingSupports.length) {
+    // Empty arrays alone do not prove that Google grounded the answer. Accept
+    // an empty result only when search queries ran and the model returned the
+    // exact no-results sentinel requested by our prompt.
+    const explicitNoResults = Array.isArray(metadata.webSearchQueries)
+      && metadata.webSearchQueries.length > 0
+      && /\bNO VERIFIED PUBLIC PERSONALIZATION FACTS\b/i.test(String(response?.text ?? ""));
+    return explicitNoResults ? {
+      outputText: '{"facts":[]}',
+      groundingChunks: [],
+      groundingSupports: [],
+      researchProvider: "google_search_grounding",
+    } : null;
+  }
+  const facts = metadata.groundingSupports.flatMap((support: any) => {
+    const evidence = String(support?.segment?.text ?? "").trim();
+    const sourceIndex = support?.groundingChunkIndices?.find(
+      (index: unknown) => Number.isInteger(index) && metadata.groundingChunks[index as number]?.web?.uri,
+    );
+    const classification = classifyGroundedStatement(evidence);
+    // Reject an overlong support as one bad fact rather than making the whole
+    // research payload fail schema validation. Never truncate identity text.
+    if (!classification || sourceIndex == null || evidence.length > 300 || evidence.length > 500) return [];
+    return [{
+      ...classification,
+      summary: evidence,
+      evidence,
+      identityEvidence: evidence,
+      sourceIndex,
+      identity: { nameMatched: true, companyMatched: true, roleOrLocationMatched: true },
+      publiclyStatedByProspect: classification.type === "hobby",
+    }];
+  });
+  return {
+    outputText: JSON.stringify({ facts }),
+    groundingChunks: metadata.groundingChunks,
+    groundingSupports: metadata.groundingSupports,
+    researchProvider: "google_search_grounding",
+  };
+}
+
+async function requestOpenAIProspectGiftResearch(
+  identity: ProspectResearchIdentity,
+  sellerVertical: string,
+  checkedAt: string,
+) {
+  const base = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const key = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!base || !key) return null;
+  const response = await fetch(`${base}/responses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(35_000),
+    body: JSON.stringify({
+      model: "gpt-5.4-mini",
+      tools: [{ type: "web_search" }],
+      tool_choice: { type: "web_search" },
+      include: ["web_search_call.action.sources"],
+      max_output_tokens: 4000,
+      input: `${buildProspectGiftResearchPrompt(identity, sellerVertical, checkedAt)}
+
+This is alternate public web research, not Google Search. Return JSON only:
+{"facts":[{"type":"education|award|hobby|affiliation","classification":"degree|education|award_winner|nominee_finalist|public_hobby|public_affiliation","summary":"precise fact","evidence":"claim excerpt","identityEvidence":"same-page identity excerpt with full name, company, role or location","url":"https://source","identity":{"nameMatched":true,"companyMatched":true,"roleOrLocationMatched":true},"publiclyStatedByProspect":false}]}
+Every URL must be an HTTPS URL returned by web_search. Return {"facts":[]} if identity or evidence is insufficient.`,
+    }),
+  });
+  if (!response.ok) return null;
+  const payload = await response.json() as Record<string, unknown>;
+  const decoded = rawResearchSchema.safeParse(outputJson(payload));
+  const completedSearch = Array.isArray(payload.output) && payload.output.some(
+    (item: any) => item?.type === "web_search_call" && item?.status === "completed",
+  );
+  if (!decoded.success || !completedSearch) return null;
+  return { ...payload, researchProvider: "openai_web_search_legacy" };
 }
 
 export async function requestProspectGiftResearch(
@@ -236,11 +343,8 @@ export async function requestProspectGiftResearch(
   sellerVertical: string,
   checkedAt: string,
 ): Promise<any> {
-  let response: any;
-  let metadata: any;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      response = await getGeminiClient().models.generateContent({
+  try {
+    const response = await getGeminiClient().models.generateContent({
         model: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [{ text: buildProspectGiftResearchPrompt(identity, sellerVertical, checkedAt) }] }],
         config: {
@@ -249,29 +353,27 @@ export async function requestProspectGiftResearch(
           // Grounding research needs its token budget for cited JSON rather than
           // hidden chain-of-thought; this also avoids truncated MAX_TOKENS output.
           thinkingConfig: { thinkingBudget: 0 },
+          httpOptions: { timeout: 35_000 },
         },
       });
-      metadata = response?.candidates?.[0]?.groundingMetadata;
-      if (Array.isArray(metadata?.groundingChunks) && Array.isArray(metadata?.groundingSupports)) break;
-    } catch (error) {
-      if (error instanceof Error && /not configured/i.test(error.message)) {
-        throw new GiftOutreachError(error.message, 502);
-      }
-      if (error instanceof Error && /(?:google.?search|grounding|tool).*(?:unsupported|not supported|unavailable)/i.test(error.message)) {
-        throw new GiftOutreachError("Gemini Google Search grounding is not supported by the configured provider. No alternate research provider was used.", 502);
-      }
-      if (attempt === 2) throw new GiftOutreachError("Prospect research is temporarily unavailable. Please retry.", 502);
-    }
-    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
+    const grounded = normalizeGeminiGroundedResearch(response);
+    if (grounded) return grounded;
+  } catch {
+    // Bounded alternate public-web research below. We never relabel it Google.
   }
-  if (!metadata || !Array.isArray(metadata.groundingChunks) || !Array.isArray(metadata.groundingSupports)) {
-    throw new GiftOutreachError("Gemini did not return Google Search grounding support. Please retry; no alternate research provider was used.", 502);
+  try {
+    const alternate = await requestOpenAIProspectGiftResearch(identity, sellerVertical, checkedAt);
+    if (alternate) return alternate;
+  } catch {
+    // Return an explicit unavailable state; suggestion generation can still
+    // provide clearly labeled general/name-only customization.
   }
   return {
-    outputText: response.text,
-    groundingChunks: metadata.groundingChunks,
-    groundingSupports: metadata.groundingSupports,
-    researchProvider: "google_search_grounding",
+    outputText: '{"facts":[]}',
+    groundingChunks: [],
+    groundingSupports: [],
+    researchProvider: null,
+    researchUnavailable: true,
   };
 }
 
@@ -315,7 +417,7 @@ export function buildGiftSuggestionPrompt(context: {
   return `Return ONLY valid JSON in this exact shape:
 {"ideas":[{"name":"string","description":"string","estimatedPriceMinUsd":10,"estimatedPriceMaxUsd":25,"whyFit":"string","personalization":"verified_fact|generic_fallback","evidenceFactIds":["fact-1"]}]}
 
-Generate 3 to 5 distinct, practical, professional gift suggestions for a legitimate B2B relationship. Each maximum estimate must be at or below the $${budgetUsd} budget (and within $10–$100). Price ranges are broad USD estimates, never live prices or quotes. When robust verified facts are supplied, suggestions must be genuinely personalized rather than generic fallbacks. A college-branded tumbler may use a confirmed school, and may suggest adding the prospect's supplied name or confirmed degree wording as customization; never guess a graduation year or degree name. A confirmed public_affiliation may support an Etsy-style customizable Greek-organization gift, without claiming any seller can legally produce marks or that production is available. A nonsensitive hobby gift is allowed only for a public_hobby fact. Award ideas must preserve nominee/finalist versus winner wording. Otherwise prefer modest office, desk, reusable, or team goods. Never suggest cash, gift cards, cash equivalents, alcohol, luxury/lavish items, product links, shipping claims, or personalization based on guessed tastes, demographics, religion, politics, ethnicity, health, family, or private life.
+Generate 3 to 5 distinct, practical, professional gift suggestions for a legitimate B2B relationship. Each maximum estimate must be at or below the $${budgetUsd} budget (and within $10–$100). Price ranges are broad USD estimates, never live prices or quotes. When robust verified facts are supplied, suggestions must be genuinely personalized rather than generic fallbacks. A college-branded tumbler may use a confirmed school, and may suggest adding the prospect's supplied name or confirmed degree wording as customization; never guess a graduation year or degree name. A confirmed public_affiliation may support an Etsy-style customizable Greek-organization gift, without claiming any seller can legally produce marks or that production is available. A nonsensitive hobby gift is allowed only for a public_hobby fact. Award ideas must preserve nominee/finalist versus winner wording. When no verified research facts are supplied, name-only customization using the supplied prospect name is allowed but must remain labeled generic_fallback; do not imply that the prospect likes the item. Otherwise prefer modest office, desk, reusable, or team goods. Never suggest cash, gift cards, cash equivalents, alcohol, luxury/lavish items, product links, shipping claims, or personalization based on guessed tastes, demographics, religion, politics, ethnicity, health, family, or private life.
 
 Set personalization="verified_fact" and list only the supplied evidence fact IDs actually supporting the idea. When researchFacts contains any verified facts, every idea must be personalized from at least one of them; do not pad the result with generic items. Set personalization="generic_fallback" with evidenceFactIds=[] only when researchFacts is empty, in which case every idea must be explicitly generic_fallback. Do not put URLs in ideas.
 
@@ -390,18 +492,23 @@ async function generateForContext(
     if (error instanceof GiftOutreachError) throw error;
     throw new GiftOutreachError("Gift suggestion generation is temporarily unavailable. Please try again.", 502);
   }
+  const researchUnavailable = researchPayload?.researchUnavailable === true;
   return {
     budgetUsd,
     generatedAt: new Date().toISOString(),
-    researchStatus: researchFacts.length ? "verified_facts" : "no_public_match",
+    researchStatus: researchFacts.length ? "verified_facts" : researchUnavailable ? "research_unavailable" : "no_public_match",
     researchMessage: researchFacts.length
       ? `Found ${researchFacts.length} verified public personalization ${researchFacts.length === 1 ? "fact" : "facts"}.`
+      : researchUnavailable
+        ? "Public research providers were unavailable. Ideas use only supplied business identity or name-only customization and are not presented as researched personal facts."
       : "No public identity-matched education, award, affiliation, or nonsensitive hobby facts were verified. Ideas are generic business fallbacks.",
     researchFacts,
     ideas: validateGiftSuggestionOutput(raw, budgetUsd, researchFacts),
-    researchProvider: researchPayload?.researchProvider === "google_search_grounding"
-      ? "google_search_grounding"
-      : "openai_web_search_legacy",
+    ...(researchPayload?.researchProvider === "google_search_grounding"
+      ? { researchProvider: "google_search_grounding" as const }
+      : researchPayload?.researchProvider === "openai_web_search_legacy"
+        ? { researchProvider: "openai_web_search_legacy" as const }
+        : {}),
   };
 }
 

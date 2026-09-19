@@ -32,5 +32,5 @@ description: Why gift mode has eight steps, approval defaults, and delivery evid
   **How to apply:** Do not substitute another search provider silently or infer religion, ethnicity, politics, or private traits from an affiliation. Previewing search-result gift ideas must not silently add a prospect to the pipeline.
 
 - Gemini grounded extraction can omit grounding metadata or exhaust the output budget on long structured responses.
-  **Why:** Live verification encountered both despite successful mocked tests.
-  **How to apply:** Keep grounding metadata mandatory, allow bounded retries, and verify real extraction after provider changes rather than trusting only model text.
+  **Why:** Live verification encountered both despite successful mocked tests, and sparse prospect research later repeatedly failed in production.
+  **How to apply:** Require citations for personal facts, not for the entire gift-generation flow. Prefer grounded prose with server-assigned citation references; the model cannot know final grounding chunk indices. Use a clearly labeled alternate public-web search when necessary, then an explicit research-unavailable general/name-only fallback. Never claim failed research found no facts.
