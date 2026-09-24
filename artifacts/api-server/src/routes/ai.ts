@@ -11,7 +11,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getVerticalConfig } from "../lib/verticals";
-import { enrichPerson } from "../lib/apollo";
+import { enrichPerson, isPlaceholderEmail } from "../lib/apollo";
 import { logger } from "../lib/logger";
 import {
   genericOutreach,
@@ -566,9 +566,16 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         return;
       }
       const p = result.person;
-      // "Enriched" requires at least a real name or a real email — anything less
-      // is a not-found so the UI never claims a contact it doesn't have.
-      const contactFound = Boolean(p && (p.contactName || p.email));
+      // A name alone cannot turn a search-result placeholder into a reachable contact.
+      // Retain a previously usable address if Apollo found a person but returned no email.
+      const usableEmail = (value: string | null | undefined) => {
+        const email = value?.trim();
+        return email && !isPlaceholderEmail(email) && !email.split("@")[0].includes("..")
+          && /^[^\s@]+@[a-z0-9]+(?:[a-z0-9-]*[a-z0-9]+)?(?:\.[a-z0-9]+(?:[a-z0-9-]*[a-z0-9]+)?)+$/i.test(email)
+          ? email.toLowerCase() : undefined;
+      };
+      const contactEmail = usableEmail(p?.email) ?? (p ? usableEmail(lead.email) : undefined);
+      const contactFound = Boolean(p && contactEmail);
       let demographicResearch: Awaited<ReturnType<typeof researchCompanyDemographics>> | undefined;
       const warnings: string[] = [];
       if (!p?.employeeCount) {
@@ -666,7 +673,7 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         index,
         status: contactFound ? "enriched" : "not_found",
         contactName: p?.contactName ?? undefined,
-        email: p?.email ?? undefined,
+        email: contactEmail,
         title: p?.title ?? undefined,
         phone: p?.phone ?? undefined,
         linkedinUrl: p?.linkedinUrl ?? undefined,

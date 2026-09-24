@@ -129,6 +129,14 @@ const CONFIDENCE_COLORS: Record<string, string> = {
 // rather than failed.
 const isDuplicateError = (error?: string) => !!error && /^duplicate/i.test(error.trim());
 
+// Search research may return synthetic contact addresses. Never present or
+// persist them as real email addresses, regardless of lookup status.
+export const isPlaceholderEmail = (email?: string | null): boolean => {
+  const domain = email?.trim().toLowerCase().split("@").pop() ?? "";
+  return domain === "invalid" || domain.endsWith(".invalid") ||
+    domain === "invalid.com" || domain.endsWith(".invalid.com");
+};
+
 // Per-lead contact-enrichment status, shown on the results page. "pending"
 // while the Apollo lookup is in flight; "not_found" is surfaced explicitly so
 // the user knows the email is still a placeholder.
@@ -220,7 +228,7 @@ export function applyEnrichmentResults(
       ...lead,
       contactName: r.status === "enriched" ? r.contactName ?? lead.contactName : lead.contactName,
       contactTitle: r.status === "enriched" ? r.title ?? "Decision maker" : lead.contactTitle,
-      email: r.status === "enriched" ? r.email ?? lead.email : lead.email,
+      email: r.status === "enriched" && r.email && !isPlaceholderEmail(r.email) ? r.email : lead.email,
       phone: r.status === "enriched" ? r.phone || lead.phone : lead.phone,
       estimatedEmployees: r.employeeCount ?? lead.estimatedEmployees,
       opportunityIntelligence: useEnrichIntel ? r.opportunityIntelligence : lead.opportunityIntelligence,
@@ -302,26 +310,42 @@ export default function Prospecting() {
       }),
     },
   });
-  // Monotonically increasing enrichment run ID. Callbacks from a run that is
-  // no longer current (a newer search or enrichment started) are ignored, so
-  // a slow Apollo response for search A can never touch search B's results.
-  const enrichRunRef = useRef(0);
+  // Each row has its own request token: retrying one row does not invalidate
+  // lookups still pending for the rest of the list.
+  const enrichTokensRef = useRef<Map<number, number>>(new Map());
+  const nextEnrichTokenRef = useRef(0);
   const searchRunIdRef = useRef(0);
 
   // Automatically look up the real decision-maker (name + email) for each
   // fresh search result via Apollo, replacing the "Owner" / contact@….invalid
   // placeholders before the user adds anything to the pipeline. Leads where no
   // contact is found are flagged explicitly rather than left looking real.
-  const runEnrichment = (searchLeads: ProspectLead[]) => {
-    if (!searchLeads.length) return;
-    const runId = ++enrichRunRef.current;
-    setEnrichment(new Map(searchLeads.map((_, i) => [i, "pending" as EnrichStatus])));
-    setEnrichmentErrors(new Map());
-    setResearchWarnings(new Map());
-    enrichLeadsMutation.mutate(
+  const runEnrichment = (rows: { lead: ProspectLead; index: number }[]) => {
+    if (!rows.length) return;
+    const searchRunId = searchRunIdRef.current;
+    const tokens = new Map(rows.map(({ index }) => {
+      const token = ++nextEnrichTokenRef.current;
+      enrichTokensRef.current.set(index, token);
+      return [index, token];
+    }));
+    const isCurrent = (index: number) =>
+      searchRunIdRef.current === searchRunId && enrichTokensRef.current.get(index) === tokens.get(index);
+    setEnrichment((prev) => {
+      const next = new Map(prev);
+      rows.forEach(({ index }) => next.set(index, "pending"));
+      return next;
+    });
+    setEnrichmentErrors((prev) => {
+      const next = new Map(prev);
+      rows.forEach(({ index }) => next.delete(index));
+      return next;
+    });
+    // Per-call mutate callbacks are replaced by TanStack when a later mutate
+    // starts. Promise handlers remain attached to every concurrent request.
+    void enrichLeadsMutation.mutateAsync(
       {
         data: {
-          leads: searchLeads.map((l) => ({
+          leads: rows.map(({ lead: l }) => ({
             companyName: l.companyName,
             contactName: l.contactName,
             email: l.email,
@@ -335,37 +359,76 @@ export default function Prospecting() {
             opportunityIntelligence: l.opportunityIntelligence,
           })),
         },
-      },
-      {
-        onSuccess: (result) => {
-          if (enrichRunRef.current !== runId) return; // stale run — a newer search replaced the list
-          const statusMap = new Map<number, EnrichStatus>(
-            searchLeads.map((_, i) => [i, "failed" as EnrichStatus])
-          );
-          result.results.forEach((r) => statusMap.set(r.index, r.status));
-          setEnrichmentErrors(new Map(result.results.filter((r) => r.error).map((r) => [r.index, r.error!])));
-          setResearchWarnings(new Map(result.results.filter((r) => r.researchWarning).map((r) => [r.index, r.researchWarning!])));
-          setLeads((prev) => applyEnrichmentResults(prev, searchLeads, result.results));
-          setEnrichment(statusMap);
-          if (result.planBlocked) {
+      }
+    ).then(
+      (result) => {
+          if (searchRunIdRef.current !== searchRunId) return;
+          const updates = rows.flatMap(({ lead, index }, requestIndex) => {
+            if (!isCurrent(index)) return [];
+            const resultRow = result.results.find((r) => r.index === requestIndex);
+            const status: EnrichStatus = !resultRow ? "failed" :
+              resultRow.status === "enriched" && isPlaceholderEmail(resultRow.email ?? lead.email)
+                ? "not_found" : resultRow.status;
+            return [{ index, lead, resultRow, status }];
+          });
+          setLeads((prev) => {
+            const snapshot = [...prev];
+            const mapped: EnrichLeadResult[] = [];
+            updates.forEach(({ index, lead, resultRow, status }) => {
+              if (prev[index]?.companyName !== lead.companyName || prev[index]?.email !== lead.email) return;
+              snapshot[index] = lead;
+              if (resultRow) mapped.push({ ...resultRow, index, status });
+            });
+            return applyEnrichmentResults(prev, snapshot, mapped);
+          });
+          setEnrichment((prev) => {
+            const next = new Map(prev);
+            updates.forEach(({ index, status }) => next.set(index, status));
+            return next;
+          });
+          setEnrichmentErrors((prev) => {
+            const next = new Map(prev);
+            updates.forEach(({ index, resultRow }) => {
+              if (resultRow?.error) next.set(index, resultRow.error);
+              else next.delete(index);
+            });
+            return next;
+          });
+          setResearchWarnings((prev) => {
+            const next = new Map(prev);
+            updates.forEach(({ index, resultRow }) => {
+              if (resultRow?.researchWarning) next.set(index, resultRow.researchWarning);
+            });
+            return next;
+          });
+          if (result.planBlocked && updates.length) {
             toast({
               title: "Contact lookup unavailable",
               description: result.error || "Apollo denied access to contact enrichment. Check the API key's endpoint permissions and account API access.",
               variant: "destructive",
             });
           }
-        },
-        onError: (err: any) => {
-          if (enrichRunRef.current !== runId) return; // stale run
+      },
+      (err: any) => {
+          if (searchRunIdRef.current !== searchRunId) return;
+          const currentRows = rows.filter(({ index }) => isCurrent(index));
+          if (!currentRows.length) return;
           const reason = err?.data?.error || err?.message || "Contact lookup request failed. Try again.";
-          setEnrichment((prev) => new Map([...prev].map(([i, s]) => [i, s === "pending" ? ("failed" as EnrichStatus) : s])));
-          setEnrichmentErrors(new Map(searchLeads.map((_, i) => [i, reason])));
+          setEnrichment((prev) => {
+            const next = new Map(prev);
+            currentRows.forEach(({ index }) => next.set(index, "failed"));
+            return next;
+          });
+          setEnrichmentErrors((prev) => {
+            const next = new Map(prev);
+            currentRows.forEach(({ index }) => next.set(index, reason));
+            return next;
+          });
           toast({
             title: "Contact lookup failed",
             description: reason,
             variant: "destructive",
           });
-        },
       }
     );
   };
@@ -419,12 +482,13 @@ export default function Prospecting() {
     setRefreshing(new Set());
     // Invalidate any in-flight enrichment run from the previous list so its
     // late response can't overwrite the new search's leads.
-    enrichRunRef.current++;
+    enrichTokensRef.current.clear();
     searchRunIdRef.current++;
     setEnrichment(new Map());
     setEnrichmentErrors(new Map());
     setResearchWarnings(new Map());
     setGiftLeadIndex(null);
+    const searchRunId = searchRunIdRef.current;
     searchMutation.mutate(
       {
         data: {
@@ -442,20 +506,23 @@ export default function Prospecting() {
       },
       {
         onSuccess: (data) => {
+          if (searchRunIdRef.current !== searchRunId) return;
           setLeads(data);
-          runEnrichment(data);
+          runEnrichment(data.map((lead, index) => ({ lead, index })));
           trackEvent("prospect_search_completed", {
             vertical,
             requested_count: parseInt(searchCount),
             result_count: data.length,
           });
         },
-        onError: (err: any) =>
+        onError: (err: any) => {
+          if (searchRunIdRef.current !== searchRunId) return;
           toast({
             title: "Search failed",
             description: err?.data?.error || err?.message || "Could not search for businesses.",
             variant: "destructive",
-          }),
+          });
+        },
       }
     );
   };
@@ -546,6 +613,10 @@ export default function Prospecting() {
   };
 
   const handleAdd = async (lead: ProspectLead, idx: number) => {
+    if (isPlaceholderEmail(lead.email)) {
+      toast({ title: "Email not ready", description: "Retry contact lookup before adding this prospect to your pipeline.", variant: "destructive" });
+      return;
+    }
     setAddingId(idx);
     createProspect.mutate(
       {
@@ -601,9 +672,18 @@ export default function Prospecting() {
   };
 
   const handleAddAll = async () => {
-    const pending = leads
+    const unadded = leads
       .map((lead, idx) => ({ lead, idx }))
       .filter(({ idx }) => !added.has(idx));
+    const pending = unadded.filter(({ lead }) => !isPlaceholderEmail(lead.email));
+    const unresolvedCount = unadded.length - pending.length;
+    if (unresolvedCount) {
+      toast({
+        title: "Some contacts need an email lookup",
+        description: `${unresolvedCount} prospect${unresolvedCount === 1 ? "" : "s"} with placeholder emails will not be added. Retry contact lookup on those rows; ${pending.length ? "other prospects can still be added." : "no prospects are ready to add yet."}`,
+        variant: "destructive",
+      });
+    }
     if (!pending.length) return;
     const CHUNK_SIZE = 100;
     let totalAdded = 0;
@@ -872,6 +952,7 @@ export default function Prospecting() {
     const snap = restorable;
     if (!snap) return;
     searchRunIdRef.current++;
+    enrichTokensRef.current.clear();
     restorePendingRef.current = false;
     setCity(snap.params.city);
     setState(snap.params.state);
@@ -888,11 +969,17 @@ export default function Prospecting() {
     setFailures(new Map(snap.failures));
     setCancelledRemaining(snap.cancelledRemaining && snap.cancelledRemaining.length ? new Set(snap.cancelledRemaining) : null);
     setDuplicateStrategy(snap.duplicateStrategy);
-    setEnrichment(new Map(snap.enrichment ?? []));
+    setEnrichment(new Map((snap.enrichment ?? []).map(([index, status]) =>
+      [index, status === "pending" ? "failed" : status] as [number, EnrichStatus])));
     setEnrichmentErrors(new Map(snap.enrichmentErrors ?? []));
     setResearchWarnings(new Map(snap.researchWarnings ?? []));
     setRestorable(null);
     void reconcileWithPipeline(snap.leads, addedSet);
+  };
+
+  const retryContactLookup = (lead: ProspectLead, index: number) => {
+    if (enrichment.get(index) === "pending") return;
+    runEnrichment([{ lead, index }]);
   };
 
   const handleStartFresh = () => {
@@ -1227,7 +1314,7 @@ export default function Prospecting() {
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">
                  {leads.length} prospects found in {city}, {state} — Prospect Industry: {industry}
-                {enrichLeadsMutation.isPending && (
+                {[...enrichment.values()].some((status) => status === "pending") && (
                   <span className="ml-2 inline-flex items-center gap-1 text-primary">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Looking up decision-maker contacts…
                   </span>
@@ -1258,9 +1345,9 @@ export default function Prospecting() {
                               Not yet added
                             </Badge>
                           )}
-                          {enrichment.get(idx) === "pending" && (
+                           {enrichment.get(idx) === "pending" && (
                             <Badge variant="outline" className="text-xs font-medium bg-gray-100 text-gray-600 border-gray-200">
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Finding contact…
+                               <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Looking up email
                             </Badge>
                           )}
                           {enrichment.get(idx) === "enriched" && (
@@ -1270,12 +1357,12 @@ export default function Prospecting() {
                           )}
                           {enrichment.get(idx) === "not_found" && (
                             <Badge variant="outline" className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200">
-                              <AlertCircle className="mr-1 h-3 w-3" /> No contact found — placeholder email
+                               <AlertCircle className="mr-1 h-3 w-3" /> Email not found
                             </Badge>
                           )}
                           {enrichment.get(idx) === "failed" && (
                             <Badge variant="outline" className="text-xs font-medium bg-gray-100 text-gray-600 border-gray-200">
-                              <AlertCircle className="mr-1 h-3 w-3" /> Contact lookup unavailable
+                               <AlertCircle className="mr-1 h-3 w-3" /> Lookup failed
                             </Badge>
                           )}
                         </div>
@@ -1299,7 +1386,12 @@ export default function Prospecting() {
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Mail className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{lead.email}</span>
+                            <span className="truncate" data-testid={`text-contact-email-${idx}`}>
+                              {isPlaceholderEmail(lead.email)
+                                ? enrichment.get(idx) === "pending" ? "Looking up email" :
+                                  enrichment.get(idx) === "failed" ? "Lookup failed" : "Email not found"
+                                : lead.email}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Phone className="h-3.5 w-3.5 shrink-0" />
@@ -1425,6 +1517,17 @@ export default function Prospecting() {
                         <Button size="sm" variant="outline" onClick={() => setGiftLeadIndex(idx)}>
                           <Gift className="mr-1.5 h-4 w-4" /> Gift Suggestions
                         </Button>
+                        {!added.has(idx) && isPlaceholderEmail(lead.email) && enrichment.get(idx) !== "pending" && (
+                          <Button size="sm" variant="outline" data-testid={`button-retry-contact-lookup-${idx}`}
+                            onClick={() => retryContactLookup(lead, idx)}>
+                            <RefreshCw className="mr-1.5 h-4 w-4" /> Retry contact lookup
+                          </Button>
+                        )}
+                        {!added.has(idx) && isPlaceholderEmail(lead.email) && (
+                          <p className="max-w-36 text-xs text-amber-700" data-testid={`status-contact-unresolved-${idx}`}>
+                            Retry contact lookup before adding.
+                          </p>
+                        )}
                         {added.has(idx) ? (
                           <Button size="sm" variant="outline" disabled className="gap-1.5 text-green-700 border-green-300">
                             <Check className="h-4 w-4" /> Added
@@ -1433,7 +1536,7 @@ export default function Prospecting() {
                           <Button
                             size="sm"
                             onClick={() => handleAdd(lead, idx)}
-                            disabled={addingId === idx}
+                            disabled={addingId === idx || isPlaceholderEmail(lead.email)}
                           >
                             {addingId === idx ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

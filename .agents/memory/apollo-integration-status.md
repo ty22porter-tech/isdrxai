@@ -19,3 +19,7 @@ Apollo enrichment is LIVE (user upgraded to paid plan and issued a properly-scop
 - Treat contact enrichment and optional company research as independent outcomes.
   **Why:** The generic unavailable label could hide discarded valid contacts when subsequent research failed. Aggregate failure counts alone could not identify the production cause.
   **How to apply:** Preserve verified contact fields, show research failures separately, and log safe phase-specific failure categories. Do not infer a production credential or research failure solely from a successful workspace Apollo call.
+
+- Distinguish email discovery from enriching an already known address.
+  **Why:** Name-only provider matches made search look successful while leaving synthetic addresses visible. Conversely, discarding a name-only response for a prospect with an existing real email loses useful profile information.
+  **How to apply:** Discovery needs an actual usable email; known-email enrichment can retain useful contact fields without a newly returned address. Do not weaken company identity checks just to increase discovery counts.

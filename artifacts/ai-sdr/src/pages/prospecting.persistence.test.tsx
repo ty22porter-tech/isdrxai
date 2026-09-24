@@ -33,7 +33,7 @@ vi.mock("@workspace/api-client-react", () => ({
   }),
   useCreateProspect: () => ({ mutate: vi.fn(), isPending: false }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
-  useEnrichLeads: () => ({ mutate: vi.fn(), isPending: false }),
+  useEnrichLeads: () => ({ mutateAsync: vi.fn(() => new Promise(() => {})), isPending: false }),
   useRefreshOpportunityIntelligence: () => ({ mutate: vi.fn(), isPending: false }),
   getListProspectsQueryKey: () => ["prospects"],
   getListProspectsQueryOptions: () => ({ queryKey: ["prospects"], queryFn: async () => [] }),
@@ -115,7 +115,7 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string) => {
       if (String(url).includes("/api/users/me")) {
-        return new Response(JSON.stringify({ vertical: "janitorial", website: "https://example.com/" }), {
+        return new Response(JSON.stringify({ businessName: "Seller", vertical: "janitorial", website: "https://example.com/" }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

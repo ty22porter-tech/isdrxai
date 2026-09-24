@@ -9,7 +9,10 @@ vi.mock("../lib/requireAuth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireEntitlement: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
-vi.mock("../lib/apollo", () => ({ enrichPerson: vi.fn() }));
+vi.mock("../lib/apollo", async importOriginal => ({
+  ...await importOriginal<typeof import("../lib/apollo")>(),
+  enrichPerson: vi.fn(),
+}));
 vi.mock("../lib/sellerResearch", () => ({
   ensureCurrentSellerResearch: vi.fn(async (_id, client) => client),
 }));
@@ -241,6 +244,40 @@ describe("contact enrichment failure isolation", () => {
       status: "not_found",
       researchWarning: expect.stringContaining("Company size research was unavailable"),
     });
+  });
+
+  it("does not mark a name-only result at a placeholder address as enriched, while retaining research", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({
+      ok: true,
+      person: { ...person, email: null, employeeCount: 45 },
+    } as any);
+    const res = response();
+    await handler({ body: { leads: [realisticLead(0)] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({
+      status: "not_found",
+      contactName: "Jamie Rivera",
+      employeeCount: 45,
+    });
+    expect(res.json.mock.calls[0][0].results[0].email).toBeUndefined();
+    expect(researchItOpportunityIntelligence).toHaveBeenCalled();
+  });
+
+  it.each(["missing@regional.INVALID", "missing@invalid.com", "not-an-email"])(
+    "does not mark an unusable returned email %s as enriched",
+    async email => {
+      vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person: { ...person, email } } as any);
+      const res = response();
+      await handler({ body: { leads: [realisticLead(0)] }, clientId: "synthetic-client" }, res);
+      expect(res.json.mock.calls[0][0].results[0]).toMatchObject({ status: "not_found", contactName: "Jamie Rivera" });
+      expect(res.json.mock.calls[0][0].results[0].email).toBeUndefined();
+    },
+  );
+
+  it("retains a usable existing email when Apollo finds a person without returning an address", async () => {
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person: { ...person, email: null } } as any);
+    const res = response();
+    await handler({ body: { leads: [{ ...realisticLead(0), email: " Jamie@Regional.Example " }] }, clientId: "synthetic-client" }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({ status: "enriched", email: "jamie@regional.example" });
   });
 
   it("converts one unexpected lead exception to a failure while other leads succeed", async () => {

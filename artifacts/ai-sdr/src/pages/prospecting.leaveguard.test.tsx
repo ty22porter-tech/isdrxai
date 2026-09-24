@@ -48,7 +48,7 @@ vi.mock("@workspace/api-client-react", () => ({
     isPending: false,
   }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
-  useEnrichLeads: () => ({ mutate: vi.fn(), isPending: false }),
+  useEnrichLeads: () => ({ mutateAsync: vi.fn(() => new Promise(() => {})), isPending: false }),
   useRefreshOpportunityIntelligence: () => ({ mutate: vi.fn(), isPending: false }),
   getListProspectsQueryKey: () => ["prospects"],
   // Restore reconciles against the pipeline; an empty pipeline leaves the

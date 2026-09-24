@@ -27,7 +27,7 @@ vi.mock("@workspace/api-client-react", () => ({
   useProspectSearch: () => ({ mutate: search, isPending: false, isIdle: false }),
   useCreateProspect: () => ({ mutate: create, isPending: false }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
-  useEnrichLeads: () => ({ mutate: vi.fn(), isPending: false }),
+  useEnrichLeads: () => ({ mutateAsync: vi.fn(() => new Promise(() => {})), isPending: false }),
   useRefreshOpportunityIntelligence: () => ({ mutate: vi.fn(), isPending: false }),
   refreshOpportunityIntelligence: vi.fn(),
   getListProspectsQueryKey: () => ["prospects"],

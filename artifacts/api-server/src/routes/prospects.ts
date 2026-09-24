@@ -15,7 +15,7 @@ import {
   GetProspectParams,
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
-import { enrichPerson } from "../lib/apollo";
+import { enrichPerson, isPlaceholderEmail } from "../lib/apollo";
 import { runProspectEnrichment } from "../lib/prospectEnrichment";
 import { db as _db, scoreEventsTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
@@ -166,13 +166,18 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const body = CreateProspectBody.parse(req.body);
+  const email = body.email.trim().toLowerCase();
+  if (!validProspectEmail(email)) {
+    res.status(400).json({ error: `Invalid email address: "${body.email || "(empty)"}"` });
+    return;
+  }
   const scheduleToken = randomUUID();
   let client = await currentClient(req.clientId);
   client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const vertical = clientVertical(client);
   let values;
   try {
-    values = await trustedProspectValues(body, vertical, client);
+    values = await trustedProspectValues({ ...body, email }, vertical, client);
   } catch (err) {
     if (err instanceof ResearchHandoffError) {
       req.log.warn({ reason: err.reason }, "Prospect save rejected because research handoff requires refresh");
@@ -192,7 +197,10 @@ router.post("/", async (req, res) => {
   res.status(201).json({ ...prospect, lastContactedAt: prospect.lastContactedAt?.toISOString() ?? null, enrichedAt: prospect.enrichedAt?.toISOString() ?? null, createdAt: prospect.createdAt.toISOString() });
 });
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[^\s@]+@[a-z0-9]+(?:[a-z0-9-]*[a-z0-9]+)?(?:\.[a-z0-9]+(?:[a-z0-9-]*[a-z0-9]+)?)+$/i;
+function validProspectEmail(email: string): boolean {
+  return EMAIL_RE.test(email) && !email.split("@")[0].includes("..") && !isPlaceholderEmail(email);
+}
 
 router.post("/bulk", async (req, res) => {
   const { prospects, duplicateStrategy } = BulkCreateProspectsBody.parse(req.body);
@@ -222,14 +230,14 @@ router.post("/bulk", async (req, res) => {
       if (index === undefined) return;
       const prospectInput = prospects[index];
       const rawEmail = (prospectInput.email ?? "").trim().toLowerCase();
-      if (!prospectInput.companyName?.trim() || !EMAIL_RE.test(rawEmail)
+      if (!prospectInput.companyName?.trim() || !validProspectEmail(rawEmail)
         || (existingByEmail.has(rawEmail) && duplicateStrategy !== "update")) {
         trustedInputs[index] = prospectInput;
         continue;
       }
       try {
         trustedInputs[index] = await trustedProspectValues(
-          prospectInput,
+          { ...prospectInput, email: rawEmail },
           vertical,
           client,
           existingByEmail.get(rawEmail)?.opportunityIntelligence,
@@ -257,7 +265,7 @@ router.post("/bulk", async (req, res) => {
       results.push({ index: i, success: false, error: "Missing company name" });
       continue;
     }
-    if (!EMAIL_RE.test(email)) {
+    if (!validProspectEmail(email)) {
       failed++;
       results.push({ index: i, success: false, error: `Invalid email address: "${input.email || "(empty)"}"` });
       continue;
@@ -265,7 +273,7 @@ router.post("/bulk", async (req, res) => {
     if (seenEmails.has(email)) {
       const existingProspect = existingByEmail.get(email);
       if (duplicateStrategy === "update" && existingProspect !== undefined) {
-        updateRows.push({ index: i, prospectId: existingProspect.id, input });
+        updateRows.push({ index: i, prospectId: existingProspect.id, input: { ...input, email } });
       } else {
         failed++;
         results.push({ index: i, success: false, error: `Duplicate: a prospect with email ${input.email} already exists` });
@@ -277,6 +285,7 @@ router.post("/bulk", async (req, res) => {
       index: i,
       values: {
         ...input,
+        email,
         phone: input.phone?.trim() || "(000) 000-0000",
         industry: input.industry?.trim() || "General",
         clientId: req.clientId,
@@ -383,12 +392,15 @@ router.get("/:id", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   const { id } = UpdateProspectParams.parse({ id: parseInt(req.params.id) });
   const body = UpdateProspectBody.parse(req.body);
+  if (body.email !== undefined && !validProspectEmail(body.email.trim().toLowerCase())) {
+    return res.status(400).json({ error: `Invalid email address: "${body.email || "(empty)"}"` });
+  }
   const [existing] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, id), eq(prospectsTable.clientId, req.clientId)));
   if (!existing) return res.status(404).json({ error: "Prospect not found" });
   let client = await currentClient(req.clientId);
   client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const vertical = existing.vertical || clientVertical(client);
-  const updateValues: Record<string, any> = { ...body };
+  const updateValues: Record<string, any> = { ...body, ...(body.email !== undefined ? { email: body.email.trim().toLowerCase() } : {}) };
   const intelligenceInputs = new Set(["companyName", "industry", "city", "state", "website", "address", "phone", "title"]);
   const shouldRecomputeIntelligence = Boolean(existing.opportunityIntelligence)
     && Object.keys(body).some(key => intelligenceInputs.has(key));

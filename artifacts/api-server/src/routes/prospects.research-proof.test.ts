@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@workspace/db", async importOriginal => {
   const actual = await importOriginal<typeof import("@workspace/db")>();
-  return { ...actual, db: { select: vi.fn() } };
+  return { ...actual, db: { select: vi.fn(), insert: vi.fn(), update: vi.fn(), transaction: vi.fn() } };
 });
 vi.mock("../lib/requireAuth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
@@ -205,5 +205,126 @@ describe("single and bulk prospect research handoffs", () => {
         error: expect.stringContaining("Refresh"),
       }],
     }));
+  });
+});
+
+describe("prospect route email validation", () => {
+  const handler = (path: string, method: "post" | "patch") =>
+    (router as any).stack.find((layer: any) => layer.route?.path === path && layer.route?.methods?.[method]).route.stack.at(-1).handle;
+  const response = () => ({ status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() });
+  const request = (email: string) => ({
+    body: { ...lead, phone: "555-0100", email },
+    clientId: seller.id,
+    log: { warn: vi.fn() },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.select).mockReturnValue({ from: () => ({ where: async () => [seller] }) } as any);
+  });
+
+  it.each(["name@company.INVALID", "name@invalid.com", "name@sub.invalid.com", "not-an-email", "name@-company.com"])(
+    "rejects %s on single save before research or persistence",
+    async email => {
+      const res = response();
+      await handler("/", "post")(request(email), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: expect.stringContaining("Invalid email address") });
+      expect(db.select).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reports invalid bulk rows individually without researching or saving them", async () => {
+    vi.mocked(db.select)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [seller] }) } as any)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [] }) } as any);
+    const res = response();
+    await handler("/bulk", "post")({
+      body: {
+        duplicateStrategy: "skip",
+        prospects: ["name@company.INVALID", "name@invalid.com", "name@sub.invalid.com", "no-at-sign"].map(email => request(email).body),
+      },
+      clientId: seller.id,
+    }, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      added: 0,
+      failed: 4,
+      results: [0, 1, 2, 3].map(index => ({ index, success: false, error: expect.stringContaining("Invalid email address") })),
+    }));
+    expect(db.select).toHaveBeenCalledTimes(2);
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.update).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each(["name@company.INVALID", "name@invalid.com", "name@sub.invalid.com", "bad-email"])(
+    "rejects an explicitly supplied update email %s before persistence",
+    async email => {
+      const res = response();
+      await handler("/:id", "patch")({ ...request(email), params: { id: "12" }, body: { email } }, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(db.select).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it("allows editing another field on a legacy placeholder record without rewriting its email", async () => {
+    const existing = { ...lead, id: 12, email: "old@company.invalid", vertical: "janitorial", opportunityIntelligence: null };
+    vi.mocked(db.select)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [existing] }) } as any)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [seller] }) } as any);
+    const set = vi.fn().mockReturnValue({ where: () => ({ returning: async () => [{ ...existing, notes: "Reviewed", createdAt: new Date() }] }) });
+    vi.mocked(db.update).mockReturnValue({ set } as any);
+    const res = response();
+    await handler("/:id", "patch")({ ...request(existing.email), params: { id: "12" }, body: { notes: "Reviewed" } }, res);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(set).toHaveBeenCalledWith({ notes: "Reviewed" });
+  });
+
+  it("normalizes an explicitly supplied valid email on update", async () => {
+    const existing = { ...lead, id: 12, vertical: "janitorial", opportunityIntelligence: null };
+    vi.mocked(db.select)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [existing] }) } as any)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [seller] }) } as any);
+    const set = vi.fn().mockReturnValue({ where: () => ({ returning: async () => [{ ...existing, createdAt: new Date() }] }) });
+    vi.mocked(db.update).mockReturnValue({ set } as any);
+    await handler("/:id", "patch")({ ...request(" Jamie@Regional.Example "), params: { id: "12" }, body: { email: " Jamie@Regional.Example " } }, response());
+    expect(set).toHaveBeenCalledWith({ email: "jamie@regional.example" });
+  });
+
+  it("normalizes email before researching and inserting a single prospect", async () => {
+    const normalized = { ...lead, phone: "555-0100", email: "jamie@regional.example" };
+    const values = vi.fn().mockReturnValue({ returning: async () => [{
+      ...normalized, id: 12, createdAt: new Date(),
+    }] });
+    vi.mocked(db.insert).mockReturnValue({ values } as any);
+    await handler("/", "post")({
+      ...request(" Jamie@Regional.Example "),
+      body: { ...normalized, email: " Jamie@Regional.Example ", opportunityIntelligence: signedFor(normalized) },
+    }, response());
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ email: "jamie@regional.example" }));
+  });
+
+  it("normalizes valid bulk email before researching and persisting the row", async () => {
+    const normalized = { ...lead, phone: "555-0100", email: "jamie@regional.example" };
+    vi.mocked(db.select)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [seller] }) } as any)
+      .mockReturnValueOnce({ from: () => ({ where: async () => [] }) } as any);
+    const values = vi.fn().mockImplementation((rows: any[]) => ({
+      returning: async () => rows.map(row => ({ ...row, id: 12, createdAt: new Date() })),
+    }));
+    vi.mocked(db.transaction).mockImplementation(async (callback: any) => callback({
+      insert: () => ({ values }),
+    }) as any);
+    const res = response();
+    await handler("/bulk", "post")({
+      clientId: seller.id,
+      body: { duplicateStrategy: "skip", prospects: [{
+        ...normalized, email: " Jamie@Regional.Example ", opportunityIntelligence: signedFor(normalized),
+      }] },
+    }, res);
+    expect(values).toHaveBeenCalledWith([expect.objectContaining({ email: "jamie@regional.example" })]);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ added: 1, failed: 0 }));
   });
 });

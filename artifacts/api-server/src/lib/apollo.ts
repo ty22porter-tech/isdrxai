@@ -11,8 +11,8 @@ import { logger } from "./logger";
  * Enrichment strategy:
  *  1. If the prospect already has a real (non-placeholder) email, use
  *     /people/match to look them up directly and pull back name + contact info.
- *  2. If the email is a .invalid placeholder (prospects from Google Maps search),
- *     use /mixed_people/search to find the most-likely decision-maker at that
+ *  2. If the email is a placeholder (prospects from Google Maps search),
+ *     use /mixed_people/api_search to find a decision-maker at that
  *     company (facilities manager for janitorial, IT manager for IT, etc.)
  *     and return their name + email so outreach can actually reach someone.
  */
@@ -51,10 +51,21 @@ export function sanitizeLinkedinUrl(url: unknown): string | null {
 
 /** Returns true for placeholder emails that were generated because no real address was known. */
 export function isPlaceholderEmail(email: string): boolean {
-  if (!email) return true;
-  // .invalid TLD is reserved (RFC 2606) and used as our placeholder sentinel.
-  if (email.endsWith(".invalid")) return true;
-  return false;
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return true;
+  const domain = normalized.split("@")[1];
+  // .invalid is reserved (RFC 2606); invalid.com and its subdomains are legacy sentinels.
+  return normalized.endsWith(".invalid") || (!!domain && (domain === "invalid.com" || domain.endsWith(".invalid.com")));
+}
+
+function usableEmail(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const email = value.trim();
+  if (isPlaceholderEmail(email)) return null;
+  const [local, domain, extra] = email.split("@");
+  if (extra !== undefined || !local || local.includes("..") || !domain) return null;
+  if (!/^[^\s@]+$/.test(local) || !/^[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?)+$/i.test(domain)) return null;
+  return email;
 }
 
 /** Best-guess decision-maker titles by vertical, ordered by preference. */
@@ -185,10 +196,10 @@ export function extractPersonFromApolloData(p: any): ApolloEnrichment {
     null;
 
   // Apollo may return the work email in different locations.
-  const workEmail =
-    p.email?.trim() ||
-    p.contact?.email_addresses?.[0]?.email?.trim() ||
-    null;
+  const workEmail = usableEmail(p.email) ??
+    (Array.isArray(p.contact?.email_addresses)
+      ? p.contact.email_addresses.map((address: any) => usableEmail(address?.email)).find(Boolean) ?? null
+      : null);
 
   const phone =
     p.contact?.sanitized_phone ||
@@ -204,7 +215,7 @@ export function extractPersonFromApolloData(p: any): ApolloEnrichment {
 
   return {
     contactName: fullName,
-    email: workEmail && !isPlaceholderEmail(workEmail) ? workEmail : null,
+    email: workEmail,
     title: p.title ?? null,
     linkedinUrl: sanitizeLinkedinUrl(p.linkedin_url),
     phone,
@@ -278,15 +289,17 @@ async function matchByEmail(apiKey: string, input: {
   const p = data?.person;
   if (!p) return { ok: true, person: null };
 
+  // The caller already has a usable email. Apollo may know additional contact
+  // fields without returning the address again.
   return { ok: true, person: extractPersonFromApolloData(p) };
 }
 
 /**
  * Search for a decision-maker at a company by name/domain using Apollo's
- * /mixed_people/search endpoint. Used when the prospect has only a placeholder
+ * /mixed_people/api_search endpoint. Used when the prospect has only a placeholder
  * email (e.g. from Google Maps import) and we need to find the real contact.
  *
- * Tries each decision-maker title in order and returns the first match.
+ * Tries preferred titles first, then a broader search if none reveal an email.
  */
 async function searchDecisionMaker(apiKey: string, input: {
   companyName: string;
@@ -331,62 +344,55 @@ async function searchDecisionMaker(apiKey: string, input: {
     return { people: data?.people ?? [] };
   };
 
-  // First pass: decision-maker titles only. If nobody at the company carries
-  // one of those titles, retry without the title filter — for small businesses
-  // any listed person (often the owner under an unusual title) beats "not found".
-  let search = await runSearch(true);
-  if ("ok" in search) return search;
-  if (!search.people.length) {
-    search = await runSearch(false);
-    if ("ok" in search) return search;
-  }
-  const people: any[] = search.people;
-  if (!people.length) {
-    logger.info("Apollo has no people listed for requested company");
-    return { ok: true, person: null };
-  }
-
-  // Prefer the highest-priority title match.
+  // Favor candidates Apollo says have an email; retain preferred-title order
+  // within each group. The search results themselves do not reveal emails.
   const lowerTitles = titles.map((t) => t.toLowerCase());
-  const sorted = [...people].sort((a, b) => {
+  const sortCandidates = (people: any[]) => [...people].sort((a, b) => {
+    if (Boolean(a.has_email) !== Boolean(b.has_email)) return a.has_email ? -1 : 1;
     const ia = lowerTitles.findIndex((t) => (a.title ?? "").toLowerCase().includes(t));
     const ib = lowerTitles.findIndex((t) => (b.title ?? "").toLowerCase().includes(t));
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
   });
 
-  // Reject candidates that don't plausibly belong to the target company —
-  // Apollo's fuzzy name search can return people from unrelated companies.
   const target = { companyName: input.companyName, domain };
-  const plausible = sorted.filter((p) => p?.id && isPlausibleCompanyMatch(p, target));
-  if (!plausible.length) return { ok: true, person: null };
+  const attemptedIds = new Set<string>();
+  // At most three reveals for preferred titles and five total across both
+  // searches. Never pay to reveal the same person twice.
+  for (const withTitles of [true, false]) {
+    const search = await runSearch(withTitles);
+    if ("ok" in search) return search;
+    const limit = withTitles ? 3 : 5;
+    for (const chosen of sortCandidates(search.people)) {
+      if (attemptedIds.size >= limit) break;
+      if (!chosen?.id || attemptedIds.has(String(chosen.id))) continue;
+      // Apollo's fuzzy search can return unrelated companies. Check both the
+      // obfuscated search result and the revealed person before accepting it.
+      if (!isPlausibleCompanyMatch(chosen, target)) continue;
+      attemptedIds.add(String(chosen.id));
+      let matchRes: Response;
+      try {
+        matchRes = await fetch("https://api.apollo.io/api/v1/people/match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+          body: JSON.stringify({ id: chosen.id, reveal_personal_emails: false }),
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch (err: any) {
+        const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
+        return { ok: false, planBlocked: false, error: timedOut ? "Apollo contact lookup timed out. Try again." : "Apollo contact lookup could not be reached. Try again." };
+      }
 
-  // api_search returns obfuscated results (no email, partial name) — enrich
-  // via /people/match by Apollo id to reveal details, then re-verify with the
-  // revealed data. If a reveal fails validation, try the next candidate.
-  for (const chosen of plausible.slice(0, 3)) {
-    let matchRes: Response;
-    try {
-      matchRes = await fetch("https://api.apollo.io/api/v1/people/match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
-        body: JSON.stringify({ id: chosen.id, reveal_personal_emails: false }),
-        signal: AbortSignal.timeout(10_000),
-      });
-    } catch (err: any) {
-      const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError";
-      return { ok: false, planBlocked: false, error: timedOut ? "Apollo contact lookup timed out. Try again." : "Apollo contact lookup could not be reached. Try again." };
+      const matchErr = await handleApolloError(matchRes);
+      if (matchErr) return matchErr;
+
+      const matchData: any = await matchRes.json().catch(() => null);
+      const person = matchData?.person;
+      if (!person) continue;
+
+      if (!isPlausibleCompanyMatch(person, target)) continue;
+      const enriched = extractPersonFromApolloData(person);
+      if (enriched.email) return { ok: true, person: enriched };
     }
-
-    const matchErr = await handleApolloError(matchRes);
-    if (matchErr) return matchErr;
-
-    const matchData: any = await matchRes.json().catch(() => null);
-    const person = matchData?.person;
-    if (!person) continue;
-
-    if (!isPlausibleCompanyMatch(person, target)) continue;
-
-    return { ok: true, person: extractPersonFromApolloData(person) };
   }
 
   return { ok: true, person: null };
@@ -403,8 +409,9 @@ export async function enrichPerson(input: {
   if (!apiKey) return { ok: false, planBlocked: false, error: "APOLLO_API_KEY is not configured" };
 
   // For real emails: direct person match (returns title, LinkedIn, phone, etc.)
-  if (!isPlaceholderEmail(input.email)) {
-    return matchByEmail(apiKey, input);
+  const email = input.email.trim().toLowerCase();
+  if (!isPlaceholderEmail(email)) {
+    return matchByEmail(apiKey, { ...input, email });
   }
 
   // For placeholder emails (.invalid): find the decision-maker by company search.
