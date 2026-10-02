@@ -9,7 +9,7 @@ beforeEach(() => { vi.resetAllMocks(); });
 describe("outbound Resend cutover", () => {
   it("uses the branded default regardless of the old deployment setting", () => {
     vi.stubEnv("RESEND_FROM_EMAIL", "old@sdrai.xyz");
-    expect(getPlatformFromEmail()).toBe("outreach@isdrxai.com");
+    expect(getPlatformFromEmail()).toBe("info@isdrxai.com");
     vi.unstubAllEnvs();
   });
   it("preserves reply routing, attachments, headers and idempotency", async () => {
@@ -18,7 +18,7 @@ describe("outbound Resend cutover", () => {
     const [path, request] = mocks.request.mock.calls[0];
     expect(path).toBe("/emails");
     expect(request.headers["Idempotency-Key"]).toBe("stable-key");
-    expect(JSON.parse(request.body)).toMatchObject({from:"FORTE TECHNOLOGIES <outreach@isdrxai.com>",reply_to:options.replyTo,attachments:[{filename:"intro.pdf",content:"cGRm"}],headers:{"List-Unsubscribe":"<https://example.com/unsubscribe>"}});
+    expect(JSON.parse(request.body)).toMatchObject({from:"FORTE TECHNOLOGIES <info@isdrxai.com>",reply_to:options.replyTo,attachments:[{filename:"intro.pdf",content:"cGRm"}],headers:{"List-Unsubscribe":"<https://example.com/unsubscribe>"}});
   });
   it("preserves explicit client senders", async () => {
     mocks.request.mockResolvedValue(new Response(JSON.stringify({ id: "id" })));

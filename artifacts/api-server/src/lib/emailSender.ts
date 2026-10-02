@@ -5,7 +5,7 @@ export function getPlatformFromEmail(): string {
   // Trim: a stray space in the env var produces a malformed From header
   // ("name <addr >") that breaks DMARC alignment and hurts deliverability.
   // Explicit cutover: do not inherit the legacy deployment's sdrai.xyz override.
-  return "outreach@isdrxai.com";
+  return "info@isdrxai.com";
 }
 
 export interface EmailAttachment {

@@ -1216,7 +1216,7 @@ export default function SettingsPage() {
             </p>
             <p className="text-sm text-muted-foreground">Connect the Resend account with a verified isdrxai.com domain in the project's Integrations. Delivery tracking must also be ready before production emails can send.</p>
             <div className="rounded-lg bg-muted/60 p-3 space-y-1.5 font-mono text-xs">
-              <div><span className="text-primary">Default sender:</span> <span className="text-muted-foreground">outreach@isdrxai.com</span></div>
+              <div><span className="text-primary">Default sender:</span> <span className="text-muted-foreground">info@isdrxai.com</span></div>
             </div>
             <a
               href="https://resend.com/domains"
