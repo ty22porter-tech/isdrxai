@@ -30,12 +30,15 @@ import type {
   BulkEnrichResult,
   BulkProspectsInput,
   BulkProspectsResult,
+  CalendlyOAuthCallbackParams,
+  CalendlyStatus,
   Call,
   CallInput,
   CallUpdate,
   Campaign,
   CampaignInput,
   CampaignUpdate,
+  ConnectCalendly200,
   CreateProspect409,
   DashboardStats,
   DeepHealthStatus,
@@ -115,6 +118,347 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetCalendlyStatusUrl = () => {
+
+
+
+
+  return `/api/calendly/status`
+}
+
+export const getCalendlyStatus = async ( options?: RequestInit): Promise<CalendlyStatus> => {
+
+  return customFetch<CalendlyStatus>(getGetCalendlyStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCalendlyStatusQueryKey = () => {
+    return [
+    `/api/calendly/status`
+    ] as const;
+    }
+
+
+export const getGetCalendlyStatusQueryOptions = <TData = Awaited<ReturnType<typeof getCalendlyStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCalendlyStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCalendlyStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCalendlyStatus>>> = ({ signal }) => getCalendlyStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCalendlyStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCalendlyStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getCalendlyStatus>>>
+export type GetCalendlyStatusQueryError = ErrorType<unknown>
+
+
+
+export function useGetCalendlyStatus<TData = Awaited<ReturnType<typeof getCalendlyStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCalendlyStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCalendlyStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getConnectCalendlyUrl = () => {
+
+
+
+
+  return `/api/calendly/connect`
+}
+
+export const connectCalendly = async ( options?: RequestInit): Promise<ConnectCalendly200> => {
+
+  return customFetch<ConnectCalendly200>(getConnectCalendlyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getConnectCalendlyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectCalendly>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof connectCalendly>>, TError,void, TContext> => {
+
+const mutationKey = ['connectCalendly'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof connectCalendly>>, void> = () => {
+
+
+          return  connectCalendly(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConnectCalendlyMutationResult = NonNullable<Awaited<ReturnType<typeof connectCalendly>>>
+
+    export type ConnectCalendlyMutationError = ErrorType<unknown>
+
+    export const useConnectCalendly = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof connectCalendly>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof connectCalendly>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getConnectCalendlyMutationOptions(options));
+    }
+
+export const getSyncCalendlyUrl = () => {
+
+
+
+
+  return `/api/calendly/sync`
+}
+
+export const syncCalendly = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getSyncCalendlyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSyncCalendlyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncCalendly>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncCalendly>>, TError,void, TContext> => {
+
+const mutationKey = ['syncCalendly'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncCalendly>>, void> = () => {
+
+
+          return  syncCalendly(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncCalendlyMutationResult = NonNullable<Awaited<ReturnType<typeof syncCalendly>>>
+
+    export type SyncCalendlyMutationError = ErrorType<unknown>
+
+    export const useSyncCalendly = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncCalendly>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncCalendly>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncCalendlyMutationOptions(options));
+    }
+
+export const getDisconnectCalendlyUrl = () => {
+
+
+
+
+  return `/api/calendly/disconnect`
+}
+
+export const disconnectCalendly = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDisconnectCalendlyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getDisconnectCalendlyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectCalendly>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectCalendly>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectCalendly'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectCalendly>>, void> = () => {
+
+
+          return  disconnectCalendly(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectCalendlyMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectCalendly>>>
+
+    export type DisconnectCalendlyMutationError = ErrorType<unknown>
+
+    export const useDisconnectCalendly = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectCalendly>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectCalendly>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectCalendlyMutationOptions(options));
+    }
+
+export const getCalendlyOAuthCallbackUrl = (params: CalendlyOAuthCallbackParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/calendly/oauth/callback?${stringifiedParams}` : `/api/calendly/oauth/callback`
+}
+
+export const calendlyOAuthCallback = async (params: CalendlyOAuthCallbackParams, options?: RequestInit): Promise<unknown> => {
+
+  return customFetch<unknown>(getCalendlyOAuthCallbackUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCalendlyOAuthCallbackQueryKey = (params?: CalendlyOAuthCallbackParams,) => {
+    return [
+    `/api/calendly/oauth/callback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCalendlyOAuthCallbackQueryOptions = <TData = Awaited<ReturnType<typeof calendlyOAuthCallback>>, TError = ErrorType<void>>(params: CalendlyOAuthCallbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof calendlyOAuthCallback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCalendlyOAuthCallbackQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof calendlyOAuthCallback>>> = ({ signal }) => calendlyOAuthCallback(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof calendlyOAuthCallback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type CalendlyOAuthCallbackQueryResult = NonNullable<Awaited<ReturnType<typeof calendlyOAuthCallback>>>
+export type CalendlyOAuthCallbackQueryError = ErrorType<void>
+
+
+
+export function useCalendlyOAuthCallback<TData = Awaited<ReturnType<typeof calendlyOAuthCallback>>, TError = ErrorType<void>>(
+ params: CalendlyOAuthCallbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof calendlyOAuthCallback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getCalendlyOAuthCallbackQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetGiftOutreachSettingsUrl = () => {
 

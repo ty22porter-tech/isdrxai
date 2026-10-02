@@ -450,11 +450,19 @@ export default function SettingsPage() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: calendlySync } = useQuery({
-    queryKey: ["calendly-status"],
+  const { data: calendlySync, refetch: refreshCalendly, error: calendlyStatusError } = useQuery({
+    queryKey: ["calendly-status", user?.id],
     queryFn: () => apiFetch("/calendly/status"),
     enabled: isLoaded && !!user,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000,
+  });
+  const calendlyAction = useMutation({
+    mutationFn: (action: string) => apiFetch(`/calendly/${action}`, { method: "POST" }),
+    onSuccess: (result) => {
+      if (result.url) window.location.assign(result.url);
+      else { void refreshCalendly(); void qc.invalidateQueries(); }
+    },
   });
 
   const checkIcon = (status: string) => {
@@ -504,7 +512,7 @@ export default function SettingsPage() {
             <Calendar className={`w-5 h-5 shrink-0 ${me?.calendlyUrl ? "text-emerald-400" : "text-muted-foreground"}`} />
             <div>
               <div className={`text-xs font-semibold ${me?.calendlyUrl ? "text-emerald-400" : "text-muted-foreground"}`}>
-                {me?.calendlyUrl ? "Calendly connected" : "Calendly not set"}
+                {calendlySync?.state === "connected" ? "Calendly connected" : me?.calendlyUrl ? "Booking link saved" : "Calendly not set"}
               </div>
               <div className="text-xs text-muted-foreground">{me?.calendlyUrl ? "Booking link ready" : "Add your link below"}</div>
             </div>
@@ -895,10 +903,23 @@ export default function SettingsPage() {
               For better cold-outreach conversion, use a short 10–15 minute Calendly event with minimal required questions. iSDRX AI keeps the email wording duration-neutral so it always matches the event configured in your own account.
             </p>
             <p className="text-xs text-muted-foreground">
-              Want bookings made directly on your Calendly page to show up here automatically? Ask your admin to add a Calendly API token
-              (Calendly → Integrations → API &amp; Webhooks → Personal Access Token) as the <span className="font-mono">CALENDLY_API_TOKEN</span> secret —
-              the app then registers a verified webhook on its own. Bookings made through emailed links are always tracked either way.
+              Connect your own Calendly account to record confirmed bookings, cancellations, and reschedules in your workspace.
+              Saving a booking link alone does not enable synchronization. Calendly webhook access may require a paid plan.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={calendlyAction.isPending} onClick={() => calendlyAction.mutate("connect")}>
+                {calendlySync?.authorized ? "Reconnect Calendly" : "Connect Calendly"}
+              </Button>
+              {calendlySync?.authorized && <>
+                <Button type="button" variant="outline" disabled={calendlyAction.isPending} onClick={() => calendlyAction.mutate("sync")}>Sync now</Button>
+                <Button type="button" variant="outline" disabled={calendlyAction.isPending} onClick={() => {
+                  if (window.confirm("Disconnect Calendly? Existing appointments will remain, but new bookings will no longer sync.")) calendlyAction.mutate("disconnect");
+                }}>Disconnect</Button>
+              </>}
+            </div>
+            {calendlyAction.isPending && <p className="text-xs text-muted-foreground" role="status">Updating Calendly…</p>}
+            {(calendlyAction.error || calendlyStatusError) && <p className="text-xs text-destructive" role="alert">{String((calendlyAction.error || calendlyStatusError)?.message)}</p>}
+            {calendlySync?.checkedAt && <p className="text-xs text-muted-foreground">Last successful sync: {new Date(calendlySync.checkedAt).toLocaleString()}</p>}
             {calendlySync && (
               <div
                 className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 ${

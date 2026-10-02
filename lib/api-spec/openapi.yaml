@@ -30,6 +30,55 @@ tags:
   - name: gift-videos
     description: Managed personalized gift videos and engagement analytics
 paths:
+  /calendly/status:
+    get:
+      operationId: getCalendlyStatus
+      responses:
+        "200":
+          description: Current customer's Calendly authorization and sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendlyStatus"
+  /calendly/connect:
+    post:
+      operationId: connectCalendly
+      responses:
+        "200":
+          description: OAuth authorization URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url: { type: string }
+  /calendly/sync:
+    post:
+      operationId: syncCalendly
+      responses:
+        "200":
+          description: Bookings reconciled
+  /calendly/disconnect:
+    post:
+      operationId: disconnectCalendly
+      responses:
+        "200":
+          description: Authorization removed; existing appointments retained
+  /calendly/oauth/callback:
+    get:
+      operationId: calendlyOAuthCallback
+      parameters:
+        - in: query
+          name: state
+          required: true
+          schema: { type: string }
+        - in: query
+          name: code
+          schema: { type: string }
+      responses:
+        "302":
+          description: Returns to Settings after authorization
   /gift-outreach/settings:
     get:
       operationId: getGiftOutreachSettings
@@ -1426,6 +1475,14 @@ components:
         type: string
         pattern: '^bytes=\d*-\d*$'
   schemas:
+    CalendlyStatus:
+      type: object
+      required: [state, detail, checkedAt, authorized]
+      properties:
+        state: { type: string, enum: [connected, failed, not_configured] }
+        detail: { type: string }
+        checkedAt: { type: ["string", "null"] }
+        authorized: { type: boolean }
     GiftVideoUploadInput:
       type: object
       additionalProperties: false

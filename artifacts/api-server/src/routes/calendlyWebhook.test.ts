@@ -14,6 +14,7 @@ vi.mock("../lib/engagementScoring", () => ({
   recordEngagementEvent: vi.fn(),
   cancelPendingAutomation: vi.fn(),
 }));
+vi.mock("../lib/calendlyLocks", () => ({ calendlyInviteeLocks: {} }));
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -34,13 +35,13 @@ function makeReq(body: object, headers: Record<string, string> = {}) {
   return { body: Buffer.from(JSON.stringify(body)), headers } as any;
 }
 
-function sign(body: object, key: string, t = "1712345678") {
+function sign(body: object, key: string, t = String(Math.floor(Date.now() / 1000))) {
   const raw = JSON.stringify(body);
   const v1 = crypto.createHmac("sha256", key).update(`${t}.${raw}`).digest("hex");
   return `t=${t},v1=${v1}`;
 }
 
-const ENV_KEYS = ["CALENDLY_WEBHOOK_SIGNING_KEY", "NODE_ENV", "REPLIT_DEPLOYMENT"] as const;
+const ENV_KEYS = ["CALENDLY_OAUTH_WEBHOOK_SIGNING_KEY", "NODE_ENV", "REPLIT_DEPLOYMENT"] as const;
 const saved: Record<string, string | undefined> = {};
 
 beforeEach(() => {
@@ -69,7 +70,7 @@ describe("Calendly webhook signature gate", () => {
   });
 
   it("rejects requests with a missing signature header when a key is configured", async () => {
-    process.env.CALENDLY_WEBHOOK_SIGNING_KEY = "test-key";
+    process.env.CALENDLY_OAUTH_WEBHOOK_SIGNING_KEY = "test-key";
     const res = makeRes();
     await handleCalendlyWebhook(makeReq({ event: "ping" }), res);
     expect(res.statusCode).toBe(400);
@@ -77,7 +78,7 @@ describe("Calendly webhook signature gate", () => {
   });
 
   it("rejects requests signed with the wrong key", async () => {
-    process.env.CALENDLY_WEBHOOK_SIGNING_KEY = "test-key";
+    process.env.CALENDLY_OAUTH_WEBHOOK_SIGNING_KEY = "test-key";
     const body = { event: "ping" };
     const res = makeRes();
     await handleCalendlyWebhook(
@@ -88,7 +89,7 @@ describe("Calendly webhook signature gate", () => {
   });
 
   it("accepts requests with a valid signature", async () => {
-    process.env.CALENDLY_WEBHOOK_SIGNING_KEY = "test-key";
+    process.env.CALENDLY_OAUTH_WEBHOOK_SIGNING_KEY = "test-key";
     process.env.NODE_ENV = "production";
     const body = { event: "ping" }; // non-booking event → acknowledged/ignored
     const res = makeRes();
@@ -100,9 +101,16 @@ describe("Calendly webhook signature gate", () => {
     expect(res.body.ignored).toBe(true);
   });
 
-  it("accepts unsigned requests only outside production", async () => {
+  it("rejects unsigned requests even outside production", async () => {
     const res = makeRes();
     await handleCalendlyWebhook(makeReq({ event: "ping" }), res);
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(403);
+  });
+  it("rejects a correctly signed but expired delivery", async () => {
+    process.env.CALENDLY_OAUTH_WEBHOOK_SIGNING_KEY = "test-key";
+    const body = { event: "ping" };
+    const res = makeRes();
+    await handleCalendlyWebhook(makeReq(body, { "calendly-webhook-signature": sign(body, "test-key", "1712345678") }), res);
+    expect(res.statusCode).toBe(400);
   });
 });

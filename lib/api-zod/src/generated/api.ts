@@ -8,6 +8,33 @@
 import * as zod from 'zod';
 
 
+export const GetCalendlyStatusResponse = zod.object({
+  "state": zod.enum(['connected', 'failed', 'not_configured']),
+  "detail": zod.string(),
+  "checkedAt": zod.string().nullable(),
+  "authorized": zod.boolean()
+})
+
+
+export const ConnectCalendlyResponse = zod.object({
+  "url": zod.string()
+})
+
+
+export const SyncCalendlyResponse = zod.unknown()
+
+
+export const DisconnectCalendlyResponse = zod.unknown()
+
+
+export const CalendlyOAuthCallbackQueryParams = zod.object({
+  "state": zod.coerce.string(),
+  "code": zod.coerce.string().optional()
+})
+
+export const CalendlyOAuthCallbackResponse = zod.void()
+
+
 /**
  * @summary Read Professional Gift Outreach settings (disabled and review required by default)
  */

@@ -5,7 +5,6 @@ import { getStripeSync } from "./stripeClient";
 import { startAutopilotEngine } from "./lib/autopilotEngine";
 import { ensureResendWebhook } from "./lib/resendWebhook";
 import { ensureOutboundResendWebhook } from "./lib/outboundResendWebhook";
-import { ensureCalendlyWebhook } from "./lib/calendlyWebhook";
 import { bootstrapAdmin } from "./lib/bootstrapAdmin";
 import { pool, ensureAdditiveColumns } from "@workspace/db";
 
@@ -75,7 +74,7 @@ await initStripe();
 await bootstrapAdmin();
 await ensureResendWebhook();
 await ensureOutboundResendWebhook();
-await ensureCalendlyWebhook();
+// Per-customer OAuth provisions user-scoped subscriptions on connection.
 startAutopilotEngine(logger);
 
 app.listen(port, (err) => {

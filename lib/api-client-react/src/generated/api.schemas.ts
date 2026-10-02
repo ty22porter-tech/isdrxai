@@ -5,6 +5,23 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+export type CalendlyStatusState = typeof CalendlyStatusState[keyof typeof CalendlyStatusState];
+
+
+export const CalendlyStatusState = {
+  connected: 'connected',
+  failed: 'failed',
+  not_configured: 'not_configured',
+} as const;
+
+export interface CalendlyStatus {
+  state: CalendlyStatusState;
+  detail: string;
+  /** @nullable */
+  checkedAt: string | null;
+  authorized: boolean;
+}
+
 export type GiftVideoUploadInputKind = typeof GiftVideoUploadInputKind[keyof typeof GiftVideoUploadInputKind];
 
 
@@ -1623,6 +1640,15 @@ export interface ActivityItem {
  * A single byte range
  */
 export type ByteRangeParameter = string;
+
+export type ConnectCalendly200 = {
+  url: string;
+};
+
+export type CalendlyOAuthCallbackParams = {
+state: string;
+code?: string;
+};
 
 export type ListGiftOutreachRecordsParams = {
 prospectId?: number;

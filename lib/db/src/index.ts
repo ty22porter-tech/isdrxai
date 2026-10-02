@@ -11,6 +11,10 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+/** Isolated, bounded pool for long-lived advisory locks, not ordinary queries. */
+export function createAdvisoryLockPool() {
+  return new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
+}
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
