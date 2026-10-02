@@ -32,3 +32,11 @@ Treat authenticated duplicate callbacks as navigation back to Settings, never as
 **Why:** Production logs showed an authentication redirect followed by overlapping callback requests: the first authorized successfully, while the duplicate consumed-state rejection became the page the user saw. Authorization success and webhook setup success are separate outcomes.
 
 **How to apply:** Test concurrent callback deliveries and cross-tenant state reuse. Keep setup errors stage-specific and sanitized; use the OAuth application's assigned webhook signing key rather than PAT-style signing-key overrides.
+
+## Calendly permissions are not hierarchical
+
+Webhook write permission does not grant webhook read permission.
+
+**Why:** A production authorization succeeded but subscription lookup returned an explicit insufficient-scope 403. Calendly's API specification requires separate read scope for subscription listing.
+
+**How to apply:** Check each called endpoint's documented scopes, including lookups before mutations. Ensure both the developer app's allowed scopes and the new authorization grant include those permissions; existing grants require reconnection.

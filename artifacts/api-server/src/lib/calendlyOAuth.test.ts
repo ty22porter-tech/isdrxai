@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 vi.mock("@workspace/db", () => ({ db: {}, calendlyConnectionsTable: {} }));
-import { seal, unseal, hash, exchange } from "./calendlyOAuth";
+import { seal, unseal, hash, exchange, CALENDLY_SCOPES, CalendlyApiError } from "./calendlyOAuth";
 
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 describe("Calendly credential safety", () => {
+  it("requests separate read and write webhook permissions and lists both in recovery guidance", () => {
+    expect(CALENDLY_SCOPES).toEqual(["users:read", "scheduled_events:read", "webhooks:read", "webhooks:write"]);
+    const error = new CalendlyApiError(403, { title: "Insufficient scope" });
+    for (const scope of CALENDLY_SCOPES) expect(error.message).toContain(scope);
+  });
   it("encrypts credentials with randomized authenticated encryption", () => {
     vi.stubEnv("SESSION_SECRET", "unit-test-only-secret-with-at-least-32-characters");
     const value = { access_token: "test-access", refresh_token: "test-refresh" };

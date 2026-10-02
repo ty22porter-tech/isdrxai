@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 export const CALENDLY_CALLBACK = "https://isdrxai.com/api/calendly/oauth/callback";
 export const CALENDLY_API = "https://api.calendly.com";
+export const CALENDLY_SCOPES = ["users:read", "scheduled_events:read", "webhooks:read", "webhooks:write"] as const;
 export const hash = (value: string) => crypto.createHash("sha256").update(value).digest("hex");
 
 export class CalendlyApiError extends Error {
@@ -11,7 +12,7 @@ export class CalendlyApiError extends Error {
     // Classify documented provider errors without exposing arbitrary payloads,
     // URLs, tokens, email addresses, or request bodies to logs/UI.
     super(body?.title === "Insufficient scope"
-      ? "Calendly permissions are missing. Enable users:read, scheduled_events:read and webhooks:write for the OAuth app, then reconnect."
+      ? `Calendly permissions are missing. Enable ${CALENDLY_SCOPES.join(", ")} for the OAuth app, then reconnect.`
       : typeof body?.message === "string" && /upgrade your calendly account/i.test(body.message)
         ? "Your Calendly plan does not allow webhooks. A Calendly plan with webhook access is required."
         : status === 401 ? "Calendly authorization expired. Please reconnect."

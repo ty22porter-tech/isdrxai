@@ -3,7 +3,7 @@ import { Router, type IRouter } from "express";
 import { db, calendlyConnectionsTable as connections } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
-import { CALENDLY_CALLBACK, hash, seal, unseal, exchange, calendlyRequest, CalendlyApiError } from "../lib/calendlyOAuth";
+import { CALENDLY_CALLBACK, CALENDLY_SCOPES, hash, seal, unseal, exchange, calendlyRequest, CalendlyApiError } from "../lib/calendlyOAuth";
 import { consumeCalendlyState } from "../lib/calendlyState";
 import { syncCalendly } from "../lib/calendlySync";
 import { GetCalendlyStatusResponse, ConnectCalendlyResponse } from "@workspace/api-zod";
@@ -44,7 +44,7 @@ router.post("/connect", async (req, res) => {
   const params = new URLSearchParams({ client_id: process.env.CALENDLY_CLIENT_ID, response_type: "code",
     redirect_uri: CALENDLY_CALLBACK, state, code_challenge_method: "S256",
     code_challenge: crypto.createHash("sha256").update(verifier).digest("base64url"),
-    scope: "users:read scheduled_events:read webhooks:write" });
+    scope: CALENDLY_SCOPES.join(" ") });
   res.json(ConnectCalendlyResponse.parse({ url: `https://auth.calendly.com/oauth/authorize?${params}` }));
 });
 
