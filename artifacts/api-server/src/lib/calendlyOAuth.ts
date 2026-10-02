@@ -6,6 +6,21 @@ export const CALENDLY_CALLBACK = "https://isdrxai.com/api/calendly/oauth/callbac
 export const CALENDLY_API = "https://api.calendly.com";
 export const hash = (value: string) => crypto.createHash("sha256").update(value).digest("hex");
 
+export class CalendlyApiError extends Error {
+  constructor(public status: number, body: any) {
+    // Classify documented provider errors without exposing arbitrary payloads,
+    // URLs, tokens, email addresses, or request bodies to logs/UI.
+    super(body?.title === "Insufficient scope"
+      ? "Calendly permissions are missing. Enable users:read, scheduled_events:read and webhooks:write for the OAuth app, then reconnect."
+      : typeof body?.message === "string" && /upgrade your calendly account/i.test(body.message)
+        ? "Your Calendly plan does not allow webhooks. A Calendly plan with webhook access is required."
+        : status === 401 ? "Calendly authorization expired. Please reconnect."
+          : status === 403 ? "Calendly denied access. Check the account's webhook permissions and plan."
+            : status === 429 ? "Calendly rate limit reached. Please retry later."
+              : `Calendly rejected the request (HTTP ${status}). Please reconnect or retry later.`);
+  }
+}
+
 function key() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) throw new Error("Calendar credential encryption is not configured.");
@@ -56,6 +71,6 @@ export async function calendlyRequest(clientId: string, path: string, init: Requ
     ...init, headers: { ...init.headers, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     signal: AbortSignal.timeout(20000),
   });
-  if (!response.ok) throw new Error(response.status === 401 ? "Calendly authorization expired. Please reconnect." : `Calendly request failed (${response.status}). Try again later.`);
+  if (!response.ok) throw new CalendlyApiError(response.status, await response.json().catch(() => null));
   return response.status === 204 ? null : response.json() as Promise<any>;
 }

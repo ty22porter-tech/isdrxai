@@ -24,3 +24,11 @@ Use a separate OAuth application/redirect for development if live authorization 
 **Why:** The user registered the production application after being given the canonical isdrxai.com callback. Development and production have separate identities and data.
 
 **How to apply:** Do not bypass the preview connection guard to test real calendars. Verify the production consent round trip after publishing. Preserve encryption key material when changing session secrets, or intentionally require every customer to reconnect.
+
+## Duplicate OAuth callbacks
+
+Treat authenticated duplicate callbacks as navigation back to Settings, never as another token exchange. Retain a tenant-bound consumed-state receipt while keeping the grant strictly single-use.
+
+**Why:** Production logs showed an authentication redirect followed by overlapping callback requests: the first authorized successfully, while the duplicate consumed-state rejection became the page the user saw. Authorization success and webhook setup success are separate outcomes.
+
+**How to apply:** Test concurrent callback deliveries and cross-tenant state reuse. Keep setup errors stage-specific and sanitized; use the OAuth application's assigned webhook signing key rather than PAT-style signing-key overrides.

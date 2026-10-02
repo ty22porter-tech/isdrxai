@@ -1,9 +1,10 @@
 import crypto from "node:crypto";
 import { Router, type IRouter } from "express";
 import { db, calendlyConnectionsTable as connections } from "@workspace/db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
-import { CALENDLY_CALLBACK, hash, seal, unseal, exchange, calendlyRequest } from "../lib/calendlyOAuth";
+import { CALENDLY_CALLBACK, hash, seal, unseal, exchange, calendlyRequest, CalendlyApiError } from "../lib/calendlyOAuth";
+import { consumeCalendlyState } from "../lib/calendlyState";
 import { syncCalendly } from "../lib/calendlySync";
 import { GetCalendlyStatusResponse, ConnectCalendlyResponse } from "@workspace/api-zod";
 
@@ -19,7 +20,7 @@ router.use((req, res, next) => {
 
 router.get("/status", async (req, res) => {
   const [before] = await db.select().from(connections).where(eq(connections.clientId, req.clientId));
-  if (before?.credentials && (!before.lastSyncAt || Date.now() - before.lastSyncAt.getTime() > 15 * 60000)) {
+  if (before?.credentials && before.subscriptionUri && (!before.lastSyncAt || Date.now() - before.lastSyncAt.getTime() > 15 * 60000)) {
     try { await syncCalendly(req.clientId); } catch { /* Persisted error is shown below. */ }
   }
   const [c] = await db.select().from(connections).where(eq(connections.clientId, req.clientId));
@@ -48,15 +49,17 @@ router.post("/connect", async (req, res) => {
 });
 
 router.get("/oauth/callback", async (req, res) => {
-  const state = typeof req.query.state === "string" ? req.query.state : "";
-  const [pending] = await db.update(connections).set({ stateHash: null, stateExpiresAt: null })
-    .where(and(eq(connections.clientId, req.clientId), eq(connections.stateHash, hash(state)),
-      gt(connections.stateExpiresAt, new Date()))).returning();
-  if (!pending?.verifier || !state) { res.status(400).send("Expired or invalid Calendly authorization. Please try connecting again."); return; }
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  const pending = await consumeCalendlyState(req.clientId, req.query.state);
+  if (pending.kind === "duplicate") { res.redirect("/app/settings"); return; }
+  if (pending.kind === "invalid") { res.status(400).send("Expired or invalid Calendly authorization. Open Settings and start a new connection; do not refresh this callback page."); return; }
+  let step = "authorization";
   try {
     if (typeof req.query.code !== "string") throw new Error("Authorization was not completed.");
     const credentials = await exchange({ grant_type: "authorization_code", code: req.query.code,
       redirect_uri: CALENDLY_CALLBACK, code_verifier: unseal(pending.verifier) });
+    step = "account lookup";
     const meResponse = await fetch("https://api.calendly.com/users/me", {
       headers: { Authorization: `Bearer ${credentials.access_token}` }, signal: AbortSignal.timeout(20000),
     });
@@ -67,22 +70,30 @@ router.get("/oauth/callback", async (req, res) => {
     // linking an account already claimed by another tenant without leaking tokens.
     await db.update(connections).set({ userUri: me.uri, credentials: seal(credentials), verifier: null, subscriptionUri: null, error: null }).where(eq(connections.clientId, req.clientId));
     // User scope is deliberate: organization scope would mix other customers.
+    step = "webhook lookup";
     const listed = await calendlyRequest(req.clientId, `/webhook_subscriptions?${new URLSearchParams({ organization: me.current_organization, user: me.uri, scope: "user" })}`);
     const callback = "https://isdrxai.com/api/calendly/webhook";
     const existing = listed.collection?.find((s: any) => s.callback_url === callback && s.state === "active");
     // Recreate our own callback so its event coverage and signing key are known,
     // including after migrating an older subscription or rotating signing keys.
-    if (existing) await calendlyRequest(req.clientId, new URL(existing.uri).pathname, { method: "DELETE" });
+    if (existing) {
+      step = "webhook replacement";
+      await calendlyRequest(req.clientId, new URL(existing.uri).pathname, { method: "DELETE" });
+    }
+    step = "webhook registration";
     const subscription = (await calendlyRequest(req.clientId, "/webhook_subscriptions", {
       method: "POST", body: JSON.stringify({ url: callback, events: ["invitee.created", "invitee.canceled"],
-        organization: me.current_organization, user: me.uri, scope: "user",
-        signing_key: process.env.CALENDLY_OAUTH_WEBHOOK_SIGNING_KEY }),
+        // OAuth subscriptions use the signing key assigned to the OAuth app.
+        organization: me.current_organization, user: me.uri, scope: "user" }),
     })).resource;
     await db.update(connections).set({ subscriptionUri: subscription.uri }).where(eq(connections.clientId, req.clientId));
+    step = "initial booking sync";
     await syncCalendly(req.clientId);
     res.redirect("/app/settings?calendly=connected");
-  } catch {
-    await db.update(connections).set({ error: "Calendly setup or initial sync failed. Reconnect to retry; check your Calendly plan and permissions." }).where(eq(connections.clientId, req.clientId));
+  } catch (error) {
+    const detail = error instanceof CalendlyApiError ? error.message : "Please reconnect to retry.";
+    req.log.warn({ step, providerStatus: error instanceof CalendlyApiError ? error.status : undefined }, "Calendly setup failed");
+    await db.update(connections).set({ error: `Calendly ${step} failed. ${detail}` }).where(eq(connections.clientId, req.clientId));
     res.redirect("/app/settings?calendly=failed");
   }
 });
