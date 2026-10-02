@@ -1,20 +1,11 @@
-import { Resend } from "resend";
-
-let _resend: Resend | null = null;
-
-function getResend(): Resend {
-  if (!_resend) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) throw new Error("RESEND_API_KEY is not set. Add it in your project Secrets.");
-    _resend = new Resend(key);
-  }
-  return _resend;
-}
+import { outboundResendRequest } from "./outboundResend";
+import { assertOutboundDeliveryReady } from "./outboundResendWebhook";
 
 export function getPlatformFromEmail(): string {
   // Trim: a stray space in the env var produces a malformed From header
   // ("name <addr >") that breaks DMARC alignment and hurts deliverability.
-  return (process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev").trim();
+  // Explicit cutover: do not inherit the legacy deployment's sdrai.xyz override.
+  return "outreach@isdrxai.com";
 }
 
 export interface EmailAttachment {
@@ -40,25 +31,40 @@ export interface SendEmailOptions {
 export async function sendEmail(options: SendEmailOptions): Promise<string | undefined> {
   const { fromName, fromEmail: fromEmailOverride, replyTo, to, subject, body, html, attachments, headers } = options;
   const fromEmail = fromEmailOverride?.trim() || getPlatformFromEmail();
-  const resend = getResend();
-
-  const { data, error } = await resend.emails.send({
+  assertOutboundDeliveryReady();
+  const response = await outboundResendRequest("/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
+    },
+    body: JSON.stringify({
     from: `${fromName.trim()} <${fromEmail}>`,
-    replyTo: replyTo.trim(),
+    reply_to: replyTo.trim(),
     to: to.trim(),
     subject,
     text: body,
     html: html ?? `<p>${body.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</p>`,
-    attachments: attachments?.map(a => ({ filename: a.filename, content: a.content })),
+    attachments: attachments?.map(a => ({ filename: a.filename, content: a.content.toString("base64") })),
     headers,
-  }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
-
-  if (error) throw new Error(error.message);
-  return data?.id;
+    }),
+  });
+  const data = await response.json() as { id?: string; message?: string };
+  if (!response.ok) throw new Error(data.message || `Resend rejected email (${response.status})`);
+  if (!data.id) throw new Error("Resend did not acknowledge the email with a message ID");
+  return data.id;
 }
 
 export async function isResendConfigured(): Promise<boolean> {
-  return !!(process.env.RESEND_API_KEY);
+  try {
+    assertOutboundDeliveryReady();
+    const response = await outboundResendRequest("/domains");
+    if (!response.ok) return false;
+    const data = await response.json() as { data?: Array<{ name: string; status: string }> };
+    return !!data.data?.some(d => d.name === "isdrxai.com" && d.status === "verified");
+  } catch {
+    return false;
+  }
 }
 
 export type { };

@@ -496,7 +496,7 @@ export default function SettingsPage() {
                 {me?.platformEmailReady ? "Platform email ready" : "Platform email not set up"}
               </div>
               <div className="text-xs text-muted-foreground truncate">
-                {me?.platformEmailReady ? `Sending from ${me?.platformFromEmail ?? "platform"}` : "Admin needs to add RESEND_API_KEY"}
+                {me?.platformEmailReady ? `Sending from ${me?.platformFromEmail ?? "platform"}` : "Admin needs to check the Resend connection"}
               </div>
             </div>
           </div>
@@ -1214,18 +1214,17 @@ export default function SettingsPage() {
             <p className="text-sm font-medium flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-400" /> One-time platform setup (admin only)
             </p>
-            <p className="text-sm text-muted-foreground">To enable email sending, add these two secrets to your project:</p>
+            <p className="text-sm text-muted-foreground">Connect the Resend account with a verified isdrxai.com domain in the project's Integrations. Delivery tracking must also be ready before production emails can send.</p>
             <div className="rounded-lg bg-muted/60 p-3 space-y-1.5 font-mono text-xs">
-              <div><span className="text-primary">RESEND_API_KEY</span> <span className="text-muted-foreground">= re_xxxxxxxxxxxx</span></div>
-              <div><span className="text-primary">RESEND_FROM_EMAIL</span> <span className="text-muted-foreground">= outreach@yourdomain.com</span></div>
+              <div><span className="text-primary">Default sender:</span> <span className="text-muted-foreground">outreach@isdrxai.com</span></div>
             </div>
             <a
-              href="https://resend.com/api-keys"
+              href="https://resend.com/domains"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
             >
-              Get your free Resend API key <ExternalLink className="w-3 h-3" />
+              Check Resend domain verification <ExternalLink className="w-3 h-3" />
             </a>
           </div>
         )}

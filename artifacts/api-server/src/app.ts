@@ -22,6 +22,7 @@ import scheduleRouter from "./routes/schedule";
 import unsubscribeRouter from "./routes/unsubscribe";
 import { handleCalendlyWebhook } from "./routes/calendlyWebhook";
 import { giftVideoPublicRouter } from "./routes/gift-videos";
+import { handleOutboundResendWebhook, OUTBOUND_WEBHOOK_PATH } from "./lib/outboundResendWebhook";
 
 const app: Express = express();
 
@@ -102,6 +103,13 @@ app.post(
     );
     return;
   },
+);
+
+// Separate connected-account delivery webhook; never handles legacy inbound replies.
+app.post(
+  OUTBOUND_WEBHOOK_PATH,
+  express.raw({ type: "application/json" }),
+  handleOutboundResendWebhook,
 );
 
 // 1c. Calendly webhook BEFORE express.json() — needs raw Buffer for HMAC signature.

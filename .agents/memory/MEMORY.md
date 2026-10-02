@@ -7,8 +7,9 @@
 - [Email send paths](email-send-paths.md) — never write status:"sent" without a real Resend dispatch; manual POST /api/emails once only logged. Share emailCompose.ts for CAN-SPAM.
 - [Email/call-script generation paths](email-generation-paths.md) — 3 gen paths; inject client identity, omit body signatures, scope by client, and keep “free” out of IT email bodies.
 - [Deliverability checks](deliverability-checks.md) — SPF/DKIM come from Resend GET /domains/{id} detail (not list); DMARC only via DNS resolveTxt(_dmarc.<domain>).
-- [Per-client sending email](per-client-sending-email.md) — users.sendingEmail = per-client From (null→shared RESEND_FROM_EMAIL); must be Resend-verified; From≠Reply-To (shared inbound) is intentional, don't "fix".
+- [Per-client sending email](per-client-sending-email.md) — client From overrides require verification; From≠Reply-To is intentional. See outbound account separation for platform sender decisions.
 - [Deployed sender verification](deployed-sender-verification.md) — missing environment inspection results do not prove the deployed From address; verify actual provider email records.
+- [Outbound account separation](outbound-account-cutover.md) — branded isdrxai.com sending must preserve the legacy account for historical reply retrieval and webhook verification.
 - [Admin bootstrap](admin-bootstrap.md) — no self-serve first admin; dev = direct SQL update; PROD DB is separate + read-only from tooling, promote via BOOTSTRAP_ADMIN_USER_ID env on startup then republish.
 - [Branding / rebrand sweep](branding-and-artifact-titles.md) — brand strings hide in hidden `.replit-artifact/artifact.toml` titles, index.html meta, video scenes, openapi.yaml; sweep `--hidden`. Stripe live product won't rename from seed change.
 - [Autopilot sequences](autopilot-sequences.md) — autopilot auto-sends campaign 7-step callScript sequence (index-based, per-step dayDelay); no sequence → legacy 3-step AI fallback; mirror shape changes in sequences.tsx too.

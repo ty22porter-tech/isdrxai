@@ -8,8 +8,8 @@ description: How each client's outbound From: address is chosen and why From≠R
 `users.sendingEmail` (nullable, admin-managed via PATCH /admin/clients/:id) is each
 client's own authenticated From: address, provisioned during onboarding. `sendEmail`
 takes an optional `fromEmail`; all send sites pass `client.sendingEmail ?? undefined`.
-When null, it falls back to `getPlatformFromEmail()` (RESEND_FROM_EMAIL, the shared
-domain) — so a null value is the safe default and existing clients are unaffected.
+When null, it falls back to the shared platform sender. See
+[Outbound account separation](outbound-account-cutover.md) for the branded sender decision.
 
 **Must be Resend-verified:** setting `sendingEmail` to a domain not verified in Resend
 will make that client's sends fail. Do not populate it with an unverified address.

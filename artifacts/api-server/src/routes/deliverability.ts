@@ -2,6 +2,7 @@ import { Router } from "express";
 import { resolveTxt } from "node:dns/promises";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { getPlatformFromEmail } from "../lib/emailSender";
+import { outboundResendRequest } from "../lib/outboundResend";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -18,21 +19,15 @@ async function getResendDomainRecords(domain: string): Promise<
   | { found: true; status: string; records: Array<{ record?: string; type?: string; name?: string; status?: string }> }
   | { found: false; error?: string }
 > {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return { found: false, error: "RESEND_API_KEY is not set." };
   try {
-    const listRes = await fetch("https://api.resend.com/domains", {
-      headers: { Authorization: `Bearer ${key}` },
-    });
+    const listRes = await outboundResendRequest("/domains");
     if (!listRes.ok) return { found: false, error: `Resend API error ${listRes.status}` };
     const list = (await listRes.json()) as { data?: Array<{ id: string; name: string; status: string }> };
     const match = list.data?.find((d) => d.name.toLowerCase() === domain.toLowerCase());
     if (!match) return { found: false };
 
     // Fetch detail for the SPF/DKIM record breakdown.
-    const detailRes = await fetch(`https://api.resend.com/domains/${match.id}`, {
-      headers: { Authorization: `Bearer ${key}` },
-    });
+    const detailRes = await outboundResendRequest(`/domains/${match.id}`);
     const detail = detailRes.ok
       ? ((await detailRes.json()) as { status?: string; records?: any[] })
       : {};
@@ -64,17 +59,17 @@ router.get("/", async (_req, res) => {
   const checks: Check[] = [];
 
   // 1. Provider configured
-  const hasKey = !!process.env.RESEND_API_KEY;
+  const domainInfo = await getResendDomainRecords(sendingDomain);
+  const hasKey = domainInfo.found || !domainInfo.error;
   checks.push({
     id: "provider",
     label: "Email provider connected",
     status: hasKey ? "pass" : "fail",
     detail: hasKey
-      ? "Resend is connected and ready to send."
-      : "No email provider key found. Emails cannot be sent.",
+      ? "The outbound Resend account is connected."
+      : "The outbound Resend connection could not be verified. Check the integration.",
   });
 
-  const domainInfo = await getResendDomainRecords(sendingDomain);
 
   // 2. Domain verified
   const domainVerified = domainInfo.found && domainInfo.status === "verified";
