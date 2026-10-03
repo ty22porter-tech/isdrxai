@@ -1,5 +1,29 @@
 export type ConversionIntent = "book_demo" | "start_trial" | "get_started";
 
+// Capture links in headers, mobile menus, cards, and the guided assistant.
+// Keep these click metrics separate from completed conversions.
+export function installMarketingClickTracking(): () => void {
+  const onClick = (event: MouseEvent) => {
+    if (event.type === "auxclick" && event.button !== 1) return;
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    try {
+      const url = new URL(link.getAttribute("href")!, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      const path = url.pathname.replace(/\/+$/, "");
+      const name = path === "/book-demo" ? "book_demo_clicked"
+        : path === "/pricing" || path === "/app/pricing" || url.hash === "#plans" ? "pricing_clicked" : null;
+      if (name) trackEvent(name, { source: "landing", location: link.closest("nav") ? "navigation" : "content" });
+    } catch { /* Tracking must not interrupt navigation. */ }
+  };
+  document.addEventListener("click", onClick, true);
+  document.addEventListener("auxclick", onClick, true);
+  return () => {
+    document.removeEventListener("click", onClick, true);
+    document.removeEventListener("auxclick", onClick, true);
+  };
+}
+
 type AnalyticsData = Record<string, string | number | boolean>;
 
 declare global {

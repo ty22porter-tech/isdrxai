@@ -1,5 +1,27 @@
 type AnalyticsData = Record<string, string | number | boolean>;
 
+export function installMarketingClickTracking(): () => void {
+  const onClick = (event: MouseEvent) => {
+    if (event.type === "auxclick" && event.button !== 1) return;
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    try {
+      const url = new URL(link.getAttribute("href")!, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      const path = url.pathname.replace(/\/+$/, "");
+      const name = path === "/book-demo" ? "book_demo_clicked"
+        : path === "/pricing" || path === "/app/pricing" || url.hash === "#plans" ? "pricing_clicked" : null;
+      if (name) trackEvent(name, { source: "app", location: link.closest("nav") ? "navigation" : "content" });
+    } catch { /* Tracking must not interrupt navigation. */ }
+  };
+  document.addEventListener("click", onClick, true);
+  document.addEventListener("auxclick", onClick, true);
+  return () => {
+    document.removeEventListener("click", onClick, true);
+    document.removeEventListener("auxclick", onClick, true);
+  };
+}
+
 declare global {
   interface Window {
     umami?: {
@@ -32,6 +54,8 @@ export function trackConversionClick(
   location: string,
 ): void {
   trackEvent("conversion_cta_click", { intent, location });
+  // Only the actual Start Free Trial action, not a general plan-selection link.
+  if (intent === "start_trial") trackEvent("free_trial_clicked", { location, source: "app" });
 
   try {
     void fetch("/api/conversion-events", {
