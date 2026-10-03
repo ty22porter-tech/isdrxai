@@ -137,7 +137,7 @@ function Hero() {
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-accent mb-8"
         >
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">The first AI outbound tool built for the trades</span>
+          <span className="text-sm font-medium">AI-powered outreach for companies across industries</span>
         </motion.div>
 
         <motion.h1 
@@ -146,7 +146,7 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl md:text-7xl font-bold font-display tracking-tight text-white mb-6 max-w-4xl mx-auto leading-[1.1]"
         >
-          Book commercial service contracts{" "}
+          Grow your sales pipeline{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">while you sleep.</span>
         </motion.h1>
 
@@ -156,7 +156,7 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto"
         >
-          Stop cold calling. Let AI prospect local businesses, write personalized outreach, and book walkthroughs for your commercial services company automatically.
+          Let AI find business prospects, write personalized outreach, and help book meetings for your company—whether you sell technology, products, or services.
         </motion.p>
 
         <motion.div 
@@ -212,7 +212,7 @@ const features = [
   {
     icon: <Target className="w-6 h-6 text-accent" />,
     title: "Hyper-Local Prospecting",
-    description: "Draw a radius around your current accounts. The AI finds every medical office, car dealership, and corporate HQ in that zone."
+    description: "Find business prospects in your target area and focus your outreach on companies that fit your ideal customer profile."
   },
   {
     icon: <Mail className="w-6 h-6 text-accent" />,
@@ -222,12 +222,12 @@ const features = [
   {
     icon: <MessageSquare className="w-6 h-6 text-accent" />,
     title: "Smart Follow-ups",
-    description: "If they don't reply, the system follows up intelligently until they book a walkthrough or opt out."
+    description: "Keep conversations moving with personalized follow-ups that help turn interested prospects into meetings."
   },
   {
     icon: <CalendarCheck className="w-6 h-6 text-accent" />,
-    title: "Walkthrough Booking",
-    description: "We handle the back-and-forth. You just get calendar notifications when a decision maker is ready for a quote."
+    title: "Meeting Booking",
+    description: "Give interested decision-makers a direct path to schedule a sales conversation, product demo, or consultation."
   }
 ];
 
@@ -236,9 +236,9 @@ function FeaturesGrid() {
     <section id="features" className="py-24 md:py-32 relative">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">Built for the trades, not tech companies.</h2>
+          <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">Built for businesses across every industry.</h2>
           <p className="text-lg text-muted-foreground">
-            You don't need a complex CRM. You need a machine that goes out, finds businesses that need your services, and puts the owner on your calendar.
+            From technology and professional services to products and trades, iSDRX AI helps you find the right prospects, personalize your outreach, and connect with decision-makers.
           </p>
         </div>
 

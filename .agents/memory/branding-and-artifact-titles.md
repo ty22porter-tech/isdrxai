@@ -5,6 +5,14 @@ description: Where user-visible brand strings hide when rebranding this multi-ar
 
 # Rebrand sweep — non-obvious locations
 
+## Product audience
+
+iSDRX AI is for companies across all industries, including technology—not exclusively janitorial businesses or trades.
+
+**Why:** The user explicitly clarified that the Features messaging must include tech companies and must not position the product as trades-only.
+
+**How to apply:** Use industry-inclusive wording on general marketing and Features surfaces. Avoid janitorial-specific general positioning or claims that exclude technology companies.
+
 When rebranding this workspace (current brand: **iSDRX AI**), a plain `rg "OldBrand"` over `src/` is not enough. User-visible brand strings also live in:
 
 - **Artifact titles**: `artifacts/<slug>/.replit-artifact/artifact.toml` → `title = "..."`. This is a **hidden** dir, so `artifacts/*/artifact.toml` globs miss it. These titles are shown to the user. Edit them ONLY via the `verifyAndReplaceArtifactToml` callback (write a full `artifact.edit.toml` sibling, then replace) — never edit `artifact.toml` in place.
