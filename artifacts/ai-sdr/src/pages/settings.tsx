@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { trackEvent } from "@/lib/analytics";
 import { useUser } from "@clerk/react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -359,6 +360,7 @@ export default function SettingsPage() {
       }),
     onSuccess: (data: any) => {
       const updateFailed = data.sellerIntelligenceUpdateFailed === true;
+      trackEvent("settings_saved", { seller_research_update_failed: updateFailed });
       setIntelligenceUpdateFailed(updateFailed);
       qc.setQueryData(["me"], (current: any) => ({ ...current, ...data }));
       qc.invalidateQueries({ queryKey: ["me"] });
@@ -458,10 +460,23 @@ export default function SettingsPage() {
     refetchInterval: 60000,
   });
   const calendlyAction = useMutation({
-    mutationFn: (action: string) => apiFetch(`/calendly/${action}`, { method: "POST" }),
-    onSuccess: (result) => {
-      if (result.url) window.location.assign(result.url);
-      else { void refreshCalendly(); void qc.invalidateQueries(); }
+    mutationFn: (action: "connect" | "sync" | "disconnect") => apiFetch(`/calendly/${action}`, { method: "POST" }),
+    onMutate: (action) => {
+      trackEvent("calendly_action_requested", { action });
+    },
+    onSuccess: (result, action) => {
+      if (result.url) {
+        // Authorization has started; this does not confirm a connection.
+        trackEvent("calendly_authorization_started");
+        window.location.assign(result.url);
+      } else {
+        trackEvent("calendly_action_completed", { action });
+        void refreshCalendly(); void qc.invalidateQueries();
+      }
+    },
+    onError: (_error, action) => {
+      // Never send provider errors, booking URLs, or account details.
+      trackEvent("calendly_action_failed", { action });
     },
   });
 

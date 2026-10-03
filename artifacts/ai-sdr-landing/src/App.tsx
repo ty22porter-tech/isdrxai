@@ -36,7 +36,7 @@ import {
   PrivacyPolicyPage,
   TermsOfServicePage,
 } from "@/pages/legal";
-import { trackConversionClick } from "@/lib/analytics";
+import { trackConversionClick, trackEvent } from "@/lib/analytics";
 import { GuidedAssistant } from "@/components/guided-assistant";
 
 const APP_ORIGIN = window.location.origin;
@@ -69,6 +69,7 @@ function Navbar() {
               <a 
                 key={item.label} 
                 href={item.href}
+                onClick={() => trackEvent("landing_section_selected", { section: item.href.slice(1), location: "navbar_desktop" })}
                 className="text-sm font-medium text-muted-foreground hover:text-white transition-colors"
               >
                 {item.label}
@@ -103,7 +104,10 @@ function Navbar() {
                 key={item.label} 
                 href={item.href}
                 className="text-lg font-medium text-muted-foreground hover:text-white transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => {
+                  trackEvent("landing_section_selected", { section: item.href.slice(1), location: "navbar_mobile" });
+                  setMobileMenuOpen(false);
+                }}
               >
                 {item.label}
               </a>
@@ -1081,7 +1085,7 @@ function VerticalChooser() {
         </div>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {verticals.map((v) => (
-            <Link key={v.href} href={v.href} className="block p-8 rounded-2xl bg-card border border-white/5 hover:border-primary/50 transition-colors group text-left">
+            <Link key={v.href} href={v.href} onClick={() => trackEvent("industry_selected", { industry: v.href === "/ITServices" ? "it_services" : "trade_services", location: "homepage" })} className="block p-8 rounded-2xl bg-card border border-white/5 hover:border-primary/50 transition-colors group text-left">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Building2 className="w-6 h-6 text-accent" />
               </div>

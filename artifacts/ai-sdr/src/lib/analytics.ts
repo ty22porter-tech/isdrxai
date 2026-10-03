@@ -21,7 +21,7 @@ function visitorId(): string {
 export function trackEvent(name: string, data?: AnalyticsData): void {
   if (typeof window === "undefined") return;
   try {
-    window.umami?.track(name, data);
+    void Promise.resolve(window.umami?.track(name, data)).catch(() => {});
   } catch {
     // Analytics must never interrupt the customer journey.
   }
