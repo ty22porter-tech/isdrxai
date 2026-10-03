@@ -6,11 +6,11 @@ description: Why Stripe tables/backfill can silently no-op in the bundled api-se
 
 ## Cross-environment webhook ownership
 
-Treat development Stripe initialization as potentially destructive to production webhook ownership until ownership isolation has been verified.
+Development must never manage Stripe webhooks on the shared live account, including when testing a production build locally.
 
 **Why:** On 2026-10-03 a development startup logged deletion of an “orphaned managed webhook” pointing at the published app. The shared Stripe account does not imply shared database state or safe shared webhook ownership.
 
-**How to apply:** Check current initialization and live webhook configuration before Stripe startup changes. Keep each environment's endpoints independent, and never treat another environment's endpoint as an orphan solely because it is missing from the local database.
+**How to apply:** Keep webhook registration exclusive to confirmed published production. Check the live endpoint inventory before and after startup changes. The library's production managed-webhook helper still performs account-wide orphan cleanup; do not describe the development startup guard as full multi-environment ownership isolation. Never invoke that helper manually from development to repair production: it would save the signing secret in the wrong database. Restore production registration through the published runtime, then verify the endpoint and delivery separately.
 
 Two silent no-ops observed with stripe-replit-sync in the esbuild-bundled api-server:
 

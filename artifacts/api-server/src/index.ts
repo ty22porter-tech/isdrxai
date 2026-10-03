@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
+import { configureProductionStripeWebhook } from "./lib/stripeWebhookStartup";
 import { startAutopilotEngine } from "./lib/autopilotEngine";
 import { ensureResendWebhook } from "./lib/resendWebhook";
 import { ensureOutboundResendWebhook } from "./lib/outboundResendWebhook";
@@ -32,9 +33,7 @@ async function initStripe() {
     logger.info("Stripe schema ready");
 
     const stripeSync = await getStripeSync();
-    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
-    await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
-    logger.info("Stripe webhook configured");
+    await configureProductionStripeWebhook(stripeSync, logger);
 
     stripeSync.syncBackfill({ object: "all" })
       .then(() => logger.info("Stripe backfill complete"))
