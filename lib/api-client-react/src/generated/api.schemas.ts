@@ -5,6 +5,51 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+export type CalendarActivityInputEvent = typeof CalendarActivityInputEvent[keyof typeof CalendarActivityInputEvent];
+
+
+export const CalendarActivityInputEvent = {
+  click: 'click',
+  error: 'error',
+} as const;
+
+export type CalendarActivityInputReason = typeof CalendarActivityInputReason[keyof typeof CalendarActivityInputReason];
+
+
+export const CalendarActivityInputReason = {
+  widget_load_failed: 'widget_load_failed',
+  widget_initialization_failed: 'widget_initialization_failed',
+  missing_calendar_url: 'missing_calendar_url',
+} as const;
+
+export interface CalendarActivityInput {
+  eventId: string;
+  event: CalendarActivityInputEvent;
+  reason?: CalendarActivityInputReason;
+}
+
+export type ConversionDetailReportRowsItem = {
+  id: string;
+  at: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  email: string | null;
+  identitySource: string;
+  /** @nullable */
+  ownerEmail: string | null;
+  outcome: string;
+  /** @nullable */
+  detail: string | null;
+};
+
+export interface ConversionDetailReport {
+  total: number;
+  offset: number;
+  limit: number;
+  rows: ConversionDetailReportRowsItem[];
+}
+
 export interface VisitorConsentInput {
   allow: boolean;
 }
@@ -1719,6 +1764,37 @@ export interface ActivityItem {
  * A single byte range
  */
 export type ByteRangeParameter = string;
+
+export type GetConversionDetailsParams = {
+metric: GetConversionDetailsMetric;
+/**
+ * @minimum 1
+ * @maximum 365
+ */
+days?: number;
+/**
+ * @minimum 0
+ * @maximum 100000
+ */
+offset?: number;
+};
+
+export type GetConversionDetailsMetric = typeof GetConversionDetailsMetric[keyof typeof GetConversionDetailsMetric];
+
+
+export const GetConversionDetailsMetric = {
+  book_demo: 'book_demo',
+  start_trial: 'start_trial',
+  buy_now: 'buy_now',
+  get_started: 'get_started',
+  demo_completed: 'demo_completed',
+  accounts: 'accounts',
+  trial_started: 'trial_started',
+  paid_sale: 'paid_sale',
+  checkout_started: 'checkout_started',
+  calendar_errors: 'calendar_errors',
+  calendar_unbooked: 'calendar_unbooked',
+} as const;
 
 export type ConnectCalendly200 = {
   url: string;

@@ -30,6 +30,59 @@ tags:
   - name: gift-videos
     description: Managed personalized gift videos and engagement analytics
 paths:
+  /admin/conversion-details:
+    get:
+      operationId: getConversionDetails
+      summary: Admin-only conversion evidence and known identity
+      parameters:
+        - in: query
+          name: metric
+          required: true
+          schema:
+            type: string
+            enum: [book_demo, start_trial, buy_now, get_started, demo_completed, accounts, trial_started, paid_sale, checkout_started, calendar_errors, calendar_unbooked]
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 1, maximum: 365, default: 30 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, maximum: 100000, default: 0 }
+      responses:
+        "200":
+          description: Paginated conversion activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversionDetailReport"
+        "400":
+          description: Invalid filter
+        "401":
+          description: Authentication required
+        "403":
+          description: Admin required
+  /schedule/{token}/calendar-activity:
+    post:
+      operationId: recordCalendarActivity
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalendarActivityInput"
+      responses:
+        "200":
+          description: Activity recorded
+        "400":
+          description: Invalid event
+        "404":
+          description: Invalid scheduling link
+        "429":
+          description: Rate limited
   /visitor-activity/consent:
     post:
       operationId: setVisitorActivityConsent
@@ -1532,6 +1585,37 @@ components:
         type: string
         pattern: '^bytes=\d*-\d*$'
   schemas:
+    CalendarActivityInput:
+      type: object
+      additionalProperties: false
+      required: [eventId, event]
+      properties:
+        eventId: { type: string, format: uuid }
+        event: { type: string, enum: [click, error] }
+        reason:
+          type: string
+          enum: [widget_load_failed, widget_initialization_failed, missing_calendar_url]
+    ConversionDetailReport:
+      type: object
+      required: [rows, total, offset, limit]
+      properties:
+        total: { type: integer }
+        offset: { type: integer }
+        limit: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            required: [id, at, name, email, identitySource, ownerEmail, outcome, detail]
+            properties:
+              id: { type: string }
+              at: { type: string }
+              name: { type: [string, "null"] }
+              email: { type: [string, "null"] }
+              identitySource: { type: string }
+              ownerEmail: { type: [string, "null"] }
+              outcome: { type: string }
+              detail: { type: [string, "null"] }
     VisitorConsentInput:
       type: object
       additionalProperties: false

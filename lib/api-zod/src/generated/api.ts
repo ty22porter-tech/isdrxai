@@ -9,6 +9,54 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Admin-only conversion evidence and known identity
+ */
+export const getConversionDetailsQueryDaysDefault = 30;
+export const getConversionDetailsQueryDaysMax = 365;
+
+export const getConversionDetailsQueryOffsetDefault = 0;
+export const getConversionDetailsQueryOffsetMin = 0;
+export const getConversionDetailsQueryOffsetMax = 100000;
+
+
+
+export const GetConversionDetailsQueryParams = zod.object({
+  "metric": zod.enum(['book_demo', 'start_trial', 'buy_now', 'get_started', 'demo_completed', 'accounts', 'trial_started', 'paid_sale', 'checkout_started', 'calendar_errors', 'calendar_unbooked']),
+  "days": zod.coerce.number().min(1).max(getConversionDetailsQueryDaysMax).default(getConversionDetailsQueryDaysDefault),
+  "offset": zod.coerce.number().min(getConversionDetailsQueryOffsetMin).max(getConversionDetailsQueryOffsetMax).default(getConversionDetailsQueryOffsetDefault)
+})
+
+export const GetConversionDetailsResponse = zod.object({
+  "total": zod.number(),
+  "offset": zod.number(),
+  "limit": zod.number(),
+  "rows": zod.array(zod.object({
+  "id": zod.string(),
+  "at": zod.string(),
+  "name": zod.string().nullable(),
+  "email": zod.string().nullable(),
+  "identitySource": zod.string(),
+  "ownerEmail": zod.string().nullable(),
+  "outcome": zod.string(),
+  "detail": zod.string().nullable()
+}))
+})
+
+
+export const RecordCalendarActivityParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const RecordCalendarActivityBody = zod.object({
+  "eventId": zod.string().uuid(),
+  "event": zod.enum(['click', 'error']),
+  "reason": zod.enum(['widget_load_failed', 'widget_initialization_failed', 'missing_calendar_url']).optional()
+})
+
+export const RecordCalendarActivityResponse = zod.unknown()
+
+
+/**
  * @summary Opt in to identified visitor activity or revoke the current browser session
  */
 export const SetVisitorActivityConsentBody = zod.object({

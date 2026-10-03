@@ -1,4 +1,4 @@
-import { trackPrivateActivity } from "./visitor-activity";
+import { trackPrivateActivity, activityLinkingAllowed } from "./visitor-activity";
 type AnalyticsData = Record<string, string | number | boolean>;
 
 export function installMarketingClickTracking(): () => void {
@@ -69,6 +69,7 @@ export function trackConversionClick(
         intent,
         location,
         visitorId: visitorId(),
+        activityConsent: activityLinkingAllowed(),
       }),
       keepalive: true,
     }).catch(() => {});

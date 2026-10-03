@@ -20,3 +20,11 @@ The user chose activity from known leads and signed-in users, not third-party id
 **Why:** A browser or an email domain does not prove a person's identity or employer. Form submissions are self-reported, while account activity must derive identity from server authentication.
 
 **How to apply:** Label form leads as unverified and email domains as email domains. Keep sessions separate across account switches, reject client-supplied user IDs, honor withdrawal, and do not equate browser-session rows with unique people.
+
+## Calendar diagnostics
+
+The user requested both observed calendar-link errors and clicks without a confirmed booking, tracked separately, with clickable summary cards revealing available identity and evidence.
+
+**Why:** A click without a matched booking is not proof of failure; a recent click, missing synchronization, or forwarded link can produce the same observation. A link's intended recipient and the responsible sales user are different identities.
+
+**How to apply:** Preserve those labels, match bookings within the same tenant and prospect, exclude known scanners, never invent an identity for invalid links, and do not claim visibility into errors inside Calendly's cross-origin page.

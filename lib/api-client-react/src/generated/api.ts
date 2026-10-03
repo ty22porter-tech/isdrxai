@@ -30,6 +30,7 @@ import type {
   BulkEnrichResult,
   BulkProspectsInput,
   BulkProspectsResult,
+  CalendarActivityInput,
   CalendlyOAuthCallbackParams,
   CalendlyStatus,
   Call,
@@ -39,6 +40,7 @@ import type {
   CampaignInput,
   CampaignUpdate,
   ConnectCalendly200,
+  ConversionDetailReport,
   CreateProspect409,
   DashboardStats,
   DeepHealthStatus,
@@ -53,6 +55,7 @@ import type {
   GeneratedCallScript,
   GeneratedEmail,
   GetActivityFeedParams,
+  GetConversionDetailsParams,
   GetGiftVideoDashboardParams,
   GiftOfferComparison,
   GiftOutreachRecord,
@@ -122,6 +125,155 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetConversionDetailsUrl = (params: GetConversionDetailsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/conversion-details?${stringifiedParams}` : `/api/admin/conversion-details`
+}
+
+/**
+ * @summary Admin-only conversion evidence and known identity
+ */
+export const getConversionDetails = async (params: GetConversionDetailsParams, options?: RequestInit): Promise<ConversionDetailReport> => {
+
+  return customFetch<ConversionDetailReport>(getGetConversionDetailsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConversionDetailsQueryKey = (params?: GetConversionDetailsParams,) => {
+    return [
+    `/api/admin/conversion-details`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetConversionDetailsQueryOptions = <TData = Awaited<ReturnType<typeof getConversionDetails>>, TError = ErrorType<void>>(params: GetConversionDetailsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversionDetails>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConversionDetailsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversionDetails>>> = ({ signal }) => getConversionDetails(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConversionDetails>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConversionDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getConversionDetails>>>
+export type GetConversionDetailsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin-only conversion evidence and known identity
+ */
+
+export function useGetConversionDetails<TData = Awaited<ReturnType<typeof getConversionDetails>>, TError = ErrorType<void>>(
+ params: GetConversionDetailsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversionDetails>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConversionDetailsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRecordCalendarActivityUrl = (token: string,) => {
+
+
+
+
+  return `/api/schedule/${token}/calendar-activity`
+}
+
+export const recordCalendarActivity = async (token: string,
+    calendarActivityInput: CalendarActivityInput, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRecordCalendarActivityUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(calendarActivityInput)
+  }
+);}
+
+
+
+
+export const getRecordCalendarActivityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordCalendarActivity>>, TError,{token: string;data: BodyType<CalendarActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordCalendarActivity>>, TError,{token: string;data: BodyType<CalendarActivityInput>}, TContext> => {
+
+const mutationKey = ['recordCalendarActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordCalendarActivity>>, {token: string;data: BodyType<CalendarActivityInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  recordCalendarActivity(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordCalendarActivityMutationResult = NonNullable<Awaited<ReturnType<typeof recordCalendarActivity>>>
+    export type RecordCalendarActivityMutationBody = BodyType<CalendarActivityInput>
+    export type RecordCalendarActivityMutationError = ErrorType<void>
+
+    export const useRecordCalendarActivity = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordCalendarActivity>>, TError,{token: string;data: BodyType<CalendarActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordCalendarActivity>>,
+        TError,
+        {token: string;data: BodyType<CalendarActivityInput>},
+        TContext
+      > => {
+      return useMutation(getRecordCalendarActivityMutationOptions(options));
+    }
 
 export const getSetVisitorActivityConsentUrl = () => {
 

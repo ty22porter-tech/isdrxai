@@ -7,8 +7,29 @@ import { sendEmail, type EmailAttachment } from "../lib/emailSender";
 import { getVerticalConfig } from "../lib/verticals";
 import { recordEngagementEvent } from "../lib/engagementScoring";
 import type { Request, Response, NextFunction } from "express";
+import { z } from "zod";
+import { recordCalendarActivity } from "../lib/calendarActivity";
 
 const router = Router();
+const calendarEvent = z.object({
+  eventId: z.string().uuid(), event: z.enum(["click", "error"]),
+  reason: z.enum(["widget_load_failed", "widget_initialization_failed", "missing_calendar_url"]).optional(),
+}).strict().refine(value => value.event !== "error" || !!value.reason);
+
+router.post("/:token/calendar-activity", express.json({ limit: "2kb" }), async (req, res) => {
+  const parsed = calendarEvent.safeParse(req.body);
+  const token = String(req.params.token);
+  if (!parsed.success || token.length > 128) return res.status(400).json({ error: "Invalid activity" });
+  if (isRateLimited(`activity:${req.ip}`, 120)) return res.status(429).json({ error: "Please retry later" });
+  const [prospect] = await db.select().from(prospectsTable).where(eq(prospectsTable.scheduleToken, token));
+  if (!prospect) return res.status(404).json({ error: "Invalid link" });
+  await recordCalendarActivity(req, {
+    event: parsed.data.event, eventId: parsed.data.eventId,
+    reason: parsed.data.event === "error" ? `Browser reported: ${parsed.data.reason}` : "Calendar selected",
+    clientId: prospect.clientId, prospectId: prospect.id,
+  });
+  return res.json({ ok: true });
+});
 
 interface LocationEntry {
   label?: string;
@@ -43,10 +64,10 @@ const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const submissionTimes = new Map<string, number[]>();
 
-function isRateLimited(token: string): boolean {
+function isRateLimited(token: string, maximum = RATE_LIMIT_MAX): boolean {
   const now = Date.now();
   const recent = (submissionTimes.get(token) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT_MAX) {
+  if (recent.length >= maximum) {
     submissionTimes.set(token, recent);
     return true;
   }
@@ -91,6 +112,7 @@ const parseScheduleBody = express.json({ limit: "45mb" });
 
 // Public: fetch the info needed to render the scheduling page for a prospect token.
 router.get("/:token", async (req, res) => {
+  let identity: { prospectId?: number; clientId?: string } = {};
   try {
     const { token } = req.params;
     if (!token) return res.status(400).json({ error: "Missing token" });
@@ -100,13 +122,20 @@ router.get("/:token", async (req, res) => {
       .from(prospectsTable)
       .where(eq(prospectsTable.scheduleToken, token));
 
-    if (!prospect) return res.status(404).json({ error: "Invalid or expired link" });
+    if (!prospect) {
+      if (!isRateLimited(`error:${req.ip}`)) await recordCalendarActivity(req, { event: "error", reason: "Invalid or expired scheduling link" });
+      return res.status(404).json({ error: "Invalid or expired link" });
+    }
+    identity = { prospectId: prospect.id, clientId: prospect.clientId };
 
     const [client] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, prospect.clientId));
 
+    if (!client?.calendlyUrl && !isRateLimited(`missing:${prospect.id}`)) {
+      await recordCalendarActivity(req, { event: "error", reason: "Calendar URL not configured", ...identity });
+    }
     return res.json({
       companyName: prospect.companyName,
       contactName: prospect.contactName,
@@ -118,6 +147,7 @@ router.get("/:token", async (req, res) => {
     });
   } catch (err: any) {
     console.error("schedule GET error:", err?.message);
+    await recordCalendarActivity(req, { event: "error", reason: "Scheduling page server error", ...identity });
     return res.status(500).json({ error: "Something went wrong" });
   }
 });

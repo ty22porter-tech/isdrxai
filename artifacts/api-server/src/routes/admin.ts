@@ -3,10 +3,17 @@ import { clerkClient } from "@clerk/express";
 import { campaignsTable, db, usersTable, prospectsTable, emailsTable, callsTable, appointmentsTable, videoViewsTable } from "@workspace/db";
 import { and, eq, count, desc, sql, gte, lt } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../lib/requireAuth";
+import { ConversionDetailQuery, getCalendarCounts, getConversionDetails } from "../lib/conversionDetails";
 
 const router = Router();
 router.use(requireAuth);
 router.use(requireAdmin);
+router.get("/conversion-details", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const input = ConversionDetailQuery.safeParse(req.query);
+  if (!input.success) return res.status(400).json({ error: "Invalid metric or pagination." });
+  return res.json(await getConversionDetails(input.data));
+});
 
 async function fetchClerkIdentity(userId: string): Promise<{ name: string | null; email: string | null }> {
   try {
@@ -400,6 +407,7 @@ router.get("/conversion-funnel", async (req, res) => {
     WHERE event_type = 'checkout_started' AND created_at >= ${since}
   `);
   const checkout = checkoutResult.rows[0];
+  const calendar = await getCalendarCounts(since);
 
   return res.json({
     days,
@@ -408,6 +416,7 @@ router.get("/conversion-funnel", async (req, res) => {
       sessions: Number(checkout?.sessions ?? 0),
       visitors: Number(checkout?.visitors ?? 0),
     },
+    calendar,
     outcomes: {
       demoRequests,
       newAccounts,

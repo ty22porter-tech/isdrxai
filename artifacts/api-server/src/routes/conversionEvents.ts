@@ -1,12 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db, conversionEventsTable } from "@workspace/db";
+import { activityCookieHash } from "../lib/visitorActivity";
 
 const ConversionClickSchema = z.object({
   eventId: z.string().uuid(),
   intent: z.enum(["book_demo", "start_trial", "buy_now", "get_started"]),
   location: z.string().trim().min(1).max(80).regex(/^[a-z0-9_]+$/),
   visitorId: z.string().uuid(),
+  activityConsent: z.boolean().optional().default(false),
 });
 
 const requestsByIp = new Map<string, number[]>();
@@ -49,6 +51,8 @@ conversionEventsRouter.post("/", async (req, res) => {
       location: data.location,
       visitorId: data.visitorId,
       sourceKey: `cta:${data.eventId}`,
+      metadata: data.activityConsent && activityCookieHash(req)
+        ? { activitySessionHash: activityCookieHash(req)! } : {},
     })
     .onConflictDoNothing({ target: conversionEventsTable.sourceKey });
 

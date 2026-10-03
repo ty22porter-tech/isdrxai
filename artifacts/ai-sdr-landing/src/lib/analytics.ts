@@ -1,4 +1,4 @@
-import { trackPrivateActivity } from "./visitor-activity";
+import { trackPrivateActivity, activityLinkingAllowed } from "./visitor-activity";
 export type ConversionIntent = "book_demo" | "start_trial" | "get_started";
 
 // Capture links in headers, mobile menus, cards, and the guided assistant.
@@ -77,6 +77,7 @@ export function trackConversionClick(
         intent,
         location,
         visitorId: getConversionVisitorId(),
+        activityConsent: activityLinkingAllowed(),
       }),
       keepalive: true,
     }).catch(() => {});

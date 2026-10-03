@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRoute } from "wouter";
-import { Loader2, CheckCircle2, Upload, X, Building2, CalendarDays, ArrowLeft, FileText, ExternalLink } from "lucide-react";
+import { Loader2, CheckCircle2, Upload, X, Building2, CalendarDays, ArrowLeft, FileText, ExternalLink, AlertTriangle, RotateCw } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -85,8 +85,42 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
-function CalendlyEmbed({ url }: { url: string }) {
+type CalendarErrorReason = "widget_load_failed" | "widget_initialization_failed" | "missing_calendar_url";
+
+function newEventId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch {
+    // fall through
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+// Fire-and-forget telemetry. Never throws, never blocks booking, never sends PII.
+function reportCalendarActivity(token: string, event: "click" | "error", reason?: CalendarErrorReason) {
+  if (!token) return;
+  try {
+    const body: { eventId: string; event: "click" | "error"; reason?: CalendarErrorReason } = { eventId: newEventId(), event };
+    if (event === "error" && reason) body.reason = reason;
+    fetch(`/api/schedule/${encodeURIComponent(token)}/calendar-activity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // ignore
+  }
+}
+
+function CalendlyEmbed({ url, token }: { url: string; token: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [widgetError, setWidgetError] = useState<CalendarErrorReason | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [canEmbed, setCanEmbed] = useState(() => window.matchMedia("(min-width: 380px)").matches);
 
   useEffect(() => {
@@ -99,28 +133,86 @@ function CalendlyEmbed({ url }: { url: string }) {
 
   useEffect(() => {
     if (!canEmbed) return;
-    const initialize = () => {
-      const calendly = (window as any).Calendly;
-      if (!containerRef.current || !calendly?.initInlineWidget) return;
-      containerRef.current.replaceChildren();
-      calendly.initInlineWidget({ url, parentElement: containerRef.current });
+    let cancelled = false;
+    const fail = (reason: CalendarErrorReason) => {
+      if (cancelled) return;
+      setWidgetError(reason);
+      reportCalendarActivity(token, "error", reason);
     };
+    const initialize = () => {
+      if (cancelled) return;
+      const calendly = (window as any).Calendly;
+      if (!containerRef.current) return;
+      if (!calendly?.initInlineWidget) {
+        fail("widget_initialization_failed");
+        return;
+      }
+      try {
+        containerRef.current.replaceChildren();
+        calendly.initInlineWidget({ url, parentElement: containerRef.current });
+      } catch {
+        fail("widget_initialization_failed");
+      }
+    };
+    const onError = () => fail("widget_load_failed");
 
     const src = "https://assets.calendly.com/assets/external/widget.js";
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
-    if (existing) {
-      if ((window as any).Calendly?.initInlineWidget) initialize();
-      else existing.addEventListener("load", initialize, { once: true });
-      return () => existing.removeEventListener("load", initialize);
+    if (existing && (window as any).Calendly?.initInlineWidget) {
+      initialize();
+      return () => { cancelled = true; };
     }
+    // A previously failed script tag would never fire load again; replace it on retry.
+    if (existing) existing.remove();
 
     const script = document.createElement("script");
     script.src = src;
     script.async = true;
     script.addEventListener("load", initialize, { once: true });
+    script.addEventListener("error", onError, { once: true });
     document.body.appendChild(script);
-    return () => script.removeEventListener("load", initialize);
-  }, [url, canEmbed]);
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", initialize);
+      script.removeEventListener("error", onError);
+    };
+  }, [url, canEmbed, attempt, token]);
+
+  const openLink = (
+    <a
+      href={url}
+      target={widgetError ? "_blank" : undefined}
+      rel={widgetError ? "noopener noreferrer" : undefined}
+      onClick={() => reportCalendarActivity(token, "click")}
+      className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#234d73] px-4 py-3 font-semibold text-white transition hover:bg-[#183b59] focus:outline-none focus:ring-2 focus:ring-[#234d73]"
+    >
+      Open Calendly
+      <ExternalLink className="h-4 w-4" />
+    </a>
+  );
+
+  if (canEmbed && widgetError) {
+    return (
+      <div className="p-6 text-center" role="alert">
+        <AlertTriangle className="mx-auto h-6 w-6 text-amber-600" />
+        <p className="mt-2 font-semibold text-[#172b3a]">The booking calendar didn't load.</p>
+        <p className="mt-1 text-sm leading-6 text-[#65727a]">
+          This can happen with ad blockers or a flaky connection. Try again, or open Calendly directly.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => { setWidgetError(null); setAttempt((a) => a + 1); }}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d6cf] bg-[#fffdfa] px-4 py-3 font-semibold text-[#234d73] transition hover:border-[#234d73] focus:outline-none focus:ring-2 focus:ring-[#234d73]"
+          >
+            <RotateCw className="h-4 w-4" />
+            Try again
+          </button>
+          {openLink}
+        </div>
+      </div>
+    );
+  }
 
   if (!canEmbed) {
     return (
@@ -128,13 +220,7 @@ function CalendlyEmbed({ url }: { url: string }) {
         <p className="text-sm leading-6 text-[#65727a]">
           Calendly opens in its mobile booking page so every available time is easy to view.
         </p>
-        <a
-          href={url}
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#234d73] px-4 py-3 font-semibold text-white transition hover:bg-[#183b59] focus:outline-none focus:ring-2 focus:ring-[#234d73]"
-        >
-          Open Calendly
-          <ExternalLink className="h-4 w-4" />
-        </a>
+        {openLink}
       </div>
     );
   }
@@ -340,7 +426,11 @@ export default function Schedule() {
 
             <button
               type="button"
-              onClick={() => calendlyUrl && setPath("calendly")}
+              onClick={() => {
+                if (!calendlyUrl) return;
+                reportCalendarActivity(token, "click");
+                setPath("calendly");
+              }}
               disabled={!calendlyUrl}
               className="group rounded-2xl border border-[#d8d6cf] bg-[#fffdfa] p-6 text-left shadow-[0_10px_30px_rgba(30,45,53,.05)] transition hover:border-[#315f86]/60 hover:shadow-[0_12px_32px_rgba(30,45,53,.08)] focus:outline-none focus:ring-2 focus:ring-[#315f86] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -352,7 +442,7 @@ export default function Schedule() {
                 Skip the questionnaire and choose an available meeting time immediately.
               </span>
               <span className="mt-5 block text-sm font-semibold text-[#315f86] group-hover:text-[#183b59]">
-                {calendlyUrl ? "Choose a time now" : "Online booking is not available"}
+                {calendlyUrl ? "Choose a time now" : `Online booking isn't set up yet — fill out the questionnaire and ${info.businessName} will contact you`}
               </span>
             </button>
           </div>
@@ -371,7 +461,7 @@ export default function Schedule() {
                 <CalendarDays className="h-5 w-5 text-[#315f86]" />
                 <span className="font-semibold">Choose a time</span>
               </div>
-              <CalendlyEmbed url={calendlyUrl} />
+              <CalendlyEmbed url={calendlyUrl} token={token} />
             </div>
           </div>
         ) : submitted ? (
@@ -394,7 +484,7 @@ export default function Schedule() {
                   <CalendarDays className="h-5 w-5 text-[#234d73]" />
                   <span className="font-semibold">Choose a time</span>
                 </div>
-                <CalendlyEmbed url={calendlyUrl} />
+                <CalendlyEmbed url={calendlyUrl} token={token} />
               </div>
             )}
           </div>

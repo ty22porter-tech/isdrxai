@@ -9,6 +9,7 @@ import { Layout } from "@/components/layout";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { VisitorActivityReport } from "@/components/visitor-activity-report";
+import { ConversionDetailsDialog, type ConversionMetric } from "@/components/conversion-details-dialog";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -298,6 +299,7 @@ export default function Admin() {
   const [codeDays, setCodeDays] = useState("14");
   const [codeUnlimited, setCodeUnlimited] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [detailMetric, setDetailMetric] = useState<ConversionMetric | null>(null);
 
   const { data: meData, isLoading: meLoading } = useQuery({
     queryKey: ["me"],
@@ -318,8 +320,8 @@ export default function Admin() {
     refetchInterval: 30000,
   });
 
-  const { data: funnelData, isLoading: funnelLoading } = useQuery({
-    queryKey: ["admin-conversion-funnel", 30],
+  const { data: funnelData, isLoading: funnelLoading, isError: funnelError, refetch: retryFunnel } = useQuery({
+    queryKey: ["admin-conversion-funnel", user?.id, 30],
     queryFn: () => apiFetch("/admin/conversion-funnel?days=30"),
     enabled: !!meData?.isAdmin,
     refetchInterval: 30000,
@@ -371,7 +373,8 @@ export default function Admin() {
   const clients: any[] = data?.clients ?? [];
   const trialCodes: any[] = codesData?.codes ?? [];
   const allViews: any[] = viewsData?.views ?? [];
-  const funnel = funnelData ?? {
+  const cardBtn = "rounded-lg border bg-background/50 p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer";
+  const funnel: any = funnelData ?? {
     clicks: {
       book_demo: { clicks: 0, uniqueVisitors: 0 },
       start_trial: { clicks: 0, uniqueVisitors: 0 },
@@ -415,13 +418,18 @@ export default function Admin() {
             <span className="text-xs text-muted-foreground">Refreshes every 30 seconds</span>
           </div>
 
-          {funnelLoading ? (
+          {funnelError ? (
+            <div className="p-6 text-sm" role="alert">
+              <p>Conversion reporting could not be loaded. These counts are unavailable, not zero.</p>
+              <Button variant="outline" className="mt-3" onClick={() => retryFunnel()}>Retry</Button>
+            </div>
+          ) : funnelLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-7 h-7 animate-spin text-primary" />
             </div>
           ) : (
             <div className="p-6 space-y-6">
-              <div className="rounded-lg border bg-background/50 p-4">
+              <button type="button" onClick={() => setDetailMetric("checkout_started")} className={`${cardBtn} w-full`}>
                 <h4 className="text-sm font-medium">Stripe checkout starts</h4>
                 <div className="text-2xl font-bold mt-1">{funnel.stripeCheckout?.visitors ?? "—"}</div>
                 <p className="text-sm text-muted-foreground">
@@ -433,26 +441,29 @@ export default function Admin() {
                   Repeat starts by one account count as one visitor. Tracking begins when this update goes live; earlier starts are not included.
                   Completed purchases are shown under New customers below and may originate from earlier checkout sessions.
                 </p>
-              </div>
+              </button>
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
                   Calls to action clicked
                 </div>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { label: "Book a Demo", data: funnel.clicks.book_demo },
-                    { label: "Start Free Trial", data: funnel.clicks.start_trial },
-                    { label: "Buy Now", data: funnel.clicks.buy_now },
-                    { label: "Get Started", data: funnel.clicks.get_started },
-                  ].map(({ label, data }) => (
-                    <div key={label} className="rounded-lg border bg-background/50 p-4">
+                    { label: "Book a Demo", metric: "book_demo" as const, data: funnel.clicks?.book_demo },
+                    { label: "Start Free Trial", metric: "start_trial" as const, data: funnel.clicks?.start_trial },
+                    { label: "Buy Now", metric: "buy_now" as const, data: funnel.clicks?.buy_now },
+                    { label: "Get Started", metric: "get_started" as const, data: funnel.clicks?.get_started },
+                  ].map(({ label, metric, data: d }) => {
+                    const data = d ?? { clicks: 0, uniqueVisitors: 0 };
+                    return (
+                    <button type="button" key={label} onClick={() => setDetailMetric(metric)} className={cardBtn}>
                       <div className="text-sm text-muted-foreground">{label}</div>
                       <div className="text-2xl font-bold mt-1">{data.clicks}</div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {data.uniqueVisitors} unique visitor{data.uniqueVisitors === 1 ? "" : "s"}
                       </div>
-                    </div>
-                  ))}
+                    </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -462,25 +473,47 @@ export default function Admin() {
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: "Demo requests", value: funnel.outcomes.demoRequests, icon: CalendarCheck },
-                    { label: "Accounts created", value: funnel.outcomes.newAccounts, icon: UserPlus },
-                    { label: "Free trials", value: funnel.outcomes.freeTrials, icon: CheckCircle2 },
-                    { label: "New customers", value: funnel.outcomes.newCustomers, icon: CreditCard },
-                  ].map(({ label, value, icon: Icon }) => (
-                    <div key={label} className="rounded-lg border bg-background/50 p-4">
+                    { label: "Demo requests", metric: "demo_completed" as const, value: funnel.outcomes?.demoRequests ?? 0, icon: CalendarCheck },
+                    { label: "Accounts created", metric: "accounts" as const, value: funnel.outcomes?.newAccounts ?? 0, icon: UserPlus },
+                    { label: "Free trials", metric: "trial_started" as const, value: funnel.outcomes?.freeTrials ?? 0, icon: CheckCircle2 },
+                    { label: "New customers", metric: "paid_sale" as const, value: funnel.outcomes?.newCustomers ?? 0, icon: CreditCard },
+                  ].map(({ label, metric, value, icon: Icon }) => (
+                    <button type="button" key={label} onClick={() => setDetailMetric(metric)} className={cardBtn}>
                       <Icon className="w-4 h-4 text-primary mb-2" />
                       <div className="text-2xl font-bold">{value}</div>
                       <div className="text-sm text-muted-foreground mt-1">{label}</div>
-                    </div>
+                    </button>
                   ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                  Scheduling link health
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <button type="button" onClick={() => setDetailMetric("calendar_errors")} className={cardBtn}>
+                    <div className="text-sm text-muted-foreground">Calendar link errors</div>
+                    <div className="text-2xl font-bold mt-1">{typeof funnel.calendar?.errors === "number" ? funnel.calendar.errors : <span className="text-base font-medium text-muted-foreground">Unavailable</span>}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Errors observed in our scheduling/link flow only. Errors inside Calendly itself are not visible here; browser-reported errors are unverified.
+                    </div>
+                  </button>
+                  <button type="button" onClick={() => setDetailMetric("calendar_unbooked")} className={cardBtn}>
+                    <div className="text-sm text-muted-foreground">Calendar clicks, no confirmed booking</div>
+                    <div className="text-2xl font-bold mt-1">{typeof funnel.calendar?.unbooked === "number" ? funnel.calendar.unbooked : <span className="text-base font-medium text-muted-foreground">Unavailable</span>}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Non-bot tracked click attempts with no matched Calendly booking. Not proof of a failed visit — sync may lag and recent clicks are included.
+                    </div>
+                  </button>
                 </div>
               </div>
 
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
                 <div className="font-medium text-sm">Estimated incomplete attempts</div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {funnel.estimatedIncomplete.demo} demo visitor{funnel.estimatedIncomplete.demo === 1 ? "" : "s"} did not submit the form, and{" "}
-                  {funnel.estimatedIncomplete.accountSetup} account visitor{funnel.estimatedIncomplete.accountSetup === 1 ? "" : "s"} did not create an account.
+                  {funnel.estimatedIncomplete?.demo ?? 0} demo visitor{funnel.estimatedIncomplete?.demo === 1 ? "" : "s"} did not submit the form, and{" "}
+                  {funnel.estimatedIncomplete?.accountSetup ?? 0} account visitor{funnel.estimatedIncomplete?.accountSetup === 1 ? "" : "s"} did not create an account.
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   Estimates use anonymous unique visitors and may differ when someone changes devices, browsers, or privacy settings.
@@ -488,6 +521,7 @@ export default function Admin() {
               </div>
             </div>
           )}
+          <ConversionDetailsDialog metric={detailMetric} onClose={() => setDetailMetric(null)} />
         </section>
 
         {/* Client stats */}

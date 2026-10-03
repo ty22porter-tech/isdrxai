@@ -8,6 +8,7 @@ import { logger } from "../lib/logger";
 import { recordEngagementEvent } from "../lib/engagementScoring";
 import { queueCalendlyClickFollowUp } from "../lib/calendlyConversion";
 import { botReason } from "../lib/trackingClassification";
+import { recordCalendarActivity } from "../lib/calendarActivity";
 
 /**
  * Public engagement-tracking endpoints (no auth — keyed by unguessable
@@ -144,6 +145,7 @@ router.get("/l/:token/:slug", async (req, res) => {
   const base = getPublicAppUrl();
   const ip = getIp(req);
   const { token, slug } = req.params;
+  let calendarIdentity: { clientId: string; prospectId: number } | null = null;
   try {
     if (rateLimited(ip) || !token || token.length > 64) return res.redirect(base || "/");
     const [email] = await db.select().from(emailsTable).where(eq(emailsTable.trackingToken, token));
@@ -153,6 +155,7 @@ router.get("/l/:token/:slug", async (req, res) => {
       .from(emailLinksTable)
       .where(and(eq(emailLinksTable.emailId, email.id), eq(emailLinksTable.slug, slug)));
     if (!link) return res.redirect(base || "/");
+    if (link.kind === "cta") calendarIdentity = { clientId: email.clientId, prospectId: email.prospectId };
 
     const userAgent = ((req.headers["user-agent"] as string) ?? "").slice(0, 500);
     const nowMs = Date.now();
@@ -187,6 +190,15 @@ router.get("/l/:token/:slug", async (req, res) => {
     // Attachment destinations are storage paths served by the app; everything
     // else is the absolute URL stored at send time.
     const target = link.kind === "attachment" ? `${base}/api/storage${link.destination}` : link.destination;
+    if (calendarIdentity) {
+      try {
+        const destination = new URL(target);
+        if (!["https:", "http:"].includes(destination.protocol)) throw new Error("Invalid destination");
+      } catch {
+        if (!isBot) await recordCalendarActivity(req, { event: "error", reason: "Invalid stored calendar destination", ...calendarIdentity });
+        return res.redirect(base || "/");
+      }
+    }
     res.redirect(target);
 
     db.insert(linkClickEventsTable).values({
@@ -262,6 +274,9 @@ router.get("/l/:token/:slug", async (req, res) => {
     }).catch((err) => logger.error({ err }, "Link-click event failed"));
   } catch (err) {
     logger.error({ err }, "Tracked link redirect failed");
+    if (calendarIdentity && !res.headersSent) {
+      await recordCalendarActivity(req, { event: "error", reason: "Calendar redirect server error", ...calendarIdentity });
+    }
     if (!res.headersSent) res.redirect(base || "/");
   }
 });

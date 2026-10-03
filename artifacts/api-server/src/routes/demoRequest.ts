@@ -5,7 +5,7 @@ import { conversionEventsTable, db, notificationsTable, usersTable } from "@work
 import { eq } from "drizzle-orm";
 import { sendEmail } from "../lib/emailSender";
 import { logger } from "../lib/logger";
-import { identifyActivityLead } from "../lib/visitorActivity";
+import { identifyActivityLead, activityCookieHash } from "../lib/visitorActivity";
 
 // Public demo-request endpoint: visitors on the marketing landing page submit
 // this form; we notify the iSDRX team inbox and set Reply-To to the visitor so
@@ -111,6 +111,8 @@ demoRequestRouter.post("/", async (req, res) => {
       location: data.sourceLocation,
       visitorId: data.visitorId,
       sourceKey: `demo:${completionId}`,
+      metadata: data.activityConsent && activityCookieHash(req)
+        ? { activitySessionHash: activityCookieHash(req)! } : {},
     });
 
     const admins = await db
