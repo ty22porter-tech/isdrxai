@@ -375,6 +375,7 @@ export default function Admin() {
     clicks: {
       book_demo: { clicks: 0, uniqueVisitors: 0 },
       start_trial: { clicks: 0, uniqueVisitors: 0 },
+      buy_now: { clicks: 0, uniqueVisitors: 0 },
       get_started: { clicks: 0, uniqueVisitors: 0 },
     },
     outcomes: { demoRequests: 0, newAccounts: 0, freeTrials: 0, newCustomers: 0 },
@@ -420,6 +421,19 @@ export default function Admin() {
             </div>
           ) : (
             <div className="p-6 space-y-6">
+              <div className="rounded-lg border bg-background/50 p-4">
+                <h4 className="text-sm font-medium">Stripe checkout starts</h4>
+                <div className="text-2xl font-bold mt-1">{funnel.stripeCheckout?.visitors ?? "—"}</div>
+                <p className="text-sm text-muted-foreground">
+                  Unique signed-in visitors · {funnel.stripeCheckout?.sessions ?? "—"} checkout sessions in the last 30 days
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {!funnel.stripeCheckout && "Checkout reporting is not available from the server yet. "}
+                  Counts successful Stripe checkout-session creation, not confirmed page views or payments.
+                  Repeat starts by one account count as one visitor. Tracking begins when this update goes live; earlier starts are not included.
+                  Completed purchases are shown under New customers below and may originate from earlier checkout sessions.
+                </p>
+              </div>
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
                   Calls to action clicked

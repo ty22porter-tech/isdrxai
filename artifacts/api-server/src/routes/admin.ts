@@ -394,10 +394,20 @@ router.get("/conversion-funnel", async (req, res) => {
     (accountIntentResult.rows[0] as { unique_visitors?: number } | undefined)?.unique_visitors ?? 0,
   );
   const newAccounts = Number((accountResult.rows[0] as { total?: number } | undefined)?.total ?? 0);
+  const checkoutResult = await db.execute(sql`
+    SELECT count(*)::int AS sessions, count(DISTINCT user_id)::int AS visitors
+    FROM conversion_events
+    WHERE event_type = 'checkout_started' AND created_at >= ${since}
+  `);
+  const checkout = checkoutResult.rows[0];
 
   return res.json({
     days,
     clicks,
+    stripeCheckout: {
+      sessions: Number(checkout?.sessions ?? 0),
+      visitors: Number(checkout?.visitors ?? 0),
+    },
     outcomes: {
       demoRequests,
       newAccounts,

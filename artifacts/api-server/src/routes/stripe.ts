@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, conversionEventsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { getUncachableStripeClient } from "../stripeClient";
@@ -153,6 +153,20 @@ router.post("/checkout", async (req, res) => {
     cancel_url: `${baseUrl}/app/pricing`,
   });
 
+  if (!session.url) return res.status(502).json({ error: "Stripe did not return a checkout URL. Please try again." });
+  // Server-confirmed session creation, not a claimed view of Stripe's page.
+  // Analytics failures must never prevent an otherwise valid checkout.
+  try {
+    await db.insert(conversionEventsTable).values({
+      eventType: "checkout_started",
+      intent: "stripe_checkout",
+      location: "pricing",
+      userId: user.id,
+      sourceKey: `checkout-started:${session.id}`,
+    }).onConflictDoNothing({ target: conversionEventsTable.sourceKey });
+  } catch {
+    req.log.warn("Checkout created but checkout-start reporting failed");
+  }
   return res.json({ url: session.url });
 });
 

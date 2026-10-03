@@ -11,6 +11,10 @@ Use privacy-safe anonymous IDs for CTA intent, and record completed demo, trial,
 
 ## Known visitor reporting
 
+Stripe visitor counts mean unique authenticated accounts with successfully created checkout sessions, not confirmed Stripe page views. Count sessions separately and do not interpret same-period purchases as a checkout cohort conversion rate.
+
+**Why:** The user requested Stripe visitor counts, but the app cannot observe whether a hosted checkout page fully loaded. One account may start checkout repeatedly.
+
 The user chose activity from known leads and signed-in users, not third-party identification of anonymous companies. Identified activity requires a separate opt-in and stays in the private admin report; never forward identities to general analytics.
 
 **Why:** A browser or an email domain does not prove a person's identity or employer. Form submissions are self-reported, while account activity must derive identity from server authentication.
