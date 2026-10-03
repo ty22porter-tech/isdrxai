@@ -5,6 +5,85 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+export interface VisitorConsentInput {
+  allow: boolean;
+}
+
+export interface VisitorActivityAcknowledgement {
+  ok: boolean;
+}
+
+export type VisitorActivityInputEvent = typeof VisitorActivityInputEvent[keyof typeof VisitorActivityInputEvent];
+
+
+export const VisitorActivityInputEvent = {
+  page_view: 'page_view',
+  book_demo_clicked: 'book_demo_clicked',
+  free_trial_clicked: 'free_trial_clicked',
+  pricing_clicked: 'pricing_clicked',
+  settings_saved: 'settings_saved',
+  calendly_authorization_started: 'calendly_authorization_started',
+} as const;
+
+export type VisitorActivityInputPage = typeof VisitorActivityInputPage[keyof typeof VisitorActivityInputPage];
+
+
+export const VisitorActivityInputPage = {
+  home: 'home',
+  features: 'features',
+  pricing: 'pricing',
+  book_demo: 'book_demo',
+  contact: 'contact',
+  settings: 'settings',
+  dashboard: 'dashboard',
+  prospecting: 'prospecting',
+  campaigns: 'campaigns',
+  other: 'other',
+} as const;
+
+export interface VisitorActivityInput {
+  eventId: string;
+  event: VisitorActivityInputEvent;
+  page: VisitorActivityInputPage;
+}
+
+export type KnownVisitorSessionIdentitySource = typeof KnownVisitorSessionIdentitySource[keyof typeof KnownVisitorSessionIdentitySource];
+
+
+export const KnownVisitorSessionIdentitySource = {
+  signed_in: 'signed_in',
+  form_submission: 'form_submission',
+} as const;
+
+export type KnownVisitorSessionEventsItem = {
+  event: string;
+  page: string;
+  at: string;
+};
+
+export interface KnownVisitorSession {
+  id: number;
+  identitySource: KnownVisitorSessionIdentitySource;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  company: string | null;
+  /** @nullable */
+  emailDomain: string | null;
+  firstSeen: string;
+  lastSeen: string;
+  totalEvents: number;
+  events: KnownVisitorSessionEventsItem[];
+}
+
+export interface KnownVisitorReport {
+  days: number;
+  limit: number;
+  visitors: KnownVisitorSession[];
+}
+
 export type CalendlyStatusState = typeof CalendlyStatusState[keyof typeof CalendlyStatusState];
 
 

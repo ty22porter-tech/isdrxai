@@ -38,6 +38,7 @@ import {
 } from "@/pages/legal";
 import { trackConversionClick, trackEvent } from "@/lib/analytics";
 import { GuidedAssistant } from "@/components/guided-assistant";
+import { ActivityPrivacyControl } from "@/components/activity-privacy";
 
 const APP_ORIGIN = window.location.origin;
 const SIGN_IN_URL = `${APP_ORIGIN}/app/sign-in`;
@@ -1141,6 +1142,7 @@ export default function App() {
         <Route path="/sign-up" component={RedirectToApp} nest />
         <Route component={NotFound} />
       </Switch>
+      <ActivityPrivacyControl side="left" privacyHref={`${ROUTER_BASE}/privacy#activity-linking`} />
     </Router>
   );
 }

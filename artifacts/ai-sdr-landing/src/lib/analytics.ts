@@ -1,3 +1,4 @@
+import { trackPrivateActivity } from "./visitor-activity";
 export type ConversionIntent = "book_demo" | "start_trial" | "get_started";
 
 // Capture links in headers, mobile menus, cards, and the guided assistant.
@@ -51,6 +52,8 @@ export function getLastConversionLocation(): string {
 
 export function trackEvent(name: string, data?: AnalyticsData): void {
   if (typeof window === "undefined") return;
+  // Private, opt-in activity (no-op unless consented and allowlisted).
+  trackPrivateActivity(name);
   try {
     void Promise.resolve(window.umami?.track(name, data)).catch(() => {});
   } catch {

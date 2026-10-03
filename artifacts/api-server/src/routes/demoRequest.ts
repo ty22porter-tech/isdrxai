@@ -5,6 +5,7 @@ import { conversionEventsTable, db, notificationsTable, usersTable } from "@work
 import { eq } from "drizzle-orm";
 import { sendEmail } from "../lib/emailSender";
 import { logger } from "../lib/logger";
+import { identifyActivityLead } from "../lib/visitorActivity";
 
 // Public demo-request endpoint: visitors on the marketing landing page submit
 // this form; we notify the iSDRX team inbox and set Reply-To to the visitor so
@@ -24,6 +25,7 @@ const DemoRequestSchema = z.object({
   message: z.string().trim().max(2000).optional().default(""),
   // Honeypot: real users never fill this hidden field; bots do.
   website: z.string().max(500).optional().default(""),
+  activityConsent: z.boolean().optional().default(false),
   visitorId: z.string().uuid().optional(),
   sourceLocation: z.string().trim().min(1).max(80).regex(/^[a-z0-9_]+$/).optional().default("book_demo_page"),
 });
@@ -100,6 +102,8 @@ demoRequestRouter.post("/", async (req, res) => {
   }
 
   const completionId = randomUUID();
+  try { if (data.activityConsent) await identifyActivityLead(req, data, "book_demo"); }
+  catch { req.log.warn("Optional demo visitor attribution failed"); }
   try {
     await db.insert(conversionEventsTable).values({
       eventType: "demo_completed",

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { activityLinkingAllowed } from "@/lib/visitor-activity";
 
 const emptyForm = { firstName: "", lastName: "", company: "", email: "", phone: "", message: "", website: "" };
 
@@ -20,7 +21,7 @@ export default function ContactUsPage() {
     setStatus("idle");
     try {
       const response = await fetch("/api/contact-us", {
-        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form),
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, activityConsent: activityLinkingAllowed() }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Your request could not be sent. Please try again.");
@@ -59,6 +60,9 @@ export default function ContactUsPage() {
             <p className="text-right text-xs text-muted-foreground mt-1" aria-live="polite">{form.message.length}/2000</p></div>
           <div className="hidden" aria-hidden="true"><label htmlFor="website">Website</label><input id="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => update("website", e.target.value)} /></div>
           <Button type="submit" disabled={submitting} className="w-full h-12">{submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{submitting ? "Sending request…" : "Send request"}</Button>
+          <p className="text-xs text-muted-foreground text-center">
+                  If you've turned on Activity privacy, a successful request links this browser's site activity to the details you submit, visible to iSDRX administrators. It's off by default and you can turn it off any time. See our <Link href="/privacy#activity-linking" className="text-primary hover:underline">Privacy Policy</Link>.
+                </p>
         </form>}
       </div>
     </div>

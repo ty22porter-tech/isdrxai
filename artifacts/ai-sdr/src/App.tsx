@@ -5,6 +5,7 @@ import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
+import { ActivityPrivacyControl } from "@/components/activity-privacy";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "@/lib/queryClient";
 
@@ -261,6 +262,7 @@ function AppRoutes() {
             <Route component={FallbackRoute} />
           </Switch>
           <Toaster />
+          <ActivityPrivacyControl side="right" privacyHref="/privacy#activity-linking" />
         </TooltipProvider>
       </QueryClientProvider>
     </ClerkProvider>

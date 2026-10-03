@@ -4,6 +4,14 @@ description: Why Stripe tables/backfill can silently no-op in the bundled api-se
 ---
 # stripe-replit-sync init pitfalls
 
+## Cross-environment webhook ownership
+
+Treat development Stripe initialization as potentially destructive to production webhook ownership until ownership isolation has been verified.
+
+**Why:** On 2026-10-03 a development startup logged deletion of an “orphaned managed webhook” pointing at the published app. The shared Stripe account does not imply shared database state or safe shared webhook ownership.
+
+**How to apply:** Check current initialization and live webhook configuration before Stripe startup changes. Keep each environment's endpoints independent, and never treat another environment's endpoint as an orphan solely because it is missing from the local database.
+
 Two silent no-ops observed with stripe-replit-sync in the esbuild-bundled api-server:
 
 1. **Migrations skipped when bundled.** `runMigrations` resolves its SQL files relative to the *running bundle* (`dist/migrations`). If the folder is missing it logs nothing useful and reports success — `stripe` schema exists but has zero tables (`relation "stripe.accounts" does not exist` later). Fix: api-server `build.mjs` copies `node_modules/stripe-replit-sync/dist/migrations` into `dist/migrations` after bundling. Keep that copy step if the build script is rewritten.

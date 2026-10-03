@@ -12,6 +12,8 @@ import trackingRouter from "./routes/tracking";
 import { demoRequestRouter } from "./routes/demoRequest";
 import { contactUsRouter } from "./routes/contactUs";
 import { conversionEventsRouter } from "./routes/conversionEvents";
+import { visitorActivityRouter } from "./routes/visitorActivity";
+import { adminVisitorActivityRouter } from "./routes/adminVisitorActivity";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -183,6 +185,8 @@ app.use(
 );
 
 // 5. API routes
+app.use("/api/visitor-activity", visitorActivityRouter);
+app.use("/api/admin/visitor-activity", adminVisitorActivityRouter);
 app.use("/api", router);
 
 // 6. Final error handler — logs a structured error line (method, path, stack)

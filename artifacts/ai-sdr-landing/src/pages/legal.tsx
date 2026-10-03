@@ -292,6 +292,23 @@ export function PrivacyPolicyPage() {
         you to limit cookies, but disabling essential cookies may prevent the Services from working.
       </p>
 
+      <p id="activity-linking">
+        <strong>Opt-in visitor activity linking.</strong> Separately from our general anonymous
+        analytics, you may turn on "Activity privacy" using the control at the bottom of our website
+        and app. It is off by default. If you allow it, the pages you visit and key clicks you make
+        (such as Book a Demo, Pricing, or Start Free Trial) in that browser may be linked to your
+        signed-in account, or to the details you provide after you successfully submit our demo or
+        contact form, and shown to iSDRX administrators. We record only the type of action and a
+        general page category, never page addresses or query strings. You can revoke at any time by
+        opening "Activity privacy" and choosing "Turn off &amp; remove session activity", which stops
+        linking and removes the activity recorded for the current browser session. It does not
+        remove activity from earlier sessions, your account, or demo, contact, or other business
+        records you have submitted; to request those, contact us using the details below. Consent
+        lasts up to 30 days. Signing out or switching accounts starts a new session so shared-browser
+        activity is not attributed to a former account. If your browser sends a Global Privacy
+        Control signal, we will not enable activity linking.
+      </p>
+
       <h2>6. Data retention</h2>
       <p>
         We retain information for as long as reasonably necessary to provide the Services, maintain

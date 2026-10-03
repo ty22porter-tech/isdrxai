@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { getConversionVisitorId, getLastConversionLocation, trackEvent } from "@/lib/analytics";
+import { activityLinkingAllowed } from "@/lib/visitor-activity";
 
 const APP_ORIGIN = window.location.origin;
 const VIDEOS = [
@@ -50,6 +51,7 @@ export default function BookDemoPage() {
           ...form,
           visitorId: getConversionVisitorId(),
           sourceLocation: getLastConversionLocation(),
+          activityConsent: activityLinkingAllowed(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -189,6 +191,9 @@ export default function BookDemoPage() {
                 <Button type="submit" size="lg" disabled={status === "sending"} className="w-full bg-primary hover:bg-primary/90 text-white">
                   {status === "sending" ? "Sending…" : (<><Send className="mr-2 w-4 h-4" /> Request my demo</>)}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  If you've turned on Activity privacy, a successful request links this browser's site activity to the details you submit, visible to iSDRX administrators. It's off by default and you can turn it off any time. See our <Link href="/privacy#activity-linking" className="text-accent hover:underline">Privacy Policy</Link>.
+                </p>
                 <p className="text-xs text-muted-foreground text-center">
                   Prefer email? Reach us any time at <a href="mailto:info@isdrxai.com" className="text-accent hover:underline">info@isdrxai.com</a>
                 </p>

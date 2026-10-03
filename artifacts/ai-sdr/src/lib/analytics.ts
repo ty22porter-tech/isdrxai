@@ -1,3 +1,4 @@
+import { trackPrivateActivity } from "./visitor-activity";
 type AnalyticsData = Record<string, string | number | boolean>;
 
 export function installMarketingClickTracking(): () => void {
@@ -42,6 +43,8 @@ function visitorId(): string {
 
 export function trackEvent(name: string, data?: AnalyticsData): void {
   if (typeof window === "undefined") return;
+  // Private, opt-in activity (no-op unless consented and allowlisted).
+  trackPrivateActivity(name);
   try {
     void Promise.resolve(window.umami?.track(name, data)).catch(() => {});
   } catch {

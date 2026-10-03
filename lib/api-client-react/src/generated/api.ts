@@ -73,6 +73,7 @@ import type {
   GiftVideoUploadInput,
   GiftVideoUploadReservation,
   HealthStatus,
+  KnownVisitorReport,
   ListAppointmentsParams,
   ListCallsParams,
   ListEmailsParams,
@@ -89,7 +90,10 @@ import type {
   ProspectUpdate,
   RefreshOpportunityIntelligenceRequest,
   UploadUrlRequest,
-  UploadUrlResponse
+  UploadUrlResponse,
+  VisitorActivityAcknowledgement,
+  VisitorActivityInput,
+  VisitorConsentInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -118,6 +122,223 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getSetVisitorActivityConsentUrl = () => {
+
+
+
+
+  return `/api/visitor-activity/consent`
+}
+
+/**
+ * @summary Opt in to identified visitor activity or revoke the current browser session
+ */
+export const setVisitorActivityConsent = async (visitorConsentInput: VisitorConsentInput, options?: RequestInit): Promise<VisitorActivityAcknowledgement> => {
+
+  return customFetch<VisitorActivityAcknowledgement>(getSetVisitorActivityConsentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(visitorConsentInput)
+  }
+);}
+
+
+
+
+export const getSetVisitorActivityConsentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setVisitorActivityConsent>>, TError,{data: BodyType<VisitorConsentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setVisitorActivityConsent>>, TError,{data: BodyType<VisitorConsentInput>}, TContext> => {
+
+const mutationKey = ['setVisitorActivityConsent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setVisitorActivityConsent>>, {data: BodyType<VisitorConsentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setVisitorActivityConsent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetVisitorActivityConsentMutationResult = NonNullable<Awaited<ReturnType<typeof setVisitorActivityConsent>>>
+    export type SetVisitorActivityConsentMutationBody = BodyType<VisitorConsentInput>
+    export type SetVisitorActivityConsentMutationError = ErrorType<void>
+
+    /**
+ * @summary Opt in to identified visitor activity or revoke the current browser session
+ */
+export const useSetVisitorActivityConsent = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setVisitorActivityConsent>>, TError,{data: BodyType<VisitorConsentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setVisitorActivityConsent>>,
+        TError,
+        {data: BodyType<VisitorConsentInput>},
+        TContext
+      > => {
+      return useMutation(getSetVisitorActivityConsentMutationOptions(options));
+    }
+
+export const getRecordVisitorActivityUrl = () => {
+
+
+
+
+  return `/api/visitor-activity`
+}
+
+/**
+ * @summary Record an allowlisted event only with an opted-in browser cookie
+ */
+export const recordVisitorActivity = async (visitorActivityInput: VisitorActivityInput, options?: RequestInit): Promise<VisitorActivityAcknowledgement | void> => {
+
+  return customFetch<VisitorActivityAcknowledgement | void>(getRecordVisitorActivityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(visitorActivityInput)
+  }
+);}
+
+
+
+
+export const getRecordVisitorActivityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordVisitorActivity>>, TError,{data: BodyType<VisitorActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordVisitorActivity>>, TError,{data: BodyType<VisitorActivityInput>}, TContext> => {
+
+const mutationKey = ['recordVisitorActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordVisitorActivity>>, {data: BodyType<VisitorActivityInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  recordVisitorActivity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordVisitorActivityMutationResult = NonNullable<Awaited<ReturnType<typeof recordVisitorActivity>>>
+    export type RecordVisitorActivityMutationBody = BodyType<VisitorActivityInput>
+    export type RecordVisitorActivityMutationError = ErrorType<void>
+
+    /**
+ * @summary Record an allowlisted event only with an opted-in browser cookie
+ */
+export const useRecordVisitorActivity = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordVisitorActivity>>, TError,{data: BodyType<VisitorActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordVisitorActivity>>,
+        TError,
+        {data: BodyType<VisitorActivityInput>},
+        TContext
+      > => {
+      return useMutation(getRecordVisitorActivityMutationOptions(options));
+    }
+
+export const getGetKnownVisitorActivityUrl = () => {
+
+
+
+
+  return `/api/admin/visitor-activity`
+}
+
+/**
+ * @summary Admin-only known browser sessions and recent consented activity
+ */
+export const getKnownVisitorActivity = async ( options?: RequestInit): Promise<KnownVisitorReport> => {
+
+  return customFetch<KnownVisitorReport>(getGetKnownVisitorActivityUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetKnownVisitorActivityQueryKey = () => {
+    return [
+    `/api/admin/visitor-activity`
+    ] as const;
+    }
+
+
+export const getGetKnownVisitorActivityQueryOptions = <TData = Awaited<ReturnType<typeof getKnownVisitorActivity>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getKnownVisitorActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetKnownVisitorActivityQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getKnownVisitorActivity>>> = ({ signal }) => getKnownVisitorActivity({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getKnownVisitorActivity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetKnownVisitorActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getKnownVisitorActivity>>>
+export type GetKnownVisitorActivityQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin-only known browser sessions and recent consented activity
+ */
+
+export function useGetKnownVisitorActivity<TData = Awaited<ReturnType<typeof getKnownVisitorActivity>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getKnownVisitorActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetKnownVisitorActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetCalendlyStatusUrl = () => {
 

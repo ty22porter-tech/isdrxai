@@ -30,6 +30,63 @@ tags:
   - name: gift-videos
     description: Managed personalized gift videos and engagement analytics
 paths:
+  /visitor-activity/consent:
+    post:
+      operationId: setVisitorActivityConsent
+      summary: Opt in to identified visitor activity or revoke the current browser session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisitorConsentInput"
+      responses:
+        "200":
+          description: Consent updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorActivityAcknowledgement"
+        "403":
+          description: Invalid origin or browser privacy preference
+  /visitor-activity:
+    post:
+      operationId: recordVisitorActivity
+      summary: Record an allowlisted event only with an opted-in browser cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisitorActivityInput"
+      responses:
+        "200":
+          description: Request processed; unconsented activity is not stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitorActivityAcknowledgement"
+        "204":
+          description: Browser privacy preference honored
+        "400":
+          description: Invalid event
+        "403":
+          description: Invalid origin
+  /admin/visitor-activity:
+    get:
+      operationId: getKnownVisitorActivity
+      summary: Admin-only known browser sessions and recent consented activity
+      responses:
+        "200":
+          description: Latest 100 known sessions in the last 30 days
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnownVisitorReport"
+        "401":
+          description: Sign in required
+        "403":
+          description: Administrator access required
   /calendly/status:
     get:
       operationId: getCalendlyStatus
@@ -1475,6 +1532,80 @@ components:
         type: string
         pattern: '^bytes=\d*-\d*$'
   schemas:
+    VisitorConsentInput:
+      type: object
+      additionalProperties: false
+      required: [allow]
+      properties:
+        allow:
+          type: boolean
+    VisitorActivityAcknowledgement:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+    VisitorActivityInput:
+      type: object
+      additionalProperties: false
+      required: [eventId, event, page]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        event:
+          type: string
+          enum: [page_view, book_demo_clicked, free_trial_clicked, pricing_clicked, settings_saved, calendly_authorization_started]
+        page:
+          type: string
+          enum: [home, features, pricing, book_demo, contact, settings, dashboard, prospecting, campaigns, other]
+    KnownVisitorReport:
+      type: object
+      required: [visitors, days, limit]
+      properties:
+        days:
+          type: integer
+        limit:
+          type: integer
+        visitors:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnownVisitorSession"
+    KnownVisitorSession:
+      type: object
+      required: [id, identitySource, name, email, company, emailDomain, firstSeen, lastSeen, totalEvents, events]
+      properties:
+        id:
+          type: integer
+        identitySource:
+          type: string
+          enum: [signed_in, form_submission]
+        name:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        company:
+          type: [string, "null"]
+        emailDomain:
+          type: [string, "null"]
+        firstSeen:
+          type: string
+        lastSeen:
+          type: string
+        totalEvents:
+          type: integer
+        events:
+          type: array
+          items:
+            type: object
+            required: [event, page, at]
+            properties:
+              event:
+                type: string
+              page:
+                type: string
+              at:
+                type: string
     CalendlyStatus:
       type: object
       required: [state, detail, checkedAt, authorized]

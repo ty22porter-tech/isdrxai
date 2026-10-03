@@ -5,6 +5,7 @@ import { db, notificationsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "../lib/emailSender";
 import { logger } from "../lib/logger";
+import { identifyActivityLead } from "../lib/visitorActivity";
 
 const INBOX = "info@isdrxai.com";
 const noHeaderControls = (value: string) => !/[\x00-\x1f\x7f]/.test(value);
@@ -14,6 +15,7 @@ const cleanHeader = (min: number, max: number) =>
   z.string().trim().min(min).max(max).refine(noHeaderControls, "invalid characters");
 
 export const ContactUsSchema = z.object({
+  activityConsent: z.boolean().optional().default(false),
   firstName: cleanHeader(1, 100),
   lastName: cleanHeader(1, 100),
   company: z.string().trim().max(200).refine(noHeaderControls, "invalid characters").optional().default(""),
@@ -203,6 +205,9 @@ contactUsRouter.post("/", async (req, res) => {
     // resubmit and risk creating a duplicate internal lead.
     logger.error({ requestId, stage: "acknowledgement_email" }, "Contact-us acknowledgement failed");
   }
+
+  try { if (data.activityConsent) await identifyActivityLead(req, { name, email: data.email, company: data.company }, "contact"); }
+  catch { req.log.warn("Optional contact visitor attribution failed"); }
 
   // Notifications mirror the existing demo-request behavior, but are deliberately
   // non-blocking: email delivery is the visitor-facing source of truth.

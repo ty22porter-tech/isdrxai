@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout";
 import { Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { VisitorActivityReport } from "@/components/visitor-activity-report";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -395,6 +396,8 @@ export default function Admin() {
             <p className="text-muted-foreground mt-0.5">Manage all client accounts and video analytics</p>
           </div>
         </div>
+
+        <VisitorActivityReport />
 
         {/* Marketing conversion funnel */}
         <section className="rounded-xl border bg-card overflow-hidden">

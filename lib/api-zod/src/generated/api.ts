@@ -8,6 +8,57 @@
 import * as zod from 'zod';
 
 
+/**
+ * @summary Opt in to identified visitor activity or revoke the current browser session
+ */
+export const SetVisitorActivityConsentBody = zod.object({
+  "allow": zod.boolean()
+})
+
+export const SetVisitorActivityConsentResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Record an allowlisted event only with an opted-in browser cookie
+ */
+export const RecordVisitorActivityBody = zod.object({
+  "eventId": zod.string().uuid(),
+  "event": zod.enum(['page_view', 'book_demo_clicked', 'free_trial_clicked', 'pricing_clicked', 'settings_saved', 'calendly_authorization_started']),
+  "page": zod.enum(['home', 'features', 'pricing', 'book_demo', 'contact', 'settings', 'dashboard', 'prospecting', 'campaigns', 'other'])
+})
+
+export const RecordVisitorActivityResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Admin-only known browser sessions and recent consented activity
+ */
+export const GetKnownVisitorActivityResponse = zod.object({
+  "days": zod.number(),
+  "limit": zod.number(),
+  "visitors": zod.array(zod.object({
+  "id": zod.number(),
+  "identitySource": zod.enum(['signed_in', 'form_submission']),
+  "name": zod.string().nullable(),
+  "email": zod.string().nullable(),
+  "company": zod.string().nullable(),
+  "emailDomain": zod.string().nullable(),
+  "firstSeen": zod.string(),
+  "lastSeen": zod.string(),
+  "totalEvents": zod.number(),
+  "events": zod.array(zod.object({
+  "event": zod.string(),
+  "page": zod.string(),
+  "at": zod.string()
+}))
+}))
+})
+
+
 export const GetCalendlyStatusResponse = zod.object({
   "state": zod.enum(['connected', 'failed', 'not_configured']),
   "detail": zod.string(),
