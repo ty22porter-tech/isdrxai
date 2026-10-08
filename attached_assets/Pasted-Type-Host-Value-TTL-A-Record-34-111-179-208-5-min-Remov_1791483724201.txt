@@ -1,0 +1,238 @@
+Type	
+Host
+
+Value
+
+TTL
+
+A Record	
+@
+
+34.111.179.208
+
+5 min
+
+Remove
+A Record	
+www
+
+34.111.179.208
+
+5 min
+
+Remove
+CNAME Record	
+accounts
+
+accounts.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+accounts.www
+
+accounts.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clerk
+
+frontend-api.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clerk.www
+
+frontend-api.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clk._domainkey
+
+dkim1.2hu3vddx0h0s.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clk._domainkey.www
+
+dkim1.xtsoxara810b.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clk2._domainkey
+
+dkim2.2hu3vddx0h0s.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clk2._domainkey.www
+
+dkim2.xtsoxara810b.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clkmail
+
+mail.2hu3vddx0h0s.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+clkmail.www
+
+mail.xtsoxara810b.clerk.services.
+
+5 min
+
+Remove
+CNAME Record	
+jouwweb._domainkey
+
+website-rendering._domainkey.jouwweb.nl.
+
+Automatic
+
+Remove
+CNAME Record	
+rsend
+
+rsend.forge.rmta.net.
+
+Automatic
+
+Remove
+CNAME Record	
+send
+
+send.forge.rmta.net.
+
+Automatic
+
+Remove
+TXT Record	
+@
+
+replit-verify=803382ef-5306-4c34-b121-a23fb6c24de2
+
+5 min
+
+Remove
+TXT Record	
+@
+
+v=spf1 include:_spf.webador.com ~all
+
+Automatic
+
+Remove
+TXT Record	
+@
+
+v=spf1 include:spf.privateemail.com ~all
+
+Automatic
+
+Remove
+TXT Record	
+_dmarc
+
+v=DMARC1; p=none;
+
+Automatic
+
+Remove
+TXT Record	
+privateemail._domainkey
+
+v=DKIM1;k=rsa;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt4+wgTiigW3YAzYDaQA0EWlx2GzgEQWsANhJSPdQ4ihNCfgxYbyklxI7n+K2WHtt5a7FfXrzyeGrajpsKCjFl7nX5jQzDrfO2xpqiZOlhz3p1Zz4IBQu/FDpLoRAkf1xd5+hTOLrmL1Klqlkzyvx99zU9qtoB3ZQ0oxJhS4SC0wJ460dZ8xf4sV7j008xyVnlzh9RqJT8TkKu5omlxdolRcgBYCf/qUkdqLTvl161rLmYPyvkrDgqps167q4/c03M+i+jsAn6GtAGf62KIj78xHp9ZmeaQgSELd59xMWcBZXwR/ilcK6gep2Q2wi6C3Lo0cEGW9pmiyWV49rf1BDZwIDAQAB
+
+30 min
+
+Remove
+TXT Record	
+resend._domainkey
+
+p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC5Pc9heRK7Oye9VJqPk1nAekuEz/PUMvQRa6iKx7T0vjKrG1AYH3KKhCx7W8wYSuSylBbhJ7EzKeDMSGIcfMuFxFyFATgybjPO8ZwQt4UMBmAqIQlm7oLq3VUemcmLkAUAXpPAu/iUj2FdVy/nlKZphAjZ+ZwzUqYicXP/PM8m/wIDAQAB
+
+Automatic
+
+Remove
+TXT Record	
+www
+
+replit-verify=803382ef-5306-4c34-b121-a23fb6c24de2
+
+5 min
+
+Remove
+Add New RecordShow Less
+DNSSECalert
+Status
+
+Mail Settingsalert
+
+Custom MX
+Actions
+Search
+Search
+Type	
+Host
+
+Value
+
+TTL
+
+
+MX Record
+
+@
+
+mx1.privateemail.com.
+
+10
+
+Automatic
+
+Remove
+
+MX Record
+
+@
+
+mx2.privateemail.com.
+
+10
+
+Automatic
+
+Remove
+Add New Record
+Dynamic DNSalert
+Status
+
+Personal DNS Serveralert
+Register Nameserver
+Add Nameserver
+Find Nameservers
+
+Standard Nameservers
+Search
+Need help? We're always here for you.
+
+Chat with a Live Person
