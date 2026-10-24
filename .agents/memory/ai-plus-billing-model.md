@@ -5,10 +5,12 @@ description: The approved sales-assisted pricing and activation policy for AI+ s
 
 Every base subscription requires the one-time $995 AI Sales Launch Package. It covers account, domain, DNS/email authentication, calendar, ICP, prompts, workflow, initial campaign, CRM, implementation session, and customer training.
 
+For a 14-day free trial, neither the monthly subscription nor the $995 package is charged during the trial. If the customer continues, both are due on the first paid invoice at trial end. Cancellation before trial end avoids both. Buy Now charges the package at checkout. This is a deferral, not a permanent waiver.
+
 AI+ uses sales-assisted billing rather than public self-service checkout. It adds a separate one-time $1,000 setup and onboarding fee on top of the base Sales Launch Package, then activates one agreed fixed monthly service. Additional Caller remains quote-only while its scope and price vary.
 
 AI+ is month-to-month and does not require a 12-month commitment. Cancellation requires 30 days' written notice and does not automatically cancel the underlying base subscription.
 
-**Why:** Base email infrastructure must be configured for deliverability before outreach begins. AI+ then requires additional live-caller workflow design, scripting, onboarding, CRM setup, and campaign preparation before recurring service begins. The user explicitly declined a long-term AI+ commitment.
+**Why:** The user explicitly approved charging the $995 only at trial end if the customer continues, with the fee and inclusions disclosed upfront. Base email infrastructure must be configured for deliverability before outreach begins. AI+ then requires additional live-caller workflow design, scripting, onboarding, CRM setup, and campaign preparation before recurring service begins. The user explicitly declined a long-term AI+ commitment.
 
 **How to apply:** Always disclose the required $995 base setup alongside subscription pricing. Disclose the additional $1,000 AI+ onboarding fee separately, require an active base subscription, customer agreement, and staff approval, and keep AI+ calls to action sales-led. Never add a long-term AI+ commitment without a new explicit business decision.

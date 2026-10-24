@@ -659,7 +659,7 @@ function TermsReview() {
     <div className="space-y-5">
       <div>
         <p className="font-semibold text-foreground">iSDRX AI Terms of Service</p>
-        <p className="mt-1 text-xs">Effective September 5, 2026</p>
+        <p className="mt-1 text-xs">Effective October 24, 2026</p>
       </div>
 
       <p>

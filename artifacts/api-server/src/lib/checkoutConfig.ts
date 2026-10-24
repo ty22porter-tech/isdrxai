@@ -14,7 +14,7 @@ export function buildPlanCheckoutConfig(
   }
 
   if (isNewSubscriber && !deferLaunchFee) {
-    lineItems.push({ price: launchPackagePriceId, quantity: 1 });
+    lineItems.push({ price: launchPackagePriceId!, quantity: 1 });
   }
 
   return {

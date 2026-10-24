@@ -99,12 +99,20 @@ describe("deferred trial launch package", () => {
       ...invoice,
       customer: { id: "cus_test" },
       parent: {
-        type: "subscription_details",
         subscription_details: { subscription: { id: "sub_test" } },
       },
-    } as any, stripe)).resolves.toBe(true);
+    }, stripe)).resolves.toBe(true);
     expect(retrieve).toHaveBeenCalledWith("sub_test");
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ customer: "cus_test" }), expect.anything());
+  });
+
+  it("supports older webhook endpoints that provide a top-level subscription", async () => {
+    await expect(addDeferredLaunchPackageToTrialEndInvoice({
+      ...invoice,
+      parent: null,
+      subscription: "sub_test",
+    }, stripe)).resolves.toBe(true);
+    expect(retrieve).toHaveBeenCalledWith("sub_test");
   });
 
   it("does not mark the subscription paid if creating the invoice item fails", async () => {

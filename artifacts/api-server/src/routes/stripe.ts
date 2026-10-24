@@ -8,7 +8,7 @@ import { buildPlanCheckoutConfig } from "../lib/checkoutConfig";
 const router = Router();
 router.use(requireAuth);
 
-const CURRENT_TERMS_VERSION = "2026-09-05";
+const CURRENT_TERMS_VERSION = "2026-10-24";
 
 router.get("/subscription", async (req, res) => {
   const user = req.dbUser;
@@ -147,6 +147,18 @@ router.post("/checkout", async (req, res) => {
     payment_method_types: ["card"],
     mode: "subscription",
     ...checkoutConfig,
+    ...(isNewSubscriber
+      ? {
+          custom_text: {
+            submit: {
+              message:
+                checkoutIntent === "free_trial"
+                  ? "No subscription or $995 Onboarding / Sales Launch Package charge during your 14-day trial. If you continue, your first paid invoice includes your monthly subscription plus the one-time $995 package. Cancel before the trial ends to avoid both charges. The package includes account and email/domain setup, calendar integration, ideal customer targeting, campaign and CRM setup, implementation, and training."
+                  : "Your purchase includes the one-time $995 Onboarding / Sales Launch Package, covering account and email/domain setup, calendar integration, ideal customer targeting, campaign and CRM setup, implementation, and training.",
+            },
+          },
+        }
+      : {}),
     allow_promotion_codes: true,
     success_url: `${baseUrl}/app/billing?checkout=success&onboarding=1`,
     cancel_url: `${baseUrl}/app/pricing`,

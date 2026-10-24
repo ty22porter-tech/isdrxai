@@ -5,6 +5,8 @@ type SubscriptionInvoice = {
   id: string;
   billing_reason: string | null;
   customer: string | { id: string } | null;
+  // Older webhook endpoints may still deliver the pre-Basil invoice shape.
+  subscription?: string | { id: string } | null;
   parent?: {
     subscription_details?: { subscription: string | { id: string } } | null;
   } | null;
@@ -23,7 +25,8 @@ export async function addDeferredLaunchPackageToTrialEndInvoice(
 ): Promise<boolean> {
   if (invoice.billing_reason !== "subscription_cycle") return false;
 
-  const invoiceSubscription = invoice.parent?.subscription_details?.subscription;
+  const invoiceSubscription =
+    invoice.parent?.subscription_details?.subscription ?? invoice.subscription;
   const subscriptionId =
     typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id;
   const customerId =

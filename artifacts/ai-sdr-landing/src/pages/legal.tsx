@@ -7,10 +7,12 @@ function LegalPage({
   title,
   description,
   children,
+  effectiveDate = EFFECTIVE_DATE,
 }: {
   title: string;
   description: string;
   children: ReactNode;
+  effectiveDate?: string;
 }) {
   useEffect(() => {
     document.title = `${title} | iSDRX AI`;
@@ -28,7 +30,7 @@ function LegalPage({
         <div className="mt-8 rounded-2xl border border-white/10 bg-card p-6 shadow-2xl sm:p-10">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">Legal</p>
           <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">{title}</h1>
-          <p className="mt-3 text-sm text-muted-foreground">Effective date: {EFFECTIVE_DATE}</p>
+          <p className="mt-3 text-sm text-muted-foreground">Effective date: {effectiveDate}</p>
           <div className="prose prose-invert mt-10 max-w-none prose-headings:font-display prose-headings:text-white prose-a:text-accent prose-strong:text-white">
             {children}
           </div>
@@ -46,6 +48,7 @@ function LegalPage({
 export function TermsOfServicePage() {
   return (
     <LegalPage
+      effectiveDate="October 24, 2026"
       title="Terms of Service"
       description="Terms governing access to and use of iSDRX AI services."
     >
