@@ -217,7 +217,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: "How does the 14-day free trial work?",
-    a: "iSDRX AI Starter, iSDRX AI, and iSDRX AI Growth offer an optional 14-day free trial when you select Start Free Trial. We collect a card at sign-up, and your paid subscription begins automatically when the trial ends unless you cancel first. If you select Buy Now, billing begins immediately. AI+ and Enterprise are sales-assisted services—contact us to discuss those options.",
+    a: "iSDRX AI Starter, iSDRX AI, and iSDRX AI Growth offer an optional 14-day free trial when you select Start Free Trial. A card is required, but no subscription or $995 AI Sales Launch Package fee is charged during the trial. If you continue, the selected monthly subscription and the one-time $995 Launch Package fee are charged when the trial ends. Cancel before the trial ends to avoid both charges. The Launch Package includes account and domain setup, DNS and email-platform authentication, calendar integration, ICP and AI prompt customization, sales workflow, initial campaign and CRM setup, a live implementation session, and training. If you select Buy Now, the $995 fee is charged at checkout. AI+ and Enterprise are sales-assisted services.",
   },
   {
     q: "What is the AI Sales Launch Package and why is it required?",
@@ -354,9 +354,11 @@ export default function Pricing() {
           <div className="flex-1">
             <div className="font-semibold text-sky-300">Optional 14-Day Free Trial on every self-service plan</div>
             <div className="text-sm text-muted-foreground mt-0.5">
-              Choose Start Free Trial for full access during the trial. Card collected at sign-up; billing
-              starts automatically after the trial unless you cancel. Choose Buy Now to begin billing
-              immediately. AI+ and Enterprise are available by contacting us.
+              Choose Start Free Trial for full access during the trial. A card is required, but no
+              subscription or $995 Launch Package fee is charged during the trial. If you continue,
+              both the selected monthly plan and the one-time $995 fee are charged when the 14 days
+              end. Cancel before then to avoid both charges. Buy Now starts billing immediately.
+              AI+ and Enterprise are available by contacting us.
             </div>
           </div>
         </div>
@@ -456,8 +458,10 @@ export default function Pricing() {
               </div>
               <p className="text-muted-foreground text-sm mt-2 max-w-3xl">
                 A one-time <span className="font-semibold text-foreground">$995</span> implementation
-                fee, added automatically at checkout. Our team sets up everything so your first
-                campaign lands in inboxes — not spam folders.
+                fee. Buy Now customers are charged at checkout; free-trial customers are charged only
+                if they continue, when the trial ends. Cancel during the trial and this fee is not
+                charged. Our team sets up everything so your first campaign lands in inboxes — not
+                spam folders.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 mt-5">
                 {LAUNCH_PACKAGE_ITEMS.map((item) => (
@@ -567,8 +571,9 @@ export default function Pricing() {
               <DialogTitle>Review and accept the terms</DialogTitle>
               <DialogDescription>
                 {pendingCheckout?.checkoutIntent === "free_trial"
-                  ? "You selected the 14-day free trial. Scroll through the terms below to continue."
-                  : "You selected Buy Now. Billing begins when checkout is completed. Scroll through the terms below to continue."}
+                  ? "14-day trial: no subscription or $995 Launch Package fee is charged during the trial. If you continue, the selected monthly plan and one-time $995 fee are charged when the trial ends. Cancel before then to avoid both charges."
+                  : "Buy Now: the selected monthly subscription and the one-time $995 Launch Package fee are charged at checkout."}
+                {" "}Scroll through the terms below to continue.
               </DialogDescription>
             </DialogHeader>
 
@@ -685,11 +690,15 @@ function TermsReview() {
         <h3 className="font-semibold text-foreground">3. Fees, trial, and one-time services</h3>
         <p className="mt-1">
           Subscription fees are billed in advance. A 14-day trial is available only when you
-          explicitly select Start Free Trial. Paid billing begins automatically when the trial ends
-          unless canceled first. If you select Buy Now, billing begins when checkout is completed.
-          The required $995 AI Sales Launch Package and any applicable $1,000 AI+ onboarding fee
-          are nonrefundable once work begins, except where required by law or expressly stated in a
-          signed order form.
+          explicitly select Start Free Trial. No subscription or $995 AI Sales Launch Package fee
+          is charged during the trial. If you continue, the selected monthly subscription and the
+          one-time $995 Launch Package fee are charged when the trial ends. Cancel before the trial
+          ends to avoid both charges. If you select Buy Now, billing begins at checkout and includes
+          the $995 Launch Package fee. The package includes account and domain configuration,
+          DNS/email authentication, calendar integration, ICP and AI prompt customization, sales
+          workflow, initial campaign and CRM setup, a live implementation session, and training.
+          Once work begins, fees already charged are nonrefundable, except where required by law or
+          expressly stated in a signed order form.
         </p>
       </section>
 

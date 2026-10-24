@@ -86,15 +86,20 @@ export function TermsOfServicePage() {
       <p>
         Subscription fees are billed in advance according to the plan displayed at checkout or in
         an order form. Applicable taxes are additional. A 14-day trial is available only when you
-        explicitly select the Start Free Trial option. A valid payment method is required, and paid
-        billing begins automatically when the trial ends unless you cancel before then. If you
-        select Buy Now, billing begins when checkout is completed.
+        explicitly select the Start Free Trial option. A valid payment method is required, but no
+        subscription or $995 AI Sales Launch Package fee is charged during the trial. If you
+        continue after 14 days, the selected monthly subscription and one-time $995 Launch Package
+        fee are charged when the trial ends. Cancel before then to avoid both charges. If you select
+        Buy Now, billing begins when checkout is completed, including the $995 Launch Package fee.
       </p>
       <p>
         The one-time $995 AI Sales Launch Package is required for each new standard subscription.
-        If AI+ is selected, the separate $1,000 AI+ onboarding fee may also apply. Launch,
-        onboarding, implementation, and other one-time fees are nonrefundable once work begins,
-        except where required by law or expressly stated in a signed order form.
+        It includes account and domain configuration, DNS/email authentication, calendar integration,
+        ICP and AI prompt customization, sales workflow, initial campaign and CRM setup, a live
+        implementation session, and training. If AI+ is selected, the separate $1,000 AI+ onboarding
+        fee may also apply. Launch, onboarding, implementation, and other one-time fees are
+        nonrefundable once work begins, except where required by law or expressly stated in a signed
+        order form.
       </p>
 
       <h2>5. Renewal and cancellation</h2>

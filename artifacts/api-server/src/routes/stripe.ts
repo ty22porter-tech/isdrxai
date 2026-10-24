@@ -3,6 +3,7 @@ import { db, usersTable, conversionEventsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
 import { getUncachableStripeClient } from "../stripeClient";
+import { buildPlanCheckoutConfig } from "../lib/checkoutConfig";
 
 const router = Router();
 router.use(requireAuth);
@@ -110,23 +111,25 @@ router.post("/checkout", async (req, res) => {
     customerId = customer.id;
   }
 
-  const lineItems: Array<{ price: string; quantity: number }> = [
-    { price: priceId, quantity: 1 },
-  ];
-
   // The AI Sales Launch Package is a mandatory one-time fee for every new
   // subscriber. If it can't be resolved, fail the checkout rather than
   // silently dropping the required fee.
   const isNewSubscriber = !user.stripeSubscriptionId;
+  let packagePriceId: string | null = null;
   if (isNewSubscriber) {
-    const packagePriceId = await getLaunchPackagePriceId();
+    packagePriceId = await getLaunchPackagePriceId();
     if (!packagePriceId) {
       return res.status(500).json({
         error: "Checkout is temporarily unavailable. Please try again shortly.",
       });
     }
-    lineItems.push({ price: packagePriceId, quantity: 1 });
   }
+  const checkoutConfig = buildPlanCheckoutConfig(
+    priceId,
+    packagePriceId,
+    isNewSubscriber,
+    checkoutIntent,
+  );
 
   // Record the server-owned terms version immediately before creating the
   // checkout session. The client cannot choose the version or timestamp.
@@ -142,12 +145,8 @@ router.post("/checkout", async (req, res) => {
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     payment_method_types: ["card"],
-    line_items: lineItems,
     mode: "subscription",
-    // A trial is granted only when a first-time customer explicitly chooses it.
-    ...(isNewSubscriber && checkoutIntent === "free_trial"
-      ? { subscription_data: { trial_period_days: 14 } }
-      : {}),
+    ...checkoutConfig,
     allow_promotion_codes: true,
     success_url: `${baseUrl}/app/billing?checkout=success&onboarding=1`,
     cancel_url: `${baseUrl}/app/pricing`,

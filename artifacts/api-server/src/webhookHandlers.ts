@@ -4,6 +4,8 @@ import { sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { logger } from "./lib/logger";
 import { notifyAdminsOfStripeEvent } from "./lib/stripeSaleAlerts";
+import { addDeferredLaunchPackageToTrialEndInvoice } from "./lib/deferredLaunchPackage";
+import { getUncachableStripeClient } from "./stripeClient";
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
@@ -21,8 +23,22 @@ export class WebhookHandlers {
     // processWebhook verifies the signature before this payload is trusted.
     // Sale alerts are intentionally non-blocking: Stripe data and entitlement
     // synchronization must still succeed if an email provider is unavailable.
+    const event = JSON.parse(payload.toString("utf8")) as Stripe.Event;
+    // A shared live Stripe account can deliver the same invoice event to the
+    // development webhook. Only the published runtime may create a charge.
+    if (
+      event.type === "invoice.created" &&
+      process.env.NODE_ENV === "production" &&
+      process.env.REPLIT_DEPLOYMENT === "1"
+    ) {
+      const stripe = await getUncachableStripeClient();
+      await addDeferredLaunchPackageToTrialEndInvoice(
+        event.data.object as Stripe.Invoice,
+        stripe,
+      );
+    }
+
     try {
-      const event = JSON.parse(payload.toString("utf8")) as Stripe.Event;
       await notifyAdminsOfStripeEvent(event);
     } catch (error) {
       logger.error({ err: error }, "Stripe webhook synced, but sale notification processing failed");
