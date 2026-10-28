@@ -1921,6 +1921,8 @@ export interface ProspectLead {
   scoreExplanation?: string;
   /** Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified. */
   researchError?: string;
+  /** Explicit discovery review only; this employer was not verified against all selected hiring filters. */
+  outsideSelectedFilters?: boolean;
   /** Estimated number of locations (IT Services vertical only) */
   estimatedLocations?: number;
   /** Potential IT service needs (IT Services vertical only) */
@@ -1931,6 +1933,15 @@ export interface ProspectLead {
   /** Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly */
   fleetBrandingSignal?: string;
   opportunityIntelligence?: OpportunityIntelligence;
+}
+
+export interface ProspectSearchIssue {
+  error: string;
+  discoveredCount?: number;
+  researchFailures?: number;
+  excludedAgencyAds?: number;
+  activeFilters?: string[];
+  discoveredLeads?: ProspectLead[];
 }
 
 export type DashboardStatsProspectsByStatusItem = {

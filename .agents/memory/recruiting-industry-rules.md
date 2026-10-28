@@ -21,6 +21,12 @@ Broad employer discovery must remain available when hiring research is unavailab
 
 **How to apply:** Show discovered employers as unverified in broad searches, without automatic contact-credit spending. Evidence-dependent filters must still exclude unknown matches. Keep research failures distinct from genuine empty results, and preserve all recruiting outreach restrictions.
 
+Recruiting search verification must cover both approved and Needs Review seller profiles.
+
+**Why:** A ready QA seller can receive service matches while an unreviewed tenant receives none for the same location. A successful QA search alone does not validate the user's approval-dependent path.
+
+**How to apply:** Warn before confirmed-service searches with an unreviewed profile, never auto-approve services, and provide explicit discovery-only review of already returned businesses without another provider search or automatic contact lookup. Preserve review-only labels when restoring a saved search.
+
 Industry switching must not import another industry's approved seller claims or destroy those approvals when switching back.
 
 **Why:** A company can sell different services across verticals. Reusing the previous ready profile after a failed new-industry analysis creates confident but incorrect outreach; discarding it loses the user's confirmed edits.

@@ -1376,6 +1376,18 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ProspectLead"
+        "422":
+          description: Employers were discovered but none was verified against the selected hiring filters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProspectSearchIssue"
+        "502":
+          description: Discovery or research provider failure; discovered employers may be available for explicit review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProspectSearchIssue"
 
   /ai/enrich-leads:
     post:
@@ -2793,6 +2805,27 @@ components:
         opportunityIntelligence:
           $ref: "#/components/schemas/OpportunityIntelligence"
 
+    ProspectSearchIssue:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        discoveredCount:
+          type: integer
+        researchFailures:
+          type: integer
+        excludedAgencyAds:
+          type: integer
+        activeFilters:
+          type: array
+          items:
+            type: string
+        discoveredLeads:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProspectLead"
+
     ProspectLead:
       type: object
       required: [companyName, contactName, contactTitle, email, phone, industry, city, state, whyTarget, confidence]
@@ -2841,6 +2874,9 @@ components:
         researchError:
           type: string
           description: Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified.
+        outsideSelectedFilters:
+          type: boolean
+          description: Explicit discovery review only; this employer was not verified against all selected hiring filters.
         estimatedLocations:
           type: integer
           description: Estimated number of locations (IT Services vertical only)

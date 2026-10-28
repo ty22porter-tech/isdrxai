@@ -19,6 +19,27 @@ export function requiresRecruitingResearch(filters?: RecruitingFilters): boolean
     || (filters.recencyDays ?? 0) > 0 || (filters.minRelevantJobs ?? 0) > 0);
 }
 
+export function activeRecruitingFilterLabels(filters?: RecruitingFilters): string[] {
+  if (!filters) return [];
+  const labels: string[] = [];
+  const textFields = [
+    ["subindustry", "Subindustry"], ["companySize", "Company size"],
+    ["jobTitles", "Job titles"], ["roleFamilies", "Role families"],
+    ["seniority", "Seniority"], ["employmentType", "Employment type"],
+    ["workArrangement", "Work arrangement"], ["hiringLocation", "Hiring location"],
+    ["openingBefore", "Opening before"],
+  ] as const;
+  for (const [key, label] of textFields) {
+    if (filters[key]?.trim()) labels.push(`${label}: ${filters[key]}`);
+  }
+  if (filters.serviceMatchOnly) labels.push("Only employers matching confirmed services");
+  if (filters.signalType && filters.signalType !== "any") labels.push(`Signal type: ${filters.signalType}`);
+  if (filters.confidence && filters.confidence !== "any") labels.push(`Evidence confidence: ${filters.confidence}`);
+  if (filters.recencyDays) labels.push(`Evidence within ${filters.recencyDays} days`);
+  if (filters.minRelevantJobs) labels.push(`At least ${filters.minRelevantJobs} relevant openings`);
+  return labels;
+}
+
 export function filterRecruitingOpportunity(
   intelligence: OpportunityIntelligence,
   filters: RecruitingFilters | undefined,

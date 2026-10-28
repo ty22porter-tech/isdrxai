@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProspectSearch, useCreateProspect, useBulkCreateProspects, useEnrichLeads, useRefreshOpportunityIntelligence, refreshOpportunityIntelligence, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
-import type { ProspectLead } from "@workspace/api-client-react";
+import type { ProspectLead, ProspectSearchIssue } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -323,6 +323,7 @@ export default function Prospecting() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const searchMutation = useProspectSearch();
+  const searchIssue = searchMutation.error?.data as ProspectSearchIssue | undefined;
   const createProspect = useCreateProspect();
   const bulkCreateProspects = useBulkCreateProspects();
   const enrichLeadsMutation = useEnrichLeads();
@@ -538,7 +539,7 @@ export default function Prospecting() {
           if (searchRunIdRef.current !== searchRunId) return;
           setLeads(data);
           runEnrichment(data.map((lead, index) => ({ lead, index }))
-            .filter(({ lead }) => !isRecruiting || !lead.researchError));
+            .filter(({ lead }) => !isRecruiting || (!lead.researchError && !lead.outsideSelectedFilters)));
           trackEvent("prospect_search_completed", {
             vertical,
             requested_count: parseInt(searchCount),
@@ -1216,6 +1217,14 @@ export default function Prospecting() {
               {isRecruiting && (
                 <div className="col-span-2 md:col-span-4">
                   <RecruitingFiltersPanel value={recruitingFilters} onChange={setRecruitingFilters} />
+                  {recruitingFilters.serviceMatchOnly && me?.sellerIntelligenceProfile?.status === "needs_review" && (
+                    <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+                      Your Recruiting company profile needs review. Unapproved services cannot qualify an employer
+                      for the confirmed-service filter. Review your services in Settings, or turn off that filter
+                      to discover employers without confirmed service fit.
+                      <Button variant="link" size="sm" onClick={() => setLocation("/settings")}>Review services in Settings</Button>
+                    </div>
+                  )}
                 </div>
               )}
               {isIT && (
@@ -1370,16 +1379,40 @@ export default function Prospecting() {
         {!searchMutation.isPending && searchMutation.isError && leads.length === 0 && (
           <Card role="alert">
             <CardContent className="py-8 text-center space-y-2">
-              <h3 className="font-semibold">Search could not be completed</h3>
+              <h3 className="font-semibold">{searchIssue?.discoveredCount
+                ? "Businesses found — no verified filter matches"
+                : "Search could not be completed"}</h3>
               <p className="text-sm text-muted-foreground">
                 {(searchMutation.error as any)?.data?.error || searchMutation.error?.message || "Please retry the search."}
               </p>
+              {Boolean(searchIssue?.activeFilters?.length) && (
+                <p className="text-sm text-muted-foreground">
+                  Selected hiring filters: {searchIssue!.activeFilters!.join(" · ")}
+                </p>
+              )}
+              {Boolean(searchIssue?.excludedAgencyAds) && (
+                <p className="text-sm text-muted-foreground">
+                  {searchIssue!.excludedAgencyAds} agency advertisements without an identified employer are excluded from review.
+                </p>
+              )}
+              {Boolean(searchIssue?.discoveredLeads?.length) && (
+                <Button onClick={() => setLeads(searchIssue!.discoveredLeads!)}>
+                  Review {searchIssue!.discoveredLeads!.length} discovered employers
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
 
         {!searchMutation.isPending && leads.length > 0 && (
           <div className="space-y-3">
+            {leads.some(lead => lead.outsideSelectedFilters) && (
+              <div role="status" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Discovery review only: these employers were not verified against all selected hiring filters.
+                This does not establish hiring needs, confirmed service fit, or willingness to use an agency.
+                No new search or automatic contact lookup was started.
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">
                  {leads.length} prospects found in {city}, {state} — Prospect Industry: {industry}
@@ -1402,7 +1435,7 @@ export default function Prospecting() {
                             variant="outline"
                             className={`text-xs font-medium ${CONFIDENCE_COLORS[lead.confidence]}`}
                           >
-                            {lead.researchError ? "Hiring fit unverified" : `${lead.confidence} fit`}
+                            {lead.outsideSelectedFilters ? "Needs filter review" : lead.researchError ? "Hiring fit unverified" : `${lead.confidence} fit`}
                           </Badge>
                           {skipped.has(idx) && !added.has(idx) && (
                             <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-200">

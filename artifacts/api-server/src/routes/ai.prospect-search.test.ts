@@ -101,6 +101,7 @@ import aiRouter from "./ai";
 import { db } from "@workspace/db";
 import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
 import { requiresRecruitingResearch } from "../lib/recruitingFilters";
+import { parseRecruitingResearch } from "../lib/recruitingResearch";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const PLACE: PlaceResult = {
@@ -439,12 +440,14 @@ describe("prospect-search request validation", () => {
 });
 
 describe("recruiting search research failures", () => {
-  async function search(filters: Record<string, unknown>, places = [PLACE]) {
+  async function search(filters: Record<string, unknown>, places = [PLACE],
+    researchResult?: Awaited<ReturnType<typeof researchItOpportunityIntelligence>>) {
     process.env.GOOGLE_MAPS_API_KEY = "test-key";
     vi.mocked(db.select).mockReturnValue({
       from: () => ({ where: async () => [{ id: "client-1", vertical: "recruiting_staffing" }] }),
     } as any);
-    vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("Research provider timed out"));
+    if (researchResult) vi.mocked(researchItOpportunityIntelligence).mockResolvedValue(researchResult);
+    else vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("Research provider timed out"));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ places }),
     }));
@@ -475,7 +478,35 @@ describe("recruiting search research failures", () => {
   it("reports research failure instead of pretending strict filters found no employers", async () => {
     const { res } = await search({ industries: ["Healthcare"], serviceMatchOnly: false, jobTitles: "Nurse" });
     expect(res.status).toHaveBeenCalledWith(502);
-    expect(res.json).toHaveBeenCalledWith({ error: expect.stringMatching(/Found 1 employers, but research failed for 1/) });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: expect.stringMatching(/Found 1 businesses/),
+      discoveredCount: 1, researchFailures: 1,
+      activeFilters: ["Job titles: Nurse"],
+      discoveredLeads: [expect.objectContaining({
+        companyName: PLACE.displayName?.text, outsideSelectedFilters: true,
+      })],
+    }));
+  });
+  it("does not label a completed research result with no service match as a provider outage", async () => {
+    const { res } = await search({ serviceMatchOnly: true }, [PLACE], {
+      signals: [],
+      itResearch: {
+        sellerVertical: "recruiting_staffing", selectedIndustry: "Healthcare",
+        actualIndustry: "Healthcare", industryRelationship: "match",
+        industryExplanation: "Healthcare employer", industrySources: [],
+        lastResearched: new Date().toISOString(), warnings: [],
+        industryChallenges: [], prospectConcerns: [], recommendations: [],
+        recruiting: parseRecruitingResearch({ employerIdentity: "confirmed" }, {
+          companyName: PLACE.displayName!.text!, allowedSourceUrls: [], identityVerified: true,
+        }),
+      },
+    });
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      discoveredCount: 1, researchFailures: 0,
+      activeFilters: ["Only employers matching confirmed services"],
+      discoveredLeads: [expect.objectContaining({ outsideSelectedFilters: true })],
+    }));
   });
   it("keeps a genuine empty business lookup distinct from research failure", async () => {
     const { res } = await search({ industries: ["Healthcare"], serviceMatchOnly: false }, []);

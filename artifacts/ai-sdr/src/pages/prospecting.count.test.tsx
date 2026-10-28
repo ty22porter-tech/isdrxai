@@ -87,6 +87,45 @@ describe("prospect search count", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Found employers, but research failed");
     expect(screen.queryByText("No matching employers found")).not.toBeInTheDocument();
   });
+  it("lets users review already discovered employers without another search or contact lookup", async () => {
+    resultState.isError = true;
+    resultState.error = Object.assign(new Error("No verified filter matches."), {
+      data: {
+        error: "Ten businesses found; no employers matched the selected filters.",
+        discoveredCount: 10, researchFailures: 3,
+        activeFilters: ["Only employers matching confirmed services"],
+        discoveredLeads: [{
+          companyName: "Development-only discovered employer", contactName: "Owner",
+          contactTitle: "Pending verification", email: "fixture@contact.invalid",
+          phone: "", city: "Houston", state: "TX", industry: "Manufacturing",
+          confidence: "low", whyTarget: "Hiring needs need validation.",
+          outsideSelectedFilters: true,
+        }],
+      },
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><Prospecting /></QueryClientProvider>);
+    expect(screen.getByText("Businesses found — no verified filter matches")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Review 1 discovered employers" }));
+    expect(screen.getByText("Development-only discovered employer")).toBeInTheDocument();
+    expect(screen.getByText("Needs filter review")).toBeInTheDocument();
+    expect(screen.getByText(/Discovery review only/)).toBeInTheDocument();
+    expect(search).not.toHaveBeenCalled();
+    expect(enrich).not.toHaveBeenCalled();
+  });
+  it("warns an unreviewed recruiting seller before a confirmed-service search", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        businessName: "Development-only unreviewed seller", vertical: "recruiting_staffing",
+        sellerIntelligenceProfile: { status: "needs_review" },
+      }), { status: 200, headers: { "Content-Type": "application/json" } },
+    )));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><Prospecting /></QueryClientProvider>);
+    expect(await screen.findByText(/Your Recruiting company profile needs review/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review services in Settings" })).toBeInTheDocument();
+    expect(search).not.toHaveBeenCalled();
+  });
   it("displays a research-failed employer without automatically spending a contact lookup", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       JSON.stringify({ businessName: "Synthetic Recruiter", vertical: "recruiting_staffing" }),

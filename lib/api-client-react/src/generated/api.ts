@@ -89,6 +89,7 @@ import type {
   ProspectGiftSuggestions,
   ProspectInput,
   ProspectLead,
+  ProspectSearchIssue,
   ProspectSearchRequest,
   ProspectUpdate,
   RefreshOpportunityIntelligenceRequest,
@@ -5050,7 +5051,7 @@ export const prospectSearch = async (prospectSearchRequest: ProspectSearchReques
 
 
 
-export const getProspectSearchMutationOptions = <TError = ErrorType<unknown>,
+export const getProspectSearchMutationOptions = <TError = ErrorType<ProspectSearchIssue>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext> => {
 
@@ -5079,12 +5080,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ProspectSearchMutationResult = NonNullable<Awaited<ReturnType<typeof prospectSearch>>>
     export type ProspectSearchMutationBody = BodyType<ProspectSearchRequest>
-    export type ProspectSearchMutationError = ErrorType<unknown>
+    export type ProspectSearchMutationError = ErrorType<ProspectSearchIssue>
 
     /**
  * @summary Search real local businesses (Google Places) for a given city, state, and industry
  */
-export const useProspectSearch = <TError = ErrorType<unknown>,
+export const useProspectSearch = <TError = ErrorType<ProspectSearchIssue>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prospectSearch>>, TError,{data: BodyType<ProspectSearchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof prospectSearch>>,

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { RECRUITING_INDUSTRIES, recruitingAutomationBlocked } from "../lib/recruitingResearch";
-import { distanceMiles, filterRecruitingOpportunity, requiresRecruitingResearch } from "../lib/recruitingFilters";
+import { activeRecruitingFilterLabels, distanceMiles, filterRecruitingOpportunity, requiresRecruitingResearch } from "../lib/recruitingFilters";
 import { prospectScope } from "../lib/verticalScope";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
@@ -522,10 +522,21 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     req.log.info({
       vertical, discovered: bases.length, researchFailures,
       excluded: leads.length - results.length, returned: results.length,
+      ...(recruiting ? { activeFilters: activeRecruitingFilterLabels(body.recruitingFilters) } : {}),
     }, "Prospect search completed");
-    if (recruiting && !results.length && researchFailures) {
-      return res.status(502).json({
-        error: `Found ${bases.length} employers, but research failed for ${researchFailures} and no employers could be verified against your selected hiring filters. Retry research or clear the optional hiring filters and service-match checkbox to review employers with unverified hiring needs.`,
+    if (recruiting && !results.length && bases.length) {
+      // Keep the existing discovery available for an explicit review action.
+      // Do not turn unidentified agency advertisements into hiring employers.
+      const discoveredLeads = leads.filter(lead => !lead.opportunityIntelligence
+        || filterRecruitingOpportunity(lead.opportunityIntelligence, undefined, lead))
+        .map(lead => ({ ...lead, outsideSelectedFilters: true }));
+      return res.status(researchFailures === leads.length ? 502 : 422).json({
+        error: `Found ${bases.length} businesses. Hiring research was unavailable for ${researchFailures}. No employer was verified as matching all selected hiring filters. You can review the discovered employers without treating them as qualified matches.`,
+        discoveredCount: bases.length,
+        researchFailures,
+        excludedAgencyAds: leads.length - discoveredLeads.length,
+        activeFilters: activeRecruitingFilterLabels(body.recruitingFilters),
+        discoveredLeads,
       });
     }
     return res.json(results);
