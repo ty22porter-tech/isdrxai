@@ -7,6 +7,18 @@ const matches = (value: string | null | undefined, query?: string) =>
   !query?.trim() || query.split(/[,;]+/).map(term => term.trim().toLowerCase())
     .filter(Boolean).some(term => (value ?? "").toLowerCase().includes(term));
 
+/** Discovery filters must not silently require a successful hiring-research call. */
+export function requiresRecruitingResearch(filters?: RecruitingFilters): boolean {
+  if (!filters) return false;
+  return Boolean(filters.serviceMatchOnly
+    || [filters.subindustry, filters.companySize, filters.jobTitles, filters.roleFamilies,
+      filters.seniority, filters.employmentType, filters.workArrangement,
+      filters.hiringLocation, filters.openingBefore].some(value => value?.trim())
+    || (filters.signalType && filters.signalType !== "any")
+    || (filters.confidence && filters.confidence !== "any")
+    || (filters.recencyDays ?? 0) > 0 || (filters.minRelevantJobs ?? 0) > 0);
+}
+
 export function filterRecruitingOpportunity(
   intelligence: OpportunityIntelligence,
   filters: RecruitingFilters | undefined,

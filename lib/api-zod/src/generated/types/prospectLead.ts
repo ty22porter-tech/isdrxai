@@ -31,6 +31,8 @@ export interface ProspectLead {
   /** High Priority | Strong Fit | Possible Fit | Low Priority */
   scoreLabel?: string;
   scoreExplanation?: string;
+  /** Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified. */
+  researchError?: string;
   /** Estimated number of locations (IT Services vertical only) */
   estimatedLocations?: number;
   /** Potential IT service needs (IT Services vertical only) */

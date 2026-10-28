@@ -2838,6 +2838,9 @@ components:
           description: High Priority | Strong Fit | Possible Fit | Low Priority
         scoreExplanation:
           type: string
+        researchError:
+          type: string
+          description: Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified.
         estimatedLocations:
           type: integer
           description: Estimated number of locations (IT Services vertical only)

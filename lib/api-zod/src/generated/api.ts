@@ -3882,6 +3882,7 @@ export const ProspectSearchResponseItem = zod.object({
   "opportunityScore": zod.number().optional().describe('IT Opportunity Score 0-100 (IT Services vertical only)'),
   "scoreLabel": zod.string().optional().describe('High Priority | Strong Fit | Possible Fit | Low Priority'),
   "scoreExplanation": zod.string().optional(),
+  "researchError": zod.string().optional().describe('Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified.'),
   "estimatedLocations": zod.number().optional().describe('Estimated number of locations (IT Services vertical only)'),
   "potentialNeeds": zod.array(zod.string()).optional().describe('Potential IT service needs (IT Services vertical only)'),
   "complianceConsideration": zod.string().optional().describe('Likely\/potential compliance consideration, clearly inferred'),

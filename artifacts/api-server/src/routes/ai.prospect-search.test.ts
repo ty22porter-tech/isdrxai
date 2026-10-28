@@ -16,7 +16,14 @@ vi.mock("../lib/requireAuth", () => ({
   requireEntitlement: (_req: any, _res: any, next: any) => { next(); },
 }));
 vi.mock("../lib/verticals", () => ({
-  getVerticalConfig: (v: string | undefined) => ({ key: v === "it_services" || v === "fleet_wraps" ? v : "janitorial" }),
+  getVerticalConfig: (v: string | undefined) => ({ key: v === "it_services" || v === "fleet_wraps" || v === "recruiting_staffing" ? v : "janitorial" }),
+}));
+vi.mock("../lib/sellerResearch", () => ({
+  ensureCurrentSellerResearch: vi.fn((_id: string, client: any) => client),
+}));
+vi.mock("../lib/itOpportunityResearch", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../lib/itOpportunityResearch")>(),
+  researchItOpportunityIntelligence: vi.fn(),
 }));
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -92,6 +99,8 @@ import {
 } from "./ai";
 import aiRouter from "./ai";
 import { db } from "@workspace/db";
+import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
+import { requiresRecruitingResearch } from "../lib/recruitingFilters";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const PLACE: PlaceResult = {
@@ -426,5 +435,59 @@ describe("prospect-search request validation", () => {
       error: "Prospect search request is invalid. Count must be a whole number from 1 to 100.",
     });
     expect(db.select).not.toHaveBeenCalled();
+  });
+});
+
+describe("recruiting search research failures", () => {
+  async function search(filters: Record<string, unknown>, places = [PLACE]) {
+    process.env.GOOGLE_MAPS_API_KEY = "test-key";
+    vi.mocked(db.select).mockReturnValue({
+      from: () => ({ where: async () => [{ id: "client-1", vertical: "recruiting_staffing" }] }),
+    } as any);
+    vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("Research provider timed out"));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ places }),
+    }));
+    const handler = (aiRouter as any).stack.find((layer: any) =>
+      layer.route?.path === "/prospect-search").route.stack.at(-1).handle;
+    const req = {
+      body: { city: "Houston", state: "TX", industry: "Healthcare", count: 5, recruitingFilters: filters },
+      clientId: "client-1",
+      log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+    };
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() };
+    await handler(req, res);
+    return { req, res };
+  }
+  it("returns discovered employers with a research warning for broad searches", async () => {
+    const { res, req } = await search({ industries: ["Healthcare"], serviceMatchOnly: false });
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({
+      companyName: PLACE.displayName?.text,
+      researchError: "Research provider timed out",
+      opportunityScore: 0,
+      scoreLabel: "Research unavailable",
+    })]);
+    expect(req.log.info).toHaveBeenCalledWith(expect.objectContaining({
+      discovered: 1, returned: 1, researchFailures: 1,
+    }), "Prospect search completed");
+  });
+  it("reports research failure instead of pretending strict filters found no employers", async () => {
+    const { res } = await search({ industries: ["Healthcare"], serviceMatchOnly: false, jobTitles: "Nurse" });
+    expect(res.status).toHaveBeenCalledWith(502);
+    expect(res.json).toHaveBeenCalledWith({ error: expect.stringMatching(/Found 1 employers, but research failed for 1/) });
+  });
+  it("keeps a genuine empty business lookup distinct from research failure", async () => {
+    const { res } = await search({ industries: ["Healthcare"], serviceMatchOnly: false }, []);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith([]);
+  });
+  it("does not mistake industries, radius, or disabled/default controls for evidence requirements", () => {
+    expect(requiresRecruitingResearch({ industries: ["Healthcare"], radiusMiles: 25, serviceMatchOnly: false, confidence: "any", signalType: "any", minRelevantJobs: 0 })).toBe(false);
+    expect(requiresRecruitingResearch({ serviceMatchOnly: true })).toBe(true);
+    expect(requiresRecruitingResearch({ minRelevantJobs: 1 })).toBe(true);
+    expect(requiresRecruitingResearch({ recencyDays: 30 })).toBe(true);
+    expect(requiresRecruitingResearch({ confidence: "high" })).toBe(true);
+    expect(requiresRecruitingResearch({ signalType: "expansion" })).toBe(true);
   });
 });

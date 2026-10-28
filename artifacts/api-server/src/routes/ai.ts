@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { RECRUITING_INDUSTRIES, recruitingAutomationBlocked } from "../lib/recruitingResearch";
-import { distanceMiles, filterRecruitingOpportunity } from "../lib/recruitingFilters";
+import { distanceMiles, filterRecruitingOpportunity, requiresRecruitingResearch } from "../lib/recruitingFilters";
 import { prospectScope } from "../lib/verticalScope";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
@@ -465,6 +465,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
           force: true,
         });
       } catch (err) {
+        req.log.warn({ err, vertical }, "Employer discovered but opportunity research failed");
         return {
           ...lead,
           opportunityScore: 0,
@@ -513,10 +514,21 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
 
     // Strongest seller-specific opportunities first. This never uses engagement.
     leads.sort((a: any, b: any) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
-    return res.json(recruiting ? leads.filter(lead =>
+    const results = recruiting ? leads.filter(lead =>
       lead.opportunityIntelligence
         ? filterRecruitingOpportunity(lead.opportunityIntelligence, body.recruitingFilters, lead)
-        : !body.recruitingFilters || Object.keys(body.recruitingFilters).length === 0) : leads);
+        : !requiresRecruitingResearch(body.recruitingFilters)) : leads;
+    const researchFailures = leads.filter(lead => Boolean(lead.researchError)).length;
+    req.log.info({
+      vertical, discovered: bases.length, researchFailures,
+      excluded: leads.length - results.length, returned: results.length,
+    }, "Prospect search completed");
+    if (recruiting && !results.length && researchFailures) {
+      return res.status(502).json({
+        error: `Found ${bases.length} employers, but research failed for ${researchFailures} and no employers could be verified against your selected hiring filters. Retry research or clear the optional hiring filters and service-match checkbox to review employers with unverified hiring needs.`,
+      });
+    }
+    return res.json(results);
   } catch (err) {
     if (err instanceof ProspectSearchError) {
       return res.status(err.status).json({ error: err.message });

@@ -537,7 +537,8 @@ export default function Prospecting() {
         onSuccess: (data) => {
           if (searchRunIdRef.current !== searchRunId) return;
           setLeads(data);
-          runEnrichment(data.map((lead, index) => ({ lead, index })));
+          runEnrichment(data.map((lead, index) => ({ lead, index }))
+            .filter(({ lead }) => !isRecruiting || !lead.researchError));
           trackEvent("prospect_search_completed", {
             vertical,
             requested_count: parseInt(searchCount),
@@ -558,7 +559,7 @@ export default function Prospecting() {
 
   const handleRefreshLead = async (lead: ProspectLead, index: number) => {
     setRefreshing((prev) => new Set([...prev, index]));
-    const selectedIndustry = lead.opportunityIntelligence?.itResearch?.selectedIndustry || lastSearchedParams?.industry || industry;
+    const selectedIndustry = lead.opportunityIntelligence?.itResearch?.selectedIndustry || lead.industry || lastSearchedParams?.industry || industry;
     const runId = searchRunIdRef.current;
     const prospectId = addedProspectIds.get(index);
     try {
@@ -587,6 +588,7 @@ export default function Prospecting() {
         const next = [...prev];
         next[index] = {
           ...current,
+          researchError: intel ? undefined : current.researchError,
           opportunityIntelligence: intel,
           opportunityScore: intel?.score ?? current.opportunityScore,
           scoreLabel: intel?.label ?? current.scoreLabel,
@@ -1352,6 +1354,30 @@ export default function Prospecting() {
           </div>
         )}
 
+        {!searchMutation.isPending && searchMutation.isSuccess && leads.length === 0 && (
+          <Card role="status">
+            <CardContent className="py-8 text-center space-y-2">
+              <h3 className="font-semibold">No matching employers found</h3>
+              <p className="text-sm text-muted-foreground">
+                {isRecruiting
+                  ? "No employers matched this location and all selected filters. Try a broader location or clear optional hiring filters. Uncheck “Only employers matching my confirmed services and specialties” to include employers whose service fit has not been confirmed."
+                  : "No businesses matched this search. Try another location or industry."}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!searchMutation.isPending && searchMutation.isError && leads.length === 0 && (
+          <Card role="alert">
+            <CardContent className="py-8 text-center space-y-2">
+              <h3 className="font-semibold">Search could not be completed</h3>
+              <p className="text-sm text-muted-foreground">
+                {(searchMutation.error as any)?.data?.error || searchMutation.error?.message || "Please retry the search."}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {!searchMutation.isPending && leads.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -1376,7 +1402,7 @@ export default function Prospecting() {
                             variant="outline"
                             className={`text-xs font-medium ${CONFIDENCE_COLORS[lead.confidence]}`}
                           >
-                            {lead.confidence} fit
+                            {lead.researchError ? "Hiring fit unverified" : `${lead.confidence} fit`}
                           </Badge>
                           {skipped.has(idx) && !added.has(idx) && (
                             <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-200">
@@ -1417,6 +1443,12 @@ export default function Prospecting() {
                         {researchWarnings.get(idx) && (
                           <p className="mb-3 text-sm text-amber-700" role="status">
                             Research warning: {researchWarnings.get(idx)}
+                          </p>
+                        )}
+                        {lead.researchError && (
+                          <p className="mb-3 text-sm text-amber-800" role="status">
+                            Employer found, but hiring research is unavailable. Hiring needs and service fit
+                            remain unverified. Automatic contact lookup was skipped. Use Refresh research to retry.
                           </p>
                         )}
 
@@ -1599,9 +1631,6 @@ export default function Prospecting() {
           </div>
         )}
 
-        {!searchMutation.isPending && leads.length === 0 && !searchMutation.isIdle && (
-          <div className="text-center py-16 text-muted-foreground text-sm">No results returned. Try different parameters.</div>
-        )}
       </div>
 
       <Dialog open={giftLeadIndex !== null} onOpenChange={open => { if (!open) setGiftLeadIndex(null); }}>
