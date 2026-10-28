@@ -36,6 +36,14 @@ export type SellerFactEvidence = Partial<Record<
   Record<string, string[]>
 >>;
 
+export interface SellerIndustryPreferences {
+  sellerServicePriorities: string | null;
+  sellerDifferentiatorsInput: string | null;
+}
+export type ArchivedSellerProfile = SellerIntelligenceProfile & {
+  industryPreferences?: SellerIndustryPreferences;
+};
+
 export interface SellerIntelligenceProfile extends SellerIntelligenceEditable {
   status: "ready" | "needs_review" | "limited";
   sellerCompanyName: string | null;
@@ -97,6 +105,7 @@ export const usersTable = pgTable("users", {
   sellerServicePriorities: text("seller_service_priorities"),
   /** Derived from server-validated seller company-name research and Settings facts. */
   sellerIntelligenceProfile: jsonb("seller_intelligence_profile").$type<SellerIntelligenceProfile | null>(),
+  sellerProfilesByVertical: jsonb("seller_profiles_by_vertical").$type<Record<string, ArchivedSellerProfile | null>>(),
   mobilePhone: text("mobile_phone"),
   companyLogoPath: text("company_logo_path"),
   profilePhotoPath: text("profile_photo_path"),

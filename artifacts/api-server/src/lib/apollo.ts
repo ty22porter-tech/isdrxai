@@ -70,6 +70,11 @@ function usableEmail(value: unknown): string | null {
 
 /** Best-guess decision-maker titles by vertical, ordered by preference. */
 const DECISION_MAKER_TITLES: Record<string, string[]> = {
+  recruiting_staffing: [
+    "director of talent acquisition", "head of talent acquisition", "human resources director",
+    "hr manager", "chief human resources officer", "hiring manager", "operations manager",
+    "plant manager", "warehouse manager", "procurement manager", "general manager", "owner", "founder", "ceo",
+  ],
   janitorial: [
     "facilities manager",
     "office manager",

@@ -600,11 +600,12 @@ export default function SettingsPage() {
             <label className="text-sm font-medium flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" /> Your Industry
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { value: "janitorial", label: "Janitorial", desc: "Commercial cleaning outreach" },
                 { value: "it_services", label: "IT Services", desc: "Cybersecurity, MS365, Managed IT, MDM" },
                 { value: "fleet_wraps", label: "Fleet & Vehicle Wraps", desc: "Commercial vehicle graphics and fleet branding" },
+                { value: "recruiting_staffing", label: "Recruiting & Staffing", desc: "Sell recruiting and staffing services to employers" },
               ].map(opt => (
                 <button
                   key={opt.value}
@@ -694,13 +695,15 @@ export default function SettingsPage() {
                 setWebsite(e.target.value);
                 setIntelligenceUpdateFailed(false);
               }}
-              placeholder="e.g. https://www.yourcompany.com"
+              placeholder={vertical === "recruiting_staffing" ? "e.g. https://www.yourrecruitingfirm.com" : "e.g. https://www.yourcompany.com"}
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               data-testid="input-company-website"
               aria-describedby="company-website-help"
             />
             <p id="company-website-help" className="text-xs text-muted-foreground mt-1">
-               Optional contact/business field. Add it when you want your website included in your email signature or available as business contact information; it does not determine seller research.
+               {vertical === "recruiting_staffing"
+                 ? "Optional but recommended for Recruiting & Staffing: your recruiter website is analyzed to identify the placement types, industries, role specialties, and territory you actually offer. Review and confirm the resulting Seller Intelligence Profile; outreach only uses services you confirm."
+                 : "Optional contact/business field. Add it when you want your website included in your email signature or available as business contact information; it does not determine seller research."}
             </p>
           </div>
 
@@ -858,6 +861,8 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {vertical === "it_services"
                     ? "For IT Services, this is your approved ICP solution catalog. Recommended Outreach may use these solutions when they meaningfully match a prospect's website-backed business challenge, even if the solution is not listed on your website."
+                    : vertical === "recruiting_staffing"
+                      ? "For Recruiting & Staffing, list only the services you actually offer, such as direct hire, temporary, contract, contract-to-hire, executive search, or RPO, plus industries, role specialties, and territory. Outreach never claims candidates, placements, or guarantees you have not provided."
                     : vertical === "fleet_wraps"
                       ? "For Fleet & Vehicle Wraps, this is your approved solution catalog. Recommended Outreach will match the prospect's documented business operation or verified company event to the most relevant solution for your individual client profile, even if the solution is not listed on your website."
                       : "Optional: Tell your AI employee which services or solutions you most want to sell. If left blank, iSDRX AI will use offerings identified through seller research."}

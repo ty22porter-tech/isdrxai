@@ -16,6 +16,8 @@ import { emailSignalAccuracyInputs, opportunityEmailContext } from "./opportunit
 import { ensureCurrentSellerResearch } from "./sellerResearch";
 import { getGiftSettings, holdGiftEnrollment, processGiftOutreachQueue, assertGiftEnrollmentEligible } from "./giftOutreach";
 import { originalStepForGift, isGiftSendingWindow } from "./giftOutreachPolicy";
+import { recruitingAutomationBlocked } from "./recruitingResearch";
+import { belongsToVertical } from "./verticalScope";
 
 const AI_BASE = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "";
 const AI_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
@@ -244,6 +246,7 @@ export async function processAutopilotQueue(): Promise<void> {
       let [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
       if (!prospect || !client || !client.outreachEmail) continue;
+      if (!belongsToVertical(prospect.vertical, client.vertical) || recruitingAutomationBlocked(prospect)) continue;
       client = await ensureCurrentSellerResearch(enrollment.clientId, client);
       const currentOutreachEmail = client.outreachEmail;
       if (!currentOutreachEmail) continue;
@@ -458,6 +461,7 @@ export async function processAutopilotQueue(): Promise<void> {
       const [client] = await db.select().from(usersTable).where(eq(usersTable.id, enrollment.clientId));
 
       if (!prospect || !client || !client.outreachEmail || !client.calendlyUrl) continue;
+      if (!belongsToVertical(prospect.vertical, client.vertical) || recruitingAutomationBlocked(prospect)) continue;
       if (prospect.optedOut) {
         await db.update(autopilotEnrollmentsTable)
           .set({ status: "unsubscribed" })

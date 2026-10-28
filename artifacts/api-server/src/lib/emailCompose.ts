@@ -1,5 +1,8 @@
 import { getPublicAppUrl } from "./publicUrl";
 import { getVerticalConfig } from "./verticals";
+import type { OpportunityIntelligence } from "@workspace/db";
+import { recruitingAutomationBlocked } from "./recruitingResearch";
+import { belongsToVertical } from "./verticalScope";
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -97,10 +100,16 @@ export interface ComposeResult {
 export function composeEmail(
   coreBody: string,
   client: ComposeClient,
-  prospect: { companyName: string; unsubscribeToken: string },
+  prospect: { companyName: string; unsubscribeToken: string; vertical?: string | null; opportunityIntelligence?: OpportunityIntelligence | null },
   cta?: { label: string; url: string },
   tracking?: TrackingOptions,
 ): ComposeResult {
+  if (client.vertical && !belongsToVertical(prospect.vertical, client.vertical)) {
+    throw new Error("Outreach is blocked because this prospect belongs to a different selling industry.");
+  }
+  if (recruitingAutomationBlocked(prospect)) {
+    throw new Error("Recruiting outreach is blocked: verify the hiring employer and review any no-agencies restrictions before pitching.");
+  }
   const baseUrl = getPublicAppUrl();
   const unsubscribePageUrl = `${baseUrl}/app/unsubscribe/${prospect.unsubscribeToken}`;
   const unsubscribeApiUrl = `${baseUrl}/api/unsubscribe/${prospect.unsubscribeToken}`;

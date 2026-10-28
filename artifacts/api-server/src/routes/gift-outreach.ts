@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { z, ZodError } from "zod";
-import { db, giftOutreachRecordsTable } from "@workspace/db";
+import { db, giftOutreachRecordsTable, prospectsTable } from "@workspace/db";
+import { prospectScope, prospectRecordScope } from "../lib/verticalScope";
 import {
   GenerateProspectGiftSuggestionsBody,
   GenerateProspectGiftSuggestionsResponse,
@@ -21,17 +22,33 @@ router.use(requireAuth);
 router.use((req, res, next) => req.method === "GET" ? next() : requireEntitlement(req, res, next));
 const id = z.coerce.number().int().positive();
 
+router.use(async (req, res, next) => {
+  const recordId = /^\/records\/(\d+)(?:\/|$)/.exec(req.path)?.[1];
+  const prospectId = /^\/prospects\/(\d+)(?:\/|$)/.exec(req.path)?.[1] ?? req.body?.prospectId;
+  if (recordId) {
+    const [record] = await db.select({ id: giftOutreachRecordsTable.id }).from(giftOutreachRecordsTable)
+      .where(and(eq(giftOutreachRecordsTable.id, Number(recordId)), prospectRecordScope(giftOutreachRecordsTable, req.clientId, req.dbUser?.vertical)));
+    if (!record) return res.status(404).json({ error: "Gift record not found in the selected selling industry." });
+  }
+  if (prospectId && Number.isInteger(Number(prospectId))) {
+    const [prospect] = await db.select({ id: prospectsTable.id }).from(prospectsTable)
+      .where(and(eq(prospectsTable.id, Number(prospectId)), prospectScope(req.clientId, req.dbUser?.vertical)));
+    if (!prospect) return res.status(404).json({ error: "Prospect not found in the selected selling industry." });
+  }
+  return next();
+});
+
 router.get("/settings", async (req, res) => { res.json(await getGiftSettings(req.clientId)); });
 router.patch("/settings", async (req, res) => { res.json(await updateGiftSettings(req.clientId, giftSettingsSchema.partial().parse(req.body))); });
 router.get("/records", async (req, res) => {
-  const filters = [eq(giftOutreachRecordsTable.clientId, req.clientId)];
+  const filters = [prospectRecordScope(giftOutreachRecordsTable, req.clientId, req.dbUser?.vertical)];
   if (req.query.prospectId) filters.push(eq(giftOutreachRecordsTable.prospectId, id.parse(req.query.prospectId)));
   if (req.query.campaignId) filters.push(eq(giftOutreachRecordsTable.campaignId, id.parse(req.query.campaignId)));
   const rows = await db.select().from(giftOutreachRecordsTable).where(and(...filters)).orderBy(desc(giftOutreachRecordsTable.createdAt)).limit(500);
   res.json(rows.map(publicGiftRecord));
 });
 router.get("/prospects/:prospectId", async (req, res) => {
-  const filters = [eq(giftOutreachRecordsTable.clientId, req.clientId), eq(giftOutreachRecordsTable.prospectId, id.parse(req.params.prospectId))];
+  const filters = [prospectRecordScope(giftOutreachRecordsTable, req.clientId, req.dbUser?.vertical), eq(giftOutreachRecordsTable.prospectId, id.parse(req.params.prospectId))];
   if (req.query.campaignId) filters.push(eq(giftOutreachRecordsTable.campaignId, id.parse(req.query.campaignId)));
   res.json((await db.select().from(giftOutreachRecordsTable).where(and(...filters)).orderBy(desc(giftOutreachRecordsTable.createdAt))).map(publicGiftRecord));
 });

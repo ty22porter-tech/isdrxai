@@ -37,12 +37,13 @@ import { InterestBadge } from "@/components/interest-badge";
 import { EmailPreview } from "@/components/email-preview";
 import { OpportunityIntelligenceView } from "@/components/opportunity-intelligence-view";
 import { GiftRecordEditor } from "@/components/gift-record-editor";
+import { RecruitingQualificationEditor } from "@/components/recruiting-qualification-editor";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 /** Opportunity intelligence can be refreshed for every supported seller vertical. */
 export function supportsOpportunityRefresh(vertical: unknown): boolean {
-  return vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps";
+  return vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps" || vertical === "recruiting_staffing";
 }
 
 interface TimelineItem {
@@ -543,7 +544,9 @@ export default function ProspectDetail() {
             <CardHeader>
               <CardTitle>Opportunity Intelligence</CardTitle>
               <CardDescription>
-                {me?.vertical === "it_services"
+                {me?.vertical === "recruiting_staffing"
+                  ? "Research industry hiring challenges, verified job postings and growth signals, and recruiting services from your confirmed offerings. Refreshing does not consume contact-enrichment credits."
+                  : me?.vertical === "it_services"
                   ? "Research current IT industry challenges, company-specific concerns, and solutions from your confirmed offerings."
                   : "Research current industry challenges, company-specific concerns, and solutions from your confirmed offerings."}
               </CardDescription>
@@ -554,6 +557,10 @@ export default function ProspectDetail() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {me?.vertical === "recruiting_staffing" && (
+          <RecruitingQualificationEditor prospectId={prospect.id} value={prospect.recruitingQualification} />
         )}
 
         <Tabs defaultValue="timeline" className="w-full">

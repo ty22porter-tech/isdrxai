@@ -956,6 +956,37 @@ export const ProspectStatus = {
   closed_lost: 'closed_lost',
 } as const;
 
+export interface RecruitingQualification {
+  /** @maxLength 2000 */
+  roles?: string;
+  /** @maxLength 2000 */
+  hiresNeeded?: string;
+  /** @maxLength 2000 */
+  targetStartDates?: string;
+  /** @maxLength 2000 */
+  skillsCredentials?: string;
+  /** @maxLength 2000 */
+  shiftsLocations?: string;
+  /** @maxLength 2000 */
+  compensation?: string;
+  /** @maxLength 2000 */
+  employmentType?: string;
+  /** @maxLength 2000 */
+  currentApproach?: string;
+  /** @maxLength 2000 */
+  currentAgencies?: string;
+  /** @maxLength 2000 */
+  hiringChallenges?: string;
+  /** @maxLength 2000 */
+  vendorRequirements?: string;
+  /** @maxLength 2000 */
+  budget?: string;
+  /** @maxLength 2000 */
+  decisionProcess?: string;
+  /** @maxLength 2000 */
+  agencyRenewalDates?: string;
+}
+
 export type OpportunityIntelligenceVersion = typeof OpportunityIntelligenceVersion[keyof typeof OpportunityIntelligenceVersion];
 
 
@@ -1064,6 +1095,124 @@ export interface OpportunitySignal {
   points: number;
 }
 
+export type RecruitingResearchEmployerIdentity = typeof RecruitingResearchEmployerIdentity[keyof typeof RecruitingResearchEmployerIdentity];
+
+
+export const RecruitingResearchEmployerIdentity = {
+  confirmed: 'confirmed',
+  unverified: 'unverified',
+  agency_unidentified: 'agency_unidentified',
+} as const;
+
+export type RecruitingJobStatus = typeof RecruitingJobStatus[keyof typeof RecruitingJobStatus];
+
+
+export const RecruitingJobStatus = {
+  active: 'active',
+  closed: 'closed',
+  unknown: 'unknown',
+} as const;
+
+export interface RecruitingJob {
+  id: string;
+  title: string;
+  employer: string;
+  location: string;
+  /** @nullable */
+  roleFamily: string | null;
+  /** @nullable */
+  workArrangement: string | null;
+  /** @nullable */
+  employmentType: string | null;
+  /** @nullable */
+  department: string | null;
+  /** @nullable */
+  seniority: string | null;
+  /** @nullable */
+  salary: string | null;
+  /** @nullable */
+  postedAt: string | null;
+  firstSeenAt: string;
+  lastVerifiedAt: string;
+  status: RecruitingJobStatus;
+  sourceURL: string;
+  evidence: string;
+  /** @nullable */
+  requisitionId: string | null;
+  urgent: boolean;
+  verifiedReposting: boolean;
+  /** @nullable */
+  hiringQuantity: number | null;
+  noAgencies: boolean;
+  /** @nullable */
+  agencyPolicyEvidence: string | null;
+}
+
+export type RecruitingGrowthSignalType = typeof RecruitingGrowthSignalType[keyof typeof RecruitingGrowthSignalType];
+
+
+export const RecruitingGrowthSignalType = {
+  expansion: 'expansion',
+  relocation: 'relocation',
+  new_company: 'new_company',
+  new_location: 'new_location',
+  formation: 'formation',
+} as const;
+
+export interface RecruitingGrowthSignal {
+  type: RecruitingGrowthSignalType;
+  title: string;
+  location: string;
+  /** @nullable */
+  announcementDate: string | null;
+  /** @nullable */
+  expectedOpeningDate: string | null;
+  /** @nullable */
+  hiringPlans: string | null;
+  confirmedHiring: boolean;
+  sourceURL: string;
+  evidence: string;
+}
+
+export type RecruitingSourceCoverageStatus = typeof RecruitingSourceCoverageStatus[keyof typeof RecruitingSourceCoverageStatus];
+
+
+export const RecruitingSourceCoverageStatus = {
+  available: 'available',
+  partial: 'partial',
+  unavailable: 'unavailable',
+} as const;
+
+export interface RecruitingSourceCoverage {
+  source: string;
+  status: RecruitingSourceCoverageStatus;
+  detail: string;
+  /** @nullable */
+  lastSuccessfulResearch: string | null;
+}
+
+export type RecruitingResearchEvidenceConfidence = typeof RecruitingResearchEvidenceConfidence[keyof typeof RecruitingResearchEvidenceConfidence];
+
+
+export const RecruitingResearchEvidenceConfidence = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export interface RecruitingResearch {
+  employerIdentity: RecruitingResearchEmployerIdentity;
+  jobs: RecruitingJob[];
+  growthSignals: RecruitingGrowthSignal[];
+  coverage: RecruitingSourceCoverage[];
+  lastSuccessfulResearch: string;
+  uniqueActiveJobs: number;
+  automationSuppressed: boolean;
+  suppressionReasons: string[];
+  commercialFit: number;
+  evidenceConfidence: RecruitingResearchEvidenceConfidence;
+}
+
 export type ItResearchIndustryRelationship = typeof ItResearchIndustryRelationship[keyof typeof ItResearchIndustryRelationship];
 
 
@@ -1144,6 +1293,8 @@ export interface ItResearchRecommendation {
 }
 
 export interface ItResearch {
+  sellerVertical?: string;
+  recruiting?: RecruitingResearch;
   sellerCompanyName?: string;
   selectedIndustry: string;
   /** @nullable */
@@ -1186,6 +1337,9 @@ export interface OpportunityIntelligence {
 }
 
 export interface Prospect {
+  /** @nullable */
+  vertical?: string | null;
+  recruitingQualification?: RecruitingQualification | null;
   id: number;
   companyName: string;
   contactName: string;
@@ -1218,6 +1372,7 @@ export interface Prospect {
 }
 
 export interface ProspectInput {
+  recruitingQualification?: RecruitingQualification;
   companyName: string;
   contactName: string;
   email: string;
@@ -1297,6 +1452,7 @@ export interface BulkProspectsResult {
 }
 
 export interface ProspectUpdate {
+  recruitingQualification?: RecruitingQualification;
   companyName?: string;
   contactName?: string;
   email?: string;
@@ -1487,6 +1643,11 @@ export interface Appointment {
   location?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * Current source-backed recruiting evidence and employer-disclosed qualification, separate from editable appointment notes.
+     * @nullable
+     */
+  preMeetingBrief?: string | null;
   createdAt: string;
 }
 
@@ -1533,7 +1694,71 @@ export interface GeneratedCallScript {
   objectionHandlers: GeneratedCallScriptObjectionHandlersItem[];
 }
 
+export type RecruitingFiltersIndustriesItem = typeof RecruitingFiltersIndustriesItem[keyof typeof RecruitingFiltersIndustriesItem];
+
+
+export const RecruitingFiltersIndustriesItem = {
+  Healthcare: 'Healthcare',
+  'Oil_&_Gas': 'Oil & Gas',
+  Technology: 'Technology',
+  Financial_Services: 'Financial Services',
+  Engineering: 'Engineering',
+  Manufacturing: 'Manufacturing',
+  'Logistics_&_Warehousing': 'Logistics & Warehousing',
+} as const;
+
+export type RecruitingFiltersSignalType = typeof RecruitingFiltersSignalType[keyof typeof RecruitingFiltersSignalType];
+
+
+export const RecruitingFiltersSignalType = {
+  any: 'any',
+  jobs: 'jobs',
+  expansion: 'expansion',
+  relocation: 'relocation',
+  new_business: 'new_business',
+} as const;
+
+export type RecruitingFiltersConfidence = typeof RecruitingFiltersConfidence[keyof typeof RecruitingFiltersConfidence];
+
+
+export const RecruitingFiltersConfidence = {
+  any: 'any',
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export interface RecruitingFilters {
+  /** @maxItems 7 */
+  industries?: RecruitingFiltersIndustriesItem[];
+  subindustry?: string;
+  /**
+     * @minimum 1
+     * @maximum 250
+     */
+  radiusMiles?: number;
+  hiringLocation?: string;
+  companySize?: string;
+  jobTitles?: string;
+  roleFamilies?: string;
+  seniority?: string;
+  employmentType?: string;
+  workArrangement?: string;
+  signalType?: RecruitingFiltersSignalType;
+  /**
+     * @minimum 1
+     * @maximum 365
+     */
+  recencyDays?: number;
+  confidence?: RecruitingFiltersConfidence;
+  /** @minimum 0 */
+  minRelevantJobs?: number;
+  openingBefore?: string;
+  serviceMatchOnly?: boolean;
+}
+
 export interface ProspectSearchRequest {
+  recruitingFilters?: RecruitingFilters;
   city: string;
   state: string;
   industry: string;

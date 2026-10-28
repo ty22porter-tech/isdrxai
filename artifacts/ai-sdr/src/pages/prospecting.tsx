@@ -35,6 +35,8 @@ import { ProspectGiftSuggestionPreview } from "@/components/prospect-gift-sugges
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { addToAutopilotProspectSelection, clearAutopilotProspectSelection } from "@/lib/autopilot-prospect-selection";
+import { RecruitingFiltersPanel } from "@/components/recruiting-filters-panel";
+import { loadRecruitingFilters, saveRecruitingFilters, clearRecruitingFilters, toRecruitingFiltersPayload, recruitingIndustryParam, type RecruitingFilterState } from "@/lib/recruiting";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw, Gift } from "lucide-react";
 
 const INDUSTRIES = [
@@ -147,7 +149,7 @@ type EnrichStatus = "pending" | "enriched" | "not_found" | "failed";
 type ProspectingSnapshot = {
   savedAt: number;
   vertical?: string;
-  params: { city: string; state: string; industry: string; count: string; employeeRange?: string; compliancePriority?: string };
+  params: { city: string; state: string; industry: string; count: string; employeeRange?: string; compliancePriority?: string; recruitingFilters?: RecruitingFilterState };
   leads: ProspectLead[];
   added: number[];
   skipped: number[];
@@ -292,9 +294,30 @@ export default function Prospecting() {
   const verticalLoaded = me !== undefined;
   const isIT = me?.vertical === "it_services";
   const isFleet = me?.vertical === "fleet_wraps";
-  const vertical = isIT ? "it_services" : isFleet ? "fleet_wraps" : "janitorial";
-  const verticalLabel = isIT ? "IT Services" : isFleet ? "Fleet & Commercial Vehicle Wraps" : "Janitorial";
+  const isRecruiting = me?.vertical === "recruiting_staffing";
+  const vertical = isIT ? "it_services" : isFleet ? "fleet_wraps" : isRecruiting ? "recruiting_staffing" : "janitorial";
+  const verticalLabel = isIT ? "IT Services" : isFleet ? "Fleet & Commercial Vehicle Wraps" : isRecruiting ? "Recruiting & Staffing" : "Janitorial";
   const industryOptions = isIT ? IT_INDUSTRIES : isFleet ? FLEET_INDUSTRIES : INDUSTRIES;
+
+  // Recruiting filters persist per user and are cleared once the seller
+  // vertical is anything else, so they never leak into another vertical.
+  const [recruitingFilters, setRecruitingFiltersState] = useState<RecruitingFilterState>(() => loadRecruitingFilters(user?.id));
+  const recruitingLoadedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user?.id || !verticalLoaded) return;
+    if (!isRecruiting) {
+      clearRecruitingFilters(user.id);
+      return;
+    }
+    if (recruitingLoadedFor.current !== user.id) {
+      recruitingLoadedFor.current = user.id;
+      setRecruitingFiltersState(loadRecruitingFilters(user.id));
+    }
+  }, [user?.id, verticalLoaded, isRecruiting]);
+  const setRecruitingFilters = (next: RecruitingFilterState) => {
+    setRecruitingFiltersState(next);
+    saveRecruitingFilters(user?.id, next);
+  };
 
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -444,7 +467,10 @@ export default function Prospecting() {
     }
     const searchCity = overrideParams?.city ?? city;
     const searchState = overrideParams?.state ?? state;
-    const searchIndustry = overrideParams?.industry ?? industry;
+    const searchRecruitingFilters = overrideParams?.recruitingFilters ?? recruitingFilters;
+    const searchIndustry = isRecruiting
+      ? recruitingIndustryParam(searchRecruitingFilters)
+      : overrideParams?.industry ?? industry;
     const searchCount = overrideParams?.count ?? count;
     const searchEmployeeRange = overrideParams?.employeeRange ?? employeeRange;
     const searchCompliancePriority = overrideParams?.compliancePriority ?? compliancePriority;
@@ -458,6 +484,7 @@ export default function Prospecting() {
       setCount(searchCount);
       if (overrideParams.employeeRange) setEmployeeRange(overrideParams.employeeRange);
       if (overrideParams.compliancePriority) setCompliancePriority(overrideParams.compliancePriority);
+      if (isRecruiting && overrideParams.recruitingFilters) setRecruitingFilters(overrideParams.recruitingFilters);
     }
 
     const currentParams = {
@@ -467,6 +494,7 @@ export default function Prospecting() {
       count: searchCount,
       employeeRange: searchEmployeeRange,
       compliancePriority: searchCompliancePriority,
+      ...(isRecruiting ? { recruitingFilters: searchRecruitingFilters } : {}),
     };
     setLastSearchedParams(currentParams);
 
@@ -502,6 +530,7 @@ export default function Prospecting() {
                 compliancePriority: searchCompliancePriority === "All Prospects" ? undefined : searchCompliancePriority,
               }
             : {}),
+          ...(isRecruiting ? { recruitingFilters: toRecruitingFiltersPayload(searchRecruitingFilters) } : {}),
         },
       },
       {
@@ -584,7 +613,11 @@ export default function Prospecting() {
   };
 
   const handleSearch = () => {
-    if (!city.trim() || !state || !industry) {
+    if (isRecruiting && (!city.trim() || !state || recruitingFilters.industries.length === 0)) {
+      toast({ title: "Fill in all fields", description: "City, state, and at least one employer industry are required.", variant: "destructive" });
+      return;
+    }
+    if (!isRecruiting && (!city.trim() || !state || !industry)) {
       toast({ title: "Fill in all fields", description: "City, state, and industry are required.", variant: "destructive" });
       return;
     }
@@ -602,7 +635,7 @@ export default function Prospecting() {
   const leadNotes = (lead: ProspectLead) => {
     let notes = `${lead.contactTitle} — ${lead.whyTarget}`;
     if (lead.opportunityScore != null) {
-      const scoreName = lead.vertical === "fleet_wraps" ? "Fleet Wrap Opportunity Score" : "IT Opportunity Score";
+      const scoreName = lead.vertical === "fleet_wraps" ? "Fleet Wrap Opportunity Score" : lead.vertical === "recruiting_staffing" ? "Recruiting Opportunity Score" : "IT Opportunity Score";
       notes += `\n${scoreName}: ${lead.opportunityScore}${lead.scoreLabel ? ` (${lead.scoreLabel})` : ""}`;
       if (lead.potentialNeeds?.length) notes += `\nPotential opportunities (unconfirmed): ${lead.potentialNeeds.join(", ")}`;
       if (lead.complianceConsideration) notes += `\nCompliance: ${lead.complianceConsideration}`;
@@ -960,6 +993,7 @@ export default function Prospecting() {
     setCount(snap.params.count);
     if (snap.params.employeeRange) setEmployeeRange(snap.params.employeeRange);
     if (snap.params.compliancePriority) setCompliancePriority(snap.params.compliancePriority);
+    if (isRecruiting && snap.params.recruitingFilters) setRecruitingFilters(snap.params.recruitingFilters);
     setLastSearchedParams(snap.params);
     setLeads(snap.leads);
     const addedSet = new Set(snap.added);
@@ -1051,7 +1085,9 @@ export default function Prospecting() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Prospect Search</h2>
           <p className="text-muted-foreground mt-1">
-            {isIT
+            {isRecruiting
+              ? "Find employers with verified hiring or growth signals that match the recruiting and staffing services you have confirmed. Results are grouped by employer."
+              : isIT
               ? "Generate a targeted list of IT services prospects — companies likely to need managed IT, cybersecurity, and compliance support. Add them directly to your pipeline."
               : "Generate a targeted list of commercial prospects in any market. Add them directly to your pipeline."}
           </p>
@@ -1145,6 +1181,7 @@ export default function Prospecting() {
                   </SelectContent>
                 </Select>
               </div>
+              {!isRecruiting && (
               <div className="space-y-2">
                 <Label>Prospect Industry</Label>
                 <Select value={industry} onValueChange={setIndustry}>
@@ -1159,6 +1196,7 @@ export default function Prospecting() {
                 </Select>
                 <p className="text-xs text-muted-foreground">This is the selected prospect market, not your seller industry.</p>
               </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="prospect-search-count">Count</Label>
                 <Select value={count} onValueChange={setCount}>
@@ -1173,6 +1211,11 @@ export default function Prospecting() {
                 </Select>
                 <p className="text-xs text-muted-foreground">Up to 100 matching prospects. Larger searches take longer to research.</p>
               </div>
+              {isRecruiting && (
+                <div className="col-span-2 md:col-span-4">
+                  <RecruitingFiltersPanel value={recruitingFilters} onChange={setRecruitingFilters} />
+                </div>
+              )}
               {isIT && (
                 <>
                   <div className="space-y-2">
@@ -1427,7 +1470,7 @@ export default function Prospecting() {
                               variant="outline"
                               className={`text-xs font-medium ${SCORE_COLORS[lead.scoreLabel] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}
                             >
-                              {isFleet ? "Fleet Wrap Opportunity Score" : isIT ? "IT Opportunity Score" : "Opportunity Score"}: {lead.opportunityScore} — {lead.scoreLabel}
+                              {isFleet ? "Fleet Wrap Opportunity Score" : isRecruiting ? "Recruiting Opportunity Score" : isIT ? "IT Opportunity Score" : "Opportunity Score"}: {lead.opportunityScore} — {lead.scoreLabel}
                             </Badge>
                             {lead.opportunityScore >= 30 && (
                               <Badge variant="outline" className="border-primary/20 bg-primary/10 text-xs font-medium text-primary">

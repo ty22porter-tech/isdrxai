@@ -4,6 +4,8 @@ import { Loader2, CheckCircle2, Upload, X, Building2, CalendarDays, ArrowLeft, F
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+import type { RecruitingQualification } from "@workspace/api-client-react";
+
 interface ScheduleInfo {
   companyName: string;
   contactName: string;
@@ -47,7 +49,38 @@ const SCHEDULE_COPY = {
     uploadHint: "Click to upload (PDF or images, 25MB total)",
     uploadLimitError: "Uploads exceed the 25MB total limit.",
   },
+  recruiting_staffing: {
+    headline: "Schedule a hiring-needs discovery call",
+    intro: (b: string, c: string) => `${b} would like to understand ${c}'s hiring needs. Share what you can, then request a time below. Nothing is booked until the calendar confirms it.`,
+    offerNoun: "hiring-needs discovery call",
+    providerQuestion: "Do you currently work with any recruiting or staffing agencies?",
+    frequencyQuestion: "Roughly how many open roles do you have?",
+    frequencyPlaceholder: "e.g. 4",
+    frequencyMax: 100000,
+    timesQuestion: "Best times to reach you?",
+    locationQuestion: "How many hiring locations?",
+    sizeLabel: "Hiring locations",
+    sizePlaceholder: "",
+    uploadLabel: "Job descriptions (optional)",
+    uploadHint: "Click to upload (PDF or images, 25MB total)",
+    uploadLimitError: "Uploads exceed the 25MB total limit.",
+  },
 } as const;
+
+const RECRUITING_SCHEDULE_FIELDS: { key: keyof RecruitingQualification; label: string; placeholder: string }[] = [
+  { key: "roles", label: "Roles you are hiring for", placeholder: "e.g. RN, maintenance technician" },
+  { key: "hiresNeeded", label: "Number of hires", placeholder: "e.g. 3" },
+  { key: "targetStartDates", label: "Target start dates and urgency", placeholder: "e.g. by August 1" },
+  { key: "skillsCredentials", label: "Required skills or credentials", placeholder: "Licenses, certifications" },
+  { key: "shiftsLocations", label: "Shifts and locations", placeholder: "e.g. 2nd shift, Tulsa plant" },
+  { key: "employmentType", label: "Employment type", placeholder: "Direct hire, temporary, contract" },
+  { key: "compensation", label: "Compensation range (optional)", placeholder: "" },
+  { key: "hiringChallenges", label: "Biggest hiring challenge", placeholder: "" },
+  { key: "currentApproach", label: "How you recruit today", placeholder: "Internal team, job boards, referrals" },
+  { key: "vendorRequirements", label: "Vendor requirements (optional)", placeholder: "Insurance, MSA, VMS" },
+  { key: "decisionProcess", label: "Who decides on staffing vendors (optional)", placeholder: "" },
+  { key: "agencyRenewalDates", label: "Existing agency agreement renewal dates (optional)", placeholder: "" },
+];
 
 interface LocationRow {
   label: string;
@@ -246,6 +279,7 @@ export default function Schedule() {
   const [locationCount, setLocationCount] = useState("1");
   const [locations, setLocations] = useState<LocationRow[]>([{ label: "", squareFootage: "" }]);
   const [additionalNotes, setAdditionalNotes] = useState("");
+  const [recruitingQualification, setRecruitingQualification] = useState<RecruitingQualification>({});
   const [files, setFiles] = useState<PendingFile[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -349,6 +383,11 @@ export default function Schedule() {
           locations,
           additionalNotes,
           files: files.map((f) => ({ filename: f.filename, contentBase64: f.contentBase64 })),
+          ...(info?.vertical === "recruiting_staffing"
+            ? { recruitingQualification: Object.fromEntries(
+                Object.entries(recruitingQualification).map(([k, v]) => [k, (v ?? "").trim()]).filter(([, v]) => v),
+              ) }
+            : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -382,7 +421,8 @@ export default function Schedule() {
   }
 
   const isIT = info.vertical === "it_services";
-  const copy = isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
+  const isRecruiting = info.vertical === "recruiting_staffing";
+  const copy = isRecruiting ? SCHEDULE_COPY.recruiting_staffing : isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
 
   const inputClass =
     "w-full rounded-lg border border-[#d8d6cf] bg-[#fffdfa] px-3 py-2 text-[#172b3a] placeholder-[#8a9295] focus:border-[#234d73] focus:outline-none focus:ring-2 focus:ring-[#234d73]/30";
@@ -603,7 +643,29 @@ export default function Schedule() {
               />
             </div>
 
-            {!isIT && (
+            {isRecruiting && (
+              <div className="space-y-3" data-testid="section-recruiting-qualification">
+                <p className="text-sm font-medium text-[#43545e]">Hiring needs</p>
+                <p className="text-xs text-slate-500">Share only what you are comfortable with. Every field is optional.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {RECRUITING_SCHEDULE_FIELDS.map((f) => (
+                    <div key={f.key}>
+                      <label className={labelClass}>{f.label}</label>
+                      <input
+                        className={inputClass}
+                        maxLength={2000}
+                        value={recruitingQualification[f.key] ?? ""}
+                        placeholder={f.placeholder}
+                        onChange={(e) => setRecruitingQualification((q) => ({ ...q, [f.key]: e.target.value }))}
+                        data-testid={`input-schedule-${f.key}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!isIT && !isRecruiting && (
               <div className="space-y-3">
                 <label className={labelClass}>{copy.sizeLabel}</label>
                 {locations.map((loc, idx) => (

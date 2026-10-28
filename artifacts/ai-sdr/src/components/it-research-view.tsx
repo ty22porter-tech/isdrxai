@@ -1,6 +1,7 @@
 import { ExternalLink, Target, AlertTriangle, Lightbulb, Briefcase, Zap, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { RecruitingEvidenceView } from "./recruiting-evidence-view";
 import type { ItResearch, ResearchSource, ItIndustryChallenge, ItProspectConcern, ItResearchRecommendation } from "@workspace/api-client-react";
 
 type SellerEvidenceAvailability = "source_backed" | "user_approved" | "unavailable";
@@ -67,20 +68,27 @@ export function ITResearchView({
   sellerVertical?: string;
 }) {
   const isITSeller = sellerVertical === "it_services";
-  const industryChallengesHeading = isITSeller ? "Industry IT Challenges" : "Industry Challenges";
-  const prospectConcernsHeading = isITSeller ? "Prospect IT Concerns" : "Prospect Concerns";
+  const isRecruiting = sellerVertical === "recruiting_staffing" || !!research.recruiting;
+  const industryChallengesHeading = isRecruiting ? "Industry Hiring Challenges" : isITSeller ? "Industry IT Challenges" : "Industry Challenges";
+  const prospectConcernsHeading = isRecruiting ? "Prospect Hiring Needs" : isITSeller ? "Prospect IT Concerns" : "Prospect Concerns";
+  const outreachHeading = isRecruiting ? "Recommended Recruiting Solutions & Outreach" : "Outreach";
+  const recruiting = research.recruiting;
+  const suppressed = !!recruiting?.automationSuppressed;
   const firstRecommendation = research.recommendations?.[0];
   const compactRecommendation = firstRecommendation
     ? [firstRecommendation.offering, firstRecommendation.howItHelps].filter(Boolean).join(" — ")
     : "";
   const sellerCompanyName = research.sellerCompanyName?.trim();
-  const outreachIntro = sellerCompanyName
+  const outreachIntro = isRecruiting
+    ? `Only services confirmed in ${sellerCompanyName || "your"} Seller Intelligence Profile are recommended. Hiring challenges are inferred unless marked verified.`
+    : sellerCompanyName
     ? `Products and services from ${sellerCompanyName} that could address this prospect’s concerns.`
     : "Products and services that could address this prospect’s concerns.";
 
   if (compact) {
     return (
       <div className="space-y-2" data-testid="section-it-research-compact">
+        {recruiting && <RecruitingEvidenceView research={recruiting} compact />}
         {research.industryRelationship !== "match" && (
           <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">Industry note: {research.industryExplanation}</p>
         )}
@@ -108,6 +116,7 @@ export function ITResearchView({
 
   return (
     <div className="space-y-6" data-testid="section-it-research-full">
+      {recruiting && <RecruitingEvidenceView research={recruiting} employerIndustry={research.actualIndustry || research.selectedIndustry} />}
       {research.warnings && research.warnings.length > 0 && (
         <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-900/50 dark:bg-amber-900/10">
           <div className="flex items-start gap-2">
@@ -207,7 +216,7 @@ export function ITResearchView({
 
       <section className="space-y-3">
         <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-          <Lightbulb className="h-4 w-4" /> Outreach
+          <Lightbulb className="h-4 w-4" /> {outreachHeading}
         </h4>
         <p className="text-sm text-muted-foreground">{outreachIntro}</p>
         {research.recommendations && research.recommendations.length > 0 ? (
@@ -216,11 +225,11 @@ export function ITResearchView({
               <Card key={i} className="border-primary/20 bg-primary/5 shadow-none">
                 <CardContent className="p-4 space-y-3">
                   <h5 className="font-semibold text-sm text-primary">
-                    Product or service: {rec.offering}
+                    {isRecruiting ? "Matching service" : "Product or service"}: {rec.offering}
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs border-t border-primary/10 pt-3">
                     <div>
-                      <strong className="block text-foreground mb-0.5">Prospect concern</strong>
+                      <strong className="block text-foreground mb-0.5">{isRecruiting ? "Hiring need" : "Prospect concern"}</strong>
                       <span className="text-muted-foreground">{rec.prospectConcern}</span>
                     </div>
                     <div>
@@ -231,6 +240,18 @@ export function ITResearchView({
                       <strong className="block text-foreground mb-0.5">Business value</strong>
                       <span className="text-muted-foreground">{rec.businessValue}</span>
                     </div>
+                    {isRecruiting && (
+                      <>
+                        <div>
+                          <strong className="block text-foreground mb-0.5">Outreach angle</strong>
+                          <span className="text-muted-foreground">{suppressed ? "Suppressed: employer asked for no agency contact." : rec.outreachAngle}</span>
+                        </div>
+                        <div>
+                          <strong className="block text-foreground mb-0.5">Discovery question</strong>
+                          <span className="text-muted-foreground">{rec.discoveryQuestion}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="md:col-span-2">
                       {rec.sellerEvidence?.availability === "source_backed" && rec.sellerEvidence.sources?.length > 0 ? (
                         <SourcesList

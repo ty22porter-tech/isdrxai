@@ -13,6 +13,7 @@ import {
 } from "@workspace/db";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
+import { prospectScope, prospectRecordScope } from "../lib/verticalScope";
 import { recommendedNextAction } from "../lib/nextAction";
 import { matchesEngagementSearch } from "../lib/engagementSearch";
 import { CALENDLY_CLICK_FOLLOW_UP_TYPE } from "../lib/calendlyConversion";
@@ -37,7 +38,7 @@ router.get("/summary", async (req, res) => {
       validOpens: sql<number>`coalesce(sum(${emailsTable.validOpens}), 0)::int`,
     })
     .from(emailsTable)
-    .where(eq(emailsTable.clientId, clientId));
+    .where(prospectRecordScope(emailsTable, clientId, req.dbUser?.vertical));
 
   // Per-prospect valid-open totals drive "prospects who opened" and
   // "repeated-open prospects" (3+ valid opens).
@@ -47,7 +48,7 @@ router.get("/summary", async (req, res) => {
       validOpens: sql<number>`coalesce(sum(${emailsTable.validOpens}), 0)::int`,
     })
     .from(emailsTable)
-    .where(eq(emailsTable.clientId, clientId))
+    .where(prospectRecordScope(emailsTable, clientId, req.dbUser?.vertical))
     .groupBy(emailsTable.prospectId);
   const prospectsWhoOpened = prospectOpens.filter(p => p.validOpens > 0).length;
   const repeatedOpenProspects = prospectOpens.filter(p => p.validOpens >= 3).length;
@@ -60,18 +61,18 @@ router.get("/summary", async (req, res) => {
       calendlyClicks: sql<number>`coalesce(sum(${emailLinksTable.clickCount}) filter (where ${emailLinksTable.kind} = 'cta'), 0)::int`,
     })
     .from(emailLinksTable)
-    .where(eq(emailLinksTable.clientId, clientId));
+    .where(prospectRecordScope(emailLinksTable, clientId, req.dbUser?.vertical));
 
   // "Filtered bot activity" indicator: automated scanner hits we recorded but
   // excluded from scoring and from the human click/open counts above.
   const [botAgg] = await db
     .select({ botClicksFiltered: sql<number>`count(*) filter (where ${linkClickEventsTable.isBot})::int` })
     .from(linkClickEventsTable)
-    .where(eq(linkClickEventsTable.clientId, clientId));
+    .where(prospectRecordScope(linkClickEventsTable, clientId, req.dbUser?.vertical));
   const [botOpenAgg] = await db
     .select({ botOpensFiltered: sql<number>`count(*) filter (where ${emailOpenEventsTable.isBot})::int` })
     .from(emailOpenEventsTable)
-    .where(eq(emailOpenEventsTable.clientId, clientId));
+    .where(prospectRecordScope(emailOpenEventsTable, clientId, req.dbUser?.vertical));
 
   // Interest level counts use the EFFECTIVE level (manual override wins).
   const levelRows = await db
@@ -80,7 +81,7 @@ router.get("/summary", async (req, res) => {
       n: sql<number>`count(*)::int`,
     })
     .from(prospectsTable)
-    .where(eq(prospectsTable.clientId, clientId))
+    .where(prospectScope(clientId, req.dbUser?.vertical))
     .groupBy(sql`coalesce(${prospectsTable.manualInterestLevel}, ${prospectsTable.interestLevel}, 'low')`);
   const levelCount = (l: string) => levelRows.find(r => r.level === l)?.n ?? 0;
 
@@ -90,14 +91,14 @@ router.get("/summary", async (req, res) => {
     })
     .from(automationRunsTable)
     .where(and(
-      eq(automationRunsTable.clientId, clientId),
+      prospectRecordScope(automationRunsTable, clientId, req.dbUser?.vertical),
       inArray(automationRunsTable.automationType, ["meeting_request", CALENDLY_CLICK_FOLLOW_UP_TYPE]),
     ));
 
   const [apptAgg] = await db
     .select({ meetingsScheduled: sql<number>`count(*)::int` })
     .from(appointmentsTable)
-    .where(and(eq(appointmentsTable.clientId, clientId), sql`${appointmentsTable.status} != 'cancelled'`));
+    .where(and(prospectRecordScope(appointmentsTable, clientId, req.dbUser?.vertical), sql`${appointmentsTable.status} != 'cancelled'`));
 
   res.json({
     emailsSent: emailAgg?.emailsSent ?? 0,
@@ -128,7 +129,7 @@ router.get("/table", async (req, res) => {
   const clientId = req.clientId;
   const q = req.query as Record<string, string | undefined>;
 
-  const prospects = await db.select().from(prospectsTable).where(eq(prospectsTable.clientId, clientId));
+  const prospects = await db.select().from(prospectsTable).where(prospectScope(clientId, req.dbUser?.vertical));
 
   const emailAggs = await db
     .select({
@@ -460,7 +461,7 @@ router.get("/prospects/:id/timeline", async (req, res) => {
   const clientId = req.clientId;
 
   const [prospect] = await db.select().from(prospectsTable)
-    .where(and(eq(prospectsTable.id, prospectId), eq(prospectsTable.clientId, clientId)));
+    .where(and(eq(prospectsTable.id, prospectId), prospectScope(clientId, req.dbUser?.vertical)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
 
   const emails = await db.select().from(emailsTable)

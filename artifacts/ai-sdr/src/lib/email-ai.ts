@@ -475,7 +475,19 @@ const FLEET_INDUSTRY_PROFILES: Record<string, IndustryProfile> = {
   },
 };
 
-export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps";
+export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing";
+
+const DEFAULT_RECRUITING_PROFILE: IndustryProfile = {
+  label: "Employer",
+  painPoints: [
+    "filling open roles while keeping current teams productive",
+    "staffing new locations or added capacity on schedule",
+    "finding qualified applicants for specialized roles",
+  ],
+  challenges: ["Time to fill", "Specialized skill availability", "Staffing for growth"],
+  valueProps: [],
+  closingLine: "Confirm hiring needs and the current recruiting approach before recommending a service.",
+};
 
 export interface SellerFallbackProfile {
   status?: "ready" | "limited";
@@ -517,6 +529,7 @@ function getSeller(profile?: SellerFallbackProfile | null) {
 function getProfile(industry: string, vertical: ClientVertical = "janitorial"): IndustryProfile {
   if (vertical === "it_services") return IT_INDUSTRY_PROFILES[industry] ?? DEFAULT_IT_PROFILE;
   if (vertical === "fleet_wraps") return FLEET_INDUSTRY_PROFILES[industry] ?? DEFAULT_FLEET_PROFILE;
+  if (vertical === "recruiting_staffing") return { ...DEFAULT_RECRUITING_PROFILE, label: industry || DEFAULT_RECRUITING_PROFILE.label };
   return INDUSTRY_PROFILES[industry] ?? DEFAULT_PROFILE;
 }
 
@@ -530,6 +543,11 @@ const WORDING: Record<ClientVertical, { serviceNoun: string; offer: string; offe
     serviceNoun: "managed IT services",
     offer: "IT assessment",
     offerAction: "run an IT assessment for",
+  },
+  recruiting_staffing: {
+    serviceNoun: "recruiting and staffing services",
+    offer: "hiring-needs discovery call",
+    offerAction: "hold a hiring-needs discovery call with",
   },
   fleet_wraps: {
     serviceNoun: "fleet graphics and commercial vehicle wraps",
@@ -587,6 +605,26 @@ ${cta}`,
     };
   }
 
+  if (vertical === "recruiting_staffing") {
+    // Only the seller's verified offerings are named; never candidates or placement results.
+    const recruitingMatch = seller.ready
+      ? `${seller.name} offers ${seller.offers[0]}, which may be relevant if ${company} confirms a current hiring need.`
+      : "Before suggesting any recruiting or staffing service, it would help to understand how hiring is handled today.";
+    const recruitingCta = seller.ready && seller.ctas[0]
+      ? seller.ctas[0]
+      : `Would a short hiring-needs discovery call be useful for ${company}?`;
+    return {
+      subject: `Hiring plans at ${company}`,
+      body: `Hi ${contact},
+
+Employers in ${p.label.toLowerCase()} often have to manage ${painPoint}. For ${company}, that is a hypothesis until your team confirms it.
+
+${recruitingMatch}
+
+${recruitingCta}`,
+    };
+  }
+
   const subjectPrefix = vertical === "it_services"
     ? "Managed IT services"
     : "Janitorial services";
@@ -615,6 +653,8 @@ export function generateFollowUpEmail(prospect: {
   const challenge = pick(p.painPoints);
   const subject = vertical === "fleet_wraps"
     ? `A vehicle-branding question for ${company}`
+    : vertical === "recruiting_staffing"
+    ? `A hiring question for ${company}`
     : `A quick question for ${company}`;
   const sellerMatch = seller.ready
     ? `${seller.name}'s ${seller.offers[0]} may be relevant if ${challenge} is an active priority.${seller.outcomes[0] ? ` A potential outcome is ${seller.outcomes[0]}.` : ""}`

@@ -9,6 +9,8 @@ import { recordEngagementEvent } from "../lib/engagementScoring";
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { recordCalendarActivity } from "../lib/calendarActivity";
+import { recruitingQualificationSchema, recruitingPreMeetingBrief } from "../lib/recruitingQualification";
+import type { RecruitingQualification } from "@workspace/db";
 
 const router = Router();
 const calendarEvent = z.object({
@@ -42,6 +44,7 @@ interface UploadedFile {
 }
 
 interface QuestionnaireBody {
+  recruitingQualification?: RecruitingQualification;
   contactName?: string;
   email?: string;
   phone?: string;
@@ -143,7 +146,7 @@ router.get("/:token", async (req, res) => {
       phone: prospect.phone,
       businessName: client?.businessName ?? "our team",
       calendlyUrl: client?.calendlyUrl ?? null,
-      vertical: getVerticalConfig(client?.vertical).key,
+      vertical: getVerticalConfig(prospect.vertical || client?.vertical).key,
     });
   } catch (err: any) {
     console.error("schedule GET error:", err?.message);
@@ -193,6 +196,11 @@ router.post("/:token", validateTokenBeforeBody, parseScheduleBody, async (req, r
     if (!salesEmail) return res.status(500).json({ error: "Sales contact is not configured" });
 
     const body = (req.body ?? {}) as QuestionnaireBody;
+    const isRecruiting = prospect.vertical === "recruiting_staffing";
+    const qualified = isRecruiting && body.recruitingQualification
+      ? recruitingQualificationSchema.safeParse(body.recruitingQualification) : undefined;
+    if (qualified && !qualified.success) return res.status(400).json({ error: "Hiring qualification fields are invalid." });
+    const qualification = qualified?.success ? qualified.data as RecruitingQualification : undefined;
 
     const contactName = (body.contactName ?? prospect.contactName ?? "").trim();
     const email = (body.email ?? prospect.email ?? "").trim();
@@ -223,7 +231,7 @@ router.post("/:token", validateTokenBeforeBody, parseScheduleBody, async (req, r
       }
     }
 
-    const vc = getVerticalConfig(client.vertical);
+    const vc = getVerticalConfig(prospect.vertical || client.vertical);
     const isIT = vc.key === "it_services";
 
     const numLocations = parseInt(String(locationCount), 10) || locations.length || 1;
@@ -248,7 +256,12 @@ router.post("/:token", validateTokenBeforeBody, parseScheduleBody, async (req, r
       ? `\nSERVICES OF INTEREST\n   ${interestsText}\n`
       : "";
 
-    const summary = `${vc.schedule.summaryTitle(prospect.companyName)}
+    const summary = isRecruiting
+      ? `${vc.schedule.summaryTitle(prospect.companyName)}\n\n${recruitingPreMeetingBrief({
+          ...prospect, contactName, email, phone,
+          recruitingQualification: { ...prospect.recruitingQualification, ...qualification },
+        })}\n\nAdditional notes: ${additionalNotes || "Not provided"}\nDocuments uploaded: ${attachments.length}`
+      : `${vc.schedule.summaryTitle(prospect.companyName)}
 
 ${vc.schedule.summaryIntro}
 
@@ -282,12 +295,13 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
       return sum + (isNaN(n) ? 0 : n);
     }, 0);
 
-    const notesAddition = `[${isIT ? "IT assessment" : "Walkthrough"} request ${new Date().toLocaleDateString()}]\n${summary}`;
+    const notesAddition = `[${isRecruiting ? "Hiring consultation" : isIT ? "IT assessment" : "Walkthrough"} request ${new Date().toLocaleDateString()}]\n${summary}`;
     await db
       .update(prospectsTable)
       .set({
-        status: "walkthrough_requested",
-        squareFootage: totalSqft > 0 ? totalSqft : prospect.squareFootage,
+        status: isRecruiting ? prospect.status === "appointment_set" ? "appointment_set" : "interested" : "walkthrough_requested",
+        ...(qualification ? { recruitingQualification: { ...prospect.recruitingQualification, ...qualification } } : {}),
+        squareFootage: !isRecruiting && totalSqft > 0 ? totalSqft : prospect.squareFootage,
         notes: prospect.notes ? `${prospect.notes}\n\n${notesAddition}` : notesAddition,
       })
       .where(eq(prospectsTable.id, prospect.id));
@@ -295,7 +309,7 @@ ${additionalNotes ? `ADDITIONAL NOTES\n   ${additionalNotes}\n` : ""}${attachmen
     await db.insert(activityTable).values({
       clientId: prospect.clientId,
       type: "appointment_set",
-      description: `${isIT ? "IT assessment" : "Walkthrough"} questionnaire submitted by ${prospect.companyName}`,
+      description: `${isRecruiting ? "Hiring consultation" : isIT ? "IT assessment" : "Walkthrough"} questionnaire submitted by ${prospect.companyName}`,
       prospectId: prospect.id,
       prospectName: prospect.contactName,
     });

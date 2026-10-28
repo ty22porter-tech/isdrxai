@@ -7,8 +7,12 @@
  */
 import type { OpportunityIntelligence } from './opportunityIntelligence';
 import type { ProspectStatus } from './prospectStatus';
+import type { RecruitingQualification } from './recruitingQualification';
 
 export interface Prospect {
+  /** @nullable */
+  vertical?: string | null;
+  recruitingQualification?: RecruitingQualification | null;
   id: number;
   companyName: string;
   contactName: string;

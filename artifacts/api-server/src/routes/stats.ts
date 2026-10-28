@@ -6,6 +6,7 @@ import type { AnyColumn } from "drizzle-orm";
 import { GetActivityFeedQueryParams } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { campaignProspectCount } from "../lib/campaignProspectCount";
+import { prospectScope, prospectRecordScope, campaignScope } from "../lib/verticalScope";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -14,20 +15,20 @@ router.get("/dashboard", async (req, res) => {
   const cid = req.clientId;
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [totalProspects] = await db.select({ count: count() }).from(prospectsTable).where(eq(prospectsTable.clientId, cid));
+  const [totalProspects] = await db.select({ count: count() }).from(prospectsTable).where(prospectScope(cid, req.dbUser?.vertical));
   const [activeProspects] = await db.select({ count: count() }).from(prospectsTable).where(
-    and(eq(prospectsTable.clientId, cid), sql`${prospectsTable.status} NOT IN ('closed_won', 'closed_lost', 'new')`)
+    and(prospectScope(cid, req.dbUser?.vertical), sql`${prospectsTable.status} NOT IN ('closed_won', 'closed_lost', 'new')`)
   );
-  const [emailsSent] = await db.select({ count: count() }).from(emailsTable).where(eq(emailsTable.clientId, cid));
-  const [callsMade] = await db.select({ count: count() }).from(callsTable).where(eq(callsTable.clientId, cid));
-  const [appointmentsSet] = await db.select({ count: count() }).from(appointmentsTable).where(and(eq(appointmentsTable.clientId, cid), sql`${appointmentsTable.status} != 'cancelled'`));
-  const [appointmentsCompleted] = await db.select({ count: count() }).from(appointmentsTable).where(and(eq(appointmentsTable.clientId, cid), eq(appointmentsTable.status, "completed")));
-  const [thisWeek] = await db.select({ count: count() }).from(activityTable).where(and(eq(activityTable.clientId, cid), gte(activityTable.createdAt, weekAgo)));
+  const [emailsSent] = await db.select({ count: count() }).from(emailsTable).where(prospectRecordScope(emailsTable, cid, req.dbUser?.vertical));
+  const [callsMade] = await db.select({ count: count() }).from(callsTable).where(prospectRecordScope(callsTable, cid, req.dbUser?.vertical));
+  const [appointmentsSet] = await db.select({ count: count() }).from(appointmentsTable).where(and(prospectRecordScope(appointmentsTable, cid, req.dbUser?.vertical), sql`${appointmentsTable.status} != 'cancelled'`));
+  const [appointmentsCompleted] = await db.select({ count: count() }).from(appointmentsTable).where(and(prospectRecordScope(appointmentsTable, cid, req.dbUser?.vertical), eq(appointmentsTable.status, "completed")));
+  const [thisWeek] = await db.select({ count: count() }).from(activityTable).where(and(prospectRecordScope(activityTable, cid, req.dbUser?.vertical), gte(activityTable.createdAt, weekAgo)));
 
   const statusCounts = await db
     .select({ status: prospectsTable.status, count: count() })
     .from(prospectsTable)
-    .where(eq(prospectsTable.clientId, cid))
+    .where(prospectScope(cid, req.dbUser?.vertical))
     .groupBy(prospectsTable.status);
 
   const total = totalProspects.count;
@@ -96,11 +97,11 @@ router.get("/leadership", async (req, res) => {
     db.select({
       count: count(),
       hot: sql<number>`count(*) filter (where coalesce(${prospectsTable.manualInterestLevel}, ${prospectsTable.interestLevel}) = 'hot')::int`,
-    }).from(prospectsTable).where(and(eq(prospectsTable.clientId, cid), inPeriod(prospectsTable.createdAt))),
+    }).from(prospectsTable).where(and(prospectScope(cid, req.dbUser?.vertical), inPeriod(prospectsTable.createdAt))),
     db.select({
       count: count(),
       opened: sql<number>`count(*) filter (where ${emailsTable.openedAt} is not null)::int`,
-    }).from(emailsTable).where(and(eq(emailsTable.clientId, cid), inPeriod(emailsTable.sentAt))),
+    }).from(emailsTable).where(and(prospectRecordScope(emailsTable, cid, req.dbUser?.vertical), inPeriod(emailsTable.sentAt))),
     db.select({
       count: count(),
       completed: sql<number>`count(*) filter (where ${callsTable.status} = 'completed')::int`,
@@ -115,45 +116,45 @@ router.get("/leadership", async (req, res) => {
             'do_not_call'
           )
       )::int`,
-    }).from(callsTable).where(and(eq(callsTable.clientId, cid), inPeriod(callsTable.createdAt))),
+    }).from(callsTable).where(and(prospectRecordScope(callsTable, cid, req.dbUser?.vertical), inPeriod(callsTable.createdAt))),
     db.select({ count: count() }).from(appointmentsTable).where(and(
-      eq(appointmentsTable.clientId, cid),
+      prospectRecordScope(appointmentsTable, cid, req.dbUser?.vertical),
       sql`${appointmentsTable.status} != 'cancelled'`,
       inPeriod(appointmentsTable.createdAt),
     )),
     db.select({
       date: sql<string>`to_char(${emailsTable.sentAt}, 'YYYY-MM-DD')`,
       count: count(),
-    }).from(emailsTable).where(and(eq(emailsTable.clientId, cid), inPeriod(emailsTable.sentAt)))
+    }).from(emailsTable).where(and(prospectRecordScope(emailsTable, cid, req.dbUser?.vertical), inPeriod(emailsTable.sentAt)))
       .groupBy(sql`to_char(${emailsTable.sentAt}, 'YYYY-MM-DD')`),
     db.select({
       date: sql<string>`to_char(${callsTable.createdAt}, 'YYYY-MM-DD')`,
       count: count(),
-    }).from(callsTable).where(and(eq(callsTable.clientId, cid), inPeriod(callsTable.createdAt)))
+    }).from(callsTable).where(and(prospectRecordScope(callsTable, cid, req.dbUser?.vertical), inPeriod(callsTable.createdAt)))
       .groupBy(sql`to_char(${callsTable.createdAt}, 'YYYY-MM-DD')`),
     db.select({
       date: sql<string>`to_char(${appointmentsTable.createdAt}, 'YYYY-MM-DD')`,
       count: count(),
     }).from(appointmentsTable).where(and(
-      eq(appointmentsTable.clientId, cid),
+      prospectRecordScope(appointmentsTable, cid, req.dbUser?.vertical),
       sql`${appointmentsTable.status} != 'cancelled'`,
       inPeriod(appointmentsTable.createdAt),
     )).groupBy(sql`to_char(${appointmentsTable.createdAt}, 'YYYY-MM-DD')`),
     db.select({ status: prospectsTable.status, count: count() }).from(prospectsTable)
-      .where(eq(prospectsTable.clientId, cid))
+      .where(prospectScope(cid, req.dbUser?.vertical))
       .groupBy(prospectsTable.status),
     db.select({
       ...getTableColumns(campaignsTable),
       prospectCount: campaignProspectCount(cid),
     }).from(campaignsTable)
-      .where(eq(campaignsTable.clientId, cid))
+      .where(campaignScope(cid, req.dbUser?.vertical))
       .orderBy(desc(campaignsTable.appointmentsSet), desc(campaignsTable.emailsSent), desc(campaignsTable.callsMade))
       .limit(8),
     db.select({
       outcome: callsTable.outcome,
       count: count(),
     }).from(callsTable).where(and(
-      eq(callsTable.clientId, cid),
+      prospectRecordScope(callsTable, cid, req.dbUser?.vertical),
       eq(callsTable.status, "completed"),
       isNotNull(callsTable.outcome),
       inPeriod(callsTable.createdAt),
@@ -214,7 +215,7 @@ router.get("/leadership", async (req, res) => {
 router.get("/activity", async (req, res) => {
   const query = GetActivityFeedQueryParams.parse(req.query);
   const limit = query.limit ?? 20;
-  const items = await db.select().from(activityTable).where(eq(activityTable.clientId, req.clientId)).orderBy(sql`${activityTable.createdAt} desc`).limit(limit);
+  const items = await db.select().from(activityTable).where(prospectRecordScope(activityTable, req.clientId, req.dbUser?.vertical)).orderBy(sql`${activityTable.createdAt} desc`).limit(limit);
   res.json(items.map(a => ({ ...a, createdAt: a.createdAt.toISOString() })));
 });
 

@@ -11,6 +11,8 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { sendEmail } from "../lib/emailSender";
+import { recruitingAutomationBlocked } from "../lib/recruitingResearch";
+import { prospectScope, prospectRecordScope, campaignScope } from "../lib/verticalScope";
 import { getClientEmailAttachments } from "../lib/clientAttachments";
 import { resolveReplyTo } from "../lib/inboundAddressing";
 import { guardedManualEmail, manualSequenceStep, ManualSequenceGuardError } from "../lib/giftManualEmailGuard";
@@ -36,7 +38,7 @@ function serializeEmail(e: typeof emailsTable.$inferSelect) {
 
 router.get("/", async (req, res) => {
   const query = ListEmailsQueryParams.parse(req.query);
-  const conditions: any[] = [eq(emailsTable.clientId, req.clientId)];
+  const conditions: any[] = [prospectRecordScope(emailsTable, req.clientId, req.dbUser?.vertical)];
   if (query.prospectId) conditions.push(eq(emailsTable.prospectId, query.prospectId));
   if (query.campaignId) conditions.push(eq(emailsTable.campaignId, query.campaignId));
   const emails = await db.select().from(emailsTable).where(and(...conditions)).orderBy(sql`${emailsTable.sentAt} desc`);
@@ -59,8 +61,13 @@ router.post("/", requireEntitlement, async (req, res) => {
   const [prospect] = await db
     .select()
     .from(prospectsTable)
-    .where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
+    .where(and(eq(prospectsTable.id, body.prospectId), prospectScope(req.clientId, req.dbUser?.vertical)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+  if (body.campaignId) {
+    const [campaign] = await db.select({ id: campaignsTable.id }).from(campaignsTable)
+      .where(and(eq(campaignsTable.id, body.campaignId), campaignScope(req.clientId, req.dbUser?.vertical)));
+    if (!campaign) return res.status(404).json({ error: "Campaign not found in the selected selling industry." });
+  }
 
   if (!prospect.email) {
     return res.status(400).json({ error: "This prospect has no email address." });
@@ -72,6 +79,9 @@ router.post("/", requireEntitlement, async (req, res) => {
   }
   if (prospect.optedOut) {
     return res.status(409).json({ error: "This prospect has unsubscribed and cannot be emailed." });
+  }
+  if (recruitingAutomationBlocked(prospect)) {
+    return res.status(409).json({ error: "Recruiting outreach is suppressed because employer identity is unverified or a source prohibits agency pitches. Refresh intelligence and review the evidence." });
   }
 
   const [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));

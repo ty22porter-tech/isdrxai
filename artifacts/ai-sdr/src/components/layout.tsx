@@ -131,7 +131,7 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const choose = async (vertical: "janitorial" | "it_services" | "fleet_wraps") => {
+  const choose = async (vertical: "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing") => {
     setSaving(vertical);
     setError(null);
     try {
@@ -152,14 +152,14 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
 
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-2xl [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>What kind of business do you run?</DialogTitle>
           <DialogDescription>
             This tailors your outreach emails, industry pitches, and scheduling questionnaire. You can change it later in Settings.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 pt-2">
+        <div className="grid gap-3 pt-2 sm:grid-cols-2">
           <button
             onClick={() => choose("janitorial")}
             disabled={saving !== null}
@@ -183,6 +183,15 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
           >
             <div className="font-semibold">Fleet & Commercial Vehicle Wraps</div>
             <div className="text-sm text-muted-foreground mt-1">Find fleet-dependent businesses and sell vehicle wraps, graphics, and lettering.</div>
+          </button>
+          <button
+            onClick={() => choose("recruiting_staffing")}
+            disabled={saving !== null}
+            className="rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-60"
+            data-testid="button-choose-recruiting"
+          >
+            <div className="font-semibold">Recruiting & Staffing</div>
+            <div className="text-sm text-muted-foreground mt-1">Find employers with verified hiring and growth signals and book hiring-needs discovery calls.</div>
           </button>
           {error && (
             <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

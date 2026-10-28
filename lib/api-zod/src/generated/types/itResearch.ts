@@ -9,9 +9,12 @@ import type { ItIndustryChallenge } from './itIndustryChallenge';
 import type { ItProspectConcern } from './itProspectConcern';
 import type { ItResearchIndustryRelationship } from './itResearchIndustryRelationship';
 import type { ItResearchRecommendation } from './itResearchRecommendation';
+import type { RecruitingResearch } from './recruitingResearch';
 import type { ResearchSource } from './researchSource';
 
 export interface ItResearch {
+  sellerVertical?: string;
+  recruiting?: RecruitingResearch;
   sellerCompanyName?: string;
   selectedIndustry: string;
   /** @nullable */

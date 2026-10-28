@@ -16,3 +16,9 @@ Use the Settings company name and “Your Industry” to research seller offerin
 **Why:** The user explicitly chose the research approach demonstrated with Truss Ugavi and Forte: independently discover the seller's actual offerings and rebrands, distinguish the prospect's business from industries it serves, and separate supported facts from possible concerns. “Your Industry” describes the seller, not the prospect.
 
 **How to apply:** Official websites discovered through search remain valid evidence. The optional Settings website is contact/business information, not a seller-research trigger. Do not let a website-only edit invalidate confirmed seller facts.
+
+Recruiting & Staffing is an explicit exception to the company-name-only website rule: use the supplied recruiter website as official identity and offerings context.
+
+**Why:** The user's recruiting workflow explicitly starts with entering the seller website and analyzing the seller's actual recruiting services.
+
+**How to apply:** Website changes may trigger recruiter analysis; preserve the established company-name behavior for the other verticals. Only carry user-approved overrides within the same seller company and selling industry.

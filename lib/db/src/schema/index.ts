@@ -16,3 +16,4 @@ export * from "./conversion-events";
 export * from "./gift-outreach";
 export * from "./gift-videos";
 export * from "./calendly";
+export * from "./recruiting";

@@ -38,3 +38,4 @@
 - [Seller intelligence analysis state](seller-intelligence-analysis-state.md) — serialize analysis decisions; persist failed attempts separately from active cached profile status.
 - [Opportunity intelligence integrity](opportunity-intelligence-integrity.md) — server-derived score snapshots; listing facts are not buying signals; stay independent from engagement.
 - [Company demographic research](company-demographic-research.md) — Apollo first; AI web research may fill missing company size only with cited medium/high-confidence evidence.
+- [Recruiting industry rules](recruiting-industry-rules.md) — employer sectors differ from job functions; research is not agency intent; preserve industry-specific seller approvals.

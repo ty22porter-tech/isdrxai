@@ -5,6 +5,7 @@ import { getVerticalConfig } from "./verticals";
 import { sellerIntelligenceProfile } from "./prospectMatching";
 import { evaluateEmailRelevance } from "./emailRelevance";
 import { emailSignalAccuracyInputs, opportunityEmailContext } from "./opportunityIntelligence";
+import { recruitingAutomationBlocked } from "./recruitingResearch";
 import { approvedOfferingsForResearch } from "./itOpportunityResearch";
 
 type Prospect = InferSelectModel<typeof prospectsTable>;
@@ -318,6 +319,9 @@ export async function generateProspectEmailDraft(
   client: Client | undefined,
   tone = "professional",
 ): Promise<GeneratedEmail & { relevanceScore: number; regenerated: boolean }> {
+  if (recruitingAutomationBlocked(prospect)) {
+    throw new EmailGenerationError("Recruiting outreach is suppressed: verify the employer and review no-agencies restrictions.", 409);
+  }
   const vc = getVerticalConfig(client?.vertical);
   const recommendation = currentSavedRecommendation(prospect.opportunityIntelligence, client);
   const prompts = buildWriterPrompts(prospect, client, tone, recommendation);

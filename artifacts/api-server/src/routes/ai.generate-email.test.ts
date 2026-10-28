@@ -16,6 +16,8 @@ vi.mock("@workspace/db", () => ({
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
   and: vi.fn((...values: unknown[]) => values),
+  or: vi.fn((...values: unknown[]) => values),
+  isNull: vi.fn((value: unknown) => ({ isNull: value })),
 }));
 vi.mock("../lib/requireAuth", () => ({
   requireAuth: (req: any, _res: any, next: any) => {
@@ -34,6 +36,7 @@ vi.mock("../lib/sellerResearch", () => ({
   ensureCurrentSellerResearch: mocks.ensureCurrentSellerResearch,
 }));
 vi.mock("../lib/verticals", () => ({
+  normalizeVertical: (value?: string) => value || "janitorial",
   getVerticalConfig: () => ({
     key: "it_services",
     senderDescriptor: "an IT services provider",

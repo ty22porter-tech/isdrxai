@@ -4,6 +4,8 @@ import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { processAutopilotQueue } from "../lib/autopilotEngine";
 import { getGiftSettings } from "../lib/giftOutreach";
+import { prospectScope, prospectRecordScope, campaignScope } from "../lib/verticalScope";
+import { recruitingAutomationBlocked } from "../lib/recruitingResearch";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -30,7 +32,7 @@ router.get("/enrollments", async (req, res) => {
     .from(autopilotEnrollmentsTable)
     .leftJoin(prospectsTable, eq(autopilotEnrollmentsTable.prospectId, prospectsTable.id))
     .leftJoin(campaignsTable, eq(autopilotEnrollmentsTable.campaignId, campaignsTable.id))
-    .where(eq(autopilotEnrollmentsTable.clientId, req.clientId))
+    .where(prospectRecordScope(autopilotEnrollmentsTable, req.clientId, req.dbUser?.vertical))
     .orderBy(desc(autopilotEnrollmentsTable.createdAt));
 
   res.json(enrollments.map(row => ({
@@ -62,7 +64,7 @@ router.post("/enroll", requireEntitlement, async (req, res) => {
   // Campaign is optional. Without one, autopilot uses the standard 3-step AI sequence.
   if (campaignId) {
     const [campaign] = await db.select().from(campaignsTable)
-      .where(and(eq(campaignsTable.id, campaignId), eq(campaignsTable.clientId, req.clientId)));
+      .where(and(eq(campaignsTable.id, campaignId), campaignScope(req.clientId, req.dbUser?.vertical)));
     if (!campaign) return res.status(404).json({ error: "Campaign not found" });
   }
 
@@ -76,8 +78,9 @@ router.post("/enroll", requireEntitlement, async (req, res) => {
 
   for (const prospectId of prospectIds) {
     const [prospect] = await db.select().from(prospectsTable)
-      .where(and(eq(prospectsTable.id, prospectId), eq(prospectsTable.clientId, req.clientId)));
+      .where(and(eq(prospectsTable.id, prospectId), prospectScope(req.clientId, req.dbUser?.vertical)));
     if (!prospect) continue;
+    if (recruitingAutomationBlocked(prospect)) continue;
 
     const existing = await db.select().from(autopilotEnrollmentsTable)
       .where(and(
@@ -109,7 +112,7 @@ router.post("/enrollments/:id/reply", requireEntitlement, async (req, res) => {
   if (!replyContent) return res.status(400).json({ error: "replyContent required" });
 
   const [enrollment] = await db.select().from(autopilotEnrollmentsTable)
-    .where(and(eq(autopilotEnrollmentsTable.id, id), eq(autopilotEnrollmentsTable.clientId, req.clientId)));
+    .where(and(eq(autopilotEnrollmentsTable.id, id), prospectRecordScope(autopilotEnrollmentsTable, req.clientId, req.dbUser?.vertical)));
   if (!enrollment) return res.status(404).json({ error: "Enrollment not found" });
 
   const replyTone = await (async () => {
@@ -139,7 +142,7 @@ router.post("/enrollments/:id/book", async (req, res) => {
   const id = parseInt(req.params.id);
   const [updated] = await db.update(autopilotEnrollmentsTable)
     .set({ status: "booked", bookedAt: new Date() })
-    .where(and(eq(autopilotEnrollmentsTable.id, id), eq(autopilotEnrollmentsTable.clientId, req.clientId)))
+    .where(and(eq(autopilotEnrollmentsTable.id, id), prospectRecordScope(autopilotEnrollmentsTable, req.clientId, req.dbUser?.vertical)))
     .returning();
   if (!updated) return res.status(404).json({ error: "Not found" });
   return res.json(serializeEnrollment(updated));
@@ -150,7 +153,7 @@ router.patch("/enrollments/:id", async (req, res) => {
   const { status } = req.body;
   const [updated] = await db.update(autopilotEnrollmentsTable)
     .set({ status })
-    .where(and(eq(autopilotEnrollmentsTable.id, id), eq(autopilotEnrollmentsTable.clientId, req.clientId)))
+    .where(and(eq(autopilotEnrollmentsTable.id, id), prospectRecordScope(autopilotEnrollmentsTable, req.clientId, req.dbUser?.vertical)))
     .returning();
   if (!updated) return res.status(404).json({ error: "Not found" });
   return res.json(serializeEnrollment(updated));
@@ -159,7 +162,7 @@ router.patch("/enrollments/:id", async (req, res) => {
 router.delete("/enrollments/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   await db.delete(autopilotEnrollmentsTable)
-    .where(and(eq(autopilotEnrollmentsTable.id, id), eq(autopilotEnrollmentsTable.clientId, req.clientId)));
+    .where(and(eq(autopilotEnrollmentsTable.id, id), prospectRecordScope(autopilotEnrollmentsTable, req.clientId, req.dbUser?.vertical)));
   res.status(204).send();
 });
 

@@ -53,6 +53,7 @@ vi.mock("drizzle-orm", () => ({
   and: (...conditions: any[]) => (r: any) => conditions.every(fn => fn(r)),
   or: (...conditions: any[]) => (r: any) => conditions.some(fn => fn(r)),
   isNotNull: (key: string) => (r: any) => r[key] != null,
+  isNull: (key: string) => (r: any) => r[key] == null,
   inArray: (key: string, values: unknown[]) => (r: any) => values.includes(r[key]),
   sql: () => null,
 }));

@@ -12,18 +12,29 @@ import {
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
 import { requireAdmin } from "../lib/requireAuth";
 import { z } from "zod/v4";
+import { campaignScope } from "../lib/verticalScope";
+import { normalizeVertical } from "../lib/verticals";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
+router.use(async (req, res, next) => {
+  const id = /^\/(\d+)(?:\/|$)/.exec(req.path)?.[1];
+  if (id) {
+    const [owned] = await db.select({ id: campaignsTable.id }).from(campaignsTable)
+      .where(and(eq(campaignsTable.id, Number(id)), campaignScope(req.clientId, req.dbUser.vertical)));
+    if (!owned) return res.status(404).json({ error: "Campaign not found in the selected selling industry." });
+  }
+  return next();
+});
 
 router.get("/", async (req, res) => {
-  const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.clientId, req.clientId)).orderBy(sql`${campaignsTable.createdAt} desc`);
+  const campaigns = await db.select().from(campaignsTable).where(campaignScope(req.clientId, req.dbUser.vertical)).orderBy(sql`${campaignsTable.createdAt} desc`);
   res.json(campaigns.map(c => ({ ...c, createdAt: c.createdAt.toISOString() })));
 });
 
 router.post("/", async (req, res) => {
   const body = CreateCampaignBody.parse(req.body);
-  const [campaign] = await db.insert(campaignsTable).values({ ...body, clientId: req.clientId }).returning();
+  const [campaign] = await db.insert(campaignsTable).values({ ...body, clientId: req.clientId, vertical: normalizeVertical(req.dbUser.vertical) }).returning();
   res.status(201).json({ ...campaign, createdAt: campaign.createdAt.toISOString() });
 });
 

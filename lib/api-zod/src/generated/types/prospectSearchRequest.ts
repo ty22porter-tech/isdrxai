@@ -5,8 +5,10 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { RecruitingFilters } from './recruitingFilters';
 
 export interface ProspectSearchRequest {
+  recruitingFilters?: RecruitingFilters;
   city: string;
   state: string;
   industry: string;

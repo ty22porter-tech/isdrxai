@@ -1,4 +1,7 @@
 import { Router } from "express";
+import { RECRUITING_INDUSTRIES, recruitingAutomationBlocked } from "../lib/recruitingResearch";
+import { distanceMiles, filterRecruitingOpportunity } from "../lib/recruitingFilters";
+import { prospectScope } from "../lib/verticalScope";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
@@ -153,7 +156,7 @@ CLOSE (1:30 – 2:00)
 router.post("/generate-email", requireEntitlement, async (req, res) => {
   try {
     const body = GenerateEmailBody.parse(req.body);
-    const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
+    const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), prospectScope(req.clientId, req.dbUser?.vertical)));
     if (!prospect) return res.status(404).json({ error: "Prospect not found" });
     let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
     client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
@@ -170,8 +173,9 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
 
 router.post("/generate-call-script", requireEntitlement, async (req, res) => {
   const body = GenerateCallScriptBody.parse(req.body);
-  const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
+  const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), prospectScope(req.clientId, req.dbUser?.vertical)));
   if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+  if (recruitingAutomationBlocked(prospect)) return res.status(409).json({ error: "Recruiting pitch generation is suppressed pending employer and agency-policy review." });
   let [client] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   client = client ? await ensureCurrentSellerResearch(req.clientId, client) : client;
   const result = generateCallScript(prospect, client, body.objective);
@@ -216,6 +220,7 @@ function addFleetOverlay(lead: BaseLead, industry: string, client?: typeof users
 const PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
 
 interface PlaceResult {
+  location?: { latitude: number; longitude: number };
   id?: string;
   displayName?: { text?: string };
   formattedAddress?: string;
@@ -244,7 +249,7 @@ function placeIdentity(place: PlaceResult): string {
   return `fallback:${normalize(place.displayName?.text)}|${normalize(place.formattedAddress)}`;
 }
 
-async function searchRealBusinesses(apiKey: string, city: string, state: string, industry: string, count: number): Promise<PlaceResult[]> {
+async function searchRealBusinesses(apiKey: string, city: string, state: string, industry: string, count: number, geography?: { center: { latitude: number; longitude: number }; radiusMiles: number }): Promise<PlaceResult[]> {
   const industryLabel = industry && industry !== "All Industries" ? `${industry} ` : "";
   const textQuery = `${industryLabel}businesses in ${city}, ${state}`;
   const desiredCount = Math.max(0, Math.min(Math.trunc(count), 100));
@@ -262,11 +267,12 @@ async function searchRealBusinesses(apiKey: string, city: string, state: string,
         headers: {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.businessStatus,nextPageToken",
+          "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.businessStatus,places.location,nextPageToken",
         },
         body: JSON.stringify({
           textQuery,
           pageSize: Math.min(desiredCount, PLACES_PAGE_SIZE),
+          ...(geography ? { locationBias: { circle: { center: geography.center, radius: Math.min(50_000, geography.radiusMiles * 1609.344) } } } : {}),
           ...(pageToken ? { pageToken } : {}),
         }),
         signal: AbortSignal.timeout(PLACES_FETCH_TIMEOUT_MS),
@@ -309,6 +315,7 @@ async function searchRealBusinesses(apiKey: string, city: string, state: string,
 
     for (const place of data.places ?? []) {
       if (place.businessStatus && place.businessStatus !== "OPERATIONAL") continue;
+      if (geography && (!place.location || distanceMiles(geography.center, place.location) > geography.radiusMiles)) continue;
       const identity = placeIdentity(place);
       if (identities.has(identity)) continue;
       identities.add(identity);
@@ -399,13 +406,51 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
   const vertical = getVerticalConfig(client?.vertical).key;
 
   try {
-    const places = await searchRealBusinesses(apiKey, body.city.trim(), body.state, body.industry, count);
-    const bases = places.slice(0, count).map((p) => placeToLeadBase(p, body.city.trim(), body.state, body.industry, vertical));
+    const recruiting = vertical === "recruiting_staffing";
+    const industries = recruiting
+      ? body.recruitingFilters?.industries?.length ? body.recruitingFilters.industries : [body.industry]
+      : [body.industry];
+    if (recruiting && industries.some(industry => !(RECRUITING_INDUSTRIES as readonly string[]).includes(industry))) {
+      return res.status(400).json({ error: "Select one or more supported employer industries." });
+    }
+    let geography: { center: { latitude: number; longitude: number }; radiusMiles: number } | undefined;
+    if (recruiting && body.recruitingFilters?.radiusMiles) {
+      const centerResponse = await fetch(PLACES_SEARCH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "places.location" },
+        body: JSON.stringify({ textQuery: `${body.city.trim()}, ${body.state}`, pageSize: 1 }),
+        signal: AbortSignal.timeout(PLACES_FETCH_TIMEOUT_MS),
+      });
+      if (!centerResponse.ok) throw new ProspectSearchError(502, "The search center could not be verified for the selected radius.");
+      const centerData = await centerResponse.json() as { places?: PlaceResult[] };
+      const center = centerData.places?.[0]?.location;
+      if (!center) throw new ProspectSearchError(400, "Enter a recognizable city and state to use a radius filter.");
+      geography = { center, radiusMiles: body.recruitingFilters.radiusMiles };
+    }
+    const groupedPlaces = await Promise.all(industries.map(async industry => ({
+      industry,
+      places: await searchRealBusinesses(apiKey, body.city.trim(), body.state, industry, Math.ceil(count / industries.length), geography),
+    })));
+    const seenEmployers = new Set<string>();
+    const bases = groupedPlaces.flatMap(group => group.places.map(place => {
+      const key = recruiting ? websiteDomain(place.websiteUri) || placeIdentity(place) : placeIdentity(place);
+      if (seenEmployers.has(key)) return null;
+      seenEmployers.add(key);
+      return placeToLeadBase(place, body.city.trim(), body.state, group.industry, vertical);
+    })).filter((lead): lead is BaseLead => Boolean(lead)).slice(0, count);
 
     const processBase = async (base: BaseLead) => {
-      const lead = vertical === "fleet_wraps"
+      const lead: BaseLead & { employeeCount?: number | null } = vertical === "fleet_wraps"
           ? addFleetOverlay(base, body.industry, client)
           : base;
+      if (recruiting && body.recruitingFilters?.companySize) {
+        // Company research is distinct from Apollo person enrichment and does
+        // not spend a contact-enrichment credit.
+        const demographics = await researchCompanyDemographics({
+          companyName: lead.companyName, website: lead.website, city: lead.city, state: lead.state,
+        });
+        if (demographics?.employeeCount) lead.employeeCount = demographics.employeeCount;
+      }
       let researched;
       try {
         // All supported seller verticals receive the same three-part,
@@ -415,7 +460,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
         researched = await researchItOpportunityIntelligence({
           clientId: req.clientId,
           lead,
-          selectedIndustry: body.industry,
+          selectedIndustry: lead.industry,
           client,
           force: true,
         });
@@ -431,12 +476,12 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
           researchError: err instanceof Error ? err.message : "Current opportunity research could not be completed.",
         };
       }
-      const publicBreachSignals = await researchPublicBreachRecords({
+      const publicBreachSignals = recruiting ? [] : await researchPublicBreachRecords({
         ...lead,
         industry: body.industry,
       });
       const signals = [...researched.signals, ...publicBreachSignals];
-      cacheTrustedItResearch(req.clientId, lead, body.industry, client, {
+      cacheTrustedItResearch(req.clientId, lead, lead.industry, client, {
         itResearch: researched.itResearch,
         signals,
       });
@@ -468,7 +513,10 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
 
     // Strongest seller-specific opportunities first. This never uses engagement.
     leads.sort((a: any, b: any) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
-    return res.json(leads);
+    return res.json(recruiting ? leads.filter(lead =>
+      lead.opportunityIntelligence
+        ? filterRecruitingOpportunity(lead.opportunityIntelligence, body.recruitingFilters, lead)
+        : !body.recruitingFilters || Object.keys(body.recruitingFilters).length === 0) : leads);
   } catch (err) {
     if (err instanceof ProspectSearchError) {
       return res.status(err.status).json({ error: err.message });
@@ -742,7 +790,7 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
   };
   if (body.prospectId != null) {
     [savedProspect] = await db.select().from(prospectsTable)
-      .where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
+      .where(and(eq(prospectsTable.id, body.prospectId), prospectScope(req.clientId, client.vertical)));
     if (!savedProspect) return res.status(404).json({ error: "Prospect not found." });
     lead = {
       companyName: savedProspect.companyName,
@@ -781,6 +829,7 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
       selectedIndustry: body.selectedIndustry,
       client,
       force: true,
+      priorRecruiting: savedProspect?.opportunityIntelligence?.itResearch?.recruiting,
     }).then(result => {
       req.log.info({ durationMs: Date.now() - opportunityResearchStartedAt, sellerVertical }, "Opportunity refresh web research phase completed");
       return result;

@@ -3,6 +3,8 @@ import type { usersTable } from "@workspace/db";
 import crypto from "node:crypto";
 import { sellerIntelligenceProfile, sellerPriorityServices } from "./prospectMatching";
 import { researchOfficialWebsiteDetailed } from "./officialWebsiteResearch";
+import { parseRecruitingResearch, RECRUITING_RESEARCH_INSTRUCTIONS } from "./recruitingResearch";
+import type { RecruitingResearch } from "@workspace/db";
 
 const REQUEST_TIMEOUT_MS = 45_000;
 export const RESEARCH_PIPELINE_TIMEOUT_MS = 78_000;
@@ -29,6 +31,7 @@ export interface ResearchSource {
 }
 
 export interface ItResearch {
+  recruiting?: RecruitingResearch;
   /** Legacy report field retained for API compatibility; reports are now
    * contextualized for every seller vertical, not only IT Services. */
   sellerVertical?: string;
@@ -161,6 +164,7 @@ function normalized(value: string | null | undefined) {
 function sellerRevision(client?: typeof usersTable.$inferSelect) {
   const profile = client?.sellerIntelligenceProfile;
   return JSON.stringify({
+    vertical: client?.vertical,
     profile: profile ?? null,
     priorities: client?.sellerServicePriorities ?? "",
   });
@@ -272,6 +276,7 @@ export function trustedItResearchCacheKey(
 ) {
   return [
     clientId,
+    normalized(client?.vertical),
     normalized(lead.companyName),
     normalized(lead.website),
     normalized(lead.city),
@@ -678,6 +683,13 @@ function verticalResearchInstructions(sellerVertical: string): {
   focus: string;
   constraints: string;
 } {
+  if (sellerVertical === "recruiting_staffing") {
+    return {
+      label: "Recruiting & Staffing",
+      focus: "employer hiring needs, relevant job openings, announced growth hiring, role specialties, placement types, locations and hiring stakeholders",
+      constraints: RECRUITING_RESEARCH_INSTRUCTIONS,
+    };
+  }
   if (sellerVertical === "fleet_wraps") {
     return {
       label: "Fleet & Vehicle Wraps",
@@ -705,6 +717,7 @@ async function researchItOpportunityIntelligenceInner(options: {
   selectedIndustry: string;
   client?: typeof usersTable.$inferSelect;
   force?: boolean;
+  priorRecruiting?: RecruitingResearch;
 }): Promise<{ itResearch: ItResearch; signals: OpportunitySignal[] }> {
   const selectedIndustry = clean(options.selectedIndustry, 160);
   const companyName = clean(options.lead.companyName, 240);
@@ -716,8 +729,9 @@ async function researchItOpportunityIntelligenceInner(options: {
     160,
   );
   const verticalResearch = verticalResearchInstructions(sellerVertical);
+  const priorCached = getTrustedItResearch(options.clientId, options.lead, selectedIndustry, options.client);
   if (!options.force) {
-    const cached = getTrustedItResearch(options.clientId, options.lead, selectedIndustry, options.client);
+    const cached = priorCached;
     if (cached) return { itResearch: cached.itResearch, signals: cached.signals };
   }
   const official = await researchOfficialWebsiteDetailed({ companyName, website: options.lead.website }, { force: Boolean(options.force) });
@@ -783,6 +797,7 @@ ${JSON.stringify(approvedOfferingsForResearch(options.client))}
 
 Return JSON only:
 {
+${sellerVertical === "recruiting_staffing" ? '  "recruiting": {"employerIdentity":"confirmed|unverified|agency_unidentified","agencyPolicies":[/* cited employer-wide restrictions, even with no jobs */],"jobs":[/* use the full recruiting job shape above */],"growthSignals":[/* use the full growth signal shape above */]},' : ""}
   "actualIndustry": "string or null",
   "industryRelationship": "match|serves_industry|mismatch|uncertain",
   "industryExplanation": "brief factual explanation with uncertainty where needed",
@@ -812,6 +827,17 @@ Return JSON only:
       : ["The company website could not be accessed, so website-specific information could not be verified."],
   }, options.client);
    if (!report) throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research returned no citable underlying sources. Existing saved intelligence was not changed.`);
+  if (sellerVertical === "recruiting_staffing") {
+    report.recruiting = parseRecruitingResearch(outputJson(payload)?.recruiting, {
+      companyName,
+      website: options.lead.website,
+      allowedSourceUrls: [...webSearchSources(payload, options.lead).map(source => source.url), ...officialSources.map(source => source.url)],
+      identityVerified: report.industrySources.length > 0 && report.industryRelationship === "match",
+      prior: options.priorRecruiting || priorCached?.itResearch.recruiting,
+    });
+    if (report.recruiting.automationSuppressed) report.recommendations = [];
+    report.warnings.push("Active job ads do not prove willingness to engage an external recruiter. Coverage is limited to accessible cited sources.");
+  }
   const result = { itResearch: report, signals: official.signals };
   cacheTrustedItResearch(options.clientId, options.lead, selectedIndustry, options.client, result);
   return result;
@@ -824,6 +850,7 @@ export function researchItOpportunityIntelligence(options: {
   selectedIndustry: string;
   client?: typeof usersTable.$inferSelect;
   force?: boolean;
+  priorRecruiting?: RecruitingResearch;
 }): Promise<{ itResearch: ItResearch; signals: OpportunitySignal[] }> {
   return withResearchPipelineTimeout(researchItOpportunityIntelligenceInner(options));
 }

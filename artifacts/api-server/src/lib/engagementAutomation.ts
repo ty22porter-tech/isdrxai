@@ -13,6 +13,8 @@ import { eq, and, lte, gte, sql, desc, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailSender";
 import { composeEmail, mergeOutboundEmailTemplate, unsubscribeHeaders } from "./emailCompose";
+import { belongsToVertical } from "./verticalScope";
+import { recruitingAutomationBlocked } from "./recruitingResearch";
 import { resolveReplyTo } from "./inboundAddressing";
 import { getPublicAppUrl } from "./publicUrl";
 import { getEngagementSettings, isValidCalendlyUrl } from "./engagementScoring";
@@ -61,6 +63,10 @@ export async function processEngagementAutomation(): Promise<void> {
       // --- Suppression checklist -------------------------------------------
       if (!settings.autoFollowUpEnabled) { await suppress(run.id, "Auto follow-up disabled in settings"); continue; }
       if (prospect.optedOut) { await suppress(run.id, "Prospect unsubscribed / do-not-contact"); continue; }
+      if (!belongsToVertical(prospect.vertical, client.vertical) || recruitingAutomationBlocked(prospect)) {
+        await suppress(run.id, "Selling industry changed or recruiting employer / agency policy requires review");
+        continue;
+      }
       if (TERMINAL_STATUSES.includes(prospect.status)) { await suppress(run.id, `Prospect status is terminal (${prospect.status})`); continue; }
       if (MEETING_STATUSES.includes(prospect.status)) { await suppress(run.id, `Meeting already in motion (${prospect.status})`); continue; }
 

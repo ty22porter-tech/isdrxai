@@ -9,6 +9,7 @@ import {
   UpdateCallBody,
 } from "@workspace/api-zod";
 import { requireAuth, requireEntitlement } from "../lib/requireAuth";
+import { prospectScope, prospectRecordScope } from "../lib/verticalScope";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -19,7 +20,7 @@ function serializeCall(c: typeof callsTable.$inferSelect) {
 
 router.get("/", async (req, res) => {
   const query = ListCallsQueryParams.parse(req.query);
-  const conditions: any[] = [eq(callsTable.clientId, req.clientId)];
+  const conditions: any[] = [prospectRecordScope(callsTable, req.clientId, req.dbUser?.vertical)];
   if (query.prospectId) conditions.push(eq(callsTable.prospectId, query.prospectId));
   const calls = await db.select().from(callsTable).where(and(...conditions)).orderBy(sql`${callsTable.createdAt} desc`);
   res.json(calls.map(serializeCall));
@@ -27,6 +28,9 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const body = CreateCallBody.parse(req.body);
+  const [owned] = await db.select({ id: prospectsTable.id }).from(prospectsTable)
+    .where(and(eq(prospectsTable.id, body.prospectId), prospectScope(req.clientId, req.dbUser?.vertical)));
+  if (!owned) return res.status(404).json({ error: "Prospect not found in the selected selling industry." });
   const [call] = await db.insert(callsTable).values({ ...body, clientId: req.clientId }).returning();
   const [prospect] = await db.select().from(prospectsTable).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
   await db.insert(activityTable).values({
@@ -37,13 +41,13 @@ router.post("/", async (req, res) => {
     prospectName: prospect?.contactName ?? null,
   });
   await db.update(prospectsTable).set({ lastContactedAt: new Date() }).where(and(eq(prospectsTable.id, body.prospectId), eq(prospectsTable.clientId, req.clientId)));
-  res.status(201).json(serializeCall(call));
+  return res.status(201).json(serializeCall(call));
 });
 
 router.patch("/:id", async (req, res) => {
   const { id } = UpdateCallParams.parse({ id: parseInt(req.params.id) });
   const body = UpdateCallBody.parse(req.body);
-  const [call] = await db.update(callsTable).set(body).where(and(eq(callsTable.id, id), eq(callsTable.clientId, req.clientId))).returning();
+  const [call] = await db.update(callsTable).set(body).where(and(eq(callsTable.id, id), prospectRecordScope(callsTable, req.clientId, req.dbUser?.vertical))).returning();
   if (!call) return res.status(404).json({ error: "Call not found" });
   return res.json(serializeCall(call));
 });

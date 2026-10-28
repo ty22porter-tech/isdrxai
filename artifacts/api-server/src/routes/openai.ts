@@ -118,6 +118,7 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
       ? "IT and technology partner"
       : vc.key === "fleet_wraps"
         ? "commercial vehicle-branding partner"
+        : vc.key === "recruiting_staffing" ? "recruiting and staffing partner for the hiring employer"
         : "facility services partner";
     const frameworkStructure = `\n\nFor the INTRO email, use this seller-to-prospect value-matching structure:
 1. Begin with a business-value statement connected to how ${industryLabel} organizations operate. Never begin with "I noticed," "I came across," "I wanted to reach out," or "I hope this email finds you well."
@@ -154,7 +155,7 @@ Use these merge placeholders verbatim (do not replace them with real values):
 - Company: {{companyName}}
 - City: {{city}}
 
-This template targets ${industryLabel} businesses. Possible ${industryLabel} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : "facility"} challenges to draw from (optional background, not verified prospect conditions):
+This template targets ${industryLabel} businesses. Possible ${industryLabel} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : vc.key === "recruiting_staffing" ? "hiring and workforce" : "facility"} challenges to draw from (optional background, not verified prospect conditions):
 ${challengeList}
 
 Tone and approach: ${getStepTone(step, emailOfferName)}
@@ -173,7 +174,7 @@ The subject and body may draw on the ${industryLabel} industry's real challenges
 - Location: ${city}, ${state}
 ${campaignContext ? `- Campaign context: ${campaignContext}` : ""}
 
-Possible ${industry} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : "facility"} challenges (optional background, not verified prospect conditions):
+Possible ${industry} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : vc.key === "recruiting_staffing" ? "hiring and workforce" : "facility"} challenges (optional background, not verified prospect conditions):
 ${challengeList}
 
 Tone and approach: ${getStepTone(step, emailOfferName)}${exampleBlock}

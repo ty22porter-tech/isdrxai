@@ -2157,6 +2157,12 @@ components:
       type: object
       required: [id, companyName, contactName, email, phone, industry, city, state, status, createdAt]
       properties:
+        vertical:
+          type: ["string", "null"]
+        recruitingQualification:
+          oneOf:
+            - $ref: "#/components/schemas/RecruitingQualification"
+            - type: "null"
         id:
           type: integer
         companyName:
@@ -2205,6 +2211,8 @@ components:
       type: object
       required: [companyName, contactName, email, phone, industry, city, state]
       properties:
+        recruitingQualification:
+          $ref: "#/components/schemas/RecruitingQualification"
         companyName:
           type: string
         contactName:
@@ -2331,6 +2339,8 @@ components:
     ProspectUpdate:
       type: object
       properties:
+        recruitingQualification:
+          $ref: "#/components/schemas/RecruitingQualification"
         companyName:
           type: string
         contactName:
@@ -2549,6 +2559,9 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        preMeetingBrief:
+          type: ["string", "null"]
+          description: Current source-backed recruiting evidence and employer-disclosed qualification, separate from editable appointment notes.
         createdAt:
           type: string
 
@@ -2635,6 +2648,8 @@ components:
       type: object
       required: [city, state, industry, count]
       properties:
+        recruitingFilters:
+          $ref: "#/components/schemas/RecruitingFilters"
         city:
           type: string
         state:
@@ -3002,6 +3017,10 @@ components:
       type: object
       required: [selectedIndustry, actualIndustry, industryRelationship, industryExplanation, industrySources, lastResearched, warnings, industryChallenges, prospectConcerns, recommendations]
       properties:
+        sellerVertical:
+          type: string
+        recruiting:
+          $ref: "#/components/schemas/RecruitingResearch"
         sellerCompanyName:
           type: string
         selectedIndustry:
@@ -3145,3 +3164,220 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
+
+    RecruitingFilters:
+      type: object
+      properties:
+        industries:
+          type: array
+          maxItems: 7
+          items:
+            type: string
+            enum: [Healthcare, Oil & Gas, Technology, Financial Services, Engineering, Manufacturing, Logistics & Warehousing]
+        subindustry:
+          type: string
+        radiusMiles:
+          type: number
+          minimum: 1
+          maximum: 250
+        hiringLocation:
+          type: string
+        companySize:
+          type: string
+        jobTitles:
+          type: string
+        roleFamilies:
+          type: string
+        seniority:
+          type: string
+        employmentType:
+          type: string
+        workArrangement:
+          type: string
+        signalType:
+          type: string
+          enum: [any, jobs, expansion, relocation, new_business]
+        recencyDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+        confidence:
+          type: string
+          enum: [any, high, medium, low]
+        minRelevantJobs:
+          type: integer
+          minimum: 0
+        openingBefore:
+          type: string
+        serviceMatchOnly:
+          type: boolean
+
+    RecruitingQualification:
+      type: object
+      additionalProperties: false
+      properties:
+        roles:
+          type: string
+          maxLength: 2000
+        hiresNeeded:
+          type: string
+          maxLength: 2000
+        targetStartDates:
+          type: string
+          maxLength: 2000
+        skillsCredentials:
+          type: string
+          maxLength: 2000
+        shiftsLocations:
+          type: string
+          maxLength: 2000
+        compensation:
+          type: string
+          maxLength: 2000
+        employmentType:
+          type: string
+          maxLength: 2000
+        currentApproach:
+          type: string
+          maxLength: 2000
+        currentAgencies:
+          type: string
+          maxLength: 2000
+        hiringChallenges:
+          type: string
+          maxLength: 2000
+        vendorRequirements:
+          type: string
+          maxLength: 2000
+        budget:
+          type: string
+          maxLength: 2000
+        decisionProcess:
+          type: string
+          maxLength: 2000
+        agencyRenewalDates:
+          type: string
+          maxLength: 2000
+
+    RecruitingJob:
+      type: object
+      required: [id, title, employer, location, roleFamily, workArrangement, employmentType, department, seniority, salary, postedAt, firstSeenAt, lastVerifiedAt, status, sourceURL, evidence, requisitionId, urgent, verifiedReposting, hiringQuantity, noAgencies, agencyPolicyEvidence]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        employer:
+          type: string
+        location:
+          type: string
+        roleFamily:
+          type: ["string", "null"]
+        workArrangement:
+          type: ["string", "null"]
+        employmentType:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        seniority:
+          type: ["string", "null"]
+        salary:
+          type: ["string", "null"]
+        postedAt:
+          type: ["string", "null"]
+        firstSeenAt:
+          type: string
+        lastVerifiedAt:
+          type: string
+        status:
+          type: string
+          enum: [active, closed, unknown]
+        sourceURL:
+          type: string
+        evidence:
+          type: string
+        requisitionId:
+          type: ["string", "null"]
+        urgent:
+          type: boolean
+        verifiedReposting:
+          type: boolean
+        hiringQuantity:
+          type: ["integer", "null"]
+        noAgencies:
+          type: boolean
+        agencyPolicyEvidence:
+          type: ["string", "null"]
+
+    RecruitingGrowthSignal:
+      type: object
+      required: [type, title, location, announcementDate, expectedOpeningDate, hiringPlans, confirmedHiring, sourceURL, evidence]
+      properties:
+        type:
+          type: string
+          enum: [expansion, relocation, new_company, new_location, formation]
+        title:
+          type: string
+        location:
+          type: string
+        announcementDate:
+          type: ["string", "null"]
+        expectedOpeningDate:
+          type: ["string", "null"]
+        hiringPlans:
+          type: ["string", "null"]
+        confirmedHiring:
+          type: boolean
+        sourceURL:
+          type: string
+        evidence:
+          type: string
+
+    RecruitingSourceCoverage:
+      type: object
+      required: [source, status, detail, lastSuccessfulResearch]
+      properties:
+        source:
+          type: string
+        status:
+          type: string
+          enum: [available, partial, unavailable]
+        detail:
+          type: string
+        lastSuccessfulResearch:
+          type: ["string", "null"]
+
+    RecruitingResearch:
+      type: object
+      required: [employerIdentity, jobs, growthSignals, coverage, lastSuccessfulResearch, uniqueActiveJobs, automationSuppressed, suppressionReasons, commercialFit, evidenceConfidence]
+      properties:
+        employerIdentity:
+          type: string
+          enum: [confirmed, unverified, agency_unidentified]
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecruitingJob"
+        growthSignals:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecruitingGrowthSignal"
+        coverage:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecruitingSourceCoverage"
+        lastSuccessfulResearch:
+          type: string
+        uniqueActiveJobs:
+          type: integer
+        automationSuppressed:
+          type: boolean
+        suppressionReasons:
+          type: array
+          items:
+            type: string
+        commercialFit:
+          type: integer
+        evidenceConfidence:
+          type: string
+          enum: [high, medium, low]

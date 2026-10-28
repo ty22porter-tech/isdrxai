@@ -2,6 +2,7 @@ import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizz
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import type { RecruitingQualification, RecruitingResearch } from "./recruiting";
 
 export interface OpportunitySignal {
   signalType: string;
@@ -37,6 +38,7 @@ export interface ResearchSource {
 }
 
 export interface ItResearch {
+  recruiting?: RecruitingResearch;
   /** Seller vertical that contextualized this report; legacy field name retained for API compatibility. */
   sellerVertical?: "janitorial" | "it_services" | "fleet_wraps" | string;
   /** Canonical Settings company name (or the resolved seller name when Settings is unavailable). */
@@ -167,6 +169,7 @@ export const prospectsTable = pgTable("prospects", {
   website: text("website"),
   address: text("address"),
   notes: text("notes"),
+  recruitingQualification: jsonb("recruiting_qualification").$type<RecruitingQualification>(),
   /** Seller-specific opportunity fit. Never used for engagement Hot/Medium/Low. */
   opportunityIntelligence: jsonb("opportunity_intelligence").$type<OpportunityIntelligence>(),
   /** AI-generated, policy-conscious gift ideas scoped to this prospect and tenant. */

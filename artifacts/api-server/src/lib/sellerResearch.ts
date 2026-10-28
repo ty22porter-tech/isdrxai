@@ -486,7 +486,9 @@ async function requestSellerResearch(input: SellerResearchInput): Promise<Seller
         max_output_tokens: 5000,
          input: `Research the seller company named "${input.companyName}" for a sales workspace. The seller's Your Industry vertical is "${input.vertical}". This is the seller vertical, not a prospect industry. Today is ${new Date().toISOString().slice(0, 10)}.
 
-Use company-name web search and credible underlying sources to identify the correct company, including current names, former names, brands, acquisitions, and rebrands. Prioritize recent official announcements, newsroom/blog posts, press releases, and current official profiles when determining the current identity and offerings; do not let stale third-party articles override a newer official rebrand or acquisition announcement. Disambiguate same-name companies using the seller vertical and any identifying context available in search results. Do not use, fetch, crawl, or depend on any seller website. Search results must include at least one source that is clearly the company's official source or official profile.
+Use company-name web search and credible underlying sources to identify the correct company, including current names, former names, brands, acquisitions, and rebrands. Prioritize recent official announcements, newsroom/blog posts, press releases, and current official profiles when determining the current identity and offerings; do not let stale third-party articles override a newer official rebrand or acquisition announcement. Disambiguate same-name companies using the seller vertical and any identifying context available in search results. ${input.vertical === "recruiting_staffing"
+  ? `Use the recruiting seller's supplied website (${input.website || "not supplied"}) as official identity and offerings context. Research actual placement types ONLY where offered: direct hire, temporary, contract, contract-to-hire, executive search or RPO. Capture role specialties, seniority, industries, territory, credentials and employer value. Never assume every placement type, available candidates, placement results or delivery guarantees.`
+  : "Do not use, fetch, crawl, or depend on any seller website."} Search results must include at least one source that is clearly the company's official source or official profile.
 
 Return only explicit, source-backed facts about this seller's offerings and positioning. Do not invent or infer services, products, capabilities, certifications, customers, proof, outcomes, pricing, guarantees, locations, awards, or industries served. If a field is not explicit in a source, return an empty array. The vertical is a lens for organizing relevant seller facts, not permission to assume IT, janitorial, fleet, or any other capability. Keep facts about this company separate from prospect-industry patterns.
 
@@ -531,7 +533,8 @@ export async function researchSellerCompany(
   // A caller without a tenant is still allowed for pure unit-level use, but
   // persisted/application research always supplies clientId so one tenant's
   // profile can never satisfy another tenant's cache lookup.
-  const key = sellerResearchCacheKey(options.clientId || "uncached", input.companyName, input.vertical);
+  const key = sellerResearchCacheKey(options.clientId || "uncached", input.companyName, input.vertical)
+    + (input.vertical === "recruiting_staffing" ? `|${input.website || ""}` : "");
   if (!options.force) {
     const cached = sellerResearchCache.get(key);
     if (cached && cached.expiresAt > Date.now()) return structuredClone(cached.profile);

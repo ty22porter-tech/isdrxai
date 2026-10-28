@@ -11,6 +11,7 @@ import {
 } from "./prospectMatching";
 import { researchOfficialWebsite } from "./officialWebsiteResearch";
 import { researchPublicBreachRecords } from "./publicBreachResearch";
+import { buildRecruitingOpportunity } from "./recruitingOpportunity";
 import {
   getTrustedItResearch,
   researchItOpportunityIntelligence,
@@ -377,6 +378,9 @@ export function buildOpportunityIntelligence(
   researchedSignals: OpportunitySignal[] = [],
   itResearch?: ItResearch,
 ): OpportunityIntelligence {
+  if (vertical === "recruiting_staffing") {
+    return buildRecruitingOpportunity(lead, client, itResearch);
+  }
   const generatedAt = new Date().toISOString();
   const seller = sellerIntelligenceProfile(client);
   const sellerName = currentSellerName(seller.name);

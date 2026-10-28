@@ -33,13 +33,16 @@ function mergeTpl(tpl: string, prospect: any): string {
   return mergeEmailTemplate(tpl, prospect);
 }
 function defaultSubject(campaignName: string, vertical: string = "janitorial") {
-  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : "Janitorial Services";
+  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : vertical === "recruiting_staffing" ? "Recruiting & Staffing" : "Janitorial Services";
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
 function fallbackBody(p: any, vertical: string = "janitorial", sellerProfile?: any) {
   if (vertical === "fleet_wraps") {
     return generateIntroEmail(p, "fleet_wraps", sellerProfile).body;
+  }
+  if (vertical === "recruiting_staffing") {
+    return generateIntroEmail(p, "recruiting_staffing", sellerProfile).body;
   }
   return generateIntroEmail(p, vertical === "it_services" ? "it_services" : "janitorial", sellerProfile).body;
 }
@@ -940,7 +943,9 @@ export default function Prospects() {
     ? "it_services"
     : me?.vertical === "fleet_wraps"
       ? "fleet_wraps"
-      : "janitorial";
+      : me?.vertical === "recruiting_staffing"
+        ? "recruiting_staffing"
+        : "janitorial";
 
   // create dialog
   const [isOpen, setIsOpen] = useState(false);
@@ -1193,6 +1198,8 @@ export default function Prospects() {
             <p className="text-muted-foreground mt-1">
               {vertical === "it_services"
                 ? "Manage your IT services prospects."
+                : vertical === "recruiting_staffing"
+                  ? "Manage the employers you are selling recruiting and staffing services to."
                 : vertical === "fleet_wraps"
                   ? "Manage your fleet and commercial vehicle wrap prospects."
                   : "Manage your janitorial commercial targets."}

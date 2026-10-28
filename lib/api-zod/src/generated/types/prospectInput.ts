@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OpportunityIntelligence } from './opportunityIntelligence';
+import type { RecruitingQualification } from './recruitingQualification';
 
 export interface ProspectInput {
+  recruitingQualification?: RecruitingQualification;
   companyName: string;
   contactName: string;
   email: string;

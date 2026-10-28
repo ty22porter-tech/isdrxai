@@ -18,5 +18,10 @@ export interface Appointment {
   location?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * Current source-backed recruiting evidence and employer-disclosed qualification, separate from editable appointment notes.
+     * @nullable
+     */
+  preMeetingBrief?: string | null;
   createdAt: string;
 }

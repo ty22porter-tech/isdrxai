@@ -112,6 +112,14 @@ export function sellerIntelligenceProfile(user?: User | null): SellerIntelligenc
 
 export function industryMatch(industry?: string | null, vertical?: string | null) {
   const label = industry?.trim() || "this industry";
+  if (vertical === "recruiting_staffing") {
+    return {
+      label,
+      operation: `${label} employers may have role-specific hiring needs; verify current openings and willingness to use outside recruiting support.`,
+      challenges: ["confirming role requirements, placement type, territory and hiring timelines"],
+      outreach: "Offer a hiring-needs discovery call only when verified seller capabilities match sourced employer needs.",
+    };
+  }
   if (vertical === "fleet_wraps") {
     return {
       label,
@@ -144,6 +152,9 @@ export function sellerContext(user: User | undefined, industry?: string | null, 
     `PROSPECT INDUSTRY FRAMEWORK: ${match.operation}`,
     "Treat industry patterns as possible fit, never as verified facts about this prospect.",
   ];
+  if ((vertical || user?.vertical) === "recruiting_staffing") {
+    lines.push("RECRUITING SAFETY: Sell only confirmed recruiter capabilities to the hiring employer, not candidates. Never claim available candidates, placement results, delivery guarantees, an agency relationship or hiring difficulty without evidence. Job ads are not external-agency buying intent. Keep industry context conditional. CTA: hiring-needs discovery call or staffing consultation.");
+  }
   if (!seller.ready) {
     if (priorities.length) {
       lines.push(`USER-PRIORITIZED SERVICES (discovery strategy only, not verified seller capabilities): ${priorities.join("; ")}`);

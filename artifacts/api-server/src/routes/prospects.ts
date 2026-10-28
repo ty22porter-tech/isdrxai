@@ -22,15 +22,25 @@ import { desc } from "drizzle-orm";
 import { buildOpportunityIntelligence, deriveOpportunityForPersistence, upgradeStoredOpportunityIntelligence } from "../lib/opportunityIntelligence";
 import { attachResearchProof, verifyResearchHandoff, type ResearchProofFailure } from "../lib/itOpportunityResearch";
 import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
+import { prospectScope } from "../lib/verticalScope";
+import { normalizeVertical } from "../lib/verticals";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
+router.use(async (req, res, next) => {
+  const id = /^\/(\d+)(?:\/|$)/.exec(req.path)?.[1];
+  if (id) {
+    const [owned] = await db.select({ id: prospectsTable.id }).from(prospectsTable)
+      .where(and(eq(prospectsTable.id, Number(id)), prospectScope(req.clientId, req.dbUser?.vertical)));
+    if (!owned) return res.status(404).json({ error: "Prospect not found in the selected selling industry." });
+  }
+  return next();
+});
 
 // Prospects are stamped with the vertical the client was in when they were
 // created, so vertical-specific data never bleeds between workflows.
 function clientVertical(client?: typeof usersTable.$inferSelect): string {
-  if (client?.vertical === "it_services" || client?.vertical === "fleet_wraps") return client.vertical;
-  return "janitorial";
+  return normalizeVertical(client?.vertical);
 }
 
 async function currentClient(clientId: string) {
@@ -106,7 +116,7 @@ router.get("/", async (req, res) => {
     return;
   }
   const query = parsedQuery.data;
-  const conditions: any[] = [eq(prospectsTable.clientId, req.clientId)];
+  const conditions: any[] = [prospectScope(req.clientId, req.dbUser?.vertical)];
   if (query.status) conditions.push(eq(prospectsTable.status, query.status));
   if (query.search) conditions.push(ilike(prospectsTable.companyName, `%${query.search}%`));
 
@@ -214,7 +224,7 @@ router.post("/bulk", async (req, res) => {
   const existing = await db
     .select()
     .from(prospectsTable)
-    .where(eq(prospectsTable.clientId, req.clientId));
+    .where(prospectScope(req.clientId, req.dbUser?.vertical));
   const existingByEmail = new Map(existing.map((p) => [p.email.trim().toLowerCase(), p]));
   const seenEmails = new Set(existingByEmail.keys());
   const validRows: { index: number; values: any }[] = [];
@@ -493,7 +503,7 @@ router.get("/:id/score-history", async (req, res) => {
 router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
   const { ids } = BulkEnrichProspectsBody.parse(req.body);
   const rows = await db.select().from(prospectsTable)
-    .where(and(eq(prospectsTable.clientId, req.clientId), inArray(prospectsTable.id, ids)));
+    .where(and(prospectScope(req.clientId, req.dbUser?.vertical), inArray(prospectsTable.id, ids)));
 
   const result = await runProspectEnrichment({
     rows,
@@ -516,7 +526,7 @@ router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
 router.post("/bulk-delete", async (req, res) => {
   const { ids } = BulkDeleteProspectsBody.parse(req.body);
   const deleted = await db.delete(prospectsTable)
-    .where(and(eq(prospectsTable.clientId, req.clientId), inArray(prospectsTable.id, ids)))
+    .where(and(prospectScope(req.clientId, req.dbUser?.vertical), inArray(prospectsTable.id, ids)))
     .returning({ id: prospectsTable.id });
   res.json({ deleted: deleted.length });
 });

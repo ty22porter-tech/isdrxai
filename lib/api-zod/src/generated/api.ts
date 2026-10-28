@@ -1637,6 +1637,34 @@ export const ListProspectsQueryParams = zod.object({
   "sentTo": zod.coerce.string().regex(listProspectsQuerySentToRegExp).optional().describe('Include prospects emailed on or before this UTC calendar date (YYYY-MM-DD)')
 })
 
+export const listProspectsResponseRecruitingQualificationOneRolesMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneHiresNeededMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneTargetStartDatesMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneSkillsCredentialsMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneShiftsLocationsMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneCompensationMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneEmploymentTypeMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneCurrentApproachMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneCurrentAgenciesMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneHiringChallengesMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneVendorRequirementsMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneBudgetMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneDecisionProcessMax = 2000;
+
+export const listProspectsResponseRecruitingQualificationOneAgencyRenewalDatesMax = 2000;
+
 export const listProspectsResponseOpportunityIntelligenceOneScoreMin = 0;
 export const listProspectsResponseOpportunityIntelligenceOneScoreMax = 100;
 
@@ -1660,6 +1688,23 @@ export const listProspectsResponseOpportunityIntelligenceOneItResearchRecommenda
 
 
 export const ListProspectsResponseItem = zod.object({
+  "vertical": zod.string().nullish(),
+  "recruitingQualification": zod.union([zod.object({
+  "roles": zod.string().max(listProspectsResponseRecruitingQualificationOneRolesMax).optional(),
+  "hiresNeeded": zod.string().max(listProspectsResponseRecruitingQualificationOneHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(listProspectsResponseRecruitingQualificationOneTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(listProspectsResponseRecruitingQualificationOneSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(listProspectsResponseRecruitingQualificationOneShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(listProspectsResponseRecruitingQualificationOneCompensationMax).optional(),
+  "employmentType": zod.string().max(listProspectsResponseRecruitingQualificationOneEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(listProspectsResponseRecruitingQualificationOneCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(listProspectsResponseRecruitingQualificationOneCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(listProspectsResponseRecruitingQualificationOneHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(listProspectsResponseRecruitingQualificationOneVendorRequirementsMax).optional(),
+  "budget": zod.string().max(listProspectsResponseRecruitingQualificationOneBudgetMax).optional(),
+  "decisionProcess": zod.string().max(listProspectsResponseRecruitingQualificationOneDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(listProspectsResponseRecruitingQualificationOneAgencyRenewalDatesMax).optional()
+}),zod.null()]).optional(),
   "id": zod.number(),
   "companyName": zod.string(),
   "contactName": zod.string(),
@@ -1707,6 +1752,57 @@ export const ListProspectsResponseItem = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -1779,6 +1875,34 @@ export const ListProspectsResponse = zod.array(ListProspectsResponseItem)
 /**
  * @summary Create a prospect
  */
+export const createProspectBodyRecruitingQualificationRolesMax = 2000;
+
+export const createProspectBodyRecruitingQualificationHiresNeededMax = 2000;
+
+export const createProspectBodyRecruitingQualificationTargetStartDatesMax = 2000;
+
+export const createProspectBodyRecruitingQualificationSkillsCredentialsMax = 2000;
+
+export const createProspectBodyRecruitingQualificationShiftsLocationsMax = 2000;
+
+export const createProspectBodyRecruitingQualificationCompensationMax = 2000;
+
+export const createProspectBodyRecruitingQualificationEmploymentTypeMax = 2000;
+
+export const createProspectBodyRecruitingQualificationCurrentApproachMax = 2000;
+
+export const createProspectBodyRecruitingQualificationCurrentAgenciesMax = 2000;
+
+export const createProspectBodyRecruitingQualificationHiringChallengesMax = 2000;
+
+export const createProspectBodyRecruitingQualificationVendorRequirementsMax = 2000;
+
+export const createProspectBodyRecruitingQualificationBudgetMax = 2000;
+
+export const createProspectBodyRecruitingQualificationDecisionProcessMax = 2000;
+
+export const createProspectBodyRecruitingQualificationAgencyRenewalDatesMax = 2000;
+
 export const createProspectBodyOpportunityIntelligenceScoreMin = 0;
 export const createProspectBodyOpportunityIntelligenceScoreMax = 100;
 
@@ -1802,6 +1926,22 @@ export const createProspectBodyOpportunityIntelligenceItResearchRecommendationsM
 
 
 export const CreateProspectBody = zod.object({
+  "recruitingQualification": zod.object({
+  "roles": zod.string().max(createProspectBodyRecruitingQualificationRolesMax).optional(),
+  "hiresNeeded": zod.string().max(createProspectBodyRecruitingQualificationHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(createProspectBodyRecruitingQualificationTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(createProspectBodyRecruitingQualificationSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(createProspectBodyRecruitingQualificationShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(createProspectBodyRecruitingQualificationCompensationMax).optional(),
+  "employmentType": zod.string().max(createProspectBodyRecruitingQualificationEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(createProspectBodyRecruitingQualificationCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(createProspectBodyRecruitingQualificationCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(createProspectBodyRecruitingQualificationHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(createProspectBodyRecruitingQualificationVendorRequirementsMax).optional(),
+  "budget": zod.string().max(createProspectBodyRecruitingQualificationBudgetMax).optional(),
+  "decisionProcess": zod.string().max(createProspectBodyRecruitingQualificationDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(createProspectBodyRecruitingQualificationAgencyRenewalDatesMax).optional()
+}).optional(),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "email": zod.string(),
@@ -1848,6 +1988,57 @@ export const CreateProspectBody = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -1911,6 +2102,34 @@ export const CreateProspectBody = zod.object({
   "linkedinUrl": zod.string().url().optional()
 })
 
+export const createProspectResponseRecruitingQualificationOneRolesMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneHiresNeededMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneTargetStartDatesMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneSkillsCredentialsMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneShiftsLocationsMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneCompensationMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneEmploymentTypeMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneCurrentApproachMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneCurrentAgenciesMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneHiringChallengesMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneVendorRequirementsMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneBudgetMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneDecisionProcessMax = 2000;
+
+export const createProspectResponseRecruitingQualificationOneAgencyRenewalDatesMax = 2000;
+
 export const createProspectResponseOpportunityIntelligenceOneScoreMin = 0;
 export const createProspectResponseOpportunityIntelligenceOneScoreMax = 100;
 
@@ -1934,6 +2153,23 @@ export const createProspectResponseOpportunityIntelligenceOneItResearchRecommend
 
 
 export const CreateProspectResponse = zod.object({
+  "vertical": zod.string().nullish(),
+  "recruitingQualification": zod.union([zod.object({
+  "roles": zod.string().max(createProspectResponseRecruitingQualificationOneRolesMax).optional(),
+  "hiresNeeded": zod.string().max(createProspectResponseRecruitingQualificationOneHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(createProspectResponseRecruitingQualificationOneTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(createProspectResponseRecruitingQualificationOneSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(createProspectResponseRecruitingQualificationOneShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(createProspectResponseRecruitingQualificationOneCompensationMax).optional(),
+  "employmentType": zod.string().max(createProspectResponseRecruitingQualificationOneEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(createProspectResponseRecruitingQualificationOneCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(createProspectResponseRecruitingQualificationOneCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(createProspectResponseRecruitingQualificationOneHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(createProspectResponseRecruitingQualificationOneVendorRequirementsMax).optional(),
+  "budget": zod.string().max(createProspectResponseRecruitingQualificationOneBudgetMax).optional(),
+  "decisionProcess": zod.string().max(createProspectResponseRecruitingQualificationOneDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(createProspectResponseRecruitingQualificationOneAgencyRenewalDatesMax).optional()
+}),zod.null()]).optional(),
   "id": zod.number(),
   "companyName": zod.string(),
   "contactName": zod.string(),
@@ -1981,6 +2217,57 @@ export const CreateProspectResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -2052,6 +2339,34 @@ export const CreateProspectResponse = zod.object({
 /**
  * @summary Create many prospects at once
  */
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationRolesMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationHiresNeededMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationTargetStartDatesMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationSkillsCredentialsMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationShiftsLocationsMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationCompensationMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationEmploymentTypeMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationCurrentApproachMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationCurrentAgenciesMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationHiringChallengesMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationVendorRequirementsMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationBudgetMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationDecisionProcessMax = 2000;
+
+export const bulkCreateProspectsBodyProspectsItemRecruitingQualificationAgencyRenewalDatesMax = 2000;
+
 export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMin = 0;
 export const bulkCreateProspectsBodyProspectsItemOpportunityIntelligenceScoreMax = 100;
 
@@ -2076,6 +2391,22 @@ export const bulkCreateProspectsBodyDuplicateStrategyDefault = `skip`;
 
 export const BulkCreateProspectsBody = zod.object({
   "prospects": zod.array(zod.object({
+  "recruitingQualification": zod.object({
+  "roles": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationRolesMax).optional(),
+  "hiresNeeded": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationCompensationMax).optional(),
+  "employmentType": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationVendorRequirementsMax).optional(),
+  "budget": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationBudgetMax).optional(),
+  "decisionProcess": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(bulkCreateProspectsBodyProspectsItemRecruitingQualificationAgencyRenewalDatesMax).optional()
+}).optional(),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "email": zod.string(),
@@ -2122,6 +2453,57 @@ export const BulkCreateProspectsBody = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -2187,6 +2569,34 @@ export const BulkCreateProspectsBody = zod.object({
   "duplicateStrategy": zod.enum(['skip', 'update']).default(bulkCreateProspectsBodyDuplicateStrategyDefault).describe('How to handle rows whose email matches an existing prospect. \"skip\" fails the row; \"update\" merges new data into the existing prospect.')
 })
 
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneRolesMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneHiresNeededMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneTargetStartDatesMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneSkillsCredentialsMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneShiftsLocationsMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneCompensationMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneEmploymentTypeMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneCurrentApproachMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneCurrentAgenciesMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneHiringChallengesMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneVendorRequirementsMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneBudgetMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneDecisionProcessMax = 2000;
+
+export const bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneAgencyRenewalDatesMax = 2000;
+
 export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMin = 0;
 export const bulkCreateProspectsResponseResultsItemProspectOpportunityIntelligenceOneScoreMax = 100;
 
@@ -2219,6 +2629,23 @@ export const BulkCreateProspectsResponse = zod.object({
   "updated": zod.boolean().optional(),
   "error": zod.string().optional(),
   "prospect": zod.object({
+  "vertical": zod.string().nullish(),
+  "recruitingQualification": zod.union([zod.object({
+  "roles": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneRolesMax).optional(),
+  "hiresNeeded": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneCompensationMax).optional(),
+  "employmentType": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneVendorRequirementsMax).optional(),
+  "budget": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneBudgetMax).optional(),
+  "decisionProcess": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(bulkCreateProspectsResponseResultsItemProspectRecruitingQualificationOneAgencyRenewalDatesMax).optional()
+}),zod.null()]).optional(),
   "id": zod.number(),
   "companyName": zod.string(),
   "contactName": zod.string(),
@@ -2266,6 +2693,57 @@ export const BulkCreateProspectsResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -2379,6 +2857,34 @@ export const GetProspectParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getProspectResponseRecruitingQualificationOneRolesMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneHiresNeededMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneTargetStartDatesMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneSkillsCredentialsMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneShiftsLocationsMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneCompensationMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneEmploymentTypeMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneCurrentApproachMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneCurrentAgenciesMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneHiringChallengesMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneVendorRequirementsMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneBudgetMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneDecisionProcessMax = 2000;
+
+export const getProspectResponseRecruitingQualificationOneAgencyRenewalDatesMax = 2000;
+
 export const getProspectResponseOpportunityIntelligenceOneScoreMin = 0;
 export const getProspectResponseOpportunityIntelligenceOneScoreMax = 100;
 
@@ -2402,6 +2908,23 @@ export const getProspectResponseOpportunityIntelligenceOneItResearchRecommendati
 
 
 export const GetProspectResponse = zod.object({
+  "vertical": zod.string().nullish(),
+  "recruitingQualification": zod.union([zod.object({
+  "roles": zod.string().max(getProspectResponseRecruitingQualificationOneRolesMax).optional(),
+  "hiresNeeded": zod.string().max(getProspectResponseRecruitingQualificationOneHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(getProspectResponseRecruitingQualificationOneTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(getProspectResponseRecruitingQualificationOneSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(getProspectResponseRecruitingQualificationOneShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(getProspectResponseRecruitingQualificationOneCompensationMax).optional(),
+  "employmentType": zod.string().max(getProspectResponseRecruitingQualificationOneEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(getProspectResponseRecruitingQualificationOneCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(getProspectResponseRecruitingQualificationOneCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(getProspectResponseRecruitingQualificationOneHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(getProspectResponseRecruitingQualificationOneVendorRequirementsMax).optional(),
+  "budget": zod.string().max(getProspectResponseRecruitingQualificationOneBudgetMax).optional(),
+  "decisionProcess": zod.string().max(getProspectResponseRecruitingQualificationOneDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(getProspectResponseRecruitingQualificationOneAgencyRenewalDatesMax).optional()
+}),zod.null()]).optional(),
   "id": zod.number(),
   "companyName": zod.string(),
   "contactName": zod.string(),
@@ -2449,6 +2972,57 @@ export const GetProspectResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -2524,7 +3098,53 @@ export const UpdateProspectParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateProspectBodyRecruitingQualificationRolesMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationHiresNeededMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationTargetStartDatesMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationSkillsCredentialsMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationShiftsLocationsMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationCompensationMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationEmploymentTypeMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationCurrentApproachMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationCurrentAgenciesMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationHiringChallengesMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationVendorRequirementsMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationBudgetMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationDecisionProcessMax = 2000;
+
+export const updateProspectBodyRecruitingQualificationAgencyRenewalDatesMax = 2000;
+
+
+
 export const UpdateProspectBody = zod.object({
+  "recruitingQualification": zod.object({
+  "roles": zod.string().max(updateProspectBodyRecruitingQualificationRolesMax).optional(),
+  "hiresNeeded": zod.string().max(updateProspectBodyRecruitingQualificationHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(updateProspectBodyRecruitingQualificationTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(updateProspectBodyRecruitingQualificationSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(updateProspectBodyRecruitingQualificationShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(updateProspectBodyRecruitingQualificationCompensationMax).optional(),
+  "employmentType": zod.string().max(updateProspectBodyRecruitingQualificationEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(updateProspectBodyRecruitingQualificationCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(updateProspectBodyRecruitingQualificationCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(updateProspectBodyRecruitingQualificationHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(updateProspectBodyRecruitingQualificationVendorRequirementsMax).optional(),
+  "budget": zod.string().max(updateProspectBodyRecruitingQualificationBudgetMax).optional(),
+  "decisionProcess": zod.string().max(updateProspectBodyRecruitingQualificationDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(updateProspectBodyRecruitingQualificationAgencyRenewalDatesMax).optional()
+}).optional(),
   "companyName": zod.string().optional(),
   "contactName": zod.string().optional(),
   "email": zod.string().optional(),
@@ -2538,6 +3158,34 @@ export const UpdateProspectBody = zod.object({
   "squareFootage": zod.number().optional(),
   "status": zod.string().optional()
 })
+
+export const updateProspectResponseRecruitingQualificationOneRolesMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneHiresNeededMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneTargetStartDatesMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneSkillsCredentialsMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneShiftsLocationsMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneCompensationMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneEmploymentTypeMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneCurrentApproachMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneCurrentAgenciesMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneHiringChallengesMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneVendorRequirementsMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneBudgetMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneDecisionProcessMax = 2000;
+
+export const updateProspectResponseRecruitingQualificationOneAgencyRenewalDatesMax = 2000;
 
 export const updateProspectResponseOpportunityIntelligenceOneScoreMin = 0;
 export const updateProspectResponseOpportunityIntelligenceOneScoreMax = 100;
@@ -2562,6 +3210,23 @@ export const updateProspectResponseOpportunityIntelligenceOneItResearchRecommend
 
 
 export const UpdateProspectResponse = zod.object({
+  "vertical": zod.string().nullish(),
+  "recruitingQualification": zod.union([zod.object({
+  "roles": zod.string().max(updateProspectResponseRecruitingQualificationOneRolesMax).optional(),
+  "hiresNeeded": zod.string().max(updateProspectResponseRecruitingQualificationOneHiresNeededMax).optional(),
+  "targetStartDates": zod.string().max(updateProspectResponseRecruitingQualificationOneTargetStartDatesMax).optional(),
+  "skillsCredentials": zod.string().max(updateProspectResponseRecruitingQualificationOneSkillsCredentialsMax).optional(),
+  "shiftsLocations": zod.string().max(updateProspectResponseRecruitingQualificationOneShiftsLocationsMax).optional(),
+  "compensation": zod.string().max(updateProspectResponseRecruitingQualificationOneCompensationMax).optional(),
+  "employmentType": zod.string().max(updateProspectResponseRecruitingQualificationOneEmploymentTypeMax).optional(),
+  "currentApproach": zod.string().max(updateProspectResponseRecruitingQualificationOneCurrentApproachMax).optional(),
+  "currentAgencies": zod.string().max(updateProspectResponseRecruitingQualificationOneCurrentAgenciesMax).optional(),
+  "hiringChallenges": zod.string().max(updateProspectResponseRecruitingQualificationOneHiringChallengesMax).optional(),
+  "vendorRequirements": zod.string().max(updateProspectResponseRecruitingQualificationOneVendorRequirementsMax).optional(),
+  "budget": zod.string().max(updateProspectResponseRecruitingQualificationOneBudgetMax).optional(),
+  "decisionProcess": zod.string().max(updateProspectResponseRecruitingQualificationOneDecisionProcessMax).optional(),
+  "agencyRenewalDates": zod.string().max(updateProspectResponseRecruitingQualificationOneAgencyRenewalDatesMax).optional()
+}),zod.null()]).optional(),
   "id": zod.number(),
   "companyName": zod.string(),
   "contactName": zod.string(),
@@ -2609,6 +3274,57 @@ export const UpdateProspectResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -2967,6 +3683,7 @@ export const ListAppointmentsResponseItem = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled']),
   "location": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "preMeetingBrief": zod.string().nullish().describe('Current source-backed recruiting evidence and employer-disclosed qualification, separate from editable appointment notes.'),
   "createdAt": zod.string()
 })
 export const ListAppointmentsResponse = zod.array(ListAppointmentsResponseItem)
@@ -2991,6 +3708,7 @@ export const CreateAppointmentResponse = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled']),
   "location": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "preMeetingBrief": zod.string().nullish().describe('Current source-backed recruiting evidence and employer-disclosed qualification, separate from editable appointment notes.'),
   "createdAt": zod.string()
 })
 
@@ -3018,6 +3736,7 @@ export const UpdateAppointmentResponse = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'cancelled', 'no_show', 'rescheduled']),
   "location": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "preMeetingBrief": zod.string().nullish().describe('Current source-backed recruiting evidence and employer-disclosed qualification, separate from editable appointment notes.'),
   "createdAt": zod.string()
 })
 
@@ -3083,11 +3802,37 @@ export const GenerateCallScriptResponse = zod.object({
 /**
  * @summary Search real local businesses (Google Places) for a given city, state, and industry
  */
+export const prospectSearchBodyRecruitingFiltersIndustriesMax = 7;
+
+export const prospectSearchBodyRecruitingFiltersRadiusMilesMax = 250;
+
+export const prospectSearchBodyRecruitingFiltersRecencyDaysMax = 365;
+
+export const prospectSearchBodyRecruitingFiltersMinRelevantJobsMin = 0;
+
 export const prospectSearchBodyCountMax = 100;
 
 
 
 export const ProspectSearchBody = zod.object({
+  "recruitingFilters": zod.object({
+  "industries": zod.array(zod.enum(['Healthcare', 'Oil & Gas', 'Technology', 'Financial Services', 'Engineering', 'Manufacturing', 'Logistics & Warehousing'])).max(prospectSearchBodyRecruitingFiltersIndustriesMax).optional(),
+  "subindustry": zod.string().optional(),
+  "radiusMiles": zod.number().min(1).max(prospectSearchBodyRecruitingFiltersRadiusMilesMax).optional(),
+  "hiringLocation": zod.string().optional(),
+  "companySize": zod.string().optional(),
+  "jobTitles": zod.string().optional(),
+  "roleFamilies": zod.string().optional(),
+  "seniority": zod.string().optional(),
+  "employmentType": zod.string().optional(),
+  "workArrangement": zod.string().optional(),
+  "signalType": zod.enum(['any', 'jobs', 'expansion', 'relocation', 'new_business']).optional(),
+  "recencyDays": zod.number().min(1).max(prospectSearchBodyRecruitingFiltersRecencyDaysMax).optional(),
+  "confidence": zod.enum(['any', 'high', 'medium', 'low']).optional(),
+  "minRelevantJobs": zod.number().min(prospectSearchBodyRecruitingFiltersMinRelevantJobsMin).optional(),
+  "openingBefore": zod.string().optional(),
+  "serviceMatchOnly": zod.boolean().optional()
+}).optional(),
   "city": zod.string(),
   "state": zod.string(),
   "industry": zod.string(),
@@ -3178,6 +3923,57 @@ export const ProspectSearchResponseItem = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -3314,6 +4110,57 @@ export const EnrichLeadsBody = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -3444,6 +4291,57 @@ export const EnrichLeadsResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),
@@ -3605,6 +4503,57 @@ export const RefreshOpportunityIntelligenceResponse = zod.object({
   "recommendedOutreach": zod.string(),
   "generatedAt": zod.coerce.date(),
   "itResearch": zod.object({
+  "sellerVertical": zod.string().optional(),
+  "recruiting": zod.object({
+  "employerIdentity": zod.enum(['confirmed', 'unverified', 'agency_unidentified']),
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})),
+  "growthSignals": zod.array(zod.object({
+  "type": zod.enum(['expansion', 'relocation', 'new_company', 'new_location', 'formation']),
+  "title": zod.string(),
+  "location": zod.string(),
+  "announcementDate": zod.string().nullable(),
+  "expectedOpeningDate": zod.string().nullable(),
+  "hiringPlans": zod.string().nullable(),
+  "confirmedHiring": zod.boolean(),
+  "sourceURL": zod.string(),
+  "evidence": zod.string()
+})),
+  "coverage": zod.array(zod.object({
+  "source": zod.string(),
+  "status": zod.enum(['available', 'partial', 'unavailable']),
+  "detail": zod.string(),
+  "lastSuccessfulResearch": zod.string().nullable()
+})),
+  "lastSuccessfulResearch": zod.string(),
+  "uniqueActiveJobs": zod.number(),
+  "automationSuppressed": zod.boolean(),
+  "suppressionReasons": zod.array(zod.string()),
+  "commercialFit": zod.number(),
+  "evidenceConfidence": zod.enum(['high', 'medium', 'low'])
+}).optional(),
   "sellerCompanyName": zod.string().optional(),
   "selectedIndustry": zod.string(),
   "actualIndustry": zod.string().nullable(),

@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/requireAuth";
+import { getVerticalConfig } from "../lib/verticals";
+import { archiveSellerProfile, preferencesForIndustrySwitch } from "../lib/sellerIndustryPreferences";
 import { isResendConfigured, getPlatformFromEmail } from "../lib/emailSender";
 import { getEngagementSettings, DEFAULT_ENGAGEMENT_SETTINGS } from "../lib/engagementScoring";
 import { ObjectStorageService } from "../lib/objectStorage";
@@ -232,7 +234,7 @@ router.put("/settings", async (req, res) => {
     return res.status(400).json({ error: "One of the uploaded files could not be saved. Please re-upload and try again." });
   }
 
-  if (vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps") {
+  if (vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps" || vertical === "recruiting_staffing") {
     update.vertical = vertical;
     update.verticalSelected = true;
   }
@@ -255,15 +257,28 @@ router.put("/settings", async (req, res) => {
   // website edit alone deliberately does not enter this branch.
   const [beforeSave] = await db.select().from(usersTable).where(eq(usersTable.id, req.clientId));
   if (!beforeSave) return res.status(404).json({ error: "User settings could not be found." });
-  const previous = beforeSave.sellerIntelligenceProfile as SellerIntelligenceProfile | null;
   const targetCompanyName = (update.businessName ?? beforeSave.businessName ?? "").trim();
-  const targetVertical = update.vertical ?? beforeSave.vertical;
+  const targetVertical = getVerticalConfig(update.vertical ?? beforeSave.vertical).key;
+  const previousVertical = getVerticalConfig(beforeSave.vertical).key;
+  const previousIndustryArchive = beforeSave.sellerProfilesByVertical?.[targetVertical];
+  const previous = (targetVertical !== previousVertical
+    ? beforeSave.sellerProfilesByVertical?.[targetVertical] ?? null
+    : beforeSave.sellerIntelligenceProfile) as SellerIntelligenceProfile | null;
   const businessNameIncluded = typeof businessName === "string";
   const companyChanged = businessNameIncluded
     && (beforeSave.businessName ?? "").trim().toLowerCase() !== targetCompanyName.toLowerCase();
-  const verticalChanged = Boolean(update.vertical && update.vertical !== beforeSave.vertical);
+  const verticalChanged = targetVertical !== previousVertical;
+  if (verticalChanged) {
+    Object.assign(update, preferencesForIndustrySwitch(beforeSave, update, previousIndustryArchive));
+    update.sellerIntelligenceProfile = previous ?? buildGenericSellerProfile(
+      update.website ?? beforeSave.website, targetVertical,
+      "Analyze the seller for this selling industry before using seller-specific claims.", targetCompanyName,
+    );
+  }
   const shouldResearchSeller = Boolean(targetCompanyName && (
-    companyChanged
+    (targetVertical === "recruiting_staffing" && websiteWasIncluded
+      && update.website !== beforeSave.website)
+    || companyChanged
     || verticalChanged
     || (!previous && businessNameIncluded)
   ));
@@ -278,8 +293,8 @@ router.put("/settings", async (req, res) => {
       const keepOverrides = sellerResearchSameCompany(previous, targetCompanyName)
         || researchedIdentityMatchesPrior(analyzed, previous);
       researchedProfile = applySellerIntelligenceSources(analyzed, {
-        differentiatorsInput: update.sellerDifferentiatorsInput ?? beforeSave.sellerDifferentiatorsInput,
-        servicePriorities: update.sellerServicePriorities ?? beforeSave.sellerServicePriorities,
+        differentiatorsInput: update.sellerDifferentiatorsInput !== undefined ? update.sellerDifferentiatorsInput : beforeSave.sellerDifferentiatorsInput,
+        servicePriorities: update.sellerServicePriorities !== undefined ? update.sellerServicePriorities : beforeSave.sellerServicePriorities,
         ...(keepOverrides && previous?.userOverrides ? {
           userOverrides: previous.userOverrides,
           userEditedAt: previous.userEditedAt,
@@ -336,16 +351,26 @@ router.put("/settings", async (req, res) => {
       }
       if (researchedProfile) {
         update.sellerIntelligenceProfile = researchedProfile;
-      } else if (currentPrevious &&
+      } else if (!verticalChanged && currentPrevious &&
         (update.sellerDifferentiatorsInput !== undefined || update.sellerServicePriorities !== undefined)) {
         update.sellerIntelligenceProfile = applySellerIntelligenceSources(
           currentPrevious,
           {
-            differentiatorsInput: update.sellerDifferentiatorsInput ?? currentUser.sellerDifferentiatorsInput,
-            servicePriorities: update.sellerServicePriorities ?? currentUser.sellerServicePriorities,
+            differentiatorsInput: update.sellerDifferentiatorsInput !== undefined ? update.sellerDifferentiatorsInput : currentUser.sellerDifferentiatorsInput,
+            servicePriorities: update.sellerServicePriorities !== undefined ? update.sellerServicePriorities : currentUser.sellerServicePriorities,
           },
         );
       }
+      // Archive the selected profile before switching; do not import another
+      // industry's approved claims, or discard them when the user switches back.
+      update.sellerProfilesByVertical = {
+        ...(currentUser.sellerProfilesByVertical ?? {}),
+        [getVerticalConfig(currentUser.vertical).key]: archiveSellerProfile(currentPrevious, currentUser),
+        [targetVertical]: archiveSellerProfile(update.sellerIntelligenceProfile ?? currentPrevious, {
+          sellerServicePriorities: update.sellerServicePriorities !== undefined ? update.sellerServicePriorities : currentUser.sellerServicePriorities,
+          sellerDifferentiatorsInput: update.sellerDifferentiatorsInput !== undefined ? update.sellerDifferentiatorsInput : currentUser.sellerDifferentiatorsInput,
+        }),
+      };
 
       return tx.update(usersTable).set(update).where(eq(usersTable.id, req.clientId)).returning();
     });

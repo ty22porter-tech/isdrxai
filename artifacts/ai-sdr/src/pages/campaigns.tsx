@@ -87,6 +87,11 @@ const FLEET_INDUSTRIES = [
   "Municipal", "Higher Education", "Commercial",
 ];
 
+const RECRUITING_CAMPAIGN_INDUSTRIES = [
+  "Healthcare", "Oil & Gas", "Technology", "Financial Services",
+  "Engineering", "Manufacturing", "Logistics & Warehousing",
+];
+
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   draft:     { label: "Draft",     color: "bg-muted text-muted-foreground border-border" },
   active:    { label: "Active",    color: "bg-blue-100 text-blue-800 border-blue-200" },
@@ -164,6 +169,19 @@ function blankForm(vertical: ClientVertical): CampaignForm {
       followUp4: { dayDelay: 7, subject: "A practical branding question for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} businesses in {{city}}, recognizable commercial vehicles can support both professional arrival and local visibility. That is an industry-fit hypothesis, not a claim about {{companyName}}.\n\nDoes {{companyName}} operate customer-facing vehicles today?" },
       followUp5: { dayDelay: 10, subject: "Keeping vehicle branding repeatable", body: "Hi {{contactName}},\n\nWhen a vehicle is replaced or added, reproducing approved graphics can become an operational challenge. If that need applies to {{companyName}}, it may be worth reviewing the current process without assuming a particular fleet size or growth plan.\n\nWorth a brief conversation?" },
       followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI'll close the loop after this. If vehicle branding becomes a priority for {{companyName}}, a short discovery conversation can clarify the vehicles, brand standards, and business outcome involved before any solution is recommended.\n\nWould a future conversation be useful?" },
+    };
+  }
+  if (vertical === "recruiting_staffing") {
+    // Grounded in hiring evidence and the seller's confirmed services only;
+    // never claims candidates, placements, or delivery guarantees.
+    return {
+      ...BLANK_FORM,
+      followUp1: { dayDelay: 3, subject: "Following up on hiring at {{companyName}}", body: "Hi {{contactName}},\n\nI’m following up about hiring priorities at {{companyName}} in {{city}}. Whether outside recruiting support would help is something only your team can say.\n\nWould a short hiring-needs discovery call be useful?" },
+      followUp2: { dayDelay: 4, subject: "A hiring question for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} employers, filling specialized roles while keeping current teams productive can be a challenge. That is an industry hypothesis, not an assumption about {{companyName}}.\n\nHow is {{companyName}} approaching its current openings?" },
+      followUp3: { dayDelay: 5, subject: "{{companyName}} — staffing for growth", body: "Hi {{contactName}},\n\nIf {{companyName}} has new locations or added capacity coming, it may be worth comparing notes on the roles, timing, and hiring approach involved.\n\nWould a staffing consultation be helpful?" },
+      followUp4: { dayDelay: 7, subject: "Current recruiting approach at {{companyName}}", body: "Hi {{contactName}},\n\nSome employers handle hiring fully in-house; others use agencies for specific roles. I do not want to assume which applies to {{companyName}}.\n\nWould it help to talk through your current approach?" },
+      followUp5: { dayDelay: 10, subject: "Open roles at {{companyName}}", body: "Hi {{contactName}},\n\nIf any openings at {{companyName}} have been hard to fill, a brief conversation can clarify the roles, start dates, and requirements before any service is recommended.\n\nWorth 15 minutes?" },
+      followUp6: { dayDelay: 14, subject: "Closing the loop — {{companyName}}", body: "Hi {{contactName}},\n\nI will close the loop after this. If hiring support becomes a priority for {{companyName}}, a short discovery call can clarify needs first.\n\nWould a future conversation be useful?" },
     };
   }
   return BLANK_FORM;
@@ -280,7 +298,7 @@ function mergePreviewTemplate(template: string, industry: string): string {
 }
 
 function introPreviewSubject(campaignName: string, vertical: ClientVertical): string {
-  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : "Janitorial Services";
+  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : vertical === "recruiting_staffing" ? "Recruiting & Staffing" : "Janitorial Services";
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
@@ -311,8 +329,10 @@ export default function Campaigns() {
     ? "it_services"
     : me?.vertical === "fleet_wraps"
       ? "fleet_wraps"
-      : "janitorial";
-  const campaignIndustries = vertical === "fleet_wraps" ? FLEET_INDUSTRIES : INDUSTRIES;
+      : me?.vertical === "recruiting_staffing"
+        ? "recruiting_staffing"
+        : "janitorial";
+  const campaignIndustries = vertical === "fleet_wraps" ? FLEET_INDUSTRIES : vertical === "recruiting_staffing" ? RECRUITING_CAMPAIGN_INDUSTRIES : INDUSTRIES;
 
   const { data: campaigns, isLoading } = useListCampaigns();
   const createCampaign = useCreateCampaign();
@@ -732,7 +752,9 @@ export default function Campaigns() {
         {isIntro ? (
           <Textarea
             rows={4}
-            placeholder={vertical === "fleet_wraps"
+            placeholder={vertical === "recruiting_staffing"
+              ? "Hi {{contactName}},\n\nI noticed {{companyName}} is hiring in {{city}}. Would a short hiring-needs discovery call be useful?..."
+              : vertical === "fleet_wraps"
               ? "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can create ongoing visibility throughout {{city}}..."
               : "Hi {{contactName}},\n\nFor {{industry}} organizations in {{city}}, an operational challenge may be worth reviewing..."}
             value={form.emailTemplate}

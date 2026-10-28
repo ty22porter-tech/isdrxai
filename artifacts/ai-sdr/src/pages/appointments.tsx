@@ -210,6 +210,12 @@ export default function Appointments() {
                     {apt.notes}
                   </p>
                 )}
+                {apt.preMeetingBrief && (
+                  <details className="mt-3 rounded-lg border p-3">
+                    <summary className="cursor-pointer text-sm font-medium">Recruiting pre-meeting brief</summary>
+                    <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{apt.preMeetingBrief}</p>
+                  </details>
+                )}
               </div>
             </div>
 

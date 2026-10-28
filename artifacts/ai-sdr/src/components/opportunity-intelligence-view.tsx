@@ -266,6 +266,7 @@ export function OpportunityIntelligenceView({
   vertical,
 }: OpportunityIntelligenceViewProps) {
   const isIT = vertical === "it_services";
+  const isRecruiting = vertical === "recruiting_staffing" || !!intelligence?.itResearch?.recruiting;
   // The structured report is still stored under the legacy `itResearch`
   // property for API compatibility, but now applies to every seller vertical.
   const hasStructuredResearch = !!intelligence?.itResearch;
@@ -369,7 +370,7 @@ export function OpportunityIntelligenceView({
               </div>
               <p className="flex items-start gap-1 text-sm text-muted-foreground">
                 <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span><span className="font-medium text-foreground">Score measures seller fit.</span> It is not purchase probability or recent engagement.</span>
+                <span><span className="font-medium text-foreground">Score measures seller fit.</span> It is not purchase probability or recent engagement.{isRecruiting ? " Evidence confidence is shown separately from commercial fit." : ""}</span>
               </p>
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 {intelligence?.scoreConfidence && (
@@ -390,6 +391,13 @@ export function OpportunityIntelligenceView({
               </div>
             )}
           </div>
+
+          {displayWhyTarget && isRecruiting && hasStructuredResearch && (
+            <Card className="border-primary/15 bg-primary/5 shadow-none" data-testid="card-why-target-employer">
+              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm"><Target className="h-4 w-4 text-primary" /> Why Target This Employer</CardTitle></CardHeader>
+              <CardContent><p className="text-sm leading-relaxed text-foreground/90">{displayWhyTarget}</p></CardContent>
+            </Card>
+          )}
 
           {displayWhyTarget && !hasStructuredResearch && !isLegacyReport && (
             <Card className="border-primary/15 bg-primary/5 shadow-none">
@@ -437,7 +445,9 @@ export function OpportunityIntelligenceView({
             <div className="space-y-1">
               <h4 className="font-semibold text-amber-800 dark:text-amber-400">Research Update Available</h4>
               <p className="text-sm text-amber-700 dark:text-amber-300 max-w-md mx-auto">
-                {isIT
+                {isRecruiting
+                  ? "This employer was evaluated using an older intelligence model. Refresh to generate industry hiring challenges, prospect hiring needs, and recommended recruiting solutions."
+                  : isIT
                   ? "This prospect was evaluated using an older intelligence model. Refresh to generate specific IT challenges, concerns, and recommended solutions based on current research."
                   : "This prospect was evaluated using an older intelligence model. Refresh to generate current industry challenges, prospect concerns, and recommended solutions based on current seller research."}
               </p>

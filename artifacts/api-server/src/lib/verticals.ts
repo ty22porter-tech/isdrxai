@@ -1,7 +1,7 @@
-export type Vertical = "janitorial" | "it_services" | "fleet_wraps";
+export type Vertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing";
 
 export function normalizeVertical(v?: string | null): Vertical {
-  if (v === "it_services" || v === "fleet_wraps") return v;
+  if (v === "it_services" || v === "fleet_wraps" || v === "recruiting_staffing") return v;
   return "janitorial";
 }
 
@@ -326,10 +326,51 @@ const FLEET_WRAPS: VerticalConfig = {
   },
 };
 
+const RECRUITING: VerticalConfig = {
+  key: "recruiting_staffing",
+  label: "Recruiting & Staffing",
+  serviceNoun: "recruiting and staffing services",
+  senderDescriptor: "a recruiting and staffing provider; offer only services verified in the seller profile",
+  audience: "employer owners, HR and talent acquisition leaders, hiring managers, operations and procurement stakeholders",
+  offerName: "hiring-needs discovery call",
+  offerCtaLabel: "Schedule hiring consultation",
+  offerSubject: c => `Discuss ${c}'s hiring needs`,
+  footerServicePhrase: "professional recruiting and staffing services",
+  stepSubject: (step, c) => step === 1 ? `A question about ${c}'s hiring plans` : step === 2 ? `Re: ${c}'s hiring plans` : `Following up — ${c}`,
+  fallbackEmailSubject: c => `Hiring-needs discussion — ${c}`,
+  // Do not synthesize a generic catalog: this seller may offer only one placement type.
+  offerings: [],
+  industryChallenges: {
+    Healthcare: ["credential requirements and coverage across clinical and support roles"],
+    "Oil & Gas": ["specialized technical skills, safety requirements and project-based hiring"],
+    Technology: ["specialized technical roles and changing skill requirements"],
+    "Financial Services": ["specialist skills, regulatory responsibilities and candidate vetting"],
+    Engineering: ["discipline-specific qualifications and project staffing timelines"],
+    Manufacturing: ["shift coverage, skilled trades and production hiring coordination"],
+    "Logistics & Warehousing": ["shift patterns, hiring locations and operational staffing timelines"],
+  },
+  fallbackChallenges: ["understanding specific role requirements and hiring timelines"],
+  schedule: {
+    headline: "Schedule a hiring-needs discovery call",
+    intro: (b, c) => `${b} would like to understand ${c}'s hiring needs. Share only what you know, then select a time.`,
+    providerQuestion: "Current recruiting approach or agency relationships",
+    frequencyQuestion: "Number of hires needed",
+    sizeLabel: "Roles and hiring needs by location",
+    sizeUnit: "hires (if disclosed)",
+    locationQuestion: "How many locations are hiring?",
+    uploadLabel: "Job descriptions or hiring requirements (optional)",
+    summaryTitle: c => `Hiring consultation request — ${c}`,
+    summaryIntro: "Employer-disclosed hiring qualification; unknown information remains open for discovery.",
+    summarySizeHeading: "HIRING LOCATIONS",
+    notificationSubject: c => `Hiring-needs discovery call — ${c}`,
+  },
+};
+
 const CONFIGS: Record<Vertical, VerticalConfig> = {
   janitorial: JANITORIAL,
   it_services: IT_SERVICES,
   fleet_wraps: FLEET_WRAPS,
+  recruiting_staffing: RECRUITING,
 };
 
 export function getVerticalConfig(v?: string | null): VerticalConfig {
@@ -338,6 +379,7 @@ export function getVerticalConfig(v?: string | null): VerticalConfig {
 
 /** The offering to emphasize for a given sequence step (rotates through the list). */
 export function offeringForStep(config: VerticalConfig, step: number): string {
+  if (!config.offerings.length) return "only a matching service from the approved seller profile";
   const idx = Math.max(0, step - 1) % config.offerings.length;
   return config.offerings[idx];
 }
