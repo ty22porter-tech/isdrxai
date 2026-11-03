@@ -33,6 +33,12 @@ Industry switching must not import another industry's approved seller claims or 
 
 **How to apply:** Keep selected-industry seller context independent, retain prior per-industry approvals, and fall back to discovery-only messaging when that industry's seller evidence is unavailable. Service priorities and differentiator inputs must switch with the profile, not remain account-global; unchanged full-form text is not approval to import another industry's catalog.
 
+Recruiters should be able to discover hiring locations rather than know them before searching.
+
+**Why:** The user said a recruiter is looking for any location an employer is hiring for, and questioned requiring a hiring location before the research has found it.
+
+**How to apply:** Treat hiring location as an optional narrowing preference, not a prerequisite for employer research. Explain that company discovery geography differs from the locations of jobs and growth events, and disclose geographic discovery limits rather than promising exhaustive nationwide coverage.
+
 Explicit no-agencies/no-unsolicited-resumes evidence blocks automated recruiting pitches. This currently uses conservative employer-wide suppression pending source review, including an employer careers-page policy without any active job ads.
 
 **Why:** The user explicitly prohibited pitching affected opportunities; a general employer policy can apply beyond the particular advertised role. Avoid circumventing a policy through another channel or a different campaign.
