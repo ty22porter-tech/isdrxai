@@ -8,7 +8,7 @@ type Props = { value: RecruitingFilterState; onChange: (next: RecruitingFilterSt
 
 const TEXT_FIELDS: { key: keyof RecruitingFilterState; label: string; placeholder: string; type?: string }[] = [
   { key: "subindustry", label: "Subindustry", placeholder: "e.g. Home health, Midstream" },
-  { key: "hiringLocation", label: "Hiring location", placeholder: "City, site, or region" },
+  { key: "hiringLocation", label: "Job location detail (optional)", placeholder: "Further restrict by site or region" },
   { key: "radiusMiles", label: "Radius (miles)", placeholder: "e.g. 50", type: "number" },
   { key: "companySize", label: "Company size", placeholder: "e.g. 50-500 employees" },
   { key: "jobTitles", label: "Job titles", placeholder: "e.g. RN, CNC Machinist" },
@@ -30,7 +30,7 @@ export function RecruitingFiltersPanel({ value, onChange }: Props) {
     <div className="space-y-4" data-testid="panel-recruiting-filters">
       <div className="space-y-2">
         <Label>Employer Industries</Label>
-        <p className="text-xs text-muted-foreground">Select one or more. Employer industry is separate from role category; a software developer at a manufacturer is Manufacturing.</p>
+        <p className="text-xs text-muted-foreground">Search starts with published openings in the job search area, then researches the hiring employers. Select employer sectors, not job functions: a developer at a manufacturer is Manufacturing. Leave optional job filters blank to discover broader hiring needs.</p>
         <div className="flex flex-wrap gap-2">
           {RECRUITING_INDUSTRIES.map((ind) => {
             const active = value.industries.includes(ind);
@@ -65,6 +65,7 @@ export function RecruitingFiltersPanel({ value, onChange }: Props) {
         ))}
         <div className="space-y-2">
           <Label>Signal type</Label>
+          <p className="text-xs text-muted-foreground">Growth filters further narrow employers found through job openings; they do not start a separate growth-only search.</p>
           <Select value={value.signalType} onValueChange={(v) => set("signalType", v as RecruitingFilterState["signalType"])}>
             <SelectTrigger data-testid="select-recruiting-signal"><SelectValue /></SelectTrigger>
             <SelectContent>

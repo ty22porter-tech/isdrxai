@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { RECRUITING_INDUSTRIES, recruitingAutomationBlocked } from "../lib/recruitingResearch";
+import { RECRUITING_INDUSTRIES, recruitingAutomationBlocked, parseRecruitingResearch } from "../lib/recruitingResearch";
+import { discoverHiringEmployers, RecruitingJobSearchError, eligibleHiringResearch, jobInSearchArea, matchesHiringJob, sameJobLocation } from "../lib/recruitingJobDiscovery";
 import { activeRecruitingFilterLabels, distanceMiles, filterRecruitingOpportunity, requiresRecruitingResearch } from "../lib/recruitingFilters";
 import { prospectScope } from "../lib/verticalScope";
 import { db } from "@workspace/db";
@@ -397,7 +398,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
   client = await ensureCurrentSellerResearch(req.clientId, client);
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) {
+  if (!apiKey && getVerticalConfig(client?.vertical).key !== "recruiting_staffing") {
     return res.status(503).json({
       error: "Real business search isn't set up yet: the GOOGLE_MAPS_API_KEY secret is missing. Add your Google Maps API key (with the Places API enabled) to search real local businesses.",
     });
@@ -413,26 +414,20 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     if (recruiting && industries.some(industry => !(RECRUITING_INDUSTRIES as readonly string[]).includes(industry))) {
       return res.status(400).json({ error: "Select one or more supported employer industries." });
     }
-    let geography: { center: { latitude: number; longitude: number }; radiusMiles: number } | undefined;
-    if (recruiting && body.recruitingFilters?.radiusMiles) {
-      const centerResponse = await fetch(PLACES_SEARCH_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "places.location" },
-        body: JSON.stringify({ textQuery: `${body.city.trim()}, ${body.state}`, pageSize: 1 }),
-        signal: AbortSignal.timeout(PLACES_FETCH_TIMEOUT_MS),
-      });
-      if (!centerResponse.ok) throw new ProspectSearchError(502, "The search center could not be verified for the selected radius.");
-      const centerData = await centerResponse.json() as { places?: PlaceResult[] };
-      const center = centerData.places?.[0]?.location;
-      if (!center) throw new ProspectSearchError(400, "Enter a recognizable city and state to use a radius filter.");
-      geography = { center, radiusMiles: body.recruitingFilters.radiusMiles };
-    }
-    const groupedPlaces = await Promise.all(industries.map(async industry => ({
+    const hiringEmployers = recruiting ? await discoverHiringEmployers({
+      city: body.city.trim(), state: body.state, count, industries, filters: body.recruitingFilters,
+    }) : [];
+    const groupedPlaces = recruiting ? [] : await Promise.all(industries.map(async industry => ({
       industry,
-      places: await searchRealBusinesses(apiKey, body.city.trim(), body.state, industry, Math.ceil(count / industries.length), geography),
+      places: await searchRealBusinesses(apiKey!, body.city.trim(), body.state, industry, Math.ceil(count / industries.length)),
     })));
     const seenEmployers = new Set<string>();
-    const bases = groupedPlaces.flatMap(group => group.places.map(place => {
+    const bases = recruiting ? hiringEmployers.map(employer => ({
+      ...placeToLeadBase({ displayName: { text: employer.companyName }, websiteUri: employer.website },
+        body.city.trim(), body.state, employer.industry, vertical),
+      whyTarget: "Published job openings found; employer research and service qualification are pending.",
+      confidence: "low" as const,
+    })) : groupedPlaces.flatMap(group => group.places.map(place => {
       const key = recruiting ? websiteDomain(place.websiteUri) || placeIdentity(place) : placeIdentity(place);
       if (seenEmployers.has(key)) return null;
       seenEmployers.add(key);
@@ -463,9 +458,23 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
           selectedIndustry: lead.industry,
           client,
           force: true,
+          ...(recruiting ? { discoveredHiring: hiringEmployers.find(employer => employer.companyName === lead.companyName)?.jobs } : {}),
         });
       } catch (err) {
         req.log.warn({ err, vertical }, "Employer discovered but opportunity research failed");
+        const discoveredJobs = hiringEmployers.find(employer => employer.companyName === lead.companyName)?.jobs ?? [];
+        const discoveryReport = recruiting && discoveredJobs.length ? {
+          selectedIndustry: lead.industry, actualIndustry: null,
+          industryRelationship: "uncertain" as const,
+          industryExplanation: "Published job listings were found, but employer verification could not be completed.",
+          industrySources: [], lastResearched: new Date().toISOString(),
+          warnings: ["Preliminary job-discovery evidence only. Employer identity and current hiring remain unverified."],
+          industryChallenges: [], prospectConcerns: [], recommendations: [],
+          recruiting: parseRecruitingResearch({ employerIdentity: "unverified", jobs: discoveredJobs }, {
+            companyName: lead.companyName, allowedSourceUrls: discoveredJobs.map(job => job.sourceURL),
+            identityVerified: false,
+          }),
+        } : undefined;
         return {
           ...lead,
           opportunityScore: 0,
@@ -475,6 +484,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
           potentialNeeds: [],
           recommendedOutreach: "",
           researchError: err instanceof Error ? err.message : "Current opportunity research could not be completed.",
+          ...(discoveryReport ? { opportunityIntelligence: buildOpportunityIntelligence(lead, vertical, client, [], discoveryReport) } : {}),
         };
       }
       const publicBreachSignals = recruiting ? [] : await researchPublicBreachRecords({
@@ -516,8 +526,16 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     leads.sort((a: any, b: any) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
     const results = recruiting ? leads.filter(lead =>
       lead.opportunityIntelligence
-        ? filterRecruitingOpportunity(lead.opportunityIntelligence, body.recruitingFilters, lead)
-        : !requiresRecruitingResearch(body.recruitingFilters)) : leads;
+        ? filterRecruitingOpportunity(lead.opportunityIntelligence, {
+            ...body.recruitingFilters, minRelevantJobs: Math.max(1, body.recruitingFilters?.minRelevantJobs ?? 1),
+          }, lead)
+          && lead.opportunityIntelligence.itResearch?.industryRelationship === "match"
+          && lead.opportunityIntelligence.itResearch?.recruiting?.jobs.filter((job: any) =>
+            matchesHiringJob(job, body.recruitingFilters) && (body.recruitingFilters?.radiusMiles
+              ? hiringEmployers.find(employer => employer.companyName === lead.companyName)?.jobs.some(seed =>
+                  sameJobLocation(seed.location, job.location))
+              : jobInSearchArea(job, body))).length >= Math.max(1, body.recruitingFilters?.minRelevantJobs ?? 1)
+        : false) : leads;
     const researchFailures = leads.filter(lead => Boolean(lead.researchError)).length;
     req.log.info({
       vertical, discovered: bases.length, researchFailures,
@@ -531,7 +549,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
         || filterRecruitingOpportunity(lead.opportunityIntelligence, undefined, lead))
         .map(lead => ({ ...lead, outsideSelectedFilters: true }));
       return res.status(researchFailures === leads.length ? 502 : 422).json({
-        error: `Found ${bases.length} businesses. Hiring research was unavailable for ${researchFailures}. No employer was verified as matching all selected hiring filters. You can review the discovered employers without treating them as qualified matches.`,
+        error: `Found ${bases.length} employers from published job openings. Employer research was unavailable for ${researchFailures}. No employer passed all hiring, identity, agency-policy and service-fit checks. You can review these employers without treating them as qualified matches.`,
         discoveredCount: bases.length,
         researchFailures,
         excludedAgencyAds: leads.length - discoveredLeads.length,
@@ -541,6 +559,7 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     }
     return res.json(results);
   } catch (err) {
+    if (err instanceof RecruitingJobSearchError) return res.status(502).json({ error: err.message });
     if (err instanceof ProspectSearchError) {
       return res.status(err.status).json({ error: err.message });
     }
@@ -548,7 +567,9 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     return res.status(502).json({
       error: err instanceof ItOpportunityResearchError
         ? err.message
-        : "Could not reach Google Places. Please try again in a moment.",
+        : vertical === "recruiting_staffing"
+          ? "Job search or employer research could not complete. Please try again."
+          : "Could not reach Google Places. Please try again in a moment.",
     });
   }
 });
@@ -620,6 +641,13 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         },
         client,
       );
+      if (vertical === "recruiting_staffing"
+        && (!priorResearch.ok || !eligibleHiringResearch(priorResearch.handoff.itResearch.recruiting,
+          priorResearch.handoff.itResearch.industryRelationship === "match"
+          && Boolean(priorResearch.handoff.itResearch.recommendations.length)))) {
+        results.push({ index, status: "failed", error: "Contact lookup skipped: verified active hiring, confirmed employer identity, service fit and agency-policy clearance are required. Refresh research before retrying." });
+        return;
+      }
       const result = await enrichPerson({
         email: lead.email,
         contactName: lead.contactName ?? null,

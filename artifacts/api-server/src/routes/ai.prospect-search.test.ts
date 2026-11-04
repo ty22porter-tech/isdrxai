@@ -28,6 +28,13 @@ vi.mock("../lib/itOpportunityResearch", async (importOriginal) => ({
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
+vi.mock("../lib/recruitingJobDiscovery", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../lib/recruitingJobDiscovery")>(),
+  discoverHiringEmployers: vi.fn(),
+}));
+vi.mock("../lib/apollo", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../lib/apollo")>(), enrichPerson: vi.fn(),
+}));
 
 describe("seller intelligence fallback", () => {
   it("uses only configured seller facts and keeps a limited profile discovery-led", () => {
@@ -102,6 +109,8 @@ import { db } from "@workspace/db";
 import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
 import { requiresRecruitingResearch } from "../lib/recruitingFilters";
 import { parseRecruitingResearch } from "../lib/recruitingResearch";
+import { discoverHiringEmployers } from "../lib/recruitingJobDiscovery";
+import { enrichPerson } from "../lib/apollo";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const PLACE: PlaceResult = {
@@ -441,13 +450,25 @@ describe("prospect-search request validation", () => {
 
 describe("recruiting search research failures", () => {
   async function search(filters: Record<string, unknown>, places = [PLACE],
-    researchResult?: Awaited<ReturnType<typeof researchItOpportunityIntelligence>>) {
+    researchResult?: Awaited<ReturnType<typeof researchItOpportunityIntelligence>>,
+    clientDetails: Record<string, unknown> = {}) {
     process.env.GOOGLE_MAPS_API_KEY = "test-key";
     vi.mocked(db.select).mockReturnValue({
-      from: () => ({ where: async () => [{ id: "client-1", vertical: "recruiting_staffing" }] }),
+      from: () => ({ where: async () => [{ id: "client-1", vertical: "recruiting_staffing", ...clientDetails }] }),
     } as any);
     if (researchResult) vi.mocked(researchItOpportunityIntelligence).mockResolvedValue(researchResult);
     else vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("Research provider timed out"));
+    vi.mocked(discoverHiringEmployers).mockResolvedValue(places.map(place => ({
+      companyName: place.displayName!.text!, website: place.websiteUri,
+      industry: "Healthcare", jobs: parseRecruitingResearch({
+        employerIdentity: "confirmed", jobs: [{
+          employer: place.displayName!.text!, title: "Registered Nurse", location: "Houston, TX",
+          status: "active", sourceURL: "https://www.riversidemedical.com/careers/nurse",
+          evidence: "Hiring a Registered Nurse in Houston, TX.",
+        }],
+      }, { companyName: place.displayName!.text!, identityVerified: true,
+        allowedSourceUrls: ["https://www.riversidemedical.com/careers/nurse"] }).jobs,
+    })));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ places }),
     }));
@@ -462,24 +483,34 @@ describe("recruiting search research failures", () => {
     await handler(req, res);
     return { req, res };
   }
-  it("returns discovered employers with a research warning for broad searches", async () => {
+  it("keeps failed employer research review-only even when job filters are broad", async () => {
     const { res, req } = await search({ industries: ["Healthcare"], serviceMatchOnly: false });
-    expect(res.status).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith([expect.objectContaining({
+    expect(res.status).toHaveBeenCalledWith(502);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ discoveredLeads: [expect.objectContaining({
       companyName: PLACE.displayName?.text,
       researchError: "Research provider timed out",
       opportunityScore: 0,
       scoreLabel: "Research unavailable",
-    })]);
+      outsideSelectedFilters: true,
+    })] }));
     expect(req.log.info).toHaveBeenCalledWith(expect.objectContaining({
-      discovered: 1, returned: 1, researchFailures: 1,
+      discovered: 1, returned: 0, researchFailures: 1,
     }), "Prospect search completed");
+    expect(vi.mocked(discoverHiringEmployers).mock.invocationCallOrder.at(-1))
+      .toBeLessThan(vi.mocked(researchItOpportunityIntelligence).mock.invocationCallOrder.at(-1)!);
+    expect(fetch).not.toHaveBeenCalled();
+    const review = res.json.mock.calls[0][0].discoveredLeads[0];
+    expect(review.opportunityIntelligence.itResearch.recruiting.jobs[0]).toMatchObject({
+      title: "Registered Nurse", location: "Houston, TX", status: "unknown",
+      sourceURL: "https://www.riversidemedical.com/careers/nurse",
+    });
+    expect(review.opportunityIntelligence.itResearch.recruiting.automationSuppressed).toBe(true);
   });
   it("reports research failure instead of pretending strict filters found no employers", async () => {
     const { res } = await search({ industries: ["Healthcare"], serviceMatchOnly: false, jobTitles: "Nurse" });
     expect(res.status).toHaveBeenCalledWith(502);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      error: expect.stringMatching(/Found 1 businesses/),
+      error: expect.stringMatching(/Found 1 employers from published job openings/),
       discoveredCount: 1, researchFailures: 1,
       activeFilters: ["Job titles: Nurse"],
       discoveredLeads: [expect.objectContaining({
@@ -512,6 +543,83 @@ describe("recruiting search research failures", () => {
     const { res } = await search({ industries: ["Healthcare"], serviceMatchOnly: false }, []);
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith([]);
+  });
+  it("does not research businesses when the job-first search found no eligible employers", async () => {
+    vi.mocked(researchItOpportunityIntelligence).mockClear();
+    await search({}, []);
+    expect(researchItOpportunityIntelligence).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("rejects recruiting contact lookup without signed qualifying research before calling Apollo", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: () => ({ where: async () => [{ id: "client-1", vertical: "recruiting_staffing" }] }),
+    } as any);
+    const handler = (aiRouter as any).stack.find((layer: any) =>
+      layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() };
+    await handler({ clientId: "client-1", body: { leads: [{
+      companyName: "Unverified Employer", email: "contact@unverified.invalid",
+      industry: "Healthcare", city: "Austin", state: "TX",
+    }] } }, res);
+    expect(enrichPerson).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      results: [expect.objectContaining({ status: "failed", error: expect.stringMatching(/lookup skipped/) })],
+    }));
+  });
+  it("returns qualified hiring employers and allows contact lookup only after signed employer research", async () => {
+    const offering = "Direct-hire nursing recruitment";
+    const source = "https://www.riversidemedical.com/careers/nurse";
+    const job = { employer: PLACE.displayName!.text!, title: "Registered Nurse", location: "Houston, TX",
+      status: "active", sourceURL: source, evidence: "Hiring a Registered Nurse in Houston, TX." };
+    const seller = { sellerIntelligenceProfile: {
+      status: "ready", websiteAnalysisStatus: "ready", sellerCompanyName: "QA Recruiting",
+      sellerServices: [offering], userOverrides: { sellerServices: [offering] },
+      sellerProducts: [], sellerCapabilities: [], sellerDifferentiators: [], sellerCertifications: [],
+      sellerIndustriesServed: ["Healthcare"], sellerBusinessOutcomes: [], sellerProblemsSolved: [],
+      sellerProofPoints: [], sellerPortfolioExamples: [], sellerValuePropositions: [], sellerCTAs: [],
+    } };
+    const { res } = await search({ jobTitles: "Nurse" }, [PLACE], {
+      signals: [], itResearch: {
+        sellerVertical: "recruiting_staffing", selectedIndustry: "Healthcare", actualIndustry: "Healthcare",
+        industryRelationship: "match", industryExplanation: "Healthcare employer", industrySources: [],
+        lastResearched: new Date().toISOString(), warnings: [], industryChallenges: [], prospectConcerns: [],
+        recommendations: [{ concernId: "nurse", prospectConcern: "Nurse vacancy", offering,
+          howItHelps: "Recruit nurses", businessValue: "Staff coverage", outreachAngle: "Discuss the vacancy",
+          discoveryQuestion: "Do you use outside recruiters?", sellerEvidence: { availability: "user_approved", sources: [] } }],
+        recruiting: parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [job] }, {
+          companyName: job.employer, allowedSourceUrls: [source], identityVerified: true,
+        }),
+      },
+    }, seller);
+    expect(res.status).not.toHaveBeenCalled();
+    const leads = res.json.mock.calls[0][0];
+    expect(leads).toHaveLength(1);
+    expect(leads[0].opportunityIntelligence.researchProof).toEqual(expect.any(String));
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: false, error: "No contact found", planBlocked: false } as any);
+    const contactResponse = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() };
+    const handler = (aiRouter as any).stack.find((layer: any) =>
+      layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
+    await handler({ clientId: "client-1", body: { leads } }, contactResponse);
+    expect(enrichPerson).toHaveBeenCalledTimes(1);
+    const report = leads[0].opportunityIntelligence.itResearch;
+    const { res: mixedLocations } = await search({ minRelevantJobs: 2 }, [PLACE], {
+      signals: [], itResearch: {
+        ...report, recruiting: {
+          ...report.recruiting,
+          jobs: [...report.recruiting.jobs, { ...report.recruiting.jobs[0], id: "dallas-opening", location: "Dallas, TX" }],
+        },
+      },
+    }, seller);
+    expect(mixedLocations.status).toHaveBeenCalledWith(422);
+    expect(enrichPerson).toHaveBeenCalledTimes(1);
+    const { res: unmatchedServices } = await search({ serviceMatchOnly: false }, [PLACE], {
+      signals: [], itResearch: { ...report, recommendations: [] },
+    }, seller);
+    expect(unmatchedServices.status).not.toHaveBeenCalled();
+    const unmatchedLeads = unmatchedServices.json.mock.calls[0][0];
+    expect(unmatchedLeads).toHaveLength(1);
+    await handler({ clientId: "client-1", body: { leads: unmatchedLeads } }, contactResponse);
+    expect(enrichPerson).toHaveBeenCalledTimes(1);
   });
   it("does not mistake industries, radius, or disabled/default controls for evidence requirements", () => {
     expect(requiresRecruitingResearch({ industries: ["Healthcare"], radiusMiles: 25, serviceMatchOnly: false, confidence: "any", signalType: "any", minRelevantJobs: 0 })).toBe(false);

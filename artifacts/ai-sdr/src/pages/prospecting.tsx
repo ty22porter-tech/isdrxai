@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { addToAutopilotProspectSelection, clearAutopilotProspectSelection } from "@/lib/autopilot-prospect-selection";
 import { RecruitingFiltersPanel } from "@/components/recruiting-filters-panel";
+import { recruitingContactEligible } from "@/lib/recruitingContactEligibility";
 import { loadRecruitingFilters, saveRecruitingFilters, clearRecruitingFilters, toRecruitingFiltersPayload, recruitingIndustryParam, type RecruitingFilterState } from "@/lib/recruiting";
 import { Loader2, Search, UserPlus, Check, Building2, Phone, Mail, MapPin, Users, SquareStack, AlertCircle, RefreshCw, X, RotateCcw, Gift } from "lucide-react";
 
@@ -345,6 +346,7 @@ export default function Prospecting() {
   // placeholders before the user adds anything to the pipeline. Leads where no
   // contact is found are flagged explicitly rather than left looking real.
   const runEnrichment = (rows: { lead: ProspectLead; index: number }[]) => {
+    if (isRecruiting) rows = rows.filter(({ lead }) => recruitingContactEligible(lead));
     if (!rows.length) return;
     const searchRunId = searchRunIdRef.current;
     const tokens = new Map(rows.map(({ index }) => {
@@ -1158,12 +1160,14 @@ export default function Prospecting() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Search Parameters</CardTitle>
-            <p className="text-xs text-muted-foreground">Seller vertical: {verticalLabel} · select a separate Prospect Industry to describe your target businesses.</p>
+            <p className="text-xs text-muted-foreground">{isRecruiting
+              ? "Jobs first → hiring filters → employer research and service fit → eligible contact lookup. Public-source coverage is limited; not every job board is searched."
+              : `Seller vertical: ${verticalLabel} · select a separate Prospect Industry to describe your target businesses.`}</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
-                <Label>City</Label>
+                <Label>{isRecruiting ? "Job search city" : "City"}</Label>
                 <Input
                   placeholder="e.g. Chicago"
                   value={city}
@@ -1172,7 +1176,7 @@ export default function Prospecting() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>State</Label>
+                <Label>{isRecruiting ? "Job search state" : "State"}</Label>
                 <Select value={state} onValueChange={setState}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select state" />
@@ -1359,7 +1363,9 @@ export default function Prospecting() {
         {searchMutation.isPending && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground text-sm">Building your {verticalLabel} prospect list…</p>
+            <p className="text-muted-foreground text-sm">{isRecruiting
+              ? "Searching published jobs, applying hiring filters, then researching eligible employers…"
+              : `Building your ${verticalLabel} prospect list…`}</p>
           </div>
         )}
 
@@ -1369,7 +1375,7 @@ export default function Prospecting() {
               <h3 className="font-semibold">No matching employers found</h3>
               <p className="text-sm text-muted-foreground">
                 {isRecruiting
-                  ? "No employers matched this location and all selected filters. Try a broader location or clear optional hiring filters. Uncheck “Only employers matching my confirmed services and specialties” to include employers whose service fit has not been confirmed."
+                  ? "No employers matched this job search area and all selected filters. Try a broader location or clear optional job filters. Job openings are searched first; contacts are looked up only after employer, hiring, agency-policy and service-fit checks pass."
                   : "No businesses matched this search. Try another location or industry."}
               </p>
             </CardContent>
@@ -1507,7 +1513,7 @@ export default function Prospecting() {
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span>{lead.city}, {lead.state}</span>
+                            <span>{isRecruiting ? "Job search area: " : ""}{lead.city}, {lead.state}</span>
                           </div>
                           {lead.estimatedEmployees != null && (
                             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -1627,13 +1633,16 @@ export default function Prospecting() {
                         </Button>
                         {!added.has(idx) && isPlaceholderEmail(lead.email) && enrichment.get(idx) !== "pending" && (
                           <Button size="sm" variant="outline" data-testid={`button-retry-contact-lookup-${idx}`}
+                            disabled={isRecruiting && !recruitingContactEligible(lead)}
                             onClick={() => retryContactLookup(lead, idx)}>
                             <RefreshCw className="mr-1.5 h-4 w-4" /> Retry contact lookup
                           </Button>
                         )}
                         {!added.has(idx) && isPlaceholderEmail(lead.email) && (
                           <p className="max-w-36 text-xs text-amber-700" data-testid={`status-contact-unresolved-${idx}`}>
-                            Retry contact lookup before adding.
+                            {isRecruiting && !recruitingContactEligible(lead)
+                              ? "Contact lookup blocked until hiring, employer and service-fit checks pass. Refresh research or run a new search."
+                              : "Retry contact lookup before adding."}
                           </p>
                         )}
                         {added.has(idx) ? (
