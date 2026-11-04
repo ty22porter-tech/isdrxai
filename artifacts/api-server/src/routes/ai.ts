@@ -557,7 +557,13 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
         discoveredLeads,
       });
     }
-    return res.json(results);
+    // A partial success must not hide sourced jobs whose employer research
+    // failed. Keep them explicitly review-only and outside automatic enrichment.
+    const pendingReview = recruiting ? leads.filter(lead => !results.includes(lead)
+      && lead.opportunityIntelligence?.itResearch?.recruiting?.jobs.some((job: any) => job.status === "unknown")
+      && filterRecruitingOpportunity(lead.opportunityIntelligence, undefined, lead))
+      .map(lead => ({ ...lead, outsideSelectedFilters: true })) : [];
+    return res.json([...results, ...pendingReview]);
   } catch (err) {
     if (err instanceof RecruitingJobSearchError) return res.status(502).json({ error: err.message });
     if (err instanceof ProspectSearchError) {

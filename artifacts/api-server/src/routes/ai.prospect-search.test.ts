@@ -620,6 +620,32 @@ describe("recruiting search research failures", () => {
     expect(unmatchedLeads).toHaveLength(1);
     await handler({ clientId: "client-1", body: { leads: unmatchedLeads } }, contactResponse);
     expect(enrichPerson).toHaveBeenCalledTimes(1);
+    const needsReviewSeller = { sellerIntelligenceProfile: {
+      ...seller.sellerIntelligenceProfile, status: "needs_review", websiteAnalysisStatus: "needs_review",
+      sellerServices: [], userOverrides: {},
+    } };
+    const { res: needsReview } = await search({ serviceMatchOnly: false }, [PLACE], {
+      signals: [], itResearch: { ...report, recommendations: [] },
+    }, needsReviewSeller);
+    expect(needsReview.status).not.toHaveBeenCalled();
+    expect(needsReview.json.mock.calls[0][0]).toHaveLength(1);
+    await handler({ clientId: "client-1", body: { leads: needsReview.json.mock.calls[0][0] } }, contactResponse);
+    expect(enrichPerson).toHaveBeenCalledTimes(1); // Discovery allowed, contact credits still protected.
+    vi.mocked(researchItOpportunityIntelligence)
+      .mockResolvedValueOnce({ signals: [], itResearch: report })
+      .mockRejectedValueOnce(new Error("Second employer verification unavailable"));
+    const secondPlace = { ...PLACE, displayName: { text: "Houston Pending Employer" }, websiteUri: "https://pending.example" };
+    const { res: partial } = await search({ serviceMatchOnly: false }, [PLACE, secondPlace], undefined, seller);
+    expect(partial.status).not.toHaveBeenCalled();
+    const partialRows = partial.json.mock.calls[0][0];
+    expect(partialRows).toHaveLength(2);
+    expect(partialRows[1]).toMatchObject({
+      companyName: "Houston Pending Employer", outsideSelectedFilters: true,
+      opportunityIntelligence: { itResearch: { recruiting: {
+        employerIdentity: "unverified", uniqueActiveJobs: 0,
+        jobs: [expect.objectContaining({ status: "unknown", title: "Registered Nurse", location: "Houston, TX" })],
+      } } },
+    });
   });
   it("does not mistake industries, radius, or disabled/default controls for evidence requirements", () => {
     expect(requiresRecruitingResearch({ industries: ["Healthcare"], radiusMiles: 25, serviceMatchOnly: false, confidence: "any", signalType: "any", minRelevantJobs: 0 })).toBe(false);

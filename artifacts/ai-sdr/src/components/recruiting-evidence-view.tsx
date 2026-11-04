@@ -32,8 +32,9 @@ export function RecruitingEvidenceView({
   const [jobsOpen, setJobsOpen] = useState(false);
   const [growthOpen, setGrowthOpen] = useState(false);
   const jobs = dedupeJobs(research.jobs ?? []);
-  const activeJobs = jobs.filter((j) => j.status !== "closed");
-  const closedJobs = jobs.length - activeJobs.length;
+  const activeJobs = jobs.filter((j) => j.status === "active");
+  const pendingJobs = jobs.filter((j) => j.status === "unknown");
+  const closedJobs = jobs.filter((j) => j.status === "closed").length;
   const growth = research.growthSignals ?? [];
   const coverage = research.coverage ?? [];
   const unavailable = coverage.filter((c) => c.status === "unavailable");
@@ -42,11 +43,25 @@ export function RecruitingEvidenceView({
   const summary = (
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <Badge variant="outline" data-testid="badge-unique-jobs">{research.uniqueActiveJobs ?? activeJobs.length} unique active openings</Badge>
+      {pendingJobs.length > 0 && <Badge variant="outline">{pendingJobs.length} sourced postings awaiting verification</Badge>}
       <Badge variant="outline" data-testid="badge-commercial-fit">Commercial fit: {research.commercialFit}</Badge>
       <Badge variant="outline" className="capitalize" data-testid="badge-evidence-confidence">Evidence confidence: {research.evidenceConfidence}</Badge>
       <Badge variant="outline" data-testid="badge-employer-identity">{IDENTITY_LABEL[research.employerIdentity] ?? research.employerIdentity}</Badge>
     </div>
   );
+
+  const pendingEvidence = pendingJobs.length ? (
+    <div className="rounded-md border p-3 text-xs space-y-2" data-testid="pending-job-evidence">
+      <p className="font-medium">Postings found — verification pending</p>
+      <p className="text-muted-foreground">These source links were found during job discovery. Current job status or employer verification is incomplete; this does not mean there are no openings. They do not qualify for automatic contact lookup.</p>
+      {pendingJobs.map(job => (
+        <div key={job.id}>
+          <a href={job.sourceURL} target="_blank" rel="noreferrer" className="text-primary hover:underline">{job.title} · {job.location} <ExternalLink className="inline h-3 w-3" /></a>
+          <p className="text-muted-foreground">Posting date: {fmt(job.postedAt) ?? "Unknown"} · Last checked: {fmt(job.lastVerifiedAt) ?? "Unknown"}</p>
+        </div>
+      ))}
+    </div>
+  ) : null;
 
   const suppression = research.automationSuppressed ? (
     <div className="rounded-md border border-amber-300 bg-amber-50/60 p-3 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-900/10 dark:text-amber-300" data-testid="status-automation-suppressed">
@@ -61,6 +76,12 @@ export function RecruitingEvidenceView({
     return (
       <div className="space-y-2" data-testid="section-recruiting-evidence-compact">
         {summary}
+        {activeJobs.length > 0 && (
+          <ul className="space-y-1 text-xs" data-testid="verified-job-links">
+            {activeJobs.map(job => <li key={job.id}><a href={job.sourceURL} target="_blank" rel="noreferrer" className="text-primary hover:underline">{job.title} · {job.location} <ExternalLink className="inline h-3 w-3" /></a></li>)}
+          </ul>
+        )}
+        {pendingEvidence}
         {suppression}
       </div>
     );
@@ -69,6 +90,7 @@ export function RecruitingEvidenceView({
   return (
     <section className="space-y-3" data-testid="section-recruiting-evidence">
       {summary}
+      {pendingEvidence}
       <p className="text-xs text-muted-foreground">
         Commercial fit reflects match to your confirmed services, industries, and territory. Evidence confidence reflects how well the hiring signals are verified. An active posting does not prove the employer wants an external recruiter.
       </p>
@@ -86,12 +108,12 @@ export function RecruitingEvidenceView({
         </button>
         {jobsOpen && (
           <ul className="divide-y border-t">
-            {jobs.length === 0 && <li className="p-3 text-xs text-muted-foreground">No relevant job postings found in connected sources.</li>}
+            {jobs.length === 0 && <li className="p-3 text-xs text-muted-foreground">No citable job postings were retained by this research run. This does not establish that the employer has no openings.</li>}
             {jobs.map((job) => (
               <li key={job.id} className={`space-y-1 p-3 text-xs ${job.status === "closed" ? "opacity-60" : ""}`} data-testid={`row-job-${job.id}`}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-foreground">{job.title}</span>
-                  <Badge variant="outline" className="capitalize">{job.status}</Badge>
+                  <Badge variant="outline" className="capitalize">{job.status === "unknown" ? "Verification pending" : job.status}</Badge>
                   {job.urgent && <Badge variant="outline" className="border-amber-300 text-amber-700">Explicitly urgent</Badge>}
                   {job.verifiedReposting && <Badge variant="outline">Verified reposting</Badge>}
                   {job.noAgencies && <Badge variant="outline" className="border-destructive/40 text-destructive">No agencies</Badge>}
@@ -107,7 +129,7 @@ export function RecruitingEvidenceView({
                   {job.hiringQuantity != null && <span>Stated openings: {job.hiringQuantity}</span>}
                 </p>
                 <p className="text-muted-foreground">
-                  {postingAgeLabel(job.postedAt)} · First seen {fmt(job.firstSeenAt) ?? "unknown"} · Last verified {fmt(job.lastVerifiedAt) ?? "unknown"}
+                  {postingAgeLabel(job.postedAt)} · First seen {fmt(job.firstSeenAt) ?? "unknown"} · {job.status === "unknown" ? "Last checked" : "Last verified"} {fmt(job.lastVerifiedAt) ?? "unknown"}
                   {job.requisitionId ? ` · Req ${job.requisitionId}` : ""}
                 </p>
                 {job.evidence && <p className="text-foreground/80">{job.evidence}</p>}

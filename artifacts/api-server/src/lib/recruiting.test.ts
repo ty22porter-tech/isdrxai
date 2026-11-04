@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ItResearch, usersTable, prospectsTable } from "@workspace/db";
-import { parseRecruitingResearch, recruitingAutomationBlocked, RECRUITING_INDUSTRIES } from "./recruitingResearch";
+import { parseRecruitingResearch, preserveDiscoveredHiring, recruitingAutomationBlocked, RECRUITING_INDUSTRIES } from "./recruitingResearch";
 import { buildRecruitingOpportunity } from "./recruitingOpportunity";
 import { filterRecruitingOpportunity, distanceMiles } from "./recruitingFilters";
 import { recruitingPreMeetingBrief, recruitingQualificationSchema } from "./recruitingQualification";
@@ -52,6 +52,32 @@ const lead = {
   contactTitle: "HR Director", employeeCount: 100,
 };
 describe("Recruiting & Staffing industry", () => {
+  it("retains a Houston posting omitted by completed research as unknown, not verified active", () => {
+    const discovered = parse().jobs;
+    const incomplete = parse({ employerIdentity: "unverified", jobs: [] });
+    const result = preserveDiscoveredHiring(incomplete, discovered, "Acme Manufacturing");
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0]).toMatchObject({ title: job.title, location: "Houston, TX", sourceURL: url, status: "unknown" });
+    expect(result.uniqueActiveJobs).toBe(0);
+    expect(result.employerIdentity).toBe("unverified");
+    expect(result.automationSuppressed).toBe(true);
+  });
+  it("does not overwrite verified active or closed dispositions with discovery copies", () => {
+    const discovered = parse().jobs;
+    expect(preserveDiscoveredHiring(parse(), discovered, "Acme Manufacturing").uniqueActiveJobs).toBe(1);
+    const closed = parse({ jobs: [{ ...job, status: "closed" }] });
+    const result = preserveDiscoveredHiring(closed, discovered, "Acme Manufacturing");
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0].status).toBe("closed");
+    expect(result.uniqueActiveJobs).toBe(0);
+  });
+  it("preserves discovery agency restrictions but rejects another employer's posting", () => {
+    const discovered = parse({ jobs: [{ ...job, agencyPolicyEvidence: "No agencies please" }] }).jobs;
+    const result = preserveDiscoveredHiring(parse(), discovered, "Acme Manufacturing");
+    expect(result.jobs[0].noAgencies).toBe(true);
+    expect(result.automationSuppressed).toBe(true);
+    expect(preserveDiscoveredHiring(parse({ jobs: [] }), discovered, "Unrelated Employer").jobs).toEqual([]);
+  });
   it("is a first-class vertical and exposes exactly seven employer industries", () => {
     expect(normalizeVertical("recruiting_staffing")).toBe("recruiting_staffing");
     expect(getVerticalConfig("recruiting_staffing").label).toBe("Recruiting & Staffing");

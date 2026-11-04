@@ -94,6 +94,31 @@ const response = {
 };
 
 describe("IT opportunity research", () => {
+  it("accepts provider citation annotations when action.sources omits the official website", () => {
+    const cited = structuredClone(response);
+    (cited.output[0] as any).action.sources = [];
+    (cited.output[1] as any).content[0].annotations = [{
+      type: "url_citation", url: "https://example.com/company-news", title: "Official company announcement",
+    }];
+    const parsed = parseItOpportunityResearchResponse(cited, {
+      selectedIndustry: "Manufacturing", companyName: "Example Health", website: "https://example.com",
+    }, seller);
+    expect(parsed?.industryRelationship).toBe("mismatch");
+    expect(parsed?.industrySources[0].url).toBe("https://example.com/company-news");
+    (cited.output[0] as any).status = "failed";
+    expect(parseItOpportunityResearchResponse(cited, {
+      selectedIndustry: "Manufacturing", website: "https://example.com",
+    }, seller)).toBeUndefined();
+  });
+  it("does not discard official identity evidence after twenty unrelated search results", () => {
+    const many = structuredClone(response);
+    (many.output[0] as any).action.sources.unshift(...Array.from({ length: 25 }, (_, i) => ({
+      url: `https://unrelated.example/page-${i}`, title: "Unrelated result",
+    })));
+    expect(parseItOpportunityResearchResponse(many, {
+      selectedIndustry: "Manufacturing", website: "https://example.com",
+    }, seller)?.industryRelationship).toBe("mismatch");
+  });
   it("uses source-backed research offerings even when narrative depth leaves the profile needing review", () => {
     const needsReviewSeller = {
       ...seller,

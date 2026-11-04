@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { ItResearch } from "@workspace/api-client-react";
 import { ITResearchView } from "./it-research-view";
+import { RecruitingEvidenceView } from "./recruiting-evidence-view";
 
 const research = {
   selectedIndustry: "Manufacturing",
@@ -30,6 +31,22 @@ const research = {
 } as unknown as ItResearch;
 
 describe("recruiting research view", () => {
+  it("shows pending Houston posting links directly on compact cards without counting them as active", () => {
+    const pending = structuredClone(research.recruiting!);
+    pending.jobs = [{ ...pending.jobs[0], status: "unknown" }];
+    pending.uniqueActiveJobs = 0;
+    pending.employerIdentity = "unverified";
+    render(<RecruitingEvidenceView research={pending} compact />);
+    expect(screen.getByTestId("badge-unique-jobs").textContent).toContain("0 unique active");
+    expect(screen.getByText("1 sourced postings awaiting verification")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Software Developer.*Houston/ }).getAttribute("href")).toBe("https://jobs.example/1");
+    expect(screen.getByText(/does not mean there are no openings/)).toBeTruthy();
+  });
+  it("shows verified title and source without expanding full research", () => {
+    render(<RecruitingEvidenceView research={research.recruiting!} compact />);
+    expect(screen.getByTestId("verified-job-links").textContent).toContain("Software Developer");
+    expect(screen.getByRole("link", { name: /Software Developer.*Houston/ }).getAttribute("href")).toBe("https://jobs.example/1");
+  });
   it("renders exact headings, separate fit/confidence, coverage, suppression, deduped jobs", () => {
     render(<ITResearchView research={research} sellerVertical="recruiting_staffing" />);
     expect(screen.getByText("Industry Hiring Challenges")).toBeTruthy();

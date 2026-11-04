@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { discoverHiringEmployers, eligibleHiringResearch, parseHiringEmployers, sameJobLocation } from "./recruitingJobDiscovery";
+import { discoverHiringEmployers, eligibleHiringResearch, employerWebsite, parseHiringEmployers, sameJobLocation } from "./recruitingJobDiscovery";
 import { parseRecruitingResearch } from "./recruitingResearch";
 
 const url = "https://careers.example.com/jobs/123";
@@ -16,6 +16,58 @@ const payload = (employers: unknown[], sources = [url]) => ({ output: [
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("jobs-first discovery", () => {
+  it.each(["https://jobs.lever.co/servicewire", "https://job-boards.greenhouse.io/metoxinternationalinc",
+    "https://tenant.wd1.myworkdayjobs.com/careers", "https://www.indeed.com/jobs",
+    "https://tenant.fa.us6.oraclecloud.com/careers"])("never assigns a shared hiring platform as the employer domain: %s", website => {
+    expect(employerWebsite(website)).toBeUndefined();
+    expect(parseHiringEmployers(payload([{ ...employer, website }]), search)[0].website).toBeUndefined();
+  });
+  it("resolves missing employer websites through a separate cited official-domain search", async () => {
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_BASE_URL", "https://proxy.example");
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_API_KEY", "test-only");
+    const resolution = {
+      output: [
+        { type: "web_search_call", status: "completed", action: { sources: [{ url: "https://example.com/about" }] } },
+        { type: "message", content: [{ type: "output_text", text: JSON.stringify({
+          employers: [{ companyName: job.employer, website: "https://example.com", sourceURL: "https://example.com/about" }],
+        }) }] },
+      ],
+    };
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => payload([{ ...employer, website: "https://jobs.lever.co/example" }]) })
+      .mockResolvedValueOnce({ ok: true, json: async () => resolution });
+    vi.stubGlobal("fetch", fetcher);
+    const found = await discoverHiringEmployers(search);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(found[0].website).toBe("https://example.com");
+    expect(found[0].jobs[0].sourceURL).toBe(url);
+  });
+  it("keeps postings with no employer domain when website resolution fails instead of guessing", async () => {
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_BASE_URL", "https://proxy.example");
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_API_KEY", "test-only");
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => payload([{ ...employer, website: "https://jobs.lever.co/example" }]) })
+      .mockResolvedValueOnce({ ok: false, status: 503 }));
+    const found = await discoverHiringEmployers(search);
+    expect(found).toHaveLength(1);
+    expect(found[0].website).toBeUndefined();
+    expect(found[0].jobs).toHaveLength(1);
+  });
+  it("rejects uncited or platform-hosted domain resolutions", async () => {
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_BASE_URL", "https://proxy.example");
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_API_KEY", "test-only");
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => payload([{ ...employer, website: null }]) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        output: [
+          { type: "web_search_call", status: "completed", action: { sources: [{ url }] } },
+          { type: "message", content: [{ type: "output_text", text: JSON.stringify({
+            employers: [{ companyName: job.employer, website: "https://invented.example", sourceURL: "https://invented.example/about" }],
+          }) }] },
+        ],
+      }) }));
+    expect((await discoverHiringEmployers(search))[0].website).toBeUndefined();
+  });
   it("preserves radius qualification across equivalent location spelling", () => {
     expect(sameJobLocation("Austin, Texas", "Austin TX")).toBe(true);
     expect(sameJobLocation("Charleston, West Virginia", "Charleston WV")).toBe(true);

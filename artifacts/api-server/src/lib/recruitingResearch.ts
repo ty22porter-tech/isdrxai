@@ -94,6 +94,31 @@ export function deduplicateRecruitingJobs(jobs: RecruitingJob[]): RecruitingJob[
   return results;
 }
 
+/** Preserve trusted discovery evidence without promoting it to verified hiring.
+ * A successful-but-incomplete research response must not erase sourced jobs.
+ */
+export function preserveDiscoveredHiring(
+  research: RecruitingResearch,
+  discovered: RecruitingJob[],
+  companyName: string,
+): RecruitingResearch {
+  const pending = discovered.filter(job => identity(job.employer) === identity(companyName))
+    .map(job => ({ ...job, status: "unknown" as const }));
+  // Verified dispositions come first, so an unknown discovery copy cannot
+  // overwrite a verified active/closed result. Deduplication preserves policies.
+  const jobs = deduplicateRecruitingJobs([...research.jobs, ...pending]);
+  const restricted = jobs.some(job => job.noAgencies && job.status !== "closed");
+  return {
+    ...research, jobs,
+    uniqueActiveJobs: jobs.filter(job => job.status === "active").length,
+    automationSuppressed: research.automationSuppressed || restricted,
+    suppressionReasons: restricted
+      ? [...new Set([...research.suppressionReasons,
+          "A sourced opportunity explicitly says no agencies or no unsolicited resumes. Automated pitches are paused pending review."])]
+      : research.suppressionReasons,
+  };
+}
+
 export function parseRecruitingResearch(
   raw: any,
   options: {

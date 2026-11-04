@@ -21,6 +21,18 @@ Employers and preliminary postings found through job discovery should remain exp
 
 **How to apply:** Offer discovery-only review without automatic contact-credit spending, preserving preliminary posting titles, locations and sources as unverified. Evidence-dependent filters must still exclude unknown matches. Keep research failures distinct from genuine empty results, and never fall back silently to business-directory results.
 
+Do not confuse a shared ATS/job-board domain with the hiring employer's own domain. Preserve sourced postings even when completed company research omits them, and treat broad employer sectors as parent categories rather than exact niche names.
+
+**Why:** Houston testing found accessible job ads rejected because job-platform hostnames were supplied as company websites. Research also incorrectly treated advanced-materials manufacturing as outside Manufacturing. These are identity/taxonomy failures, not evidence that no jobs exist.
+
+**How to apply:** Resolve missing official employer websites with independent citations instead of weakening identity checks. Retain omitted postings as verification-pending, never silently promote them to active. A service-profile review must not prevent broad job discovery when service-match filtering is off.
+
+Published job status and employer identity are separate checks. Where an authorized public posting endpoint exists, prefer its current structured posting data over an AI model's inability to re-cite the original ad.
+
+**Why:** A Houston employer passed identity and industry checks but every sourced job remained unknown until its published ATS record was checked directly. More AI searches alone did not resolve the status gap.
+
+**How to apply:** Verify the employer first, use bounded requests to supported public posting endpoints, preserve agency restrictions, and leave unavailable sources pending rather than declaring jobs closed. ATS update timestamps are not job posting dates.
+
 Recruiting search verification must cover both approved and Needs Review seller profiles.
 
 **Why:** A ready QA seller can receive service matches while an unreviewed tenant receives none for the same location. A successful QA search alone does not validate the user's approval-dependent path.
