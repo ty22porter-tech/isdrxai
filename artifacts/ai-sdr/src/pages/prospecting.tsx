@@ -1526,7 +1526,8 @@ export default function Prospecting() {
                             <span className="truncate" data-testid={`text-contact-email-${idx}`}>
                               {isPlaceholderEmail(lead.email)
                                 ? enrichment.get(idx) === "pending" ? "Looking up email" :
-                                  enrichment.get(idx) === "failed" ? "Lookup failed" : "Email not found"
+                                  enrichment.get(idx) === "failed" ? "Lookup failed" :
+                                    enrichment.get(idx) === "not_found" ? "Email not found" : "Contact lookup not performed"
                                 : lead.email}
                             </span>
                           </div>

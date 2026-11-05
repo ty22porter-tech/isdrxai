@@ -37,6 +37,11 @@ export const RECRUITING_RESEARCH_INSTRUCTIONS = `
 RECRUITING & STAFFING EMPLOYER RESEARCH:
 The seller is a recruiter selling only its approved services to employers, never candidates.
 Keep the employer's industry separate from role families: a developer at a manufacturer is Manufacturing.
+Engineering is a broad employer category including engineering consultancies, design/build firms,
+and multidisciplinary building, infrastructure, construction or energy-services firms whose own
+cited offerings include engineering. It is not limited to engineering product companies.
+An engineering job title alone does not place a real-estate, finance or unrelated employer in Engineering.
+Determine employer identity independently from whether its industry matches the selected filter.
 Search public employer careers pages, accessible ATS listings, general and industry job boards,
 plus company/news announcements. Do not claim exhaustive coverage or access to licensed databases.
 Exclude agencies advertising unnamed clients; never identify the agency as the hiring employer.

@@ -826,9 +826,31 @@ ${sellerVertical === "recruiting_staffing" ? '  "recruiting": {"employerIdentity
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) throw new Error(`Web research returned HTTP ${response.status}`);
+    if (!response.ok) {
+      const detail = response.status === 429 ? "was rate-limited (HTTP 429); retry after the provider limit resets"
+        : response.status === 401 || response.status === 403
+          ? `was denied access (HTTP ${response.status}); check the research integration credentials and permissions`
+          : response.status >= 500 ? `is temporarily unavailable (HTTP ${response.status}); retry later`
+          : `was rejected by the research service (HTTP ${response.status})`;
+      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research ${detail}. Existing saved intelligence was not changed.`);
+    }
     payload = await response.json();
-  } catch {
+    if (payload?.status === "incomplete") {
+      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research returned an incomplete response${
+        payload.incomplete_details?.reason === "max_output_tokens" ? " because it reached the response-length limit" : ""
+      }. Existing saved intelligence was not changed.`);
+    }
+  } catch (err) {
+    if (err instanceof ItOpportunityResearchError) throw err;
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research timed out. Retry research. Existing saved intelligence was not changed.`);
+    }
+    if (err instanceof TypeError) {
+      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research could not reach the configured research service. Check integration connectivity and retry. Existing saved intelligence was not changed.`);
+    }
+    if (err instanceof SyntaxError) {
+      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research returned an unreadable response. Retry research. Existing saved intelligence was not changed.`);
+    }
     throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research could not be completed. Existing saved intelligence was not changed.`);
   }
    const report = parseItOpportunityResearchResponse(payload, {
@@ -848,7 +870,9 @@ ${sellerVertical === "recruiting_staffing" ? '  "recruiting": {"employerIdentity
       companyName,
       website: options.lead.website,
       allowedSourceUrls: [...webSearchSources(payload, options.lead).map(source => source.url), ...officialSources.map(source => source.url)],
-      identityVerified: report.industrySources.length > 0 && report.industryRelationship === "match",
+      // A known employer can be outside the selected industry. Preserve that
+      // distinction; industry eligibility is enforced separately before lookup.
+      identityVerified: hasExactDomainIdentity(report.industrySources, options.lead.website),
       prior: options.priorRecruiting || priorCached?.itResearch.recruiting,
     });
     report.recruiting = preserveDiscoveredHiring(report.recruiting, discoveredHiring, companyName);

@@ -217,6 +217,7 @@ describe("prospect search count", () => {
     expect(screen.getByText("Development-only employer fixture")).toBeInTheDocument();
     expect(screen.getByText(/Automatic contact lookup was skipped/)).toBeInTheDocument();
     expect(screen.getByText("Research error: Research timed out.")).toBeInTheDocument();
+    expect(screen.getByText("Contact lookup not performed")).toBeInTheDocument();
     expect(screen.getByText("Hiring fit unverified")).toBeInTheDocument();
     expect(enrich).not.toHaveBeenCalled();
   });
