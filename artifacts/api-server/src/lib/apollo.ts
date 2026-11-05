@@ -209,12 +209,22 @@ export function extractPersonFromApolloData(p: any): ApolloEnrichment {
       ? p.contact.email_addresses.map((address: any) => usableEmail(address?.email)).find(Boolean) ?? null
       : null);
 
-  const phone =
-    p.contact?.sanitized_phone ||
-    p.sanitized_phone ||
-    org.sanitized_phone ||
-    org.phone ||
-    null;
+  // People enrichment can return direct numbers in phone_numbers rather
+  // than sanitized_phone. Prefer a person's number to the company switchboard.
+  const phoneNumbers = (value: unknown): unknown[] => Array.isArray(value)
+    ? value.flatMap(number => [number?.sanitized_number, number?.raw_number])
+    : [];
+  const phone = [
+    p.contact?.sanitized_phone,
+    p.sanitized_phone,
+    ...phoneNumbers(p.contact?.phone_numbers),
+    ...phoneNumbers(p.phone_numbers),
+    org.sanitized_phone,
+    org.primary_phone?.sanitized_number,
+    org.primary_phone?.number,
+    org.phone,
+  ].find((value): value is string => typeof value === "string" && Boolean(value.trim()))
+    ?.trim() ?? null;
   const organizationDescription = [org.short_description, org.seo_description, org.description]
     .find((value) => typeof value === "string" && value.trim().length >= 30)
     ?.replace(/\s+/g, " ")

@@ -891,6 +891,10 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
       client,
       force: true,
       priorRecruiting: savedProspect?.opportunityIntelligence?.itResearch?.recruiting,
+      // Client-supplied postings are discovery hints only. The research pipeline
+      // must independently verify their employer, current status and citations.
+      ...(sellerVertical === "recruiting_staffing" && body.discoveredHiring?.length
+        ? { discoveredHiring: body.discoveredHiring } : {}),
     }).then(result => {
       req.log.info({ durationMs: Date.now() - opportunityResearchStartedAt, sellerVertical }, "Opportunity refresh web research phase completed");
       return result;
@@ -923,7 +927,23 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
         .returning({ id: prospectsTable.id });
       if (!updated) return res.status(404).json({ error: "Prospect not found." });
     }
-    return res.json({ opportunityIntelligence });
+    // Recheck the original filters instead of retaining a stale review-only
+    // flag after successful research. Radius needs a new geocoded job search;
+    // do not clear that flag from client-supplied posting locations alone.
+    const context = body.searchContext;
+    let outsideSelectedFilters: boolean | undefined;
+    if (sellerVertical === "recruiting_staffing" && context && !context.recruitingFilters?.radiusMiles) {
+      const filters = context.recruitingFilters;
+      const minimum = Math.max(1, filters?.minRelevantJobs ?? 1);
+      outsideSelectedFilters = !(filterRecruitingOpportunity(opportunityIntelligence, {
+        ...filters, minRelevantJobs: minimum,
+      }, lead) && opportunityIntelligence.itResearch?.industryRelationship === "match"
+        && (opportunityIntelligence.itResearch.recruiting?.jobs.filter(job =>
+          matchesHiringJob(job, filters) && jobInSearchArea(job, context)).length ?? 0) >= minimum);
+    }
+    return res.json({ opportunityIntelligence,
+      ...(outsideSelectedFilters !== undefined ? { outsideSelectedFilters } : {}),
+    });
   } catch (err) {
     const timedOut = err instanceof ItOpportunityResearchTimeoutError;
     req.log.warn({ err, timedOut, sellerVertical }, "Opportunity intelligence refresh failed");

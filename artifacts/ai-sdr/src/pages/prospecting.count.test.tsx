@@ -3,9 +3,10 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { search, enrich, resultState } = vi.hoisted(() => ({
+const { search, enrich, refresh, resultState } = vi.hoisted(() => ({
   search: vi.fn(),
   enrich: vi.fn(() => new Promise(() => {})),
+  refresh: vi.fn(() => new Promise(() => {})),
   resultState: { isSuccess: false, isError: false, error: null as Error | null },
 }));
 vi.mock("wouter", () => ({ useLocation: () => ["/prospecting", vi.fn()] }));
@@ -30,7 +31,7 @@ vi.mock("@workspace/api-client-react", () => ({
   useCreateProspect: () => ({ mutate: vi.fn(), isPending: false }),
   useBulkCreateProspects: () => ({ mutateAsync: vi.fn() }),
   useEnrichLeads: () => ({ mutateAsync: enrich, isPending: false }),
-  useRefreshOpportunityIntelligence: () => ({ mutate: vi.fn(), isPending: false }),
+  useRefreshOpportunityIntelligence: () => ({ mutateAsync: refresh, isPending: false }),
   getListProspectsQueryKey: () => ["prospects"],
   getListProspectsQueryOptions: () => ({ queryKey: ["prospects"], queryFn: async () => [] }),
 }));
@@ -40,6 +41,8 @@ import Prospecting from "./prospecting";
 beforeEach(() => {
   search.mockClear();
   enrich.mockClear();
+  refresh.mockClear();
+  refresh.mockImplementation(() => new Promise(() => {}));
   resultState.isSuccess = false;
   resultState.isError = false;
   resultState.error = null;
@@ -113,6 +116,60 @@ describe("prospect search count", () => {
     expect(search).not.toHaveBeenCalled();
     expect(enrich).not.toHaveBeenCalled();
   });
+
+  it("retains postings and enables manual contact lookup after a verified refresh passes the original filters", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      businessName: "Synthetic Recruiter", vertical: "recruiting_staffing",
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><Prospecting /></QueryClientProvider>);
+    fireEvent.click(await screen.findByRole("button", { name: "Manufacturing" }));
+    fireEvent.change(screen.getByPlaceholderText("e.g. Chicago"), { target: { value: "Dallas" } });
+    fireEvent.change(screen.getByRole("option", { name: "TX" }).closest("select")!, { target: { value: "TX" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: /Only employers matching/ }));
+    const generate = screen.getByRole("button", { name: /Generate Leads/i });
+    await waitFor(() => expect(generate).not.toBeDisabled());
+    fireEvent.click(generate);
+    await waitFor(() => expect(search).toHaveBeenCalled());
+    const posting = { id: "engineer", title: "Manufacturing Engineer", employer: "Synthetic Employer", location: "Dallas, TX",
+      sourceURL: "https://example.com/careers/engineer", status: "unknown", noAgencies: false };
+    act(() => search.mock.calls[0][1].onSuccess([{
+      companyName: "Synthetic Employer", contactName: "Owner", contactTitle: "Pending verification",
+      email: "fixture@contact.invalid", city: "Dallas", state: "TX", industry: "Manufacturing",
+      vertical: "recruiting_staffing", researchError: "Research timed out.",
+      outsideSelectedFilters: true,
+      opportunityScore: 0, scoreLabel: "Research unavailable",
+      opportunityIntelligence: { score: 0, label: "Research unavailable", signals: [], itResearch: {
+        sellerVertical: "recruiting_staffing", industryChallenges: [], prospectConcerns: [], recommendations: [],
+        warnings: [], industrySources: [], recruiting: { jobs: [posting], growthSignals: [],
+          employerIdentity: "unverified", automationSuppressed: true, suppressionReasons: [],
+          commercialFit: 0, uniqueActiveJobs: 0, sourceCoverage: [] },
+      } },
+    }]));
+    expect(screen.getByTestId("button-retry-contact-lookup-0")).toBeDisabled();
+    refresh.mockResolvedValueOnce({ outsideSelectedFilters: false, opportunityIntelligence: {
+      score: 40, label: "Possible Fit", signals: [], itResearch: {
+        sellerVertical: "recruiting_staffing", industryRelationship: "match", industryChallenges: [],
+        prospectConcerns: [], industrySources: [], warnings: [], recommendations: [{
+          concernId: "engineer", offering: "temp to hire", howItHelps: "Fill the engineering opening",
+          businessValue: "Production coverage", sellerEvidence: { availability: "user_approved", sources: [] },
+        }], recruiting: { jobs: [{ ...posting, status: "active" }], growthSignals: [],
+          employerIdentity: "confirmed", automationSuppressed: false, suppressionReasons: [],
+          commercialFit: 80, uniqueActiveJobs: 1, sourceCoverage: [] },
+      },
+    } });
+    fireEvent.click(screen.getByText("View Score Breakdown"));
+    fireEvent.click(screen.getAllByRole("button", { name: /Refresh Intelligence/i })[0]);
+    expect(refresh).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      discoveredHiring: [posting], selectedIndustry: "Manufacturing",
+      searchContext: expect.objectContaining({ city: "Dallas", state: "TX" }),
+    }) }));
+    expect(enrich).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId("button-retry-contact-lookup-0")).not.toBeDisabled());
+    expect(screen.queryByText("Needs filter review")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("button-retry-contact-lookup-0"));
+    expect(enrich).toHaveBeenCalledTimes(1);
+  });
   it("warns an unreviewed recruiting seller before a confirmed-service search", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       JSON.stringify({
@@ -151,6 +208,7 @@ describe("prospect search count", () => {
     }]));
     expect(screen.getByText("Development-only employer fixture")).toBeInTheDocument();
     expect(screen.getByText(/Automatic contact lookup was skipped/)).toBeInTheDocument();
+    expect(screen.getByText("Research error: Research timed out.")).toBeInTheDocument();
     expect(screen.getByText("Hiring fit unverified")).toBeInTheDocument();
     expect(enrich).not.toHaveBeenCalled();
   });

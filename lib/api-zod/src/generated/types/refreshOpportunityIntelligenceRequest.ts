@@ -5,9 +5,17 @@
  * iSDRX AI API for janitorial company outreach
  * OpenAPI spec version: 0.1.0
  */
+import type { RecruitingJob } from './recruitingJob';
 import type { RefreshOpportunityIntelligenceRequestLead } from './refreshOpportunityIntelligenceRequestLead';
+import type { RefreshOpportunityIntelligenceRequestSearchContext } from './refreshOpportunityIntelligenceRequestSearchContext';
 
 export interface RefreshOpportunityIntelligenceRequest {
+  searchContext?: RefreshOpportunityIntelligenceRequestSearchContext;
+  /**
+     * Preliminary postings to recheck, never trusted as verified hiring evidence.
+     * @maxItems 100
+     */
+  discoveredHiring?: RecruitingJob[];
   /** @minimum 1 */
   prospectId?: number;
   lead?: RefreshOpportunityIntelligenceRequestLead;

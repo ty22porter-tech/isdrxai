@@ -8,5 +8,7 @@
 import type { OpportunityIntelligence } from './opportunityIntelligence';
 
 export interface OpportunityIntelligenceRefreshResult {
+  /** Updated recruiting filter result when the original search can be rechecked. */
+  outsideSelectedFilters?: boolean;
   opportunityIntelligence: OpportunityIntelligence;
 }

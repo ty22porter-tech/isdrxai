@@ -126,10 +126,16 @@ const PLACE_NO_PHONE: PlaceResult = { ...PLACE, nationalPhoneNumber: undefined, 
 const ENV_KEY = "GOOGLE_MAPS_API_KEY";
 let savedKey: string | undefined;
 
-beforeEach(() => { savedKey = process.env[ENV_KEY]; delete process.env[ENV_KEY]; });
+beforeEach(() => {
+  savedKey = process.env[ENV_KEY];
+  delete process.env[ENV_KEY];
+  // Exercise signed recruiting handoffs without relying on deployment secrets.
+  vi.stubEnv("SESSION_SECRET", "prospect-search-test-only-signing-secret");
+});
 afterEach(() => {
   if (savedKey !== undefined) process.env[ENV_KEY] = savedKey; else delete process.env[ENV_KEY];
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
 

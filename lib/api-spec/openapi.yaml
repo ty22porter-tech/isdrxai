@@ -2780,6 +2780,20 @@ components:
       type: object
       required: [selectedIndustry]
       properties:
+        searchContext:
+          type: object
+          required: [city, state]
+          properties:
+            city: { type: string, minLength: 1, maxLength: 240 }
+            state: { type: string, minLength: 1, maxLength: 80 }
+            recruitingFilters:
+              $ref: "#/components/schemas/RecruitingFilters"
+        discoveredHiring:
+          type: array
+          maxItems: 100
+          description: Preliminary postings to recheck, never trusted as verified hiring evidence.
+          items:
+            $ref: "#/components/schemas/RecruitingJob"
         prospectId:
           type: integer
           minimum: 1
@@ -2822,6 +2836,9 @@ components:
       type: object
       required: [opportunityIntelligence]
       properties:
+        outsideSelectedFilters:
+          type: boolean
+          description: Updated recruiting filter result when the original search can be rechecked.
         opportunityIntelligence:
           $ref: "#/components/schemas/OpportunityIntelligence"
 

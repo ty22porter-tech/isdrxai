@@ -582,6 +582,13 @@ export default function Prospecting() {
             }
           }),
           selectedIndustry,
+          ...(isRecruiting ? {
+            discoveredHiring: lead.opportunityIntelligence?.itResearch?.recruiting?.jobs.slice(0, 100),
+            ...(lastSearchedParams ? { searchContext: {
+              city: lastSearchedParams.city, state: lastSearchedParams.state,
+              recruitingFilters: toRecruitingFiltersPayload(lastSearchedParams.recruitingFilters ?? recruitingFilters),
+            } } : {}),
+          } : {}),
         }
       });
       if (searchRunIdRef.current !== runId) return;
@@ -594,6 +601,7 @@ export default function Prospecting() {
         next[index] = {
           ...current,
           researchError: intel ? undefined : current.researchError,
+          outsideSelectedFilters: data.outsideSelectedFilters ?? current.outsideSelectedFilters,
           opportunityIntelligence: intel,
           opportunityScore: intel?.score ?? current.opportunityScore,
           scoreLabel: intel?.label ?? current.scoreLabel,
@@ -1490,6 +1498,7 @@ export default function Prospecting() {
                           <p className="mb-3 text-sm text-amber-800" role="status">
                             Employer found, but hiring research is unavailable. Hiring needs and service fit
                             remain unverified. Automatic contact lookup was skipped. Use Refresh research to retry.
+                            <span className="mt-1 block">Research error: {lead.researchError}</span>
                           </p>
                         )}
 

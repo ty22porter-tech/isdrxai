@@ -83,6 +83,24 @@ afterEach(() => {
 });
 
 describe("Apollo email discovery", () => {
+  it("retains a direct number returned in Apollo phone_numbers before a company number", () => {
+    expect(extractPersonFromApolloData(revealed("jane@mockingbirdfood.com", {
+      phone_numbers: [{ sanitized_number: "+12125550101", raw_number: "(212) 555-0101" }],
+      organization: { ...company, phone: "+12125550199" },
+    })).phone).toBe("+12125550101");
+  });
+
+  it("handles nested, empty, and malformed phone fields without losing the available number", () => {
+    expect(extractPersonFromApolloData(revealed(null, {
+      sanitized_phone: " ",
+      contact: { phone_numbers: [null, { raw_number: " +12125550102 " }] },
+    })).phone).toBe("+12125550102");
+    expect(extractPersonFromApolloData(revealed(null, {
+      phone_numbers: {}, organization: { primary_phone: { number: "+12125550103" } },
+    })).phone).toBe("+12125550103");
+    expect(extractPersonFromApolloData(revealed(null)).phone).toBeNull();
+  });
+
   it("normalizes placeholder sentinels and rejects invalid provider email formats", () => {
     expect(isPlaceholderEmail("  UNKNOWN@SUB.INVALID.COM  ")).toBe(true);
     expect(isPlaceholderEmail("  UNKNOWN@EXAMPLE.INVALID  ")).toBe(true);

@@ -1845,6 +1845,20 @@ export interface EnrichLeadsResult {
   results: EnrichLeadsResultResultsItem[];
 }
 
+export type RefreshOpportunityIntelligenceRequestSearchContext = {
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  city: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  state: string;
+  recruitingFilters?: RecruitingFilters;
+};
+
 export type RefreshOpportunityIntelligenceRequestLead = {
   /**
      * @minLength 1
@@ -1890,6 +1904,12 @@ export type RefreshOpportunityIntelligenceRequestLead = {
 };
 
 export interface RefreshOpportunityIntelligenceRequest {
+  searchContext?: RefreshOpportunityIntelligenceRequestSearchContext;
+  /**
+     * Preliminary postings to recheck, never trusted as verified hiring evidence.
+     * @maxItems 100
+     */
+  discoveredHiring?: RecruitingJob[];
   /** @minimum 1 */
   prospectId?: number;
   lead?: RefreshOpportunityIntelligenceRequestLead;
@@ -1901,6 +1921,8 @@ export interface RefreshOpportunityIntelligenceRequest {
 }
 
 export interface OpportunityIntelligenceRefreshResult {
+  /** Updated recruiting filter result when the original search can be rechecked. */
+  outsideSelectedFilters?: boolean;
   opportunityIntelligence: OpportunityIntelligence;
 }
 

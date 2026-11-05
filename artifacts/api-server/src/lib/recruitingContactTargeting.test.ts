@@ -54,10 +54,12 @@ describe("Apollo department contact discovery", () => {
         candidate("local", "Software Engineering Manager"),
       ] }))
       .mockResolvedValueOnce(response({ person: { ...candidate("local", "Software Engineering Manager"),
-        name: "Example Manager", email: "manager@example.com" } }));
+        name: "Example Manager", email: "manager@example.com",
+        phone_numbers: [{ sanitized_number: "+17135550101" }] } }));
     vi.stubGlobal("fetch", fetcher);
     const result = await enrichPerson({ ...lead, recruitingJobs: [job("Software Engineer")] });
-    expect(result).toMatchObject({ ok: true, person: { contactName: "Example Manager", contactMatch: {
+    expect(result).toMatchObject({ ok: true, person: { contactName: "Example Manager",
+      email: "manager@example.com", phone: "+17135550101", contactMatch: {
       kind: "department", department: "Software Engineering", locationMatch: true,
       openingTitles: ["Software Engineer"], reason: expect.stringContaining("Hiring authority is not confirmed"),
     } } });

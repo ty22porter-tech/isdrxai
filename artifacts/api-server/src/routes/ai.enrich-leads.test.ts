@@ -39,6 +39,8 @@ import { enrichPerson } from "../lib/apollo";
 import { researchCompanyDemographics } from "../lib/companyDemographicResearch";
 import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
 import { verifyResearchHandoff } from "../lib/itOpportunityResearch";
+import { withResearchPipelineTimeout } from "../lib/itOpportunityResearch";
+import { parseRecruitingResearch } from "../lib/recruitingResearch";
 
 const handler = (router as any).stack.find((layer: any) => layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
 const leads = (count: number) => Array.from({ length: count }, (_, index) => ({
@@ -46,6 +48,73 @@ const leads = (count: number) => Array.from({ length: count }, (_, index) => ({
   email: `contact${index}@example.invalid`,
 }));
 const response = () => ({ status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() });
+
+describe("recruiting research refresh", () => {
+  it.each([
+    ["active", "Dallas, TX", undefined, false],
+    ["unknown", "Dallas, TX", undefined, true],
+    ["active", "Houston, TX", undefined, true],
+    ["active", "Dallas, TX", 25, undefined],
+  ])("rechecks %s hiring in %s with radius %s", async (status, location, radiusMiles, expected) => {
+    vi.mocked(db.select).mockReturnValue({
+      from: () => ({ where: async () => [{ id: "synthetic-client", vertical: "recruiting_staffing" }] }),
+    } as any);
+    const hiring = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [{
+      employer: "Synthetic Employer", title: "Manufacturing Engineer", location, status,
+      sourceURL: "https://example.com/careers/engineer", evidence: "Engineer opening.",
+    }] }, { companyName: "Synthetic Employer", identityVerified: true,
+      allowedSourceUrls: ["https://example.com/careers/engineer"] });
+    vi.mocked(researchItOpportunityIntelligence).mockResolvedValue({ signals: [], itResearch: {
+      sellerVertical: "recruiting_staffing", selectedIndustry: "Manufacturing",
+      actualIndustry: "Manufacturing", industryRelationship: "match", industryExplanation: "Employer confirmed",
+      industrySources: [], lastResearched: new Date().toISOString(), warnings: [],
+      industryChallenges: [], prospectConcerns: [], recommendations: [], recruiting: hiring,
+    } } as any);
+    vi.mocked(withResearchPipelineTimeout).mockImplementation(promise => promise);
+    const refresh = (router as any).stack.find((layer: any) =>
+      layer.route?.path === "/opportunity-intelligence/refresh").route.stack.at(-1).handle;
+    const res = response();
+    await refresh({ clientId: "synthetic-client", body: {
+      selectedIndustry: "Manufacturing", lead: { companyName: "Synthetic Employer", industry: "Manufacturing" },
+      searchContext: { city: "Dallas", state: "TX", recruitingFilters: { radiusMiles } },
+    }, log: { info: vi.fn(), warn: vi.fn() } }, res);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0].outsideSelectedFilters).toBe(expected);
+  });
+
+  it("forwards preliminary postings for independent verification without looking up contacts", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: () => ({ where: async () => [{ id: "synthetic-client", vertical: "recruiting_staffing" }] }),
+    } as any);
+    const hiring = parseRecruitingResearch({ jobs: [{
+      employer: "Synthetic Employer", title: "Manufacturing Engineer", location: "Dallas, TX",
+      status: "active", sourceURL: "https://example.com/careers/engineer", evidence: "Engineer opening in Dallas.",
+    }] }, { companyName: "Synthetic Employer", identityVerified: false,
+      allowedSourceUrls: ["https://example.com/careers/engineer"] });
+    expect(hiring.jobs[0].status).toBe("unknown");
+    vi.mocked(researchItOpportunityIntelligence).mockResolvedValue({ signals: [], itResearch: {
+      sellerVertical: "recruiting_staffing", selectedIndustry: "Manufacturing",
+      actualIndustry: "Manufacturing", industryRelationship: "match", industryExplanation: "Employer confirmed",
+      industrySources: [], lastResearched: new Date().toISOString(), warnings: [],
+      industryChallenges: [], prospectConcerns: [], recommendations: [], recruiting: hiring,
+    } } as any);
+    vi.mocked(withResearchPipelineTimeout).mockImplementation(promise => promise);
+    const refresh = (router as any).stack.find((layer: any) =>
+      layer.route?.path === "/opportunity-intelligence/refresh").route.stack.at(-1).handle;
+    const res = response();
+    await refresh({ clientId: "synthetic-client", body: {
+      selectedIndustry: "Manufacturing", lead: { companyName: "Synthetic Employer", location: "Dallas, TX" },
+      discoveredHiring: hiring.jobs,
+    }, log: { info: vi.fn(), warn: vi.fn() } }, res);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(researchItOpportunityIntelligence).toHaveBeenCalledWith(expect.objectContaining({
+      force: true, discoveredHiring: hiring.jobs,
+    }));
+    expect(enrichPerson).not.toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0].opportunityIntelligence.itResearch.recruiting.jobs)
+      .toEqual(hiring.jobs);
+  });
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

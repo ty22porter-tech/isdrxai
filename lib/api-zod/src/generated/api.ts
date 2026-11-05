@@ -4424,6 +4424,20 @@ export const EnrichLeadsResponse = zod.object({
 /**
  * @summary Perform fresh cited IT opportunity research for a saved or unsaved prospect
  */
+export const refreshOpportunityIntelligenceBodySearchContextCityMax = 240;
+
+export const refreshOpportunityIntelligenceBodySearchContextStateMax = 80;
+
+export const refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersIndustriesMax = 7;
+
+export const refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersRadiusMilesMax = 250;
+
+export const refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersRecencyDaysMax = 365;
+
+export const refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersMinRelevantJobsMin = 0;
+
+export const refreshOpportunityIntelligenceBodyDiscoveredHiringMax = 100;
+
 
 export const refreshOpportunityIntelligenceBodyLeadCompanyNameMax = 240;
 
@@ -4446,6 +4460,52 @@ export const refreshOpportunityIntelligenceBodySelectedIndustryMax = 160;
 
 
 export const RefreshOpportunityIntelligenceBody = zod.object({
+  "searchContext": zod.object({
+  "city": zod.string().min(1).max(refreshOpportunityIntelligenceBodySearchContextCityMax),
+  "state": zod.string().min(1).max(refreshOpportunityIntelligenceBodySearchContextStateMax),
+  "recruitingFilters": zod.object({
+  "industries": zod.array(zod.enum(['Healthcare', 'Oil & Gas', 'Technology', 'Financial Services', 'Engineering', 'Manufacturing', 'Logistics & Warehousing'])).max(refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersIndustriesMax).optional(),
+  "subindustry": zod.string().optional(),
+  "radiusMiles": zod.number().min(1).max(refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersRadiusMilesMax).optional(),
+  "hiringLocation": zod.string().optional(),
+  "companySize": zod.string().optional(),
+  "jobTitles": zod.string().optional(),
+  "roleFamilies": zod.string().optional(),
+  "seniority": zod.string().optional(),
+  "employmentType": zod.string().optional(),
+  "workArrangement": zod.string().optional(),
+  "signalType": zod.enum(['any', 'jobs', 'expansion', 'relocation', 'new_business']).optional(),
+  "recencyDays": zod.number().min(1).max(refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersRecencyDaysMax).optional(),
+  "confidence": zod.enum(['any', 'high', 'medium', 'low']).optional(),
+  "minRelevantJobs": zod.number().min(refreshOpportunityIntelligenceBodySearchContextRecruitingFiltersMinRelevantJobsMin).optional(),
+  "openingBefore": zod.string().optional(),
+  "serviceMatchOnly": zod.boolean().optional()
+}).optional()
+}).optional(),
+  "discoveredHiring": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "employer": zod.string(),
+  "location": zod.string(),
+  "roleFamily": zod.string().nullable(),
+  "workArrangement": zod.string().nullable(),
+  "employmentType": zod.string().nullable(),
+  "department": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "salary": zod.string().nullable(),
+  "postedAt": zod.string().nullable(),
+  "firstSeenAt": zod.string(),
+  "lastVerifiedAt": zod.string(),
+  "status": zod.enum(['active', 'closed', 'unknown']),
+  "sourceURL": zod.string(),
+  "evidence": zod.string(),
+  "requisitionId": zod.string().nullable(),
+  "urgent": zod.boolean(),
+  "verifiedReposting": zod.boolean(),
+  "hiringQuantity": zod.number().nullable(),
+  "noAgencies": zod.boolean(),
+  "agencyPolicyEvidence": zod.string().nullable()
+})).max(refreshOpportunityIntelligenceBodyDiscoveredHiringMax).optional().describe('Preliminary postings to recheck, never trusted as verified hiring evidence.'),
   "prospectId": zod.number().min(1).optional(),
   "lead": zod.object({
   "companyName": zod.string().min(1).max(refreshOpportunityIntelligenceBodyLeadCompanyNameMax),
@@ -4483,6 +4543,7 @@ export const refreshOpportunityIntelligenceResponseOpportunityIntelligenceItRese
 
 
 export const RefreshOpportunityIntelligenceResponse = zod.object({
+  "outsideSelectedFilters": zod.boolean().optional().describe('Updated recruiting filter result when the original search can be rechecked.'),
   "opportunityIntelligence": zod.object({
   "version": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
   "score": zod.number().min(refreshOpportunityIntelligenceResponseOpportunityIntelligenceScoreMin).max(refreshOpportunityIntelligenceResponseOpportunityIntelligenceScoreMax),
