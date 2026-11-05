@@ -46,6 +46,12 @@ describe("isPlausibleCompanyMatch", () => {
     expect(isPlausibleCompanyMatch(p, { companyName: "Mockingbird Food Group", domain: "www.mockingbirdfood.com" })).toBe(true);
   });
 
+  it("rejects a conflicting employer domain even when the email matches the target", () => {
+    expect(isPlausibleCompanyMatch({
+      email: "person@target.example", organization: { name: "Target", website_url: "https://other.example" },
+    }, { companyName: "Target", domain: "target.example" })).toBe(false);
+  });
+
   it("accepts punctuation/concatenation name variants", () => {
     const p = { organization: { name: "McDonalds Corporation" } };
     expect(isPlausibleCompanyMatch(p, { companyName: "McDonald's", domain: null })).toBe(true);
@@ -88,6 +94,9 @@ describe("Apollo email discovery", () => {
       phone_numbers: [{ sanitized_number: "+12125550101", raw_number: "(212) 555-0101" }],
       organization: { ...company, phone: "+12125550199" },
     })).phone).toBe("+12125550101");
+    expect(extractPersonFromApolloData(revealed(null, {
+      organization: { ...company, phone: "+18005550101" },
+    }))).toMatchObject({ phone: "+18005550101", phoneSource: "company" });
   });
 
   it("handles nested, empty, and malformed phone fields without losing the available number", () => {

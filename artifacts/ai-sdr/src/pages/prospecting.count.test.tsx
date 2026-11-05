@@ -139,6 +139,7 @@ describe("prospect search count", () => {
       vertical: "recruiting_staffing", researchError: "Research timed out.",
       outsideSelectedFilters: true,
       opportunityScore: 0, scoreLabel: "Research unavailable",
+      confidence: "low",
       opportunityIntelligence: { score: 0, label: "Research unavailable", signals: [], itResearch: {
         sellerVertical: "recruiting_staffing", industryChallenges: [], prospectConcerns: [], recommendations: [],
         warnings: [], industrySources: [], recruiting: { jobs: [posting], growthSignals: [],
@@ -167,8 +168,15 @@ describe("prospect search count", () => {
     expect(enrich).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByTestId("button-retry-contact-lookup-0")).not.toBeDisabled());
     expect(screen.queryByText("Needs filter review")).not.toBeInTheDocument();
+    expect(screen.queryByText("low fit")).not.toBeInTheDocument();
+    expect(screen.getByTestId("badge-prospect-fit-0")).toHaveTextContent("Possible Fit");
+    enrich.mockResolvedValueOnce({ results: [{ index: 0, status: "enriched",
+      contactName: "Synthetic Manager", email: "manager@example.com", title: "Plant Manager", phone: "+18775550101",
+    }] });
     fireEvent.click(screen.getByTestId("button-retry-contact-lookup-0"));
     expect(enrich).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("manager@example.com")).toBeInTheDocument();
+    expect(screen.getByText("(toll-free; direct line unverified)")).toBeInTheDocument();
   });
   it("warns an unreviewed recruiting seller before a confirmed-service search", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(

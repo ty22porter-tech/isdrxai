@@ -1448,10 +1448,14 @@ export default function Prospecting() {
                         <div className="flex items-center gap-3 flex-wrap mb-3">
                           <h3 className="font-semibold text-base">{lead.companyName}</h3>
                           <Badge
+                            data-testid={`badge-prospect-fit-${idx}`}
                             variant="outline"
-                            className={`text-xs font-medium ${CONFIDENCE_COLORS[lead.confidence]}`}
+                            className={`text-xs font-medium ${lead.opportunityScore != null && lead.scoreLabel
+                              ? SCORE_COLORS[lead.scoreLabel] : CONFIDENCE_COLORS[lead.confidence]}`}
                           >
-                            {lead.outsideSelectedFilters ? "Needs filter review" : lead.researchError ? "Hiring fit unverified" : `${lead.confidence} fit`}
+                            {lead.outsideSelectedFilters ? "Needs filter review" : lead.researchError ? "Hiring fit unverified"
+                              : lead.opportunityScore != null && lead.scoreLabel ? lead.scoreLabel
+                              : `Discovery confidence: ${lead.confidence}`}
                           </Badge>
                           {skipped.has(idx) && !added.has(idx) && (
                             <Badge variant="outline" className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-200">
@@ -1528,7 +1532,11 @@ export default function Prospecting() {
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Phone className="h-3.5 w-3.5 shrink-0" />
-                            <span>{lead.phone}</span>
+                            <span>{lead.phone || "Phone unavailable"}
+                              {lead.phone && <span className="ml-1 text-xs">{isRecruiting
+                                && /^(?:1)?8(?:00|33|44|55|66|77|88)\d{7}$/.test(lead.phone.replace(/\D/g, ""))
+                                ? "(toll-free; direct line unverified)" : "(direct line unverified)"}</span>}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />

@@ -83,6 +83,21 @@ describe("Apollo department contact discovery", () => {
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
+  it("explains an employer name variant using the matched domain and labels a company phone", async () => {
+    vi.stubEnv("APOLLO_API_KEY", "test-key");
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(response({ people: [candidate("plant", "Plant Manager")] }))
+      .mockResolvedValueOnce(response({ person: { ...candidate("plant", "Plant Manager"),
+        email: "plant@example.com", organization: { ...org, name: "Example Manufacturing LLC", phone: "+18775550101" },
+      } }));
+    vi.stubGlobal("fetch", fetcher);
+    const result = await enrichPerson({ ...lead, recruitingJobs: [job("Manufacturing Engineer")] });
+    expect(result).toMatchObject({ ok: true, person: { phone: "+18775550101", contactMatch: {
+      reason: expect.stringContaining("Apollo employer: Example Manufacturing LLC. Matched supplied employer domain: example.com."),
+    } } });
+    if (result.ok) expect(result.person?.contactMatch?.reason).toContain("Phone source: Apollo company record");
+  });
+
   it("rechecks revealed department and company, without generic fallback", async () => {
     vi.stubEnv("APOLLO_API_KEY", "test-key");
     const fetcher = vi.fn()

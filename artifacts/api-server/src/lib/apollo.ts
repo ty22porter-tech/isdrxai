@@ -28,6 +28,7 @@ export interface ApolloEnrichment {
   title: string | null;
   linkedinUrl: string | null;
   phone: string | null;
+  phoneSource?: "person" | "company" | null;
   city: string | null;
   state: string | null;
   website: string | null;
@@ -173,11 +174,10 @@ export function isPlausibleCompanyMatch(rawPerson: any, target: {
 
   if (target.domain) {
     const t = registrableDomain(target.domain.toLowerCase());
-    // Strongest signal: org or email domain matches the company's website.
-    if (registrableDomain(orgDomain) === t || registrableDomain(emailDomain) === t) return true;
     // Explicit conflict: Apollo names a *different* company domain. A name
     // resemblance can't rescue this — "Acme Dental" is not "Acme Manufacturing".
-    if (orgDomain) return reject("org domain conflicts with company website");
+    if (orgDomain && registrableDomain(orgDomain) !== t) return reject("org domain conflicts with company website");
+    if (registrableDomain(orgDomain) === t || registrableDomain(emailDomain) === t) return true;
   }
 
   // Name evidence (used when there is no reliable conflicting domain):
@@ -214,17 +214,23 @@ export function extractPersonFromApolloData(p: any): ApolloEnrichment {
   const phoneNumbers = (value: unknown): unknown[] => Array.isArray(value)
     ? value.flatMap(number => [number?.sanitized_number, number?.raw_number])
     : [];
-  const phone = [
+  const personPhones = [
     p.contact?.sanitized_phone,
     p.sanitized_phone,
     ...phoneNumbers(p.contact?.phone_numbers),
     ...phoneNumbers(p.phone_numbers),
+  ];
+  const companyPhones = [
     org.sanitized_phone,
     org.primary_phone?.sanitized_number,
     org.primary_phone?.number,
     org.phone,
-  ].find((value): value is string => typeof value === "string" && Boolean(value.trim()))
-    ?.trim() ?? null;
+  ];
+  const firstPhone = (values: unknown[]) => values.find((value): value is string =>
+    typeof value === "string" && Boolean(value.trim()))?.trim() ?? null;
+  const personPhone = firstPhone(personPhones);
+  const companyPhone = firstPhone(companyPhones);
+  const phone = personPhone ?? companyPhone;
   const organizationDescription = [org.short_description, org.seo_description, org.description]
     .find((value) => typeof value === "string" && value.trim().length >= 30)
     ?.replace(/\s+/g, " ")
@@ -237,6 +243,7 @@ export function extractPersonFromApolloData(p: any): ApolloEnrichment {
     title: p.title ?? null,
     linkedinUrl: sanitizeLinkedinUrl(p.linkedin_url),
     phone,
+    phoneSource: personPhone ? "person" : companyPhone ? "company" : null,
     city: p.city ?? org.city ?? null,
     state: p.state ?? org.state ?? null,
     website: org.website_url ?? null,
@@ -425,6 +432,17 @@ async function searchDecisionMaker(apiKey: string, input: {
         const department = recruiting.classify(enriched.title ?? "", !withTitles);
         if (!department) continue;
         enriched.contactMatch = recruiting.describe(department, !withTitles, person.city);
+        const employerName = typeof person.organization?.name === "string"
+          ? person.organization.name.trim() : "Name not provided";
+        const matchedDomain = domain && (registrableDomain(domainOf(person.organization?.website_url)
+          ?? domainOf(person.organization?.primary_domain)) === registrableDomain(domain)
+          || registrableDomain(domainOf(enriched.email?.split("@")[1])) === registrableDomain(domain));
+        enriched.contactMatch.reason += ` Apollo employer: ${employerName}. ${matchedDomain
+          ? `Matched supplied employer domain: ${domain}.`
+          : "Matched by company name; employer website association is unconfirmed."}`;
+        if (enriched.phone) enriched.contactMatch.reason += enriched.phoneSource === "company"
+          ? " Phone source: Apollo company record; this is not a confirmed direct line."
+          : " Phone source: Apollo person record; direct-line ownership is unconfirmed.";
       }
       if (enriched.email) return { ok: true, person: enriched };
     }
