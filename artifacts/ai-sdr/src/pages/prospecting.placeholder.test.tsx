@@ -70,7 +70,7 @@ describe("placeholder contact handling", () => {
     snapshot(sample, [[0, "enriched"]]);
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Restore list" }));
-    expect(screen.getByTestId("text-contact-email-0")).toHaveTextContent("Email not found");
+    expect(screen.getByTestId("text-contact-email-0")).toHaveTextContent("Contact lookup not performed");
     expect(screen.queryByText(sample[0].email)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: sample[0].email })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Add" })[0]).toBeDisabled();

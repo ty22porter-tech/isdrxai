@@ -61,6 +61,15 @@ describe("recruiting employer research", () => {
     await expect(researchItOpportunityIntelligence(options)).rejects.toThrow(/response-length limit/);
   });
 
+  it("does not automatically retry an exhausted billing quota as a temporary rate limit", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      error: { code: "insufficient_quota", message: "private-provider-detail" },
+    }), { status: 429, headers: { "Retry-After": "30" } })));
+    await expect(researchItOpportunityIntelligence(options)).rejects.toMatchObject({
+      message: expect.stringContaining("exhausted its provider quota"), retryAfterMs: undefined,
+    });
+  });
+
   it("identifies a research timeout", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new DOMException("private-provider-error", "TimeoutError"); }));
     await expect(researchItOpportunityIntelligence(options)).rejects.toThrow(/timed out/);

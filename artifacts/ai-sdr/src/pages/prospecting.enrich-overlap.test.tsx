@@ -1,9 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { applyEnrichmentResults } from "./prospecting";
+import { applyEnrichmentResults, retainRecruitingContacts } from "./prospecting";
 import type { ProspectLead } from "@workspace/api-client-react";
 type EnrichLeadResult = Parameters<typeof applyEnrichmentResults>[2][number];
 
 describe("applyEnrichmentResults with refresh races", () => {
+  it("keeps enriched contacts and signed demographics when retrying failed research", () => {
+    const previous = { companyName: "Synthetic Employer", website: "example.com", email: "manager@example.com",
+      estimatedEmployees: 400, opportunityIntelligence: { researchProof: "signed-for-400" } } as ProspectLead;
+    const fresh = { ...previous, email: "unknown@example.invalid", estimatedEmployees: undefined,
+      opportunityIntelligence: { researchProof: "signed-without-demographics" } } as ProspectLead;
+    expect(retainRecruitingContacts([fresh], [previous])[0]).toMatchObject({
+      email: "manager@example.com", estimatedEmployees: 400,
+      opportunityIntelligence: { researchProof: "signed-for-400" },
+    });
+    expect(retainRecruitingContacts([{ ...fresh, website: "different.example" }], [previous])[0].email)
+      .toBe("unknown@example.invalid");
+  });
   it("does not overwrite a fresher refresh with a stale enrichment", () => {
     const snapshot: ProspectLead[] = [
       { companyName: "A", email: "a@a.com", contactName: "A", contactTitle: "Title", phone: "", industry: "IT", city: "", state: "", whyTarget: "", confidence: "high", _intelligenceVersion: 0 } as any

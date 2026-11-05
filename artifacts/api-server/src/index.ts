@@ -8,6 +8,9 @@ import { ensureResendWebhook } from "./lib/resendWebhook";
 import { ensureOutboundResendWebhook } from "./lib/outboundResendWebhook";
 import { bootstrapAdmin } from "./lib/bootstrapAdmin";
 import { pool, ensureAdditiveColumns } from "@workspace/db";
+import { startProspectSearchWorker } from "./lib/prospectSearchJobs";
+import { performProspectSearch } from "./routes/ai";
+import type { Request, Response } from "express";
 
 const rawPort = process.env["PORT"];
 
@@ -70,6 +73,17 @@ try {
 }
 
 await initStripe();
+startProspectSearchWorker(async (body, clientId, execution) => {
+  let status = 200;
+  let result: unknown;
+  const response = {
+    status(code: number) { status = code; return this; },
+    json(value: unknown) { result = value; return this; },
+  };
+  await performProspectSearch({ body, clientId, log: logger } as unknown as Request,
+    response as unknown as Response, execution);
+  return { status, body: result ?? { error: "Search did not return results." } };
+});
 await bootstrapAdmin();
 await ensureResendWebhook();
 await ensureOutboundResendWebhook();

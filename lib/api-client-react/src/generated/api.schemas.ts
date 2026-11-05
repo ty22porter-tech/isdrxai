@@ -1773,6 +1773,111 @@ export interface ProspectSearchRequest {
   compliancePriority?: string;
 }
 
+export interface ProspectSearchJobRequest {
+  /**
+     * @minLength 16
+     * @maxLength 80
+     */
+  requestKey: string;
+  request: ProspectSearchRequest;
+}
+
+export type ProspectSearchJobStatus = typeof ProspectSearchJobStatus[keyof typeof ProspectSearchJobStatus];
+
+
+export const ProspectSearchJobStatus = {
+  queued: 'queued',
+  running: 'running',
+  waiting: 'waiting',
+  completed: 'completed',
+} as const;
+
+export type RecruitingContactMatchKind = typeof RecruitingContactMatchKind[keyof typeof RecruitingContactMatchKind];
+
+
+export const RecruitingContactMatchKind = {
+  department: 'department',
+  talent_acquisition: 'talent_acquisition',
+} as const;
+
+export interface RecruitingContactMatch {
+  kind: RecruitingContactMatchKind;
+  department: string;
+  openingTitles: string[];
+  reason: string;
+  locationMatch: boolean;
+}
+
+export type ProspectLeadConfidence = typeof ProspectLeadConfidence[keyof typeof ProspectLeadConfidence];
+
+
+export const ProspectLeadConfidence = {
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export interface ProspectLead {
+  companyName: string;
+  contactName: string;
+  contactTitle: string;
+  contactMatch?: RecruitingContactMatch;
+  email: string;
+  phone: string;
+  industry: string;
+  city: string;
+  state: string;
+  website?: string;
+  /** Street address of the business (from Google Places) */
+  address?: string;
+  estimatedEmployees?: number;
+  estimatedSquareFootage?: number;
+  whyTarget: string;
+  confidence: ProspectLeadConfidence;
+  /** Vertical this lead was generated for (janitorial | it_services | fleet_wraps) */
+  vertical?: string;
+  /** IT Opportunity Score 0-100 (IT Services vertical only) */
+  opportunityScore?: number;
+  /** High Priority | Strong Fit | Possible Fit | Low Priority */
+  scoreLabel?: string;
+  scoreExplanation?: string;
+  /** Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified. */
+  researchError?: string;
+  /** Explicit discovery review only; this employer was not verified against all selected hiring filters. */
+  outsideSelectedFilters?: boolean;
+  /** Estimated number of locations (IT Services vertical only) */
+  estimatedLocations?: number;
+  /** Potential IT service needs (IT Services vertical only) */
+  potentialNeeds?: string[];
+  /** Likely/potential compliance consideration, clearly inferred */
+  complianceConsideration?: string;
+  recommendedOutreach?: string;
+  /** Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly */
+  fleetBrandingSignal?: string;
+  opportunityIntelligence?: OpportunityIntelligence;
+}
+
+export interface ProspectSearchIssue {
+  error: string;
+  discoveredCount?: number;
+  researchFailures?: number;
+  excludedAgencyAds?: number;
+  activeFilters?: string[];
+  discoveredLeads?: ProspectLead[];
+}
+
+export interface ProspectSearchJob {
+  id: string;
+  status: ProspectSearchJobStatus;
+  completed: number;
+  total: number;
+  /** @nullable */
+  retryAt: string | null;
+  retryableCount: number;
+  responseStatus?: number;
+  result?: ProspectLead[] | ProspectSearchIssue;
+}
+
 export type EnrichLeadsRequestLeadsItem = {
   companyName: string;
   contactName?: string;
@@ -1793,22 +1898,6 @@ export interface EnrichLeadsRequest {
      * @maxItems 100
      */
   leads: EnrichLeadsRequestLeadsItem[];
-}
-
-export type RecruitingContactMatchKind = typeof RecruitingContactMatchKind[keyof typeof RecruitingContactMatchKind];
-
-
-export const RecruitingContactMatchKind = {
-  department: 'department',
-  talent_acquisition: 'talent_acquisition',
-} as const;
-
-export interface RecruitingContactMatch {
-  kind: RecruitingContactMatchKind;
-  department: string;
-  openingTitles: string[];
-  reason: string;
-  locationMatch: boolean;
 }
 
 export type EnrichLeadsResultResultsItemStatus = typeof EnrichLeadsResultResultsItemStatus[keyof typeof EnrichLeadsResultResultsItemStatus];
@@ -1924,64 +2013,6 @@ export interface OpportunityIntelligenceRefreshResult {
   /** Updated recruiting filter result when the original search can be rechecked. */
   outsideSelectedFilters?: boolean;
   opportunityIntelligence: OpportunityIntelligence;
-}
-
-export type ProspectLeadConfidence = typeof ProspectLeadConfidence[keyof typeof ProspectLeadConfidence];
-
-
-export const ProspectLeadConfidence = {
-  high: 'high',
-  medium: 'medium',
-  low: 'low',
-} as const;
-
-export interface ProspectLead {
-  companyName: string;
-  contactName: string;
-  contactTitle: string;
-  contactMatch?: RecruitingContactMatch;
-  email: string;
-  phone: string;
-  industry: string;
-  city: string;
-  state: string;
-  website?: string;
-  /** Street address of the business (from Google Places) */
-  address?: string;
-  estimatedEmployees?: number;
-  estimatedSquareFootage?: number;
-  whyTarget: string;
-  confidence: ProspectLeadConfidence;
-  /** Vertical this lead was generated for (janitorial | it_services | fleet_wraps) */
-  vertical?: string;
-  /** IT Opportunity Score 0-100 (IT Services vertical only) */
-  opportunityScore?: number;
-  /** High Priority | Strong Fit | Possible Fit | Low Priority */
-  scoreLabel?: string;
-  scoreExplanation?: string;
-  /** Employer discovery succeeded but opportunity research failed. Hiring needs and service fit remain unverified. */
-  researchError?: string;
-  /** Explicit discovery review only; this employer was not verified against all selected hiring filters. */
-  outsideSelectedFilters?: boolean;
-  /** Estimated number of locations (IT Services vertical only) */
-  estimatedLocations?: number;
-  /** Potential IT service needs (IT Services vertical only) */
-  potentialNeeds?: string[];
-  /** Likely/potential compliance consideration, clearly inferred */
-  complianceConsideration?: string;
-  recommendedOutreach?: string;
-  /** Strongest verified fleet or branding signal, with unconfirmed inferences identified explicitly */
-  fleetBrandingSignal?: string;
-  opportunityIntelligence?: OpportunityIntelligence;
-}
-
-export interface ProspectSearchIssue {
-  error: string;
-  discoveredCount?: number;
-  researchFailures?: number;
-  excludedAgencyAds?: number;
-  activeFilters?: string[];
-  discoveredLeads?: ProspectLead[];
 }
 
 export type DashboardStatsProspectsByStatusItem = {

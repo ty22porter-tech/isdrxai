@@ -17,3 +17,4 @@ export * from "./gift-outreach";
 export * from "./gift-videos";
 export * from "./calendly";
 export * from "./recruiting";
+export * from "./prospect-search-jobs";

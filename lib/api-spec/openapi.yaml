@@ -1356,6 +1356,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/GeneratedCallScript"
 
+  /ai/prospect-search/jobs:
+    post:
+      operationId: startProspectSearchJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectSearchJobRequest"
+      responses:
+        "202":
+          description: Saved search created or reconnected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProspectSearchJob" }
+  /ai/prospect-search/jobs/{jobId}:
+    get:
+      operationId: getProspectSearchJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Saved search progress and completed results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProspectSearchJob" }
+  /ai/prospect-search/jobs/{jobId}/retry:
+    post:
+      operationId: retryProspectSearchJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "202":
+          description: Failed employer research queued; successful work retained
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProspectSearchJob" }
   /ai/prospect-search:
     post:
       operationId: prospectSearch
@@ -2656,6 +2699,28 @@ components:
               response:
                 type: string
 
+    ProspectSearchJobRequest:
+      type: object
+      required: [requestKey, request]
+      properties:
+        requestKey: { type: string, minLength: 16, maxLength: 80 }
+        request: { $ref: "#/components/schemas/ProspectSearchRequest" }
+    ProspectSearchJob:
+      type: object
+      required: [id, status, completed, total, retryAt, retryableCount]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [queued, running, waiting, completed] }
+        completed: { type: integer }
+        total: { type: integer }
+        retryAt: { type: [string, "null"], format: date-time }
+        retryableCount: { type: integer }
+        responseStatus: { type: integer }
+        result:
+          oneOf:
+            - type: array
+              items: { $ref: "#/components/schemas/ProspectLead" }
+            - $ref: "#/components/schemas/ProspectSearchIssue"
     ProspectSearchRequest:
       type: object
       required: [city, state, industry, count]

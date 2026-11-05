@@ -1,4 +1,5 @@
-import { Router } from "express";
+import { Router, type Request, type Response as ExpressResponse } from "express";
+import { SearchPaused, type ProspectSearchExecution } from "../lib/prospectSearchExecution";
 import { RECRUITING_INDUSTRIES, recruitingAutomationBlocked, parseRecruitingResearch } from "../lib/recruitingResearch";
 import { discoverHiringEmployers, RecruitingJobSearchError, eligibleHiringResearch, jobInSearchArea, matchesHiringJob, sameJobLocation } from "../lib/recruitingJobDiscovery";
 import { activeRecruitingFilterLabels, distanceMiles, filterRecruitingOpportunity, requiresRecruitingResearch } from "../lib/recruitingFilters";
@@ -386,7 +387,7 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
 // Opportunity narratives are deterministic projections of structured evidence.
 // This keeps unsupported LLM prose from turning implications into prospect facts.
 
-router.post("/prospect-search", requireEntitlement, async (req, res) => {
+export async function performProspectSearch(req: Request, res: ExpressResponse, execution?: ProspectSearchExecution) {
   const parsed = ProspectSearchBody.safeParse(req.body);
   if (!parsed.success || !Number.isInteger(parsed.data.count)) {
     return res.status(400).json({ error: "Prospect search request is invalid. Count must be a whole number from 1 to 100." });
@@ -405,6 +406,9 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
   }
 
   const vertical = getVerticalConfig(client?.vertical).key;
+  if (execution && vertical !== "recruiting_staffing") {
+    return res.status(409).json({ error: "This saved Recruiting search no longer matches your account industry. Start a new search." });
+  }
 
   try {
     const recruiting = vertical === "recruiting_staffing";
@@ -414,9 +418,10 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     if (recruiting && industries.some(industry => !(RECRUITING_INDUSTRIES as readonly string[]).includes(industry))) {
       return res.status(400).json({ error: "Select one or more supported employer industries." });
     }
-    const hiringEmployers = recruiting ? await discoverHiringEmployers({
+    const hiringEmployers = recruiting ? execution?.discovery ?? await discoverHiringEmployers({
       city: body.city.trim(), state: body.state, count, industries, filters: body.recruitingFilters,
     }) : [];
+    if (recruiting && execution && !execution.discovery) await execution.saveDiscovery(hiringEmployers);
     const groupedPlaces = recruiting ? [] : await Promise.all(industries.map(async industry => ({
       industry,
       places: await searchRealBusinesses(apiKey!, body.city.trim(), body.state, industry, Math.ceil(count / industries.length)),
@@ -484,6 +489,8 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
           potentialNeeds: [],
           recommendedOutreach: "",
           researchError: err instanceof Error ? err.message : "Current opportunity research could not be completed.",
+          ...(err instanceof ItOpportunityResearchError && err.retryAfterMs
+            ? { researchRetryAfterMs: err.retryAfterMs } : {}),
           ...(discoveryReport ? { opportunityIntelligence: buildOpportunityIntelligence(lead, vertical, client, [], discoveryReport) } : {}),
         };
       }
@@ -513,12 +520,25 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
     };
     const leads: any[] = new Array(bases.length);
     const queue = bases.map((_, index) => index);
-    // Web-research calls are deliberately limited to three concurrent leads.
-    await Promise.all(Array.from({ length: Math.min(3, bases.length) }, async () => {
+    // Saved Recruiting searches use one provider request at a time; other
+    // verticals retain their existing bounded concurrency.
+    await Promise.all(Array.from({ length: Math.min(execution ? 1 : 3, bases.length) }, async () => {
       while (queue.length) {
         const index = queue.shift();
         if (index === undefined) return;
+        const cached = execution?.checkpoints[String(index)];
+        if (cached && (!cached.researchRetryAfterMs || (execution?.attempts[String(index)] ?? 0) >= 3)) {
+          leads[index] = cached;
+          continue;
+        }
         leads[index] = await processBase(bases[index]);
+        if (execution) {
+          await execution.saveLead(index, leads[index]);
+          if (leads[index].researchRetryAfterMs) {
+            throw new SearchPaused(Math.max(leads[index].researchRetryAfterMs,
+              30_000 * 2 ** Math.max(0, (execution.attempts[String(index)] ?? 1) - 1)));
+          }
+        }
       }
     }));
 
@@ -565,7 +585,11 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
       .map(lead => ({ ...lead, outsideSelectedFilters: true })) : [];
     return res.json([...results, ...pendingReview]);
   } catch (err) {
-    if (err instanceof RecruitingJobSearchError) return res.status(502).json({ error: err.message });
+    if (err instanceof SearchPaused) throw err;
+    if (err instanceof RecruitingJobSearchError) {
+      if (execution && err.retryAfterMs) throw new SearchPaused(err.retryAfterMs);
+      return res.status(502).json({ error: err.message });
+    }
     if (err instanceof ProspectSearchError) {
       return res.status(err.status).json({ error: err.message });
     }
@@ -578,7 +602,8 @@ router.post("/prospect-search", requireEntitlement, async (req, res) => {
           : "Could not reach Google Places. Please try again in a moment.",
     });
   }
-});
+}
+router.post("/prospect-search", requireEntitlement, (req, res) => performProspectSearch(req, res));
 
 // ─── Lead enrichment (pre-pipeline) ──────────────────────────────────────────
 // Runs Apollo people search against unsaved search-results leads so the real

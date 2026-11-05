@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useProspectSearch, useCreateProspect, useBulkCreateProspects, useEnrichLeads, useRefreshOpportunityIntelligence, refreshOpportunityIntelligence, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
-import type { ProspectLead, ProspectSearchIssue } from "@workspace/api-client-react";
+import { prospectSearch, useProspectSearch, useCreateProspect, useBulkCreateProspects, useEnrichLeads, useRefreshOpportunityIntelligence, refreshOpportunityIntelligence, getListProspectsQueryKey, getListProspectsQueryOptions } from "@workspace/api-client-react";
+import type { ProspectLead, ProspectSearchIssue, ProspectSearchJob } from "@workspace/api-client-react";
+import { persistentRecruitingSearch, savedRecruitingSearch } from "@/lib/persistentRecruitingSearch";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -246,6 +247,15 @@ export function applyEnrichmentResults(
   });
 }
 
+/** Research retries must not discard already-enriched contacts or their signed demographics. */
+export function retainRecruitingContacts(next: ProspectLead[], previous: ProspectLead[]): ProspectLead[] {
+  return next.map(lead => {
+    const retained = previous.find(old => old.companyName === lead.companyName && old.website === lead.website
+      && !old.researchError && !isPlaceholderEmail(old.email));
+    return retained ? { ...lead, ...retained } : lead;
+  });
+}
+
 export default function Prospecting() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -325,7 +335,16 @@ export default function Prospecting() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const searchMutation = useProspectSearch();
+  const [searchProgress, setSearchProgress] = useState<ProspectSearchJob | null>(null);
+  const savedSearchContext = useRef<{ params?: ProspectingSnapshot["params"]; retryFailed: boolean; resumeExisting?: boolean }>({ retryFailed: false });
+  const searchMutation = useProspectSearch({ mutation: {
+    retry: false,
+    mutationFn: ({ data }) => isRecruiting && user?.id && savedSearchContext.current.params
+      ? persistentRecruitingSearch(data, { userId: user.id, params: savedSearchContext.current.params,
+          retryFailed: savedSearchContext.current.retryFailed, resumeExisting: savedSearchContext.current.resumeExisting,
+          onProgress: setSearchProgress })
+      : prospectSearch(data),
+  } });
   const searchIssue = searchMutation.error?.data as ProspectSearchIssue | undefined;
   const createProspect = useCreateProspect();
   const bulkCreateProspects = useBulkCreateProspects();
@@ -461,7 +480,8 @@ export default function Prospecting() {
     );
   };
 
-  const runSearch = (overrideParams?: ProspectingSnapshot["params"]) => {
+  const runSearch = (overrideParams?: ProspectingSnapshot["params"], retryFailed = false, resumeExisting = false) => {
+    const retainedContacts = retryFailed ? leads : [];
     if (!hasSellerProfileForProspecting(me)) {
       toast({
         title: "Seller profile required",
@@ -502,6 +522,8 @@ export default function Prospecting() {
       ...(isRecruiting ? { recruitingFilters: searchRecruitingFilters } : {}),
     };
     setLastSearchedParams(currentParams);
+    savedSearchContext.current = { params: currentParams, retryFailed, resumeExisting };
+    setSearchProgress(null);
 
     restorePendingRef.current = false;
     if (user?.id) clearAutopilotProspectSelection(user.id);
@@ -541,8 +563,11 @@ export default function Prospecting() {
       {
         onSuccess: (data) => {
           if (searchRunIdRef.current !== searchRunId) return;
-          setLeads(data);
-          runEnrichment(data.map((lead, index) => ({ lead, index }))
+          const rows = retryFailed ? retainRecruitingContacts(data, retainedContacts) : data;
+          setLeads(rows);
+          if (retryFailed) setEnrichment(new Map(rows.flatMap((lead, index) =>
+            isPlaceholderEmail(lead.email) ? [] : [[index, "enriched" as const]])));
+          if (!resumeExisting && !retryFailed) runEnrichment(rows.map((lead, index) => ({ lead, index }))
             .filter(({ lead }) => !isRecruiting || (!lead.researchError && !lead.outsideSelectedFilters)));
           trackEvent("prospect_search_completed", {
             vertical,
@@ -561,6 +586,14 @@ export default function Prospecting() {
       }
     );
   };
+
+  const resumedSavedSearch = useRef(false);
+  useEffect(() => {
+    if (!user?.id || !verticalLoaded || !isRecruiting || resumedSavedSearch.current) return;
+    resumedSavedSearch.current = true;
+    const saved = savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id);
+    if (saved?.pending && saved.params) runSearch(saved.params, false, Boolean(saved.retrying));
+  }, [user?.id, verticalLoaded, isRecruiting]);
 
   const handleRefreshLead = async (lead: ProspectLead, index: number) => {
     setRefreshing((prev) => new Set([...prev, index]));
@@ -1388,8 +1421,40 @@ export default function Prospecting() {
                   ? "No employers matched this job search area and all selected filters. Try a broader location or clear optional job filters. Job openings are searched first; contacts are looked up only after employer, hiring, agency-policy and service-fit checks pass."
                   : "No businesses matched this search. Try another location or industry."}
               </p>
+            {isRecruiting && searchProgress && <p role="status" className="text-sm text-muted-foreground">
+              {searchProgress.completed} of {searchProgress.total || "…"} employers researched.
+              {searchProgress.status === "waiting"
+                ? ` Research is rate-limited; it will resume after ${searchProgress.retryAt ? new Date(searchProgress.retryAt).toLocaleTimeString() : "the provider retry delay"}.`
+                : " Completed research is saved; reconnecting will resume this search."}
+            </p>}
             </CardContent>
           </Card>
+        )}
+
+        {isRecruiting && !searchMutation.isPending && user?.id
+          && savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id)?.pending && (
+          <Button variant="outline" onClick={() => {
+            const saved = savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id);
+            if (saved?.params) runSearch(saved.params);
+          }}>Reconnect saved search</Button>
+        )}
+        {isRecruiting && !searchMutation.isPending && !leads.length && user?.id
+          && savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id)?.jobId
+          && !savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id)?.pending && (
+          <Button variant="outline" onClick={() => {
+            const saved = savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id);
+            if (saved?.params) runSearch(saved.params, false, true);
+          }}>View saved search results</Button>
+        )}
+        {isRecruiting && !searchMutation.isPending && searchProgress?.status === "completed"
+          && (searchProgress.retryableCount > 0 || (searchProgress.responseStatus ?? 200) >= 500) && (
+          <div role="status" className="rounded-md border p-3 text-sm">
+            Completed employer research is retained. Retry only the failed research without searching for employers again.
+            Afterward, use contact lookup on newly qualified employers.
+            <Button className="ml-2" variant="outline" onClick={() => runSearch(lastSearchedParams ?? undefined, true)}>
+              Retry failed research
+            </Button>
+          </div>
         )}
 
         {!searchMutation.isPending && searchMutation.isError && leads.length === 0 && (

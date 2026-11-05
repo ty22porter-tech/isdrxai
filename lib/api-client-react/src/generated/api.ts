@@ -90,6 +90,8 @@ import type {
   ProspectInput,
   ProspectLead,
   ProspectSearchIssue,
+  ProspectSearchJob,
+  ProspectSearchJobRequest,
   ProspectSearchRequest,
   ProspectUpdate,
   RefreshOpportunityIntelligenceRequest,
@@ -5024,6 +5026,205 @@ export const useGenerateCallScript = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getGenerateCallScriptMutationOptions(options));
+    }
+
+export const getStartProspectSearchJobUrl = () => {
+
+
+
+
+  return `/api/ai/prospect-search/jobs`
+}
+
+export const startProspectSearchJob = async (prospectSearchJobRequest: ProspectSearchJobRequest, options?: RequestInit): Promise<ProspectSearchJob> => {
+
+  return customFetch<ProspectSearchJob>(getStartProspectSearchJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(prospectSearchJobRequest)
+  }
+);}
+
+
+
+
+export const getStartProspectSearchJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startProspectSearchJob>>, TError,{data: BodyType<ProspectSearchJobRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startProspectSearchJob>>, TError,{data: BodyType<ProspectSearchJobRequest>}, TContext> => {
+
+const mutationKey = ['startProspectSearchJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startProspectSearchJob>>, {data: BodyType<ProspectSearchJobRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startProspectSearchJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartProspectSearchJobMutationResult = NonNullable<Awaited<ReturnType<typeof startProspectSearchJob>>>
+    export type StartProspectSearchJobMutationBody = BodyType<ProspectSearchJobRequest>
+    export type StartProspectSearchJobMutationError = ErrorType<unknown>
+
+    export const useStartProspectSearchJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startProspectSearchJob>>, TError,{data: BodyType<ProspectSearchJobRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startProspectSearchJob>>,
+        TError,
+        {data: BodyType<ProspectSearchJobRequest>},
+        TContext
+      > => {
+      return useMutation(getStartProspectSearchJobMutationOptions(options));
+    }
+
+export const getGetProspectSearchJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/ai/prospect-search/jobs/${jobId}`
+}
+
+export const getProspectSearchJob = async (jobId: string, options?: RequestInit): Promise<ProspectSearchJob> => {
+
+  return customFetch<ProspectSearchJob>(getGetProspectSearchJobUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProspectSearchJobQueryKey = (jobId: string,) => {
+    return [
+    `/api/ai/prospect-search/jobs/${jobId}`
+    ] as const;
+    }
+
+
+export const getGetProspectSearchJobQueryOptions = <TData = Awaited<ReturnType<typeof getProspectSearchJob>>, TError = ErrorType<unknown>>(jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProspectSearchJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProspectSearchJobQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProspectSearchJob>>> = ({ signal }) => getProspectSearchJob(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProspectSearchJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProspectSearchJobQueryResult = NonNullable<Awaited<ReturnType<typeof getProspectSearchJob>>>
+export type GetProspectSearchJobQueryError = ErrorType<unknown>
+
+
+
+export function useGetProspectSearchJob<TData = Awaited<ReturnType<typeof getProspectSearchJob>>, TError = ErrorType<unknown>>(
+ jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProspectSearchJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProspectSearchJobQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRetryProspectSearchJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/ai/prospect-search/jobs/${jobId}/retry`
+}
+
+export const retryProspectSearchJob = async (jobId: string, options?: RequestInit): Promise<ProspectSearchJob> => {
+
+  return customFetch<ProspectSearchJob>(getRetryProspectSearchJobUrl(jobId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRetryProspectSearchJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryProspectSearchJob>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryProspectSearchJob>>, TError,{jobId: string}, TContext> => {
+
+const mutationKey = ['retryProspectSearchJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryProspectSearchJob>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  retryProspectSearchJob(jobId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryProspectSearchJobMutationResult = NonNullable<Awaited<ReturnType<typeof retryProspectSearchJob>>>
+
+    export type RetryProspectSearchJobMutationError = ErrorType<unknown>
+
+    export const useRetryProspectSearchJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryProspectSearchJob>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retryProspectSearchJob>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+      return useMutation(getRetryProspectSearchJobMutationOptions(options));
     }
 
 export const getProspectSearchUrl = () => {

@@ -104,9 +104,10 @@ import {
   ProspectSearchError,
   type PlaceResult,
 } from "./ai";
-import aiRouter from "./ai";
+import aiRouter, { performProspectSearch } from "./ai";
+import { SearchPaused, type ProspectSearchExecution } from "../lib/prospectSearchExecution";
 import { db } from "@workspace/db";
-import { researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
+import { ItOpportunityResearchError, researchItOpportunityIntelligence } from "../lib/itOpportunityResearch";
 import { requiresRecruitingResearch } from "../lib/recruitingFilters";
 import { parseRecruitingResearch } from "../lib/recruitingResearch";
 import { discoverHiringEmployers } from "../lib/recruitingJobDiscovery";
@@ -455,6 +456,39 @@ describe("prospect-search request validation", () => {
 });
 
 describe("recruiting search research failures", () => {
+  it("checkpoints rate-limited research, resumes without rediscovery, and stops automatic attempts after three", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: () => ({ where: async () => [{ id: "client-1", vertical: "recruiting_staffing" }] }),
+    } as any);
+    vi.mocked(discoverHiringEmployers).mockResolvedValue([{
+      companyName: PLACE.displayName!.text!, industry: "Healthcare", website: PLACE.websiteUri,
+      jobs: parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [{
+        employer: PLACE.displayName!.text!, title: "Registered Nurse", location: "Houston, TX", status: "active",
+        sourceURL: "https://www.riversidemedical.com/careers/nurse", evidence: "Hiring a nurse in Houston.",
+      }] }, { companyName: PLACE.displayName!.text!, identityVerified: true,
+        allowedSourceUrls: ["https://www.riversidemedical.com/careers/nurse"] }).jobs,
+    }]);
+    vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new ItOpportunityResearchError("Research rate-limited", 45_000));
+    const execution: ProspectSearchExecution = {
+      checkpoints: {}, attempts: {},
+      saveDiscovery: async employers => { execution.discovery = employers; },
+      saveLead: async (index, lead) => {
+        execution.checkpoints[String(index)] = lead;
+        execution.attempts[String(index)] = (execution.attempts[String(index)] ?? 0) + 1;
+      },
+    };
+    const req = { clientId: "client-1", body: { city: "Houston", state: "TX", industry: "Healthcare", count: 10 },
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } };
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await expect(performProspectSearch(req as any, res as any, execution)).rejects.toBeInstanceOf(SearchPaused);
+    }
+    await performProspectSearch(req as any, res as any, execution);
+    expect(discoverHiringEmployers).toHaveBeenCalledTimes(1);
+    expect(researchItOpportunityIntelligence).toHaveBeenCalledTimes(3);
+    expect(execution.attempts["0"]).toBe(3);
+    expect(res.status).toHaveBeenCalledWith(502);
+  });
   async function search(filters: Record<string, unknown>, places = [PLACE],
     researchResult?: Awaited<ReturnType<typeof researchItOpportunityIntelligence>>,
     clientDetails: Record<string, unknown> = {}) {

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import prospectSearchJobsRouter from "./prospectSearchJobs";
 import prospectsRouter from "./prospects";
 import campaignsRouter from "./campaigns";
 import emailsRouter from "./emails";
@@ -33,6 +34,7 @@ router.use("/calls", callsRouter);
 router.use("/calls", callerQueueRouter);
 router.use("/appointments", appointmentsRouter);
 router.use("/stats", statsRouter);
+router.use("/ai/prospect-search/jobs", prospectSearchJobsRouter);
 router.use("/ai", aiRouter);
 router.use("/openai", openaiRouter);
 router.use("/stripe", stripeRouter);

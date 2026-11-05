@@ -57,6 +57,21 @@ Defenses now in place:
 
 ## Scripts
 
+Recruiting prospect searches use the additive `prospect_search_jobs` table for
+saved discovery, per-employer checkpoints, leases, and provider retry times.
+Run `pnpm --filter @workspace/db run ensure-columns` against the development
+database after pulling this change. API startup also runs the schema guard.
+No existing prospect, campaign, or outreach records are changed by search jobs.
+
+The API resumes abandoned workers after their lease expires and keeps saved
+searches for 24 hours. The browser reconnects to an unfinished job after reload;
+completed results can be reopened with **View saved search results**. **Retry
+failed research** preserves discovery and successful employer checkpoints and
+does not automatically repeat contact lookups. Provider 429 responses pause the
+queue until `Retry-After` (or a bounded backoff when absent), with at most three
+automatic attempts per employer. Persistent quota or evidence failures remain
+visible for manual review; they are never converted into qualified leads.
+
 - `pnpm --filter @workspace/db run ensure-columns` — apply safe additive
   schema changes to the DB pointed at by `DATABASE_URL`; exit 1 on unfixable
   drift.

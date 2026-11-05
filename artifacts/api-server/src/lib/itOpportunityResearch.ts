@@ -6,6 +6,7 @@ import { researchOfficialWebsiteDetailed } from "./officialWebsiteResearch";
 import { parseRecruitingResearch, preserveDiscoveredHiring, RECRUITING_RESEARCH_INSTRUCTIONS } from "./recruitingResearch";
 import type { RecruitingResearch } from "@workspace/db";
 import { verifyPublishedAtsJobs } from "./recruitingAtsVerification";
+import { researchRequest, retryAfterMs } from "./researchRateLimit";
 
 const REQUEST_TIMEOUT_MS = 45_000;
 export const RESEARCH_PIPELINE_TIMEOUT_MS = 78_000;
@@ -79,7 +80,9 @@ export interface SellerEvidence {
   sources: ResearchSource[];
 }
 
-export class ItOpportunityResearchError extends Error {}
+export class ItOpportunityResearchError extends Error {
+  constructor(message: string, public readonly retryAfterMs?: number) { super(message); }
+}
 export class ItOpportunityResearchTimeoutError extends ItOpportunityResearchError {}
 
 export function withResearchPipelineTimeout<T>(operation: Promise<T>, timeoutMs = RESEARCH_PIPELINE_TIMEOUT_MS): Promise<T> {
@@ -775,7 +778,8 @@ async function researchItOpportunityIntelligenceInner(options: {
   if (!baseURL || !apiKey) throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research is unavailable because the configured web-research service is not available.`);
   let payload: any;
   try {
-    const response = await fetch(`${baseURL}/responses`, {
+    const requestSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const response = await researchRequest(() => fetch(`${baseURL}/responses`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
@@ -824,15 +828,20 @@ ${sellerVertical === "recruiting_staffing" ? '  "recruiting": {"employerIdentity
    "recommendations": [{"concernId":"exact concern id", "offeringId":"exact approved offering id", "howItHelps":"how this exact offering maps to the cited concern, conditionally", "businessValue":"positive expected value if the concern is confirmed", "outreachAngle":"brief compatible evidence-led angle", "discoveryQuestion":"specific discovery question"}]
 }`,
       }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
+      signal: requestSignal,
+    }), requestSignal);
     if (!response.ok) {
-      const detail = response.status === 429 ? "was rate-limited (HTTP 429); retry after the provider limit resets"
+      const providerError = response.status === 429 ? await response.json().catch(() => undefined) as any : undefined;
+      const exhausted = [providerError?.error?.code, providerError?.error?.type]
+        .some(code => code === "insufficient_quota" || code === "billing_hard_limit_reached");
+      const detail = exhausted ? "has exhausted its provider quota; check research-provider billing or quota before retrying"
+        : response.status === 429 ? "was rate-limited (HTTP 429); retry after the provider limit resets"
         : response.status === 401 || response.status === 403
           ? `was denied access (HTTP ${response.status}); check the research integration credentials and permissions`
           : response.status >= 500 ? `is temporarily unavailable (HTTP ${response.status}); retry later`
           : `was rejected by the research service (HTTP ${response.status})`;
-      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research ${detail}. Existing saved intelligence was not changed.`);
+      throw new ItOpportunityResearchError(`${verticalResearch.label} opportunity research ${detail}. Existing saved intelligence was not changed.`,
+        response.status === 429 && !exhausted ? retryAfterMs(response.headers) : undefined);
     }
     payload = await response.json();
     if (payload?.status === "incomplete") {

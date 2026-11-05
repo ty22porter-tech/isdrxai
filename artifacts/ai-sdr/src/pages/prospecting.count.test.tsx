@@ -37,6 +37,7 @@ vi.mock("@workspace/api-client-react", () => ({
 }));
 
 import Prospecting from "./prospecting";
+import { DEFAULT_RECRUITING_FILTERS } from "@/lib/recruiting";
 
 beforeEach(() => {
   search.mockClear();
@@ -54,6 +55,22 @@ beforeEach(() => {
 });
 
 describe("prospect search count", () => {
+  it("reconnects to a pending Recruiting search after the page reloads", async () => {
+    localStorage.setItem("prospecting:saved-search:count_test", JSON.stringify({
+      pending: true, jobId: "retained-job", requestKey: "existing-request-key", updatedAt: Date.now(),
+      request: { city: "Dallas", state: "TX", industry: "Manufacturing", count: 10 },
+      params: { city: "Dallas", state: "TX", industry: "Manufacturing", count: "10",
+        recruitingFilters: { ...DEFAULT_RECRUITING_FILTERS, industries: ["Manufacturing"], serviceMatchOnly: false } },
+    }));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      businessName: "Synthetic Recruiter", vertical: "recruiting_staffing",
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><Prospecting /></QueryClientProvider>);
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    expect(search.mock.calls[0][0].data).toMatchObject({ city: "Dallas", state: "TX", count: 10 });
+    expect(enrich).not.toHaveBeenCalled();
+  });
   it("offers up to 100 while retaining the default and sends the selected numeric count", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={client}><Prospecting /></QueryClientProvider>);
