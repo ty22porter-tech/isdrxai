@@ -11,11 +11,15 @@ vi.mock("../lib/requireAuth", () => ({
 vi.mock("../lib/sellerResearch", () => ({
   ensureCurrentSellerResearch: vi.fn(async (_id, client) => client),
 }));
+vi.mock("../lib/apollo", async importOriginal => ({
+  ...await importOriginal<typeof import("../lib/apollo")>(), enrichPerson: vi.fn(),
+}));
 
 import type { OpportunityIntelligence } from "@workspace/db";
 import { db } from "@workspace/db";
 import { attachResearchProof } from "../lib/itOpportunityResearch";
 import router, { ResearchHandoffError, trustedProspectValues } from "./prospects";
+import { enrichPerson } from "../lib/apollo";
 
 const secret = "prospect-proof-regression-secret-at-least-32-characters";
 const seller = {
@@ -90,6 +94,27 @@ afterEach(() => {
 });
 
 describe("single and bulk prospect research handoffs", () => {
+  it("passes saved verified openings to Apollo and blocks unverified recruiting bulk enrichment", async () => {
+    const jobs = [{ title: "Registered Nurse", status: "active", noAgencies: false }];
+    const report = { industryRelationship: "match", recommendations: [{}], recruiting: {
+      employerIdentity: "confirmed", automationSuppressed: false, commercialFit: 80, jobs,
+    } };
+    const row = { id: 1, clientId: "tenant-a", vertical: "recruiting_staffing",
+      companyName: "Example Health", email: "unknown@example.invalid", contactName: "Owner",
+      opportunityIntelligence: { itResearch: report } };
+    vi.mocked(db.select).mockReturnValue({ from: () => ({ where: async () => [row] }) } as any);
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person: null });
+    vi.mocked(enrichPerson).mockClear();
+    const handler = (router as any).stack.find((layer: any) =>
+      layer.route?.path === "/bulk-enrich").route.stack.at(-1).handle;
+    const res = { json: vi.fn() };
+    await handler({ body: { ids: [1] }, clientId: "tenant-a" }, res);
+    expect(enrichPerson).toHaveBeenCalledWith(expect.objectContaining({ recruitingJobs: jobs }));
+    row.opportunityIntelligence.itResearch.recruiting.employerIdentity = "unverified";
+    await handler({ body: { ids: [1] }, clientId: "tenant-a" }, res);
+    expect(enrichPerson).toHaveBeenCalledTimes(1);
+    expect(res.json.mock.calls.at(-1)?.[0]).toMatchObject({ failed: 1 });
+  });
   it("accepts the server-re-signed Apollo employee update used by both save routes", async () => {
     const enriched = { ...lead, employeeCount: 84 };
     const updatedProof = signedFor(enriched);

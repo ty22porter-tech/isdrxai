@@ -15,6 +15,12 @@ The approved recruiting workflow is jobs first, then job-level hiring filters, e
 
 **How to apply:** City/state describe job-search geography, not employer headquarters. Company size, independently verified industry and service fit require employer research after job filtering. AI must interpret cited sources, not substitute for them. Growth signals supplement job-found employers; do not imply direct integrations or exhaustive job-board access. Do not spend contact credits on unverified or agency-restricted employers.
 
+Recruiting contact discovery should target the department most likely responsible for verified active openings, with relevant Talent Acquisition/HR contacts as a fallback—not generic owners or executives.
+
+**Why:** The user explicitly approved department-based Apollo matching after seeing large employers displayed with an “Owner” placeholder despite specific technical openings.
+
+**How to apply:** Derive likely department from the role, not the employer's sector; prioritize relevant hiring locations when available. Preserve qualification gates and company-match checks. Label inferred matches as likely contacts, never confirmed hiring managers or business-unit owners without explicit evidence.
+
 Employers and preliminary postings found through job discovery should remain explicitly reviewable when subsequent employer research is unavailable; this does not qualify them for recruiting outreach.
 
 **Why:** The user expects to review employers with service-match filtering disabled. A research failure must not be presented as evidence that no businesses exist.

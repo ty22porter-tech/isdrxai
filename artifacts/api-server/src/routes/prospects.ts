@@ -24,6 +24,7 @@ import { attachResearchProof, verifyResearchHandoff, type ResearchProofFailure }
 import { ensureCurrentSellerResearch } from "../lib/sellerResearch";
 import { prospectScope } from "../lib/verticalScope";
 import { normalizeVertical } from "../lib/verticals";
+import { eligibleHiringResearch } from "../lib/recruitingJobDiscovery";
 
 const router = Router();
 router.use(requireAuth, requireEntitlement);
@@ -507,13 +508,22 @@ router.post("/bulk-enrich", requireEntitlement, async (req, res) => {
 
   const result = await runProspectEnrichment({
     rows,
-    enrich: (p) => enrichPerson({
-      email: p.email,
-      contactName: p.contactName,
-      companyName: p.companyName,
-      website: p.website,
-      vertical: p.vertical,
-    }),
+    enrich: (p) => {
+      const research = rows.find(row => row.id === p.id)?.opportunityIntelligence?.itResearch;
+      if (p.vertical === "recruiting_staffing" && !eligibleHiringResearch(research?.recruiting,
+        research?.industryRelationship === "match" && Boolean(research?.recommendations.length))) {
+        return Promise.resolve({ ok: false as const, planBlocked: false,
+          error: "Contact lookup skipped: refresh verified hiring, employer identity, service fit and agency-policy clearance first." });
+      }
+      return enrichPerson({
+        email: p.email,
+        contactName: p.contactName,
+        companyName: p.companyName,
+        website: p.website,
+        vertical: p.vertical,
+        ...(p.vertical === "recruiting_staffing" ? { recruitingJobs: research?.recruiting?.jobs } : {}),
+      });
+    },
     update: async (p, values) => {
       await db.update(prospectsTable).set(values)
         .where(and(eq(prospectsTable.id, p.id), eq(prospectsTable.clientId, req.clientId)));

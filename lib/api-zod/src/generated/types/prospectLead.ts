@@ -7,11 +7,13 @@
  */
 import type { OpportunityIntelligence } from './opportunityIntelligence';
 import type { ProspectLeadConfidence } from './prospectLeadConfidence';
+import type { RecruitingContactMatch } from './recruitingContactMatch';
 
 export interface ProspectLead {
   companyName: string;
   contactName: string;
   contactTitle: string;
+  contactMatch?: RecruitingContactMatch;
   email: string;
   phone: string;
   industry: string;

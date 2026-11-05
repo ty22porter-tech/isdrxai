@@ -601,6 +601,10 @@ describe("recruiting search research failures", () => {
       layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
     await handler({ clientId: "client-1", body: { leads } }, contactResponse);
     expect(enrichPerson).toHaveBeenCalledTimes(1);
+    expect(enrichPerson).toHaveBeenCalledWith(expect.objectContaining({
+      vertical: "recruiting_staffing",
+      recruitingJobs: expect.arrayContaining([expect.objectContaining({ title: "Registered Nurse", status: "active" })]),
+    }));
     const report = leads[0].opportunityIntelligence.itResearch;
     const { res: mixedLocations } = await search({ minRelevantJobs: 2 }, [PLACE], {
       signals: [], itResearch: {

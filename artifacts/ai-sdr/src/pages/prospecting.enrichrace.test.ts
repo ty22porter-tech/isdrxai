@@ -18,6 +18,21 @@ const lead = (companyName: string, email: string): ProspectLead =>
   }) as ProspectLead;
 
 describe("applyEnrichmentResults — stale-run safety", () => {
+  it("retains department rationale with the matched contact for saved search snapshots", () => {
+    const snapshot = [lead("Acme Cleaning", "contact@acme.invalid")];
+    const contactMatch = { kind: "department" as const, department: "Software Engineering",
+      openingTitles: ["Software Engineer"], reason: "Likely contact, not confirmed hiring manager.", locationMatch: false };
+    const out = applyEnrichmentResults(snapshot, snapshot, [{
+      index: 0, status: "enriched", contactName: "Engineering Lead", email: "lead@acme.com",
+      title: "Engineering Manager", contactMatch,
+    }]);
+    expect(out[0].contactMatch).toEqual(contactMatch);
+    expect(JSON.parse(JSON.stringify(out))[0].contactMatch).toEqual(contactMatch);
+    const other = [lead("Other company", "other@other.invalid")];
+    expect(applyEnrichmentResults(other, snapshot, [{
+      index: 0, status: "enriched", contactMatch,
+    }])[0].contactMatch).toBeUndefined();
+  });
   it("applies demographic intelligence when Apollo finds no contact", () => {
     const snapshot = [lead("Acme Cleaning", "contact@acme.invalid")];
     const intelligence = {

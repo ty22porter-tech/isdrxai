@@ -2714,6 +2714,24 @@ components:
               opportunityIntelligence:
                 $ref: "#/components/schemas/OpportunityIntelligence"
 
+    RecruitingContactMatch:
+      type: object
+      required: [kind, department, openingTitles, reason, locationMatch]
+      properties:
+        kind:
+          type: string
+          enum: [department, talent_acquisition]
+        department:
+          type: string
+        openingTitles:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+        locationMatch:
+          type: boolean
+
     EnrichLeadsResult:
       type: object
       required: [results]
@@ -2755,6 +2773,8 @@ components:
               researchWarning:
                 type: string
                 description: Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable.
+              contactMatch:
+                $ref: "#/components/schemas/RecruitingContactMatch"
 
     RefreshOpportunityIntelligenceRequest:
       type: object
@@ -2836,6 +2856,8 @@ components:
           type: string
         contactTitle:
           type: string
+        contactMatch:
+          $ref: "#/components/schemas/RecruitingContactMatch"
         email:
           type: string
         phone:

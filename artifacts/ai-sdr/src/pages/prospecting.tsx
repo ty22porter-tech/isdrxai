@@ -201,6 +201,7 @@ type EnrichLeadResult = {
   opportunityIntelligence?: ProspectLead["opportunityIntelligence"];
   error?: string;
   researchWarning?: string;
+  contactMatch?: ProspectLead["contactMatch"];
 };
 
 // Apply Apollo enrichment results to the current lead list. `snapshot` is the
@@ -231,6 +232,7 @@ export function applyEnrichmentResults(
       ...lead,
       contactName: r.status === "enriched" ? r.contactName ?? lead.contactName : lead.contactName,
       contactTitle: r.status === "enriched" ? r.title ?? "Decision maker" : lead.contactTitle,
+      contactMatch: r.status === "enriched" ? r.contactMatch : lead.contactMatch,
       email: r.status === "enriched" && r.email && !isPlaceholderEmail(r.email) ? r.email : lead.email,
       phone: r.status === "enriched" ? r.phone || lead.phone : lead.phone,
       estimatedEmployees: r.employeeCount ?? lead.estimatedEmployees,
@@ -1498,6 +1500,14 @@ export default function Prospecting() {
                             <span>·</span>
                             <span>{lead.contactTitle}</span>
                           </div>
+                          {isRecruiting && lead.contactMatch && (
+                            <div className="rounded-md border p-2 text-xs text-muted-foreground" data-testid={`contact-match-${idx}`}>
+                              <p className="font-medium text-foreground">
+                                {lead.contactMatch.kind === "department" ? "Likely department contact" : "Likely recruiting contact"}
+                              </p>
+                              <p>{lead.contactMatch.reason}</p>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Mail className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate" data-testid={`text-contact-email-${idx}`}>

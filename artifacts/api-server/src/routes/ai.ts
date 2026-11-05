@@ -598,6 +598,7 @@ type EnrichLeadResult = {
   opportunityIntelligence?: ReturnType<typeof buildOpportunityIntelligence>;
   error?: string;
   researchWarning?: string;
+  contactMatch?: import("../lib/recruitingContactTargeting").RecruitingContactMatch;
 };
 
 function enrichmentErrorCategory(err: unknown): string {
@@ -660,6 +661,8 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         companyName: lead.companyName,
         website: lead.website ?? null,
         vertical,
+        ...(vertical === "recruiting_staffing" && priorResearch.ok
+          ? { recruitingJobs: priorResearch.handoff.itResearch.recruiting?.jobs } : {}),
       });
       if (!result.ok) {
         if (result.planBlocked) {
@@ -780,6 +783,7 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         contactName: p?.contactName ?? undefined,
         email: contactEmail,
         title: p?.title ?? undefined,
+        contactMatch: p?.contactMatch,
         phone: p?.phone ?? undefined,
         linkedinUrl: p?.linkedinUrl ?? undefined,
         employeeCount,

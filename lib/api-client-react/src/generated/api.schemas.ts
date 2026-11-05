@@ -1795,6 +1795,22 @@ export interface EnrichLeadsRequest {
   leads: EnrichLeadsRequestLeadsItem[];
 }
 
+export type RecruitingContactMatchKind = typeof RecruitingContactMatchKind[keyof typeof RecruitingContactMatchKind];
+
+
+export const RecruitingContactMatchKind = {
+  department: 'department',
+  talent_acquisition: 'talent_acquisition',
+} as const;
+
+export interface RecruitingContactMatch {
+  kind: RecruitingContactMatchKind;
+  department: string;
+  openingTitles: string[];
+  reason: string;
+  locationMatch: boolean;
+}
+
 export type EnrichLeadsResultResultsItemStatus = typeof EnrichLeadsResultResultsItemStatus[keyof typeof EnrichLeadsResultResultsItemStatus];
 
 
@@ -1818,6 +1834,7 @@ export type EnrichLeadsResultResultsItem = {
   error?: string;
   /** Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable. */
   researchWarning?: string;
+  contactMatch?: RecruitingContactMatch;
 };
 
 export interface EnrichLeadsResult {
@@ -1900,6 +1917,7 @@ export interface ProspectLead {
   companyName: string;
   contactName: string;
   contactTitle: string;
+  contactMatch?: RecruitingContactMatch;
   email: string;
   phone: string;
   industry: string;

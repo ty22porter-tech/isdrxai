@@ -3867,6 +3867,13 @@ export const ProspectSearchResponseItem = zod.object({
   "companyName": zod.string(),
   "contactName": zod.string(),
   "contactTitle": zod.string(),
+  "contactMatch": zod.object({
+  "kind": zod.enum(['department', 'talent_acquisition']),
+  "department": zod.string(),
+  "openingTitles": zod.array(zod.string()),
+  "reason": zod.string(),
+  "locationMatch": zod.boolean()
+}).optional(),
   "email": zod.string(),
   "phone": zod.string(),
   "industry": zod.string(),
@@ -4402,7 +4409,14 @@ export const EnrichLeadsResponse = zod.object({
   "researchProof": zod.string().optional()
 }).optional(),
   "error": zod.string().optional(),
-  "researchWarning": zod.string().optional().describe('Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable.')
+  "researchWarning": zod.string().optional().describe('Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable.'),
+  "contactMatch": zod.object({
+  "kind": zod.enum(['department', 'talent_acquisition']),
+  "department": zod.string(),
+  "openingTitles": zod.array(zod.string()),
+  "reason": zod.string(),
+  "locationMatch": zod.boolean()
+}).optional()
 }))
 })
 

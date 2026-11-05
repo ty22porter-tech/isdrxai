@@ -7,6 +7,7 @@
  */
 import type { EnrichLeadsResultResultsItemStatus } from './enrichLeadsResultResultsItemStatus';
 import type { OpportunityIntelligence } from './opportunityIntelligence';
+import type { RecruitingContactMatch } from './recruitingContactMatch';
 
 export type EnrichLeadsResultResultsItem = {
   /** Index of the lead in the request array. */
@@ -22,4 +23,5 @@ export type EnrichLeadsResultResultsItem = {
   error?: string;
   /** Optional safe user-facing warning when contact lookup succeeded but company or opportunity research was unavailable. */
   researchWarning?: string;
+  contactMatch?: RecruitingContactMatch;
 };

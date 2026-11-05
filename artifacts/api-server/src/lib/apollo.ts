@@ -1,4 +1,6 @@
 import { logger } from "./logger";
+import type { RecruitingJob } from "@workspace/db";
+import { recruitingContactTargets, RECRUITING_FALLBACK_TITLES, type RecruitingContactMatch } from "./recruitingContactTargeting";
 
 /**
  * Apollo.io people enrichment client.
@@ -18,6 +20,7 @@ import { logger } from "./logger";
  */
 
 export interface ApolloEnrichment {
+  contactMatch?: RecruitingContactMatch;
   /** Decision-maker's full name (filled when missing/placeholder). */
   contactName: string | null;
   /** Decision-maker's verified work email (filled when placeholder). */
@@ -310,9 +313,14 @@ async function searchDecisionMaker(apiKey: string, input: {
   companyName: string;
   website?: string | null;
   vertical?: string | null;
+  recruitingJobs?: readonly RecruitingJob[];
 }): Promise<ApolloResult> {
   const vertical = input.vertical ?? "janitorial";
-  const titles = DECISION_MAKER_TITLES[vertical] ?? DECISION_MAKER_TITLES["janitorial"];
+  const recruiting = vertical === "recruiting_staffing"
+    ? recruitingContactTargets(input.recruitingJobs ?? []) : undefined;
+  // Never spend recruiting contact credits without verified active jobs.
+  if (recruiting && !recruiting.hasActiveJobs) return { ok: true, person: null };
+  const titles = recruiting?.titles ?? DECISION_MAKER_TITLES[vertical] ?? DECISION_MAKER_TITLES["janitorial"];
 
   // Build the domain for organization lookup (Apollo prefers domain over name).
   let domain: string | undefined;
@@ -336,7 +344,9 @@ async function searchDecisionMaker(apiKey: string, input: {
       res = await fetch("https://api.apollo.io/api/v1/mixed_people/api_search", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
-        body: JSON.stringify({ page: 1, per_page: 5, ...(withTitles ? { person_titles: titles } : {}), ...companyFilter }),
+        body: JSON.stringify({ page: 1, per_page: 5,
+          ...(recruiting ? { person_titles: withTitles ? titles : RECRUITING_FALLBACK_TITLES }
+            : withTitles ? { person_titles: titles } : {}), ...companyFilter }),
         signal: AbortSignal.timeout(10_000),
       });
     } catch (err: any) {
@@ -353,6 +363,9 @@ async function searchDecisionMaker(apiKey: string, input: {
   // within each group. The search results themselves do not reveal emails.
   const lowerTitles = titles.map((t) => t.toLowerCase());
   const sortCandidates = (people: any[]) => [...people].sort((a, b) => {
+    if (recruiting && recruiting.locationMatch(a.city) !== recruiting.locationMatch(b.city)) {
+      return recruiting.locationMatch(a.city) ? -1 : 1;
+    }
     if (Boolean(a.has_email) !== Boolean(b.has_email)) return a.has_email ? -1 : 1;
     const ia = lowerTitles.findIndex((t) => (a.title ?? "").toLowerCase().includes(t));
     const ib = lowerTitles.findIndex((t) => (b.title ?? "").toLowerCase().includes(t));
@@ -364,12 +377,14 @@ async function searchDecisionMaker(apiKey: string, input: {
   // At most three reveals for preferred titles and five total across both
   // searches. Never pay to reveal the same person twice.
   for (const withTitles of [true, false]) {
+    if (recruiting && withTitles && !titles.length) continue;
     const search = await runSearch(withTitles);
     if ("ok" in search) return search;
     const limit = withTitles ? 3 : 5;
     for (const chosen of sortCandidates(search.people)) {
       if (attemptedIds.size >= limit) break;
       if (!chosen?.id || attemptedIds.has(String(chosen.id))) continue;
+      if (recruiting && !recruiting.classify(chosen.title ?? "", !withTitles)) continue;
       // Apollo's fuzzy search can return unrelated companies. Check both the
       // obfuscated search result and the revealed person before accepting it.
       if (!isPlausibleCompanyMatch(chosen, target)) continue;
@@ -396,6 +411,11 @@ async function searchDecisionMaker(apiKey: string, input: {
 
       if (!isPlausibleCompanyMatch(person, target)) continue;
       const enriched = extractPersonFromApolloData(person);
+      if (recruiting) {
+        const department = recruiting.classify(enriched.title ?? "", !withTitles);
+        if (!department) continue;
+        enriched.contactMatch = recruiting.describe(department, !withTitles, person.city);
+      }
       if (enriched.email) return { ok: true, person: enriched };
     }
   }
@@ -409,6 +429,7 @@ export async function enrichPerson(input: {
   companyName?: string | null;
   website?: string | null;
   vertical?: string | null;
+  recruitingJobs?: readonly RecruitingJob[];
 }): Promise<ApolloResult> {
   const apiKey = process.env.APOLLO_API_KEY;
   if (!apiKey) return { ok: false, planBlocked: false, error: "APOLLO_API_KEY is not configured" };
@@ -427,5 +448,6 @@ export async function enrichPerson(input: {
     companyName: input.companyName,
     website: input.website,
     vertical: input.vertical,
+    recruitingJobs: input.recruitingJobs,
   });
 }
