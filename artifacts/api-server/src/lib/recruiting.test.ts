@@ -128,6 +128,18 @@ describe("Recruiting & Staffing industry", () => {
     const result = parse({ jobs: [{ ...job, urgent: true, verifiedReposting: true, hiringQuantity: 8 }] });
     expect(result.jobs[0]).toMatchObject({ urgent: false, verifiedReposting: false, hiringQuantity: null });
   });
+  it.each([
+    "https://jobs.boeing.com/location/dallas-texas-united-states-jobs/185/6252001/4",
+    "https://jobs.lever.co/example?location=Dallas",
+    "https://boards.greenhouse.io/example",
+  ])("keeps a general job board pending instead of treating it as an active opening: %s", sourceURL => {
+    const research = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [{ ...job, sourceURL }] }, {
+      companyName: job.employer, identityVerified: true, allowedSourceUrls: [sourceURL],
+    });
+    expect(research.jobs).toHaveLength(1);
+    expect(research.jobs[0].status).toBe("unknown");
+    expect(research.uniqueActiveJobs).toBe(0);
+  });
   it("blocks a cited employer-wide no-agencies policy even without any job listings", () => {
     const hiring = parse({ jobs: [], agencyPolicies: [{ sourceURL: url, evidence: "We do not accept unsolicited resumes from agencies." }] });
     expect(hiring.automationSuppressed).toBe(true);

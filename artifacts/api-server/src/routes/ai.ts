@@ -736,7 +736,12 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
           : [];
         phase = "opportunity_research";
         try {
-          const [researched, publicBreachSignals] = await Promise.all([
+          // Keep the verified openings used to choose a recruiting contact.
+          // Apollo demographics can change the cache key; a second web search
+          // could then replace those openings with unrelated roles.
+          const [researched, publicBreachSignals] = vertical === "recruiting_staffing" && priorResearch.ok
+            ? [{ itResearch: priorResearch.handoff.itResearch, signals: priorResearch.handoff.signals }, []]
+            : await Promise.all([
             // Search intelligence is held in a server-only tenant cache, so a
             // client cannot forge its report while enriching an unsaved result.
             researchItOpportunityIntelligence({

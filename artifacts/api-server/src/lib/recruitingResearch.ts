@@ -21,6 +21,20 @@ const date = (value: unknown) =>
 const futureDate = (value: unknown) =>
   typeof value === "string" && Number.isFinite(Date.parse(value))
     ? new Date(value).toISOString() : null;
+
+/** These known board/search URLs identify a list, not an individual opening. */
+function isJobBoardOverview(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (url.hostname === "jobs.boeing.com") return /^(?:location|search-jobs)$/.test(parts[0] ?? "");
+    if (["jobs.lever.co", "jobs.eu.lever.co"].includes(url.hostname)) return parts.length < 2;
+    if (["boards.greenhouse.io", "job-boards.greenhouse.io"].includes(url.hostname)) {
+      return !(parts[1] === "jobs" && /^\d+$/.test(parts[2] ?? ""));
+    }
+  } catch { /* Invalid URLs cannot become validated source URLs. */ }
+  return false;
+}
 function canonicalUrl(value: unknown): string | null {
   try {
     const url = new URL(String(value));
@@ -172,7 +186,7 @@ export function parseRecruitingResearch(
       postedAt: date(item?.postedAt),
       firstSeenAt: prior?.firstSeenAt || now,
       lastVerifiedAt: now,
-      status: item?.status === "active" && employerIdentity === "confirmed"
+      status: item?.status === "active" && employerIdentity === "confirmed" && !isJobBoardOverview(sourceURL)
         ? "active" : item?.status === "closed" ? "closed" : "unknown",
       sourceURL, evidence,
       requisitionId: nullableText(item?.requisitionId),

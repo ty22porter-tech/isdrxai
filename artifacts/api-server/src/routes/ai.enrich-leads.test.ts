@@ -175,6 +175,36 @@ describe("contact enrichment failure isolation", () => {
     website: "https://regional.example",
   };
 
+  it("retains the verified recruiting openings used to select the Apollo contact instead of researching different roles", async () => {
+    vi.mocked(db.select).mockReturnValue({ from: () => ({ where: async () => [{
+      id: "synthetic-client", vertical: "recruiting_staffing",
+    }] }) } as any);
+    const hiring = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [{
+      employer: "Regional Manufacturing 0", title: "Manufacturing Engineer", location: "Columbus, OH",
+      sourceURL: "https://regional0.example/careers/123", status: "active", evidence: "Manufacturing Engineer opening.",
+    }] }, { companyName: "Regional Manufacturing 0", identityVerified: true,
+      allowedSourceUrls: ["https://regional0.example/careers/123"] });
+    hiring.commercialFit = 80;
+    vi.mocked(verifyResearchHandoff).mockReturnValue({ ok: true, handoff: { signals: [], itResearch: {
+      sellerVertical: "recruiting_staffing", selectedIndustry: "Manufacturing", actualIndustry: "Manufacturing",
+      industryRelationship: "match", industryExplanation: "Manufacturer", industrySources: [], warnings: [],
+      industryChallenges: [], prospectConcerns: [], recommendations: [{
+        concernId: "engineering", offering: "temp to hire", howItHelps: "Engineering support",
+        businessValue: "Staff capacity", sellerEvidence: { availability: "user_approved", sources: [] },
+      }], recruiting: hiring,
+    } } } as any);
+    vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person: { ...person, employeeCount: 400 } } as any);
+    const res = response();
+    await handler({ clientId: "synthetic-client", body: { leads: [realisticLead(0)] } }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({
+      status: "enriched", email: person.email, opportunityIntelligence: { itResearch: {
+        recruiting: { jobs: [expect.objectContaining({ title: "Manufacturing Engineer", status: "active" })] },
+      } },
+    });
+    expect(enrichPerson).toHaveBeenCalledWith(expect.objectContaining({ recruitingJobs: hiring.jobs }));
+    expect(researchItOpportunityIntelligence).not.toHaveBeenCalled();
+  });
+
   it("retains an Apollo contact when opportunity research throws", async () => {
     vi.mocked(enrichPerson).mockResolvedValue({ ok: true, person } as any);
     vi.mocked(researchItOpportunityIntelligence).mockRejectedValue(new Error("provider body must not escape"));

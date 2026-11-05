@@ -32,6 +32,9 @@ describe("recruiting department targets", () => {
     ["Supply Chain Engineer", "Supply Chain Director", "Supply Chain & Procurement"],
     ["People Operations Manager", "HR Manager", "Human Resources"],
     ["Credit Analyst", "Finance Director", "Finance & Accounting"],
+    ["Mortgage Finance Operations Specialist - Warehouse Lending", "Mortgage Operations Manager", "Banking & Lending Operations"],
+    ["Financial Center Leader", "Financial Center Leader", "Banking & Lending Operations"],
+    ["Consumer Regional Manager", "Consumer Banking Director", "Banking & Lending Operations"],
     ["Warehouse Associate", "Warehouse Manager", "Logistics & Warehouse Operations"],
   ])("maps %s to relevant leadership", (opening, title, department) => {
     expect(recruitingContactTargets([job(opening)]).classify(title, false)).toBe(department);
@@ -42,6 +45,15 @@ describe("recruiting department targets", () => {
       job("CNC Machinist", { status: "closed" }), job("Registered Nurse", { noAgencies: true })]);
     expect(targets.hasActiveJobs).toBe(false);
     expect(targets.titles).toEqual([]);
+  });
+  it("targets banking operations rather than accounting leadership for lending and branch openings", () => {
+    const targets = recruitingContactTargets([job("Mortgage Finance Operations Specialist - Warehouse Lending"),
+      job("Financial Center Leader"), job("Consumer Regional Manager")]);
+    expect(targets.titles).toContain("mortgage operations manager");
+    expect(targets.titles).toContain("financial center leader");
+    expect(targets.titles).not.toContain("controller");
+    expect(targets.classify("Chief Financial Officer", false)).toBeUndefined();
+    expect(targets.classify("Client Services Representative", false)).toBeUndefined();
   });
 });
 

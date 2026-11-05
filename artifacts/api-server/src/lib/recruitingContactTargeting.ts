@@ -38,6 +38,10 @@ const DEPARTMENTS: Department[] = [
     jobs: /\b(nurs|rn\b|clinical|physician|pharmac|therapist|medical|patient)/i,
     contacts: /\b(nursing|clinical|medical|pharmacy|patient)\b/i,
     titles: ["director of nursing", "chief nursing officer", "clinical director", "pharmacy director", "nurse manager"] },
+  { name: "Banking & Lending Operations",
+    jobs: /\b(mortgage|lending|loan|banking|bank branch|financial center|consumer regional manager)\b/i,
+    contacts: /\b(mortgage|lending|loan|banking|branch|financial center|consumer)\b/i,
+    titles: ["branch manager", "financial center manager", "financial center leader", "regional banking manager", "mortgage operations manager", "director of lending", "banking operations manager"] },
   { name: "Finance & Accounting",
     jobs: /\b(financ|accountan|compliance|credit|risk management|controller|audit)/i,
     contacts: /\b(financ|accounting|compliance|risk|controller|audit)/i,
@@ -64,7 +68,7 @@ const DEPARTMENTS: Department[] = [
     titles: ["operations director", "operations manager", "project management director"] },
 ];
 
-const leadership = /\b(manager|director|head|vp|vice president|chief|controller)\b/i;
+const leadership = /\b(manager|director|head|vp|vice president|chief|controller|financial center leader|branch leader)\b/i;
 const acquisition = /\b(talent acquisition|recruit(?:ing|ment|er)?|human resources|hr|people operations)\b/i;
 export const RECRUITING_FALLBACK_TITLES = [
   "director of talent acquisition", "talent acquisition manager",
