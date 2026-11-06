@@ -32,11 +32,12 @@ describe("persistent Recruiting search", () => {
   });
   it("reuses the idempotency key if the initial response is lost", async () => {
     const opts = options();
-    opts.transport.start.mockRejectedValueOnce(new TypeError("response lost"));
+    opts.transport.start.mockRejectedValue(new TypeError("response lost"));
     await expect(persistentRecruitingSearch(request, opts)).rejects.toThrow();
     opts.transport.start.mockResolvedValueOnce(done);
     await persistentRecruitingSearch(request, opts);
-    expect(opts.transport.start.mock.calls[0][0].requestKey).toBe(opts.transport.start.mock.calls[1][0].requestKey);
+    expect(opts.transport.start).toHaveBeenCalledTimes(5);
+    expect(opts.transport.start.mock.calls.every(call => call[0].requestKey === opts.transport.start.mock.calls[0][0].requestKey)).toBe(true);
   });
   it("retries failed research on the same job without starting employer discovery", async () => {
     const opts = options();
@@ -65,5 +66,37 @@ describe("persistent Recruiting search", () => {
     opts.transport.get.mockRejectedValueOnce({ status: 404 });
     await expect(persistentRecruitingSearch(request, { ...opts, resumeExisting: true })).rejects.toThrow(/expired/);
     expect(savedRecruitingSearch(opts.userId)).toBeUndefined();
+  });
+  it("recovers from a startup 502 on creation using the same saved request key", async () => {
+    const opts = options();
+    opts.transport.start.mockRejectedValueOnce({ status: 502, message: "<!DOCTYPE html><title>Your app is starting…</title>" });
+    expect(await persistentRecruitingSearch(request, opts)).toEqual([]);
+    expect(opts.transport.start).toHaveBeenCalledTimes(2);
+    expect(opts.transport.start.mock.calls[0][0].requestKey).toBe(opts.transport.start.mock.calls[1][0].requestKey);
+  });
+  it("does not blindly repeat a failed-research POST after a gateway error", async () => {
+    const opts = options();
+    await persistentRecruitingSearch(request, opts);
+    opts.transport.retry.mockRejectedValue({ status: 502 });
+    await expect(persistentRecruitingSearch(request, { ...opts, retryFailed: true })).rejects.toThrow(/app is starting/);
+    expect(opts.transport.retry).toHaveBeenCalledTimes(1);
+    expect(savedRecruitingSearch(opts.userId)?.pending).toBe(true);
+    opts.transport.retry.mockClear();
+    await persistentRecruitingSearch(request, { ...opts, resumeExisting: true });
+    expect(opts.transport.retry).not.toHaveBeenCalled();
+    expect(savedRecruitingSearch(opts.userId)?.retrying).toBe(true);
+  });
+  it("does not retry authorization errors as startup failures", async () => {
+    const opts = options();
+    opts.transport.start.mockRejectedValue({ status: 401 });
+    await expect(persistentRecruitingSearch(request, opts)).rejects.toMatchObject({ status: 401 });
+    expect(opts.transport.start).toHaveBeenCalledTimes(1);
+  });
+  it("does not mistake an HTML startup page returned with status 200 for a saved job", async () => {
+    const opts = options();
+    opts.transport.start.mockResolvedValueOnce("<!DOCTYPE html><title>Your app is starting</title>" as unknown as ProspectSearchJob);
+    expect(await persistentRecruitingSearch(request, opts)).toEqual([]);
+    expect(opts.transport.start).toHaveBeenCalledTimes(2);
+    expect(savedRecruitingSearch(opts.userId)?.jobId).toBe("saved-job");
   });
 });

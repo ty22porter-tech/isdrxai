@@ -14,6 +14,7 @@ export function savedRecruitingSearch<T>(userId: string, storage: Storage = loca
 
 export async function persistentRecruitingSearch<T>(request: ProspectSearchRequest, options: {
   userId: string; params: T; retryFailed?: boolean; resumeExisting?: boolean; onProgress?: (job: ProspectSearchJob) => void;
+  onReconnecting?: (reconnecting: boolean) => void;
   storage?: Storage; wait?: () => Promise<void>;
   transport?: { start: typeof startProspectSearchJob; get: typeof getProspectSearchJob; retry: typeof retryProspectSearchJob };
 }): Promise<ProspectLead[]> {
@@ -43,13 +44,45 @@ export async function persistentRecruitingSearch<T>(request: ProspectSearchReque
   const reconnect = async (operation: Promise<ProspectSearchJob>) => {
     try { return await operation; } catch (error) { rejectMissing(error); throw error; }
   };
-  let job = await reconnect(options.retryFailed && saved.jobId
-    ? transport.retry(saved.jobId, requestOptions())
-    : saved.jobId ? transport.get(saved.jobId, requestOptions())
-    : transport.start({ requestKey: saved.requestKey, request }, requestOptions()));
+  const transient = (error: unknown) => error instanceof TypeError
+    || (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name))
+    || Boolean(error && typeof error === "object" && "status" in error && [502, 503, 504].includes(Number(error.status)));
+  const unavailable = () => new Error("The app is starting or the connection is unavailable. Your search is saved; use Reconnect saved search after the app is running.");
+  const validateJob = (job: ProspectSearchJob): ProspectSearchJob => {
+    if (!job || typeof job !== "object" || typeof job.id !== "string"
+      || !["queued", "running", "waiting", "completed"].includes(job.status)) {
+      throw Object.assign(new Error("The app returned a startup page instead of saved-search data."), { status: 503 });
+    }
+    return job;
+  };
+  const recoverStartup = async (operation: () => Promise<ProspectSearchJob>) => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const result = validateJob(await operation());
+        options.onReconnecting?.(false);
+        return result;
+      } catch (error) {
+        rejectMissing(error);
+        if (!transient(error)) throw error;
+        options.onReconnecting?.(true);
+        if (attempt === 3) throw unavailable();
+        await (options.wait?.() ?? new Promise<void>(resolve => setTimeout(resolve, 2000 * 2 ** attempt)));
+      }
+    }
+    throw unavailable();
+  };
+  let job: ProspectSearchJob;
+  if (options.retryFailed && saved.jobId) {
+    // Retrying research is not idempotent once it completes. Never blindly
+    // replay this POST if a restart hides its response; reconnect by GET instead.
+    try { job = validateJob(await reconnect(transport.retry(saved.jobId, requestOptions()))); }
+    catch (error) { if (transient(error)) throw unavailable(); throw error; }
+  } else {
+    job = await recoverStartup(() => saved!.jobId ? transport.get(saved!.jobId, requestOptions())
+      : transport.start({ requestKey: saved!.requestKey, request }, requestOptions()));
+  }
   saved.jobId = job.id;
   persist();
-  let failures = 0;
   while (true) {
     options.onProgress?.(job);
     if (job.status === "completed") {
@@ -64,10 +97,6 @@ export async function persistentRecruitingSearch<T>(request: ProspectSearchReque
       return job.result;
     }
     await (options.wait?.() ?? new Promise<void>(resolve => setTimeout(resolve, 2000)));
-    try { job = await transport.get(saved.jobId, requestOptions()); failures = 0; }
-    catch (error) {
-      rejectMissing(error);
-      if (++failures >= 3) throw new Error("Connection interrupted. Your search is saved; reload this page to reconnect without repeating discovery.");
-    }
+    job = await recoverStartup(() => transport.get(saved!.jobId!, requestOptions()));
   }
 }

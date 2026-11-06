@@ -153,6 +153,12 @@ function buildErrorMessage(response: Response, data: unknown): string {
 
   if (typeof data === "string") {
     const text = data.trim();
+    if (/^\s*(?:<!doctype\s+html|<html\b|<head\b)/i.test(text)
+      || (response.headers.get("content-type") ?? "").includes("text/html")) {
+      return response.status >= 500
+        ? "The app is starting or temporarily unavailable. Please wait a moment, then reconnect to your saved search."
+        : `${prefix}: The server returned a web page instead of an API response. Please refresh and try again.`;
+    }
     return text ? `${prefix}: ${truncate(text)}` : prefix;
   }
 

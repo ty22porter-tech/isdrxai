@@ -338,13 +338,14 @@ export default function Prospecting() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchProgress, setSearchProgress] = useState<ProspectSearchJob | null>(null);
+  const [searchReconnecting, setSearchReconnecting] = useState(false);
   const savedSearchContext = useRef<{ params?: ProspectingSnapshot["params"]; retryFailed: boolean; resumeExisting?: boolean }>({ retryFailed: false });
   const searchMutation = useProspectSearch({ mutation: {
     retry: false,
     mutationFn: ({ data }) => isRecruiting && user?.id && savedSearchContext.current.params
       ? persistentRecruitingSearch(data, { userId: user.id, params: savedSearchContext.current.params,
           retryFailed: savedSearchContext.current.retryFailed, resumeExisting: savedSearchContext.current.resumeExisting,
-          onProgress: setSearchProgress })
+          onProgress: setSearchProgress, onReconnecting: setSearchReconnecting })
       : prospectSearch(data),
   } });
   const searchIssue = searchMutation.error?.data as ProspectSearchIssue | undefined;
@@ -526,6 +527,7 @@ export default function Prospecting() {
     setLastSearchedParams(currentParams);
     savedSearchContext.current = { params: currentParams, retryFailed, resumeExisting };
     setSearchProgress(null);
+    setSearchReconnecting(false);
 
     restorePendingRef.current = false;
     if (user?.id) clearAutopilotProspectSelection(user.id);
@@ -569,7 +571,8 @@ export default function Prospecting() {
           setLeads(rows);
           if (retryFailed) setEnrichment(new Map(rows.flatMap((lead, index) =>
             isPlaceholderEmail(lead.email) ? [] : [[index, "enriched" as const]])));
-          if (!resumeExisting && !retryFailed) runEnrichment(rows.map((lead, index) => ({ lead, index }))
+          const researchRetry = isRecruiting && user?.id && savedRecruitingSearch(user.id)?.retrying;
+          if (!resumeExisting && !retryFailed && !researchRetry) runEnrichment(rows.map((lead, index) => ({ lead, index }))
             .filter(({ lead }) => !isRecruiting || (!lead.researchError && !lead.outsideSelectedFilters)));
           trackEvent("prospect_search_completed", {
             vertical,
@@ -1423,6 +1426,9 @@ export default function Prospecting() {
                   ? "No employers matched this job search area and all selected filters. Try a broader location or clear optional job filters. Job openings are searched first; contacts are looked up only after employer, hiring, agency-policy and service-fit checks pass."
                   : "No businesses matched this search. Try another location or industry."}
               </p>
+            {searchReconnecting && <p role="status" className="text-sm text-muted-foreground">
+              The app is starting or reconnecting. Your saved search will resume when the connection returns.
+            </p>}
             {isRecruiting && searchProgress && <p role="status" className="text-sm text-muted-foreground">
               {searchProgress.completed} of {searchProgress.total || "…"} employers researched.
               {searchProgress.status === "waiting"
@@ -1437,7 +1443,7 @@ export default function Prospecting() {
           && savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id)?.pending && (
           <Button variant="outline" onClick={() => {
             const saved = savedRecruitingSearch<ProspectingSnapshot["params"]>(user.id);
-            if (saved?.params) runSearch(saved.params);
+            if (saved?.params) runSearch(saved.params, false, Boolean(saved.retrying));
           }}>Reconnect saved search</Button>
         )}
         {isRecruiting && !searchMutation.isPending && !leads.length && user?.id
