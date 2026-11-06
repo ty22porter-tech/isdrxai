@@ -1,4 +1,5 @@
-interface EmailRecipient {
+import { recruitingOpeningSummary, type RecruitingEmailRecipient } from "@workspace/db/recruiting-email";
+interface EmailRecipient extends RecruitingEmailRecipient {
   contactName?: string | null;
   companyName?: string | null;
   city?: string | null;
@@ -15,6 +16,7 @@ export function mergeEmailTemplate(template: string, prospect: EmailRecipient): 
     .replace(/\{\{companyName\}\}/g, () => prospect.companyName ?? "")
     .replace(/\{\{city\}\}/g, () => prospect.city ?? "")
     .replace(/\{\{state\}\}/g, () => prospect.state ?? "")
+    .replace(/\{\{jobOpenings\}\}/g, () => recruitingOpeningSummary(prospect))
     .replace(/\{\{industry\}\}/g, () => prospect.industry ?? "");
 
   if (fullName && fullName !== firstName) {

@@ -1,3 +1,4 @@
+import { recruitingOpeningSummary } from "@workspace/db/recruiting-email";
 import type {
   OpportunityIntelligence,
   OpportunityScoreCategory,
@@ -982,7 +983,9 @@ POTENTIAL IMPLICATIONS — must use may/could/if language:
 ${implications.length ? implications.map(signal => `- ${signal.signalDescription}`).join("\n") : "- None"}
 UNCONFIRMED — never state as fact:
 ${unconfirmed.length ? unconfirmed.map(signal => `- ${signal.signalTitle}`).join("\n") : "- None"}
-${itResearchEmailContext(value)}`;
+${itResearchEmailContext(value)}
+${value.itResearch?.recruiting ? `RECRUITING OPENINGS: ${recruitingOpeningSummary({ opportunityIntelligence: value })}
+When specific openings are listed above, mention at least one exact job title naturally in the email. These are published listings from saved research, not proof of hiring urgency, difficulty, agency interest, or this contact's hiring authority. Do not invent roles, quantities, candidates, or assume the role is still open today. When no verified openings are listed, ask about hiring priorities without asserting active vacancies.` : ""}`;
 }
 
 export function emailSignalAccuracyInputs(value: OpportunityIntelligence | null | undefined) {

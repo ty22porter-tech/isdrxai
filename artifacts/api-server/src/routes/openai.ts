@@ -1,3 +1,4 @@
+import { ensureRecruitingOpeningPlaceholder } from "@workspace/db/recruiting-email";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { prospectsTable, usersTable } from "@workspace/db";
@@ -142,7 +143,9 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
       ? `\n\n${opportunityEmailContext(prospect.opportunityIntelligence)}`
       : "";
     const signalAccuracyInputs = emailSignalAccuracyInputs(prospect?.opportunityIntelligence);
-    const sellerAccuracyRule = ` Use only seller-specific claims present in Seller Intelligence. Never invent services, products, capabilities, certifications, clients, awards, guarantees, pricing, ROI, results, years in business, locations, differentiators, proof, or portfolio examples. When Seller Intelligence is missing or limited, use generic industry context and discovery language only. Keep the voice warm, natural, plain-spoken, and benefit-led without hype or awkward hedging. Industry challenges are optional background patterns, never verified prospect conditions; use the researched actual industry when it differs from the selected campaign industry. End with one easy, low-pressure question about a short relevant appointment or conversation, using the configured seller CTA when supported. Do not invent meeting dates, duration, automatic booking, or guaranteed outcomes. Never begin with "I noticed," "I came across," "I wanted to reach out," or "I hope this email finds you well."`;
+    const recruitingTemplateRule = templateMode && vc.key === "recruiting_staffing"
+      ? " Include {{jobOpenings}} verbatim as its own paragraph after the greeting. It will be replaced with each employer’s researched titles and locations, or a neutral hiring question when none are verified. Do not invent titles or put employer-specific jobs into this reusable template." : "";
+    const sellerAccuracyRule = `${recruitingTemplateRule} Use only seller-specific claims present in Seller Intelligence. Never invent services, products, capabilities, certifications, clients, awards, guarantees, pricing, ROI, results, years in business, locations, differentiators, proof, or portfolio examples. When Seller Intelligence is missing or limited, use generic industry context and discovery language only. Keep the voice warm, natural, plain-spoken, and benefit-led without hype or awkward hedging. Industry challenges are optional background patterns, never verified prospect conditions; use the researched actual industry when it differs from the selected campaign industry. End with one easy, low-pressure question about a short relevant appointment or conversation, using the configured seller CTA when supported. Do not invent meeting dates, duration, automatic booking, or guaranteed outcomes. Never begin with "I noticed," "I came across," "I wanted to reach out," or "I hope this email finds you well."`;
     const systemPrompt = templateMode
       ? `You are an expert B2B sales copywriter for ${senderClause}. You are writing a REUSABLE email TEMPLATE for an outbound campaign targeting the ${industryLabel} industry. The template will be merged with real prospect data, so you MUST use these exact merge placeholders verbatim where appropriate: {{contactName}}, {{companyName}}, {{city}}. Do NOT invent specific names, companies, or cities — use the placeholders.${offeringFocus}${sellerAccuracyRule} Emails are conversational, specific, concise, and never generic. Keep emails under 200 words. End with one clear, specific call to action.${bodyWordRule} ${noSignatureRule}${sellerProfileContext}`
       : `You are an expert B2B sales copywriter for ${senderClause}. Your emails are conversational, specific, concise, and never generic. Always use the prospect's real name and company.${offeringFocus}${sellerAccuracyRule} A prospect implication must use may/could/if language. Never convert unconfirmed information into a fact. Keep emails under 200 words. Do not use bullet points. End with one clear, specific call to action.${bodyWordRule} ${noSignatureRule}${sellerProfileContext}${signalContext}${prospectIntelligence}`;
@@ -236,6 +239,9 @@ Rewrite it once with materially stronger prospect relevance, one best-fit config
       return res.status(422).json({ error: "The generated email was too generic. Please try again." });
     }
 
+    if (templateMode && vc.key === "recruiting_staffing") {
+      generated.body = ensureRecruitingOpeningPlaceholder(generated.body);
+    }
     return res.json({
       subject: generated.subject,
       body: generated.body,

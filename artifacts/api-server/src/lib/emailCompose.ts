@@ -1,3 +1,4 @@
+import { recruitingOpeningSummary } from "@workspace/db/recruiting-email";
 import { getPublicAppUrl } from "./publicUrl";
 import { getVerticalConfig } from "./verticals";
 import type { OpportunityIntelligence } from "@workspace/db";
@@ -19,6 +20,7 @@ export function mergeOutboundEmailTemplate(
     city?: string | null;
     state?: string | null;
     industry?: string | null;
+    opportunityIntelligence?: OpportunityIntelligence | null;
   },
 ): string {
   const fullName = prospect.contactName?.trim() ?? "";
@@ -28,6 +30,7 @@ export function mergeOutboundEmailTemplate(
     .replace(/\{\{companyName\}\}/g, prospect.companyName ?? "")
     .replace(/\{\{city\}\}/g, prospect.city ?? "")
     .replace(/\{\{state\}\}/g, prospect.state ?? "")
+    .replace(/\{\{jobOpenings\}\}/g, () => recruitingOpeningSummary(prospect))
     .replace(/\{\{industry\}\}/g, prospect.industry ?? "");
 
   if (fullName && firstName && fullName !== firstName) {

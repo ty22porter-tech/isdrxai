@@ -1,3 +1,4 @@
+import { ensureRecruitingOpeningPlaceholder } from "@workspace/db/recruiting-email";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateEmailForStep, type ClientVertical } from "@/lib/email-ai";
@@ -176,7 +177,7 @@ function blankForm(vertical: ClientVertical): CampaignForm {
     // never claims candidates, placements, or delivery guarantees.
     return {
       ...BLANK_FORM,
-      followUp1: { dayDelay: 3, subject: "Following up on hiring at {{companyName}}", body: "Hi {{contactName}},\n\nI’m following up about hiring priorities at {{companyName}} in {{city}}. Whether outside recruiting support would help is something only your team can say.\n\nWould a short hiring-needs discovery call be useful?" },
+      followUp1: { dayDelay: 3, subject: "Following up on hiring at {{companyName}}", body: "Hi {{contactName}},\n\n{{jobOpenings}}\n\nI’m following up about hiring priorities at {{companyName}} in {{city}}. Whether outside recruiting support would help is something only your team can say.\n\nWould a short hiring-needs discovery call be useful?" },
       followUp2: { dayDelay: 4, subject: "A hiring question for {{companyName}}", body: "Hi {{contactName}},\n\nFor {{industry}} employers, filling specialized roles while keeping current teams productive can be a challenge. That is an industry hypothesis, not an assumption about {{companyName}}.\n\nHow is {{companyName}} approaching its current openings?" },
       followUp3: { dayDelay: 5, subject: "{{companyName}} — staffing for growth", body: "Hi {{contactName}},\n\nIf {{companyName}} has new locations or added capacity coming, it may be worth comparing notes on the roles, timing, and hiring approach involved.\n\nWould a staffing consultation be helpful?" },
       followUp4: { dayDelay: 7, subject: "Current recruiting approach at {{companyName}}", body: "Hi {{contactName}},\n\nSome employers handle hiring fully in-house; others use agencies for specific roles. I do not want to assume which applies to {{companyName}}.\n\nWould it help to talk through your current approach?" },
@@ -630,6 +631,7 @@ export default function Campaigns() {
     setAiGenerating(prev => ({ ...prev, [stepNum]: false }));
 
     const applyResult = (subject: string, body: string) => {
+      if (vertical === "recruiting_staffing") body = ensureRecruitingOpeningPlaceholder(body);
       if (stepNum === 1) {
         setForm(f => ({ ...f, emailTemplate: body }));
       } else {
@@ -749,11 +751,14 @@ export default function Campaigns() {
           )}
         </div>
 
+        {vertical === "recruiting_staffing" && (
+          <p className="text-xs text-muted-foreground">{ "{{jobOpenings}} fills in each prospect’s researched job titles and locations during email review. If none are verified, it asks about hiring priorities instead." }</p>
+        )}
         {isIntro ? (
           <Textarea
             rows={4}
             placeholder={vertical === "recruiting_staffing"
-              ? "Hi {{contactName}},\n\nI noticed {{companyName}} is hiring in {{city}}. Would a short hiring-needs discovery call be useful?..."
+              ? "Hi {{contactName}},\n\n{{jobOpenings}} Would a short hiring-needs discovery call be useful?..."
               : vertical === "fleet_wraps"
               ? "Hi {{contactName}},\n\nFor {{industry}} organizations, customer-facing vehicles can create ongoing visibility throughout {{city}}..."
               : "Hi {{contactName}},\n\nFor {{industry}} organizations in {{city}}, an operational challenge may be worth reviewing..."}

@@ -99,3 +99,11 @@ describe("outbound contact-name personalization", () => {
     expect(contactFirstName(null)).toBe("");
   });
 });
+it("merges Recruiting campaign openings into the delivered draft", () => {
+  const prospect = { contactName: "Pat Jones", opportunityIntelligence: { itResearch: { recruiting: {
+    employerIdentity: "confirmed", automationSuppressed: false,
+    jobs: [{ title: "Registered Nurse", location: "Dallas, TX", status: "active", noAgencies: false, sourceURL: "https://employer.example/jobs/1", evidence: "Registered Nurse" }],
+  } } } } as any;
+  const body = mergeOutboundEmailTemplate("Hi {{contactName}},\n\n{{jobOpenings}}", prospect);
+  expect(body).toBe("Hi Pat,\n\nPublished openings identified in our research include Registered Nurse (Dallas, TX).");
+});
