@@ -24,6 +24,7 @@ import Pricing from "@/pages/pricing";
 import Admin from "@/pages/admin";
 import Home from "@/pages/home";
 import Settings from "@/pages/settings";
+import HelpTraining from "@/pages/help";
 import Autopilot from "@/pages/autopilot";
 import Schedule from "@/pages/schedule";
 import Unsubscribe from "@/pages/unsubscribe";
@@ -255,6 +256,7 @@ function AppRoutes() {
             <Route path="/billing" component={() => <ProtectedRoute component={Billing} />} />
             <Route path="/pricing" component={() => <ProtectedRoute component={Pricing} />} />
             <Route path="/admin" component={() => <ProtectedRoute component={Admin} entitlement />} />
+            <Route path="/help" component={() => <ProtectedRoute component={HelpTraining} />} />
             <Route path="/settings" component={() => <ProtectedRoute component={Settings} entitlement />} />
             <Route path="/gift-outreach" component={() => <ProtectedRoute component={GiftOutreachDashboard} entitlement />} />
             <Route path="/autopilot" component={() => <ProtectedRoute component={Autopilot} entitlement />} />

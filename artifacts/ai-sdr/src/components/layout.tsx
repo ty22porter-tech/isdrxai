@@ -26,6 +26,7 @@ import {
   TrendingUp,
   BarChart,
   Gift,
+  BookOpen,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ const navigation = [
   { name: "Caller Workspace", href: "/caller", icon: Headset },
   { name: "Billing", href: "/billing", icon: CreditCard },
   { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Help & Training", href: "/help", icon: BookOpen },
 ];
 
 async function apiFetch(path: string) {
