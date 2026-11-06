@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { OpportunityIntelligence, OpportunitySignal } from "@workspace/api-client-react";
 import { ITResearchView } from "./it-research-view";
+import { recruitingContactEligible } from "@/lib/recruitingContactEligibility";
 
 interface OpportunityIntelligenceViewProps {
   intelligence: OpportunityIntelligence;
@@ -32,6 +33,7 @@ interface OpportunityIntelligenceViewProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   vertical?: string;
+  contactLookupEligible?: boolean;
 }
 
 const NO_BUYING_SIGNAL = "No meaningful company-specific buying signal found yet.";
@@ -264,9 +266,11 @@ export function OpportunityIntelligenceView({
   onRefresh,
   isRefreshing = false,
   vertical,
+  contactLookupEligible,
 }: OpportunityIntelligenceViewProps) {
   const isIT = vertical === "it_services";
   const isRecruiting = vertical === "recruiting_staffing" || !!intelligence?.itResearch?.recruiting;
+  const hiringFitVerified = contactLookupEligible ?? recruitingContactEligible({ opportunityIntelligence: intelligence });
   // The structured report is still stored under the legacy `itResearch`
   // property for API compatibility, but now applies to every seller vertical.
   const hasStructuredResearch = !!intelligence?.itResearch;
@@ -366,7 +370,7 @@ export function OpportunityIntelligenceView({
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-xl font-bold" data-testid="text-opportunity-score">Opportunity Score: {intelligence?.score ?? "—"}</h3>
                 {intelligence?.label && <Badge variant="outline" className={`font-semibold ${scoreLabelColor}`}>{intelligence.label}</Badge>}
-                {intelligence?.score >= 30 && <Badge variant="outline" className="border-primary/20 bg-primary/10 font-semibold text-primary">Fit to Call</Badge>}
+                {intelligence?.score >= 30 && (!isRecruiting || hiringFitVerified) && <Badge variant="outline" className="border-primary/20 bg-primary/10 font-semibold text-primary">{isRecruiting ? "Hiring fit verified" : "Fit to Call"}</Badge>}
               </div>
               <p className="flex items-start gap-1 text-sm text-muted-foreground">
                 <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

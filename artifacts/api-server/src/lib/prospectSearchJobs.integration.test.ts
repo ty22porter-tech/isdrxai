@@ -178,4 +178,17 @@ describe.skipIf(!enabled)("saved Recruiting searches with PostgreSQL", () => {
     expect(executions).toBe(3);
     expect(complete.response.error).toContain("rate-limited repeatedly");
   });
+
+  it("reclassifies old saved rows with no service match and preserves the signed employee count in the client field", () => {
+    const result = jobs.publicSearchJob({
+      id: "old-saved-job", status: "completed", checkpoints: {}, discovery: [], retry_at: null,
+      response_status: 200, response: [{ companyName: "Synthetic Employer", employeeCount: 250,
+        opportunityIntelligence: { itResearch: { industryRelationship: "match", recommendations: [], recruiting: {
+          employerIdentity: "confirmed", commercialFit: 80, automationSuppressed: false,
+          jobs: [{ status: "active", noAgencies: false }],
+        } } },
+      }],
+    } as any);
+    expect(result.result[0]).toMatchObject({ outsideSelectedFilters: true, estimatedEmployees: 250 });
+  });
 });

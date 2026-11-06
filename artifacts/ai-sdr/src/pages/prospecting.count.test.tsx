@@ -155,7 +155,7 @@ describe("prospect search count", () => {
       email: "fixture@contact.invalid", city: "Dallas", state: "TX", industry: "Manufacturing",
       vertical: "recruiting_staffing", researchError: "Research timed out.",
       outsideSelectedFilters: true,
-      opportunityScore: 0, scoreLabel: "Research unavailable",
+      opportunityScore: 72, scoreLabel: "Strong Fit",
       confidence: "low",
       opportunityIntelligence: { score: 0, label: "Research unavailable", signals: [], itResearch: {
         sellerVertical: "recruiting_staffing", industryChallenges: [], prospectConcerns: [], recommendations: [],
@@ -165,6 +165,8 @@ describe("prospect search count", () => {
       } },
     }]));
     expect(screen.getByTestId("button-retry-contact-lookup-0")).toBeDisabled();
+    expect(screen.queryByText("Fit to Call")).not.toBeInTheDocument();
+    expect(screen.queryByText("Hiring fit verified")).not.toBeInTheDocument();
     refresh.mockResolvedValueOnce({ outsideSelectedFilters: false, opportunityIntelligence: {
       score: 40, label: "Possible Fit", signals: [], itResearch: {
         sellerVertical: "recruiting_staffing", industryRelationship: "match", industryChallenges: [],
@@ -187,6 +189,7 @@ describe("prospect search count", () => {
     expect(screen.queryByText("Needs filter review")).not.toBeInTheDocument();
     expect(screen.queryByText("low fit")).not.toBeInTheDocument();
     expect(screen.getByTestId("badge-prospect-fit-0")).toHaveTextContent("Possible Fit");
+    expect(screen.getAllByText("Hiring fit verified").length).toBeGreaterThan(0);
     enrich.mockResolvedValueOnce({ results: [{ index: 0, status: "enriched",
       contactName: "Synthetic Manager", email: "manager@example.com", title: "Plant Manager", phone: "+18775550101",
     }] });

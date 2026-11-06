@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHmac } from "node:crypto";
 import {
   cacheTrustedItResearch,
   getTrustedItResearch,
@@ -8,6 +9,7 @@ import {
   researchItOpportunityIntelligence,
   trustedItResearchCacheKey,
   verifiedResearchProof,
+  verifyResearchHandoff,
   withResearchPipelineTimeout,
   ItOpportunityResearchTimeoutError,
 } from "./itOpportunityResearch";
@@ -188,6 +190,47 @@ describe("IT opportunity research", () => {
     const noSources = structuredClone(response);
     (noSources.output[0] as any).action.sources = [];
     expect(parseItOpportunityResearchResponse(noSources, { selectedIndustry: "Healthcare", companyName: "Example Health", website: "https://example.com" }, seller)).toBeUndefined();
+  });
+
+  it("accepts equivalent seller profiles after JSONB field reordering but rejects changed services", () => {
+    const previousSecret = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = "test-only-canonical-seller-revision-secret";
+    try {
+      const report = parseItOpportunityResearchResponse(response, {
+        selectedIndustry: "Manufacturing", companyName: "Example Health", website: "https://example.com",
+      }, seller)!;
+      const lead = { companyName: "Example Health", website: "example.com", city: "Dallas", state: "TX" };
+      const proof = attachResearchProof({ itResearch: report, signals: [] } as any, "tenant-a", lead, seller).researchProof;
+      const reorder = (value: any): any => Array.isArray(value) ? value.map(reorder)
+        : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorder(item)]))
+        : value;
+      const reorderedSeller = reorder(JSON.parse(JSON.stringify(seller)));
+      expect(verifyResearchHandoff(proof, "tenant-a", lead, reorderedSeller).ok).toBe(true);
+      reorderedSeller.sellerIntelligenceProfile.lastAnalysisAttemptAt = "2026-11-06T00:00:00Z";
+      reorderedSeller.sellerIntelligenceProfile.lastAnalysisAttemptStatus = "failed";
+      reorderedSeller.sellerIntelligenceProfile.researchStatus = "failed";
+      reorderedSeller.sellerIntelligenceProfile.analysisError = "A later refresh was rate-limited";
+      expect(verifyResearchHandoff(proof, "tenant-a", lead, reorderedSeller).ok).toBe(true);
+      const oldPayload = JSON.parse(Buffer.from(proof!.split(".")[0], "base64url").toString("utf8"));
+      oldPayload.v = 2;
+      oldPayload.sellerRevision = JSON.stringify({ vertical: seller.vertical,
+        profile: seller.sellerIntelligenceProfile, priorities: seller.sellerServicePriorities ?? "" });
+      const encoded = Buffer.from(JSON.stringify(oldPayload)).toString("base64url");
+      const legacyProof = `${encoded}.${createHmac("sha256", process.env.SESSION_SECRET!).update(encoded).digest("base64url")}`;
+      expect(verifyResearchHandoff(legacyProof, "tenant-a", lead, reorderedSeller).ok).toBe(true);
+      reorderedSeller.sellerIntelligenceProfile.sellerServices = ["different approved service"];
+      expect(verifyResearchHandoff(proof, "tenant-a", lead, reorderedSeller)).toEqual({ ok: false, reason: "seller_changed" });
+      expect(verifyResearchHandoff(legacyProof, "tenant-a", lead, reorderedSeller)).toEqual({ ok: false, reason: "seller_changed" });
+      const changedEvidence = reorder(JSON.parse(JSON.stringify(seller)));
+      changedEvidence.sellerIntelligenceProfile.researchSources = [{ title: "Seller services", url: "https://seller.example/services" }];
+      changedEvidence.sellerIntelligenceProfile.factEvidence = { sellerServices: {
+        [seller.sellerIntelligenceProfile.sellerServices[0]]: ["https://seller.example/services"],
+      } };
+      expect(verifyResearchHandoff(proof, "tenant-a", lead, changedEvidence)).toEqual({ ok: false, reason: "seller_changed" });
+    } finally {
+      if (previousSecret === undefined) delete process.env.SESSION_SECRET;
+      else process.env.SESSION_SECRET = previousSecret;
+    }
   });
 
   it("requires an actually completed web-search call and preserves only tool-supplied dates", () => {

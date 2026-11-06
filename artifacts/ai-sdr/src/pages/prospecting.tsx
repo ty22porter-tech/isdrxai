@@ -252,7 +252,9 @@ export function retainRecruitingContacts(next: ProspectLead[], previous: Prospec
   return next.map(lead => {
     const retained = previous.find(old => old.companyName === lead.companyName && old.website === lead.website
       && !old.researchError && !isPlaceholderEmail(old.email));
-    return retained ? { ...lead, ...retained } : lead;
+    return retained ? { ...lead, ...retained,
+      outsideSelectedFilters: lead.outsideSelectedFilters ?? retained.outsideSelectedFilters,
+    } : lead;
   });
 }
 
@@ -1489,14 +1491,16 @@ export default function Prospecting() {
           <div className="space-y-3">
             {leads.some(lead => lead.outsideSelectedFilters) && (
               <div role="status" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                Discovery review only: these employers were not verified against all selected hiring filters.
-                This does not establish hiring needs, confirmed service fit, or willingness to use an agency.
-                No new search or automatic contact lookup was started.
+                Discovery review only: {leads.filter(lead => lead.outsideSelectedFilters).length} of {leads.length} employer cards need filter review.
+                Only cards marked “Needs filter review” are covered by this notice and excluded from automatic contact lookup.
+                Other cards are checked individually; a fit score alone does not establish contact readiness or willingness to use an agency.
               </div>
             )}
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">
-                 {leads.length} prospects found in {city}, {state} — Prospect Industry: {industry}
+                 {isRecruiting
+                   ? `${leads.filter(recruitingContactEligible).length} contact-eligible employers · ${leads.filter(lead => !recruitingContactEligible(lead)).length} review-only shown in ${city}, ${state}`
+                   : `${leads.length} prospects found in ${city}, ${state} — Prospect Industry: ${industry}`}
                 {[...enrichment.values()].some((status) => status === "pending") && (
                   <span className="ml-2 inline-flex items-center gap-1 text-primary">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Looking up decision-maker contacts…
@@ -1636,9 +1640,9 @@ export default function Prospecting() {
                             >
                               {isFleet ? "Fleet Wrap Opportunity Score" : isRecruiting ? "Recruiting Opportunity Score" : isIT ? "IT Opportunity Score" : "Opportunity Score"}: {lead.opportunityScore} — {lead.scoreLabel}
                             </Badge>
-                            {lead.opportunityScore >= 30 && (
+                            {lead.opportunityScore >= 30 && (!isRecruiting || recruitingContactEligible(lead)) && (
                               <Badge variant="outline" className="border-primary/20 bg-primary/10 text-xs font-medium text-primary">
-                                <Phone className="mr-1 h-3 w-3" /> Fit to Call
+                                <Phone className="mr-1 h-3 w-3" /> {isRecruiting ? "Hiring fit verified" : "Fit to Call"}
                               </Badge>
                             )}
                             {lead.opportunityIntelligence && (
@@ -1655,6 +1659,7 @@ export default function Prospecting() {
                                   <OpportunityIntelligenceView
                                     intelligence={lead.opportunityIntelligence}
                                     isDialog={true}
+                                    contactLookupEligible={recruitingContactEligible(lead)}
                                     vertical={me?.vertical}
                                     onRefresh={() => handleRefreshLead(lead, idx)}
                                     isRefreshing={refreshing.has(idx)}
@@ -1673,6 +1678,7 @@ export default function Prospecting() {
                           <OpportunityIntelligenceView
                             intelligence={lead.opportunityIntelligence}
                             compact
+                            contactLookupEligible={recruitingContactEligible(lead)}
                             vertical={me?.vertical}
                             onRefresh={() => handleRefreshLead(lead, idx)}
                             isRefreshing={refreshing.has(idx)}

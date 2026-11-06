@@ -101,7 +101,7 @@ export function withResearchPipelineTimeout<T>(operation: Promise<T>, timeoutMs 
 }
 
 type ResearchProofPayload = {
-  v: 1 | 2;
+  v: 1 | 2 | 3;
   exp: number;
   clientId: string;
   sellerRevision: string;
@@ -115,7 +115,7 @@ export type VerifiedResearchHandoff = {
   signals: OpportunitySignal[];
 };
 
-export type ResearchProofFailure = "missing" | "invalid" | "expired" | "identity_changed";
+export type ResearchProofFailure = "missing" | "invalid" | "expired" | "identity_changed" | "seller_changed";
 
 export type ResearchProofVerification =
   | { ok: true; handoff: VerifiedResearchHandoff }
@@ -165,13 +165,21 @@ function normalized(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function canonicalJson(value: unknown): string {
+  const order = (item: any): any => Array.isArray(item) ? item.map(order)
+    : item && typeof item === "object" ? Object.fromEntries(Object.keys(item).sort().map(key => [key, order(item[key])]))
+    : item;
+  return JSON.stringify(order(JSON.parse(JSON.stringify(value))));
+}
+
 function sellerRevision(client?: typeof usersTable.$inferSelect) {
-  const profile = client?.sellerIntelligenceProfile;
-  return JSON.stringify({
+  return crypto.createHash("sha256").update(canonicalJson({
     vertical: client?.vertical,
-    profile: profile ?? null,
+    companyName: client?.businessName ?? client?.sellerIntelligenceProfile?.sellerCompanyName ?? null,
+    seller: sellerIntelligenceProfile(client),
+    offerings: approvedOfferingsForResearch(client),
     priorities: client?.sellerServicePriorities ?? "",
-  });
+  })).digest("hex");
 }
 
 function proofSecret(): string {
@@ -206,7 +214,7 @@ export function attachResearchProof(
 ): OpportunityIntelligence & { researchProof?: string } {
   if (!intelligence.itResearch) return intelligence;
   const payload: ResearchProofPayload = {
-    v: 2,
+    v: 3,
     exp: Date.now() + RESEARCH_PROOF_TTL_MS,
     clientId,
     sellerRevision: sellerRevision(client),
@@ -255,16 +263,30 @@ export function verifyResearchHandoff(
     }
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as ResearchProofPayload;
     if (
-      (payload.v !== 1 && payload.v !== 2) || !payload.itResearch
-      || payload.clientId !== clientId || payload.sellerRevision !== sellerRevision(client)
+      (payload.v !== 1 && payload.v !== 2 && payload.v !== 3) || !payload.itResearch
+      || payload.clientId !== clientId
     ) return { ok: false, reason: "invalid" };
+    // Bind decisions to seller facts/catalog evidence, not refresh timestamps
+    // or JSONB key order. Translate already-signed legacy profile snapshots
+    // through the same facts projection before comparing them.
+    let capturedRevision = payload.sellerRevision;
+    if (payload.v !== 3) {
+      const revision = JSON.parse(payload.sellerRevision);
+      capturedRevision = sellerRevision({
+        ...client, vertical: revision.vertical, sellerIntelligenceProfile: revision.profile,
+        sellerServicePriorities: revision.priorities,
+      } as typeof usersTable.$inferSelect);
+    }
+    if (capturedRevision !== sellerRevision(client)) {
+      return { ok: false, reason: "seller_changed" };
+    }
     if (payload.exp < Date.now()) return { ok: false, reason: "expired" };
     if (payload.identity !== researchIdentity(lead)) return { ok: false, reason: "identity_changed" };
     return {
       ok: true,
       handoff: {
         itResearch: payload.itResearch,
-        signals: payload.v === 2 && Array.isArray(payload.signals) ? payload.signals : [],
+        signals: payload.v >= 2 && Array.isArray(payload.signals) ? payload.signals : [],
       },
     };
   } catch {

@@ -21,6 +21,9 @@ vi.mock("../lib/verticals", () => ({
 vi.mock("../lib/sellerResearch", () => ({
   ensureCurrentSellerResearch: vi.fn((_id: string, client: any) => client),
 }));
+vi.mock("../lib/companyDemographicResearch", () => ({
+  researchCompanyDemographics: vi.fn(async () => ({ employeeCount: 400 })),
+}));
 vi.mock("../lib/itOpportunityResearch", async (importOriginal) => ({
   ...await importOriginal<typeof import("../lib/itOpportunityResearch")>(),
   researchItOpportunityIntelligence: vi.fn(),
@@ -618,7 +621,7 @@ describe("recruiting search research failures", () => {
       sellerIndustriesServed: ["Healthcare"], sellerBusinessOutcomes: [], sellerProblemsSolved: [],
       sellerProofPoints: [], sellerPortfolioExamples: [], sellerValuePropositions: [], sellerCTAs: [],
     } };
-    const { res } = await search({ jobTitles: "Nurse" }, [PLACE], {
+    const { res } = await search({ jobTitles: "Nurse", companySize: "100-500" }, [PLACE], {
       signals: [], itResearch: {
         sellerVertical: "recruiting_staffing", selectedIndustry: "Healthcare", actualIndustry: "Healthcare",
         industryRelationship: "match", industryExplanation: "Healthcare employer", industrySources: [],
@@ -635,11 +638,18 @@ describe("recruiting search research failures", () => {
     const leads = res.json.mock.calls[0][0];
     expect(leads).toHaveLength(1);
     expect(leads[0].opportunityIntelligence.researchProof).toEqual(expect.any(String));
+    expect(leads[0].estimatedEmployees).toBe(400);
     vi.mocked(enrichPerson).mockResolvedValue({ ok: false, error: "No contact found", planBlocked: false } as any);
     const contactResponse = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() };
     const handler = (aiRouter as any).stack.find((layer: any) =>
       layer.route?.path === "/enrich-leads").route.stack.at(-1).handle;
-    await handler({ clientId: "client-1", body: { leads } }, contactResponse);
+    const reorderedProfile = Object.fromEntries(Object.entries(seller.sellerIntelligenceProfile).reverse());
+    vi.mocked(db.select).mockReturnValue({ from: () => ({ where: async () => [{
+      id: "client-1", vertical: "recruiting_staffing", sellerIntelligenceProfile: reorderedProfile,
+    }] }) } as any);
+    await handler({ clientId: "client-1", body: JSON.parse(JSON.stringify({
+      leads: leads.map((lead: any) => ({ ...lead, employeeCount: lead.estimatedEmployees })),
+    })) }, contactResponse);
     expect(enrichPerson).toHaveBeenCalledTimes(1);
     expect(enrichPerson).toHaveBeenCalledWith(expect.objectContaining({
       vertical: "recruiting_staffing",
@@ -659,9 +669,10 @@ describe("recruiting search research failures", () => {
     const { res: unmatchedServices } = await search({ serviceMatchOnly: false }, [PLACE], {
       signals: [], itResearch: { ...report, recommendations: [] },
     }, seller);
-    expect(unmatchedServices.status).not.toHaveBeenCalled();
-    const unmatchedLeads = unmatchedServices.json.mock.calls[0][0];
+    expect(unmatchedServices.status).toHaveBeenCalledWith(422);
+    const unmatchedLeads = unmatchedServices.json.mock.calls[0][0].discoveredLeads;
     expect(unmatchedLeads).toHaveLength(1);
+    expect(unmatchedLeads[0].outsideSelectedFilters).toBe(true);
     await handler({ clientId: "client-1", body: { leads: unmatchedLeads } }, contactResponse);
     expect(enrichPerson).toHaveBeenCalledTimes(1);
     const needsReviewSeller = { sellerIntelligenceProfile: {
@@ -671,9 +682,9 @@ describe("recruiting search research failures", () => {
     const { res: needsReview } = await search({ serviceMatchOnly: false }, [PLACE], {
       signals: [], itResearch: { ...report, recommendations: [] },
     }, needsReviewSeller);
-    expect(needsReview.status).not.toHaveBeenCalled();
-    expect(needsReview.json.mock.calls[0][0]).toHaveLength(1);
-    await handler({ clientId: "client-1", body: { leads: needsReview.json.mock.calls[0][0] } }, contactResponse);
+    expect(needsReview.status).toHaveBeenCalledWith(422);
+    expect(needsReview.json.mock.calls[0][0].discoveredLeads).toHaveLength(1);
+    await handler({ clientId: "client-1", body: { leads: needsReview.json.mock.calls[0][0].discoveredLeads } }, contactResponse);
     expect(enrichPerson).toHaveBeenCalledTimes(1); // Discovery allowed, contact credits still protected.
     vi.mocked(researchItOpportunityIntelligence)
       .mockResolvedValueOnce({ signals: [], itResearch: report })

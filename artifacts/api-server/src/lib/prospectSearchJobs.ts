@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { pool } from "@workspace/db";
 import { logger } from "./logger";
 import { SearchPaused, type ProspectSearchExecution } from "./prospectSearchExecution";
+import { eligibleHiringResearch } from "./recruitingJobDiscovery";
 
 type SearchJob = {
   id: string; client_id: string; request_key: string; request: any;
@@ -19,10 +20,22 @@ export async function readSearchJob(id: string, clientId: string): Promise<Searc
 
 export function publicSearchJob(job: SearchJob) {
   const leads = Object.values(job.checkpoints);
+  // Older saved jobs may predate the unified qualification checks. Never
+  // present those rows as contact-ready merely because their old search passed.
+  const result = Array.isArray(job.response) ? job.response.map(lead => {
+    const report = lead.opportunityIntelligence?.itResearch;
+    const eligible = eligibleHiringResearch(report?.recruiting,
+      report?.industryRelationship === "match" && Boolean(report?.recommendations?.length));
+    return { ...lead,
+      ...(lead.estimatedEmployees == null && typeof lead.employeeCount === "number"
+        ? { estimatedEmployees: lead.employeeCount } : {}),
+      ...(!eligible ? { outsideSelectedFilters: true } : {}),
+    };
+  }) : job.response;
   return { id: job.id, status: job.status, completed: leads.length, total: job.discovery?.length ?? 0,
     retryAt: job.retry_at?.toISOString() ?? null,
     retryableCount: leads.filter(lead => lead.researchError).length,
-    ...(job.status === "completed" ? { responseStatus: job.response_status, result: job.response } : {}),
+    ...(job.status === "completed" ? { responseStatus: job.response_status, result } : {}),
   };
 }
 

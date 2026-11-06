@@ -57,7 +57,11 @@ describe("recruiting research refresh", () => {
     ["active", "Dallas, TX", 25, undefined],
   ])("rechecks %s hiring in %s with radius %s", async (status, location, radiusMiles, expected) => {
     vi.mocked(db.select).mockReturnValue({
-      from: () => ({ where: async () => [{ id: "synthetic-client", vertical: "recruiting_staffing" }] }),
+      from: () => ({ where: async () => [{ id: "synthetic-client", vertical: "recruiting_staffing",
+        sellerIntelligenceProfile: { status: "ready", websiteAnalysisStatus: "ready", sellerCompanyName: "Synthetic Recruiter",
+          sellerServices: ["Engineering direct-hire recruiting"], sellerProducts: [], sellerCapabilities: [],
+          userOverrides: { sellerServices: ["Engineering direct-hire recruiting"] } },
+      }] }),
     } as any);
     const hiring = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [{
       employer: "Synthetic Employer", title: "Manufacturing Engineer", location, status,
@@ -68,7 +72,10 @@ describe("recruiting research refresh", () => {
       sellerVertical: "recruiting_staffing", selectedIndustry: "Manufacturing",
       actualIndustry: "Manufacturing", industryRelationship: "match", industryExplanation: "Employer confirmed",
       industrySources: [], lastResearched: new Date().toISOString(), warnings: [],
-      industryChallenges: [], prospectConcerns: [], recommendations: [], recruiting: hiring,
+      industryChallenges: [], prospectConcerns: [], recommendations: [{
+        concernId: "engineering", offering: "Engineering direct-hire recruiting", howItHelps: "Fill engineering roles",
+        businessValue: "Staff capacity", sellerEvidence: { availability: "user_approved", sources: [] },
+      }], recruiting: hiring,
     } } as any);
     vi.mocked(withResearchPipelineTimeout).mockImplementation(promise => promise);
     const refresh = (router as any).stack.find((layer: any) =>
@@ -156,6 +163,22 @@ describe("contact enrichment batch limits", () => {
 });
 
 describe("contact enrichment failure isolation", () => {
+  it.each([
+    ["missing", "proof is missing"], ["expired", "proof has expired"],
+    ["identity_changed", "employer details changed"], ["seller_changed", "seller profile changed"],
+    ["invalid", "proof could not be verified"],
+  ] as const)("explains a %s research handoff without blaming hiring qualification or calling Apollo", async (reason, message) => {
+    vi.mocked(db.select).mockReturnValue({ from: () => ({ where: async () => [{
+      id: "synthetic-client", vertical: "recruiting_staffing",
+    }] }) } as any);
+    vi.mocked(verifyResearchHandoff).mockReturnValue({ ok: false, reason });
+    const res = response();
+    await handler({ clientId: "synthetic-client", body: { leads: [{
+      companyName: "Synthetic Employer", email: "unknown@example.invalid",
+    }] } }, res);
+    expect(res.json.mock.calls[0][0].results[0]).toMatchObject({ status: "failed", error: expect.stringContaining(message) });
+    expect(enrichPerson).not.toHaveBeenCalled();
+  });
   const realisticLead = (index: number) => ({
     companyName: `Regional Manufacturing ${index}`,
     email: `contact${index}@regional.invalid`,

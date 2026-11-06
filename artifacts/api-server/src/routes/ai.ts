@@ -483,6 +483,7 @@ export async function performProspectSearch(req: Request, res: ExpressResponse, 
         return {
           ...lead,
           opportunityScore: 0,
+          estimatedEmployees: lead.employeeCount,
           scoreLabel: "Research unavailable",
           scoreExplanation: `${vertical} opportunity research could not be completed for this lead.`,
           whyTarget: "Current opportunity research is unavailable; refresh research before saving or acting on this lead.",
@@ -510,6 +511,7 @@ export async function performProspectSearch(req: Request, res: ExpressResponse, 
       return {
         ...lead,
         opportunityScore: opportunityIntelligence.score,
+        estimatedEmployees: lead.employeeCount,
         scoreLabel: opportunityIntelligence.label,
         scoreExplanation: opportunityIntelligence.definition,
         whyTarget: opportunityIntelligence.whyTarget,
@@ -546,7 +548,10 @@ export async function performProspectSearch(req: Request, res: ExpressResponse, 
     leads.sort((a: any, b: any) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0));
     const results = recruiting ? leads.filter(lead =>
       lead.opportunityIntelligence
-        ? filterRecruitingOpportunity(lead.opportunityIntelligence, {
+        ? eligibleHiringResearch(lead.opportunityIntelligence.itResearch?.recruiting,
+            lead.opportunityIntelligence.itResearch?.industryRelationship === "match"
+            && Boolean(lead.opportunityIntelligence.itResearch?.recommendations.length))
+          && filterRecruitingOpportunity(lead.opportunityIntelligence, {
             ...body.recruitingFilters, minRelevantJobs: Math.max(1, body.recruitingFilters?.minRelevantJobs ?? 1),
           }, lead)
           && lead.opportunityIntelligence.itResearch?.industryRelationship === "match"
@@ -673,10 +678,21 @@ router.post("/enrich-leads", requireEntitlement, async (req, res) => {
         },
         client,
       );
-      if (vertical === "recruiting_staffing"
-        && (!priorResearch.ok || !eligibleHiringResearch(priorResearch.handoff.itResearch.recruiting,
+      if (vertical === "recruiting_staffing" && !priorResearch.ok) {
+        const reason = priorResearch.reason;
+        logger.warn({ phase: "research_handoff", index, reason }, "Recruiting contact lookup blocked by saved research handoff");
+        const detail = reason === "missing" ? "the saved research proof is missing"
+          : reason === "expired" ? "the saved research proof has expired"
+          : reason === "identity_changed" ? "the employer details changed after research"
+          : reason === "seller_changed" ? "your seller profile changed after research"
+          : "the saved research proof could not be verified";
+        results.push({ index, status: "failed", error: `Contact lookup skipped: ${detail}. Refresh research before retrying.` });
+        return;
+      }
+      if (vertical === "recruiting_staffing" && priorResearch.ok
+        && !eligibleHiringResearch(priorResearch.handoff.itResearch.recruiting,
           priorResearch.handoff.itResearch.industryRelationship === "match"
-          && Boolean(priorResearch.handoff.itResearch.recommendations.length)))) {
+          && Boolean(priorResearch.handoff.itResearch.recommendations.length))) {
         results.push({ index, status: "failed", error: "Contact lookup skipped: verified active hiring, confirmed employer identity, service fit and agency-policy clearance are required. Refresh research before retrying." });
         return;
       }
@@ -965,7 +981,10 @@ router.post("/opportunity-intelligence/refresh", requireEntitlement, async (req,
     if (sellerVertical === "recruiting_staffing" && context && !context.recruitingFilters?.radiusMiles) {
       const filters = context.recruitingFilters;
       const minimum = Math.max(1, filters?.minRelevantJobs ?? 1);
-      outsideSelectedFilters = !(filterRecruitingOpportunity(opportunityIntelligence, {
+      outsideSelectedFilters = !(eligibleHiringResearch(opportunityIntelligence.itResearch?.recruiting,
+        opportunityIntelligence.itResearch?.industryRelationship === "match"
+        && Boolean(opportunityIntelligence.itResearch?.recommendations.length))
+        && filterRecruitingOpportunity(opportunityIntelligence, {
         ...filters, minRelevantJobs: minimum,
       }, lead) && opportunityIntelligence.itResearch?.industryRelationship === "match"
         && (opportunityIntelligence.itResearch.recruiting?.jobs.filter(job =>
