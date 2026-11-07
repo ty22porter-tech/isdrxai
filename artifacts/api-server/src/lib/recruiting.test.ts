@@ -133,6 +133,7 @@ describe("Recruiting & Staffing industry", () => {
     "https://jobs.lever.co/example?location=Dallas",
     "https://boards.greenhouse.io/example",
     "https://employer.example/careers",
+    "https://www.houstonmethodistcareers.org/jobs/supply-chain-management",
     "https://employer.example/jobs/search?keyword=engineer",
     "https://company.wd1.myworkdayjobs.com/en-US/Careers",
   ])("keeps a general job board pending instead of treating it as an active opening: %s", sourceURL => {
@@ -239,4 +240,16 @@ it("does not merge distinct roles merely because they share a careers directory 
   ] }, { companyName: job.employer, identityVerified: true, allowedSourceUrls: [overview] });
   expect(result.jobs).toHaveLength(2);
   expect(result.jobs.every(job => job.status === "unknown")).toBe(true);
+});
+
+it("retains Houston Methodist's exact individual posting rather than its category page", () => {
+  const category = "https://www.houstonmethodistcareers.org/jobs/supply-chain-management";
+  const posting = "https://www.houstonmethodistcareers.org/job/120621/contract-administrator-supply-chain-supply-chain-management-corporate/";
+  const role = { ...job, employer: "Houston Methodist", title: "Contract Administrator – Supply Chain", location: "Corporate, Houston TX, 77054" };
+  const result = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [
+    { ...role, sourceURL: category }, { ...role, sourceURL: posting },
+  ] }, { companyName: role.employer, identityVerified: true, allowedSourceUrls: [category, posting] });
+  expect(result.jobs).toHaveLength(1);
+  expect(result.jobs[0].sourceURL).toBe(posting.replace(/\/$/, ""));
+  expect(result.jobs[0].status).toBe("active");
 });

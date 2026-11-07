@@ -4,6 +4,11 @@ export function isJobListingPage(value: string): boolean {
     const url = new URL(value);
     const parts = url.pathname.split("/").filter(Boolean);
     const path = url.pathname.toLowerCase().replace(/\/$/, "");
+    // Houston Methodist uses plural /jobs/<category> for directories and
+    // singular /job/<id>/<title> for individual postings. A category is not
+    // a direct job link, even when its page lists the requested title.
+    if (["www.houstonmethodistcareers.org", "houstonmethodistcareers.org"].includes(url.hostname)
+      && parts[0]?.toLowerCase() === "jobs") return true;
     // These parameters identify actual postings, including embedded ATS detail views.
     if (["gh_jid", "jobid", "job_id", "requisitionid", "jk"].some(key =>
       [...url.searchParams].some(([name, val]) => name.toLowerCase() === key && !!val.trim()))) return false;

@@ -88,3 +88,15 @@ it("labels a saved directory link honestly instead of making its job title a dir
   expect(screen.getByRole("link", { name: /Careers page/ })).toHaveAttribute("href", "https://employer.example/careers");
   expect(screen.getByText(/direct posting link not available/)).toBeInTheDocument();
 });
+
+it("distinguishes Houston Methodist's category page from the actual Contract Administrator posting", () => {
+  const category = "https://www.houstonmethodistcareers.org/jobs/supply-chain-management";
+  const posting = "https://www.houstonmethodistcareers.org/job/120621/contract-administrator-supply-chain-supply-chain-management-corporate/";
+  const job = { ...research.recruiting!.jobs[0], title: "Contract Administrator – Supply Chain", location: "Corporate, Houston TX, 77054", sourceURL: category };
+  const { rerender } = render(<RecruitingEvidenceView research={{ ...research.recruiting!, jobs: [job] }} compact />);
+  expect(screen.queryByRole("link", { name: /Contract Administrator/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Careers page/ })).toHaveAttribute("href", category);
+  rerender(<RecruitingEvidenceView research={{ ...research.recruiting!, jobs: [{ ...job, sourceURL: posting }] }} compact />);
+  expect(screen.getByRole("link", { name: /Contract Administrator/ })).toHaveAttribute("href", posting);
+  expect(screen.queryByText(/direct posting link not available/)).not.toBeInTheDocument();
+});
