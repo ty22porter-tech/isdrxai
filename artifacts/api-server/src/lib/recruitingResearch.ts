@@ -1,3 +1,4 @@
+import { isJobListingPage as isJobBoardOverview } from "@workspace/db/job-posting-url";
 import crypto from "node:crypto";
 import type { RecruitingGrowthSignal, RecruitingJob, RecruitingResearch } from "@workspace/db";
 
@@ -22,19 +23,6 @@ const futureDate = (value: unknown) =>
   typeof value === "string" && Number.isFinite(Date.parse(value))
     ? new Date(value).toISOString() : null;
 
-/** These known board/search URLs identify a list, not an individual opening. */
-function isJobBoardOverview(value: string): boolean {
-  try {
-    const url = new URL(value);
-    const parts = url.pathname.split("/").filter(Boolean);
-    if (url.hostname === "jobs.boeing.com") return /^(?:location|search-jobs)$/.test(parts[0] ?? "");
-    if (["jobs.lever.co", "jobs.eu.lever.co"].includes(url.hostname)) return parts.length < 2;
-    if (["boards.greenhouse.io", "job-boards.greenhouse.io"].includes(url.hostname)) {
-      return !(parts[1] === "jobs" && /^\d+$/.test(parts[2] ?? ""));
-    }
-  } catch { /* Invalid URLs cannot become validated source URLs. */ }
-  return false;
-}
 function canonicalUrl(value: unknown): string | null {
   try {
     const url = new URL(String(value));
@@ -71,6 +59,7 @@ new company from new location; formation alone is an early signal, not hiring de
 Relocation alone is NOT new hiring. Set confirmedHiring only with explicit hiring evidence.
 Job ads are NOT proof of willingness to use an external recruiter.
 Do not claim candidates, placements, speed, success rates, guarantees, or services not in the approved catalog.
+Each job sourceURL must point to the individual job-detail page on the employer careers site or its ATS, preferably the employer’s own posting rather than a syndicated copy. Open the listing and use its cited detail URL. A careers homepage, search results page, location page, or board overview is NOT an individual posting. Never construct a URL from a job title or requisition ID. If only an overview is available, retain it as unknown-status discovery evidence and do not claim a verified direct posting.
 Only cite URLs present in the web-search results or supplied official-site evidence.
 In addition to the normal JSON research report, include this top-level "recruiting" object:
 {
@@ -100,9 +89,18 @@ export function deduplicateRecruitingJobs(jobs: RecruitingJob[]): RecruitingJob[
         (existing.requisitionId && job.requisitionId
           ? existing.requisitionId.toLowerCase() === job.requisitionId.toLowerCase()
           : identity(existing.title) === identity(job.title))
-        || canonicalUrl(existing.sourceURL) === canonicalUrl(job.sourceURL)
+        || (!isJobBoardOverview(existing.sourceURL) && !isJobBoardOverview(job.sourceURL)
+          && canonicalUrl(existing.sourceURL) === canonicalUrl(job.sourceURL))
       ));
     if (!duplicate) { results.push({ ...job }); continue; }
+    // A later exact posting must replace an earlier directory link, not get lost in deduplication.
+    if (isJobBoardOverview(duplicate.sourceURL) && !isJobBoardOverview(job.sourceURL)) {
+      const wasOnlyOverview = duplicate.status === "unknown";
+      duplicate.sourceURL = job.sourceURL;
+      duplicate.evidence = job.evidence;
+      duplicate.lastVerifiedAt = job.lastVerifiedAt;
+      if (wasOnlyOverview) duplicate.status = job.status;
+    }
     duplicate.noAgencies ||= job.noAgencies;
     duplicate.agencyPolicyEvidence ||= job.agencyPolicyEvidence;
     duplicate.requisitionId ||= job.requisitionId;

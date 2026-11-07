@@ -67,3 +67,24 @@ describe("recruiting research view", () => {
     expect(screen.getByText("Industry IT Challenges")).toBeTruthy();
   });
 });
+
+it("opens each job title at its distinct posting URL, preserving job identifiers", () => {
+  const first = "https://careers.example/job/Houston/Operations-Supervisor/123?jobId=123";
+  const second = "https://careers.example/job/Houston/General-Warehouse-Manager/456?jobId=456";
+  const jobs = [
+    { ...research.recruiting!.jobs[0], id: "ops", title: "Operations Supervisor – 1st Shift", sourceURL: first },
+    { ...research.recruiting!.jobs[0], id: "manager", title: "General Warehouse Manager", sourceURL: second },
+  ];
+  render(<RecruitingEvidenceView research={{ ...research.recruiting!, jobs }} compact />);
+  expect(screen.getByRole("link", { name: /Operations Supervisor/ })).toHaveAttribute("href", first);
+  expect(screen.getByRole("link", { name: /General Warehouse Manager/ })).toHaveAttribute("href", second);
+  expect(screen.getByRole("link", { name: /Operations Supervisor/ })).toHaveAttribute("target", "_blank");
+});
+
+it("labels a saved directory link honestly instead of making its job title a direct-posting link", () => {
+  const jobs = [{ ...research.recruiting!.jobs[0], sourceURL: "https://employer.example/careers" }];
+  render(<RecruitingEvidenceView research={{ ...research.recruiting!, jobs }} compact />);
+  expect(screen.queryByRole("link", { name: /Software Developer/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Careers page/ })).toHaveAttribute("href", "https://employer.example/careers");
+  expect(screen.getByText(/direct posting link not available/)).toBeInTheDocument();
+});

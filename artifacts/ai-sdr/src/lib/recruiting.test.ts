@@ -62,3 +62,14 @@ describe("recruiting email fallback", () => {
     expect(generateFollowUpEmail(prospect, "recruiting_staffing").subject).toMatch(/hiring question/i);
   });
 });
+
+it("retains a direct job link even when a newer saved duplicate has only the careers page", () => {
+  const exact = "https://employer.example/job/warehouse-manager/123?jobId=123";
+  const result = dedupeJobs([
+    job({ sourceURL: exact, lastVerifiedAt: "2026-01-01", evidence: "Exact posting" }),
+    job({ sourceURL: "https://employer.example/careers", lastVerifiedAt: "2026-01-03", evidence: "Careers overview" }),
+  ]);
+  expect(result).toHaveLength(1);
+  expect(result[0].sourceURL).toBe(exact);
+  expect(result[0].evidence).toBe("Exact posting");
+});

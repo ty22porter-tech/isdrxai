@@ -132,6 +132,9 @@ describe("Recruiting & Staffing industry", () => {
     "https://jobs.boeing.com/location/dallas-texas-united-states-jobs/185/6252001/4",
     "https://jobs.lever.co/example?location=Dallas",
     "https://boards.greenhouse.io/example",
+    "https://employer.example/careers",
+    "https://employer.example/jobs/search?keyword=engineer",
+    "https://company.wd1.myworkdayjobs.com/en-US/Careers",
   ])("keeps a general job board pending instead of treating it as an active opening: %s", sourceURL => {
     const research = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [{ ...job, sourceURL }] }, {
       companyName: job.employer, identityVerified: true, allowedSourceUrls: [sourceURL],
@@ -215,4 +218,25 @@ describe("Recruiting & Staffing industry", () => {
     expect(belongsToVertical("recruiting_staffing", "it_services")).toBe(false);
     expect(belongsToVertical(null, "it_services")).toBe(true);
   });
+});
+
+it("retains an exact cited job posting when a careers-page duplicate came first", () => {
+  const overview = "https://employer.example/careers";
+  const exact = "https://employer.example/careers/engineer-req123";
+  const result = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [
+    { ...job, sourceURL: overview }, { ...job, sourceURL: exact },
+  ] }, { companyName: job.employer, identityVerified: true, allowedSourceUrls: [overview, exact] });
+  expect(result.jobs).toHaveLength(1);
+  expect(result.jobs[0].sourceURL).toBe(exact);
+  expect(result.jobs[0].status).toBe("active");
+});
+
+it("does not merge distinct roles merely because they share a careers directory URL", () => {
+  const overview = "https://employer.example/careers";
+  const result = parseRecruitingResearch({ employerIdentity: "confirmed", jobs: [
+    { ...job, requisitionId: null, sourceURL: overview },
+    { ...job, title: "Warehouse Manager", requisitionId: null, sourceURL: overview },
+  ] }, { companyName: job.employer, identityVerified: true, allowedSourceUrls: [overview] });
+  expect(result.jobs).toHaveLength(2);
+  expect(result.jobs.every(job => job.status === "unknown")).toBe(true);
 });

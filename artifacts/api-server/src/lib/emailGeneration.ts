@@ -1,3 +1,4 @@
+import { recruitingEmailStyle, emailOpeningRule } from "./recruitingEmailStyle";
 import type { InferSelectModel } from "drizzle-orm";
 import type { prospectsTable, User, usersTable } from "@workspace/db";
 import type { OpportunityIntelligence } from "@workspace/db";
@@ -246,14 +247,15 @@ function buildWriterPrompts(
       ? `The seller's current catalog includes "${fallbackOffer}", but do not name it unless it fits naturally and never invent how it is supported.`
       : "Seller Intelligence is limited; do not name a seller-specific service.";
 
-  const systemPrompt = `You are an expert B2B sales copywriter for ${senderClause}. Write one ${toneLabel} prospecting email draft. Keep the body concise at 80–120 words, use short natural sentences with varied rhythm, and avoid repeating the company or location. Sound like a warm, confident person: use plain words, lead with a relevant benefit, and avoid hype, research jargon, or awkward hedging. The seller company identity above is independent from the prospect's target industry, which is ${actualIndustry || "unknown"}.
+  const systemPrompt = `You are an expert B2B sales copywriter for ${senderClause}. Write one ${toneLabel} prospecting email draft. Keep the body concise at 80–120 words, use short natural sentences with varied rhythm, and avoid repeating the company or location. Sound like a warm, confident person: use plain words, and avoid hype, research jargon, or awkward hedging. The seller company identity above is independent from the prospect's target industry, which is ${actualIndustry || "unknown"}.
 Use only the exact seller catalog and evidence provided below. Never invent seller services, proof, clients, certifications, guarantees, pricing, results, or URLs. The prospect's industry describes fit, not a verified company condition.
 ${recommendationContext}
 ${fallbackOfferContext}
 ${prospectResearchContext}
-Write a coherent sequence: relevant benefit or qualified possibility -> exact seller offering (when a validated recommendation exists) -> how it may help -> potential business value -> ONE natural discovery question. Use one question mark total. Researched industry challenges are optional background only; use one only when it naturally fits the prospect's actual industry and keep it clearly general, never as proof of a company problem. If the concern is not Verified, keep every concern reference conditional. For non-Verified concerns, make the final question ask how the prospect handles the relevant area today; do not presuppose specific evening/weekend hours, a gap, incident, provider, budget, or purchase plan.
+${vc.key === "recruiting_staffing" ? "Connect a conversational hiring introduction to the researched openings, the relevant approved seller service, and one easy conversation request." : "Write a coherent sequence: relevant benefit or qualified possibility -> exact seller offering (when a validated recommendation exists) -> how it may help -> potential business value -> ONE natural discovery question."} Use one question mark total. Researched industry challenges are optional background only; use one only when it naturally fits the prospect's actual industry and keep it clearly general, never as proof of a company problem. If the concern is not Verified, keep every concern reference conditional. For non-Verified concerns, make the final question ask how the prospect handles the relevant area today; do not presuppose specific evening/weekend hours, a gap, incident, provider, budget, or purchase plan.
 End with one easy, low-pressure question about a short, relevant appointment or conversation when it fits; use a configured seller CTA only when supported. Encourage a reply without promising an outcome. Do not invent meeting dates, durations, booking steps, or automatic scheduling.
-Use the contact's first name in the greeting. Do not begin with I noticed, I came across, I wanted to reach out, or I hope this email finds you well. Do not copy research labels or directives such as Focus on or Outreach angle.
+Use the contact's first name in the greeting. ${emailOpeningRule(vc.key)}
+${recruitingEmailStyle(vc.key)} Do not copy research labels or directives such as Focus on or Outreach angle.
 ${noSignatureRule}${bodyWordRule}
 Return ONLY valid JSON: {"subject":"...","body":"..."} with real line breaks in body and no markdown.`;
 

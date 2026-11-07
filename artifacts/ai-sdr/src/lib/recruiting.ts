@@ -1,3 +1,4 @@
+import { isJobListingPage } from "@workspace/db/job-posting-url";
 import type { RecruitingFilters, RecruitingQualification, RecruitingJob } from "@workspace/api-client-react";
 
 export const RECRUITING_VERTICAL = "recruiting_staffing" as const;
@@ -169,7 +170,10 @@ export function dedupeJobs(jobs: RecruitingJob[]): RecruitingJob[] {
       ? `${norm(job.employer)}|req:${norm(job.requisitionId)}`
       : `${norm(job.employer)}|${norm(job.title)}|${norm(job.location)}`;
     const prior = seen.get(key);
-    if (!prior || (prior.lastVerifiedAt || "") < (job.lastVerifiedAt || "")) seen.set(key, job);
+    if (!prior) { seen.set(key, job); continue; }
+    const latest = (prior.lastVerifiedAt || "") < (job.lastVerifiedAt || "") ? job : prior;
+    const direct = [prior, job].find(item => !isJobListingPage(item.sourceURL));
+    seen.set(key, direct ? { ...latest, sourceURL: direct.sourceURL, evidence: direct.evidence } : latest);
   }
   return [...seen.values()];
 }

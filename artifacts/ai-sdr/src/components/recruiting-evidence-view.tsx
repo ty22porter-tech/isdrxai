@@ -1,8 +1,18 @@
+import { isJobListingPage, safeJobSource } from "@workspace/db/job-posting-url";
 import { useState } from "react";
 import { AlertTriangle, Briefcase, Building, ChevronDown, ExternalLink, MapPin, ShieldOff, Signal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { RecruitingResearch } from "@workspace/api-client-react";
 import { dedupeJobs, GROWTH_TYPE_LABELS, postingAgeLabel } from "@/lib/recruiting";
+
+
+function JobPostingLink({ job, sourceOnly = false }: { job: { id: string; title: string; location: string; sourceURL: string }; sourceOnly?: boolean }) {
+  const href = safeJobSource(job.sourceURL);
+  const label = `${job.title} · ${job.location}`;
+  if (!href) return <span>{sourceOnly ? "Posting link unavailable" : label}</span>;
+  if (isJobListingPage(href)) return <span>{!sourceOnly && <span>{label} — </span>}<a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" data-testid={sourceOnly ? `link-job-source-${job.id}` : undefined}>Careers page <ExternalLink className="inline h-3 w-3" /></a><span className="text-muted-foreground"> (direct posting link not available)</span></span>;
+  return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" data-testid={sourceOnly ? `link-job-source-${job.id}` : undefined}>{sourceOnly ? "View job posting" : label} <ExternalLink className="inline h-3 w-3" /></a>;
+}
 
 const fmt = (v?: string | null) => {
   if (!v) return null;
@@ -56,7 +66,7 @@ export function RecruitingEvidenceView({
       <p className="text-muted-foreground">These source links were found during job discovery. Current job status or employer verification is incomplete; this does not mean there are no openings. They do not qualify for automatic contact lookup.</p>
       {pendingJobs.map(job => (
         <div key={job.id}>
-          <a href={job.sourceURL} target="_blank" rel="noreferrer" className="text-primary hover:underline">{job.title} · {job.location} <ExternalLink className="inline h-3 w-3" /></a>
+          <JobPostingLink job={job} />
           <p className="text-muted-foreground">Posting date: {fmt(job.postedAt) ?? "Unknown"} · Last checked: {fmt(job.lastVerifiedAt) ?? "Unknown"}</p>
         </div>
       ))}
@@ -78,7 +88,7 @@ export function RecruitingEvidenceView({
         {summary}
         {activeJobs.length > 0 && (
           <ul className="space-y-1 text-xs" data-testid="verified-job-links">
-            {activeJobs.map(job => <li key={job.id}><a href={job.sourceURL} target="_blank" rel="noreferrer" className="text-primary hover:underline">{job.title} · {job.location} <ExternalLink className="inline h-3 w-3" /></a></li>)}
+            {activeJobs.map(job => <li key={job.id}><JobPostingLink job={job} /></li>)}
           </ul>
         )}
         {pendingEvidence}
@@ -135,9 +145,7 @@ export function RecruitingEvidenceView({
                 {job.evidence && <p className="text-foreground/80">{job.evidence}</p>}
                 {job.agencyPolicyEvidence && <p className="text-destructive">{job.agencyPolicyEvidence}</p>}
                 {job.sourceURL && (
-                  <a href={job.sourceURL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline" data-testid={`link-job-source-${job.id}`}>
-                    Source <ExternalLink className="h-3 w-3" />
-                  </a>
+                  <JobPostingLink job={job} sourceOnly />
                 )}
               </li>
             ))}

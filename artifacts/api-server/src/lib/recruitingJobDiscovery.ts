@@ -217,7 +217,7 @@ Diversify across employers rather than returning many openings from one business
 Employer industry is its business sector, not the advertised role. Only use requested employer industry categories.
 Only include source-supported, currently active openings. Unknown posting dates stay null. No-agencies policies must be quoted.
 Never invent employer domains, openings, dates, urgency or locations. Duplicate syndicated ads are one opening.
-Inspect underlying job pages, not only search results. A company directory entry is not a job.
+Inspect the individual job-detail pages, not only search results. Each job sourceURL must be the exact cited detail URL, preferably on the employer’s own careers site or ATS. Careers homepages, board overviews and location/search pages are not individual posting links. Do not invent a URL by appending a title or job ID. A company directory entry is not a job.
 Website must be the employer's official https website or null, never a job board. Copy each job sourceURL exactly from the web-search tool's source/citation output. Do not reconstruct or guess URL paths. If no citable source supports a posting, omit that posting.
 Return JSON only: {"employers":[{"companyName":"","industry":"one requested industry","website":null,"agencyUnidentified":false,
 "jobs":[{"title":"","employer":"exact companyName","location":"published city and state, or remote region",

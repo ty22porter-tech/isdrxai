@@ -21,7 +21,14 @@ it.each([1, 7])("keeps job openings reusable in Recruiting campaign step %s even
   await handler({ body: { step, industry: "Healthcare" }, clientId: "qa", log: { error: vi.fn(), warn: vi.fn() } }, res);
   expect(res.status).not.toHaveBeenCalled();
   expect(res.json.mock.calls[0][0].body).toContain("{{jobOpenings}}");
-  expect(mocks.chat.mock.calls[0][0][0].content).toContain("{{jobOpenings}}");
+  const prompt = mocks.chat.mock.calls[0][0][0].content;
+  expect(prompt).toContain("{{jobOpenings}}");
+  expect(prompt).toContain("RECRUITING EMAIL VOICE:");
+  expect(prompt).toContain("Choose different phrasing");
+  expect(prompt).toContain("only if BOTH are approved and relevant");
+  expect(prompt).not.toContain('Never begin with "I noticed,"');
+  if (step === 1) expect(prompt).toContain("start with a conversational statement");
+  else expect(prompt).toContain("Preserve this step's follow-up");
 });
 describe("personalized Recruiting writer context", () => {
   it("supplies exact researched titles while excluding unknown and closed roles", () => {
@@ -34,4 +41,15 @@ describe("personalized Recruiting writer context", () => {
     expect(context).not.toMatch(/unknown Nurse|closed Nurse/);
     expect(context).toContain("mention at least one exact job title");
   });
+});
+
+it("keeps the recruiting voice and opening field out of other industries", async () => {
+  mocks.where.mockResolvedValue([{ id: "qa", vertical: "it_services", businessName: "Technology Partner" }]);
+  mocks.chat.mockResolvedValue(JSON.stringify({ subject: "A question", body: "Hi {{contactName}},\n\nCould we discuss IT support?" }));
+  const layer = router.stack.find((item: any) => item.route?.path === "/generate-email") as any;
+  const res = { json: vi.fn(), status: vi.fn().mockReturnThis() };
+  await layer.route.stack.at(-1).handle({ body: { step: 1, industry: "Healthcare" }, clientId: "qa", log: { error: vi.fn(), warn: vi.fn() } }, res);
+  expect(res.status).not.toHaveBeenCalled();
+  expect(res.json.mock.calls[0][0].body).not.toContain("{{jobOpenings}}");
+  expect(mocks.chat.mock.calls[0][0][0].content).not.toContain("RECRUITING EMAIL VOICE:");
 });

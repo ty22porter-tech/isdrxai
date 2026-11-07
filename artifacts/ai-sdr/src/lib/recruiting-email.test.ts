@@ -27,3 +27,8 @@ describe("recruiting campaign opening personalization", () => {
     expect(mergeEmailTemplate(template, {})).not.toContain("{{");
   });
 });
+
+it("places a missing opening field after the conversational introduction", () => {
+  expect(ensureRecruitingOpeningPlaceholder("Hi {{contactName}},\n\nI wanted to ask how your team handles recruiting.\n\nAt our company, we offer approved staffing services.\n\nCould we talk?"))
+    .toBe("Hi {{contactName}},\n\nI wanted to ask how your team handles recruiting.\n\n{{jobOpenings}}\n\nAt our company, we offer approved staffing services.\n\nCould we talk?");
+});

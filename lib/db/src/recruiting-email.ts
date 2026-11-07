@@ -26,6 +26,6 @@ export function recruitingOpeningSummary(recipient: RecruitingEmailRecipient): s
 export function ensureRecruitingOpeningPlaceholder(body: string): string {
   if (body.includes("{{jobOpenings}}")) return body;
   const paragraphs = body.split(/\n\s*\n/);
-  paragraphs.splice(paragraphs.length > 1 ? 1 : 0, 0, "{{jobOpenings}}");
+  paragraphs.splice(paragraphs.length >= 3 ? 2 : paragraphs.length > 1 ? 1 : 0, 0, "{{jobOpenings}}");
   return paragraphs.join("\n\n");
 }
