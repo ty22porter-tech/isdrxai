@@ -1,3 +1,5 @@
+import { IntroductoryPlans } from "@/components/introductory-plans";
+import { STARTER_INTRO_OFFER } from "@workspace/api-client-react/marketing-plans";
 import React, { useState } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { 
@@ -79,7 +81,7 @@ function Navbar() {
           </div>
           <div className="flex items-center gap-4">
             <a href={SIGN_IN_URL} className="text-sm font-medium text-white hover:text-accent transition-colors">Log in</a>
-            <a href="#plans" className="text-sm font-medium text-white hover:text-accent transition-colors">Pricing</a>
+            <a href="/pricing" className="text-sm font-medium text-white hover:text-accent transition-colors">Pricing</a>
             <Button asChild className="bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]"><Link href="/book-demo" onClick={() => trackConversionClick("book_demo", "navbar_desktop")}>Book a Demo</Link></Button>
           </div>
         </div>
@@ -115,7 +117,7 @@ function Navbar() {
             ))}
             <div className="h-px w-full bg-border my-2" />
             <a href={SIGN_IN_URL} className="text-lg font-medium text-white">Log in</a>
-            <a href="#plans" className="text-lg font-medium text-white" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
+            <a href="/pricing" className="text-lg font-medium text-white" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium mt-2"><Link href="/book-demo" className="w-full" onClick={() => trackConversionClick("book_demo", "navbar_mobile")}>Book a Demo</Link></Button>
           </motion.div>
         )}
@@ -163,6 +165,11 @@ function Hero() {
         >
           Let AI find business prospects, write personalized outreach, and help book meetings for your company—whether you sell technology, products, or services.
         </motion.p>
+
+        <a href="#plans" className="mx-auto mb-7 block max-w-xl rounded-xl border border-primary/40 bg-primary/10 px-5 py-4 text-accent transition-colors hover:bg-primary/20">
+          <span className="block font-semibold">{STARTER_INTRO_OFFER}</span>
+          <span className="mt-1 block text-sm text-gray-300">View Starter details and Enterprise options →</span>
+        </a>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -754,6 +761,8 @@ function ServiceTiers() {
           </motion.p>
         </div>
 
+        <IntroductoryPlans />
+
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* iSDRX AI */}
           <motion.div
@@ -830,9 +839,7 @@ function ServiceTiers() {
 
             <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/10">
               {[
-                { name: "iSDRX AI Starter", price: "$249/month" },
                 { name: "iSDRX AI Growth", price: "$799/month" },
-                { name: "Enterprise", price: "Contact Sales" },
               ].map((tier) => (
                 <div key={tier.name} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                   <span className="text-gray-300">{tier.name}</span>
@@ -1000,6 +1007,10 @@ function ServiceTiers() {
   );
 }
 
+function PublicPricingPage() {
+  return <div className="min-h-screen bg-background text-foreground"><Navbar /><main className="pt-16"><ServiceTiers /></main><Footer /></div>;
+}
+
 function LandingPage() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
@@ -1118,6 +1129,7 @@ export default function App() {
     <Router base={ROUTER_BASE}>
       <Switch>
         <Route path="/" component={LandingPage} />
+        <Route path="/pricing" component={PublicPricingPage} />
         {/* Old vertical URL — keep redirect so bookmarks and indexed links still work */}
         <Route path="/Janitorial">
           <Redirect to="/TradeServices" replace />

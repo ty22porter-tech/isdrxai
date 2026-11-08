@@ -165,7 +165,7 @@ const QA_TREE = {
     ]
   },
   pricing: {
-    message: "Self-service plans start at $249 per month. Buy Now begins billing at checkout, or eligible first-time subscribers can explicitly choose a 14-day trial. Every subscription also includes the required one-time $995 AI Sales Launch Package.",
+    message: "The iSDRX AI Starter special introductory offer is $249 per month for the first 20 customers. Starter includes up to 500 personalized AI emails per month and 1 user. Enterprise offers custom capacity for 5 or more users; contact sales for details. Buy Now begins billing at checkout, or eligible first-time subscribers can explicitly choose a 14-day trial. Every subscription also includes the required one-time $995 AI Sales Launch Package.",
     links: [
       { label: "View Pricing", href: "/#plans" }
     ],

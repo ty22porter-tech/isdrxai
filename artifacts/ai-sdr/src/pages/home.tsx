@@ -1,3 +1,4 @@
+import { STARTER_INTRO_OFFER } from "@workspace/api-client-react/marketing-plans";
 import { Link } from "wouter";
 import { Bot, Zap, BarChart3, Users } from "lucide-react";
 import { trackConversionClick } from "@/lib/analytics";
@@ -22,6 +23,8 @@ export default function Home() {
             Automate your outreach, manage prospects, and book more appointments — powered by AI.
           </p>
         </div>
+
+        <Link href="/pricing" className="relative block rounded-xl border border-[#7eb4dc]/40 bg-[#0d1d31] px-5 py-4 text-sm font-semibold text-[#7eb4dc]">{STARTER_INTRO_OFFER}<span className="mt-1 block font-normal text-[#d5e0e9]">View plans, features, and Enterprise options →</span></Link>
 
         <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           {[

@@ -1,3 +1,4 @@
+import { STARTER_PLAN, ENTERPRISE_PLAN, STARTER_INTRO_OFFER } from "@workspace/api-client-react/marketing-plans";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -68,25 +69,7 @@ const TIERS: Tier[] = [
   {
     key: "starter",
     productName: "iSDRX AI Starter",
-    name: "iSDRX AI Starter",
-    price: "$249",
-    priceNote: "/month",
-    emails: "Up to 500 personalized AI emails / month",
-    users: "Includes 1 user",
-    tagline: "Find high-fit prospects, personalize outreach, and guide interested buyers toward a meeting.",
-    features: [
-      "Up to 500 personalized AI emails per month",
-      "1 User license",
-      "1 Sending Domain",
-      "CSV Upload",
-      "Prospect Search",
-      "AI Email Generation",
-      "AI Follow-Up",
-      "Basic CRM",
-      "Appointment Booking",
-      "Dashboard",
-      "Email Support",
-    ],
+    ...STARTER_PLAN,
     cta: "Buy Now",
   },
   {
@@ -155,22 +138,7 @@ const TIERS: Tier[] = [
   {
     key: "enterprise",
     productName: null,
-    name: "Enterprise",
-    price: "Contact Sales",
-    priceNote: "",
-    emails: "Custom personalized AI email capacity",
-    users: "5 or more users",
-    tagline: "Custom capacity, integrations, and support at scale.",
-    features: [
-      "Custom personalized AI email capacity",
-      "5 or more User licenses",
-      "Unlimited Sending Domains",
-      "Custom Integrations",
-      "Dedicated Customer Success Manager",
-      "Custom AI Training",
-      "Single Sign-On (SSO)",
-      "SLA Support",
-    ],
+    ...ENTERPRISE_PLAN,
     cta: "Contact Sales",
   },
 ];
@@ -348,6 +316,11 @@ export default function Pricing() {
           </p>
         </div>
 
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 text-center">
+          <p className="font-semibold text-primary">{STARTER_INTRO_OFFER}</p>
+          <p className="mt-1 text-sm text-muted-foreground">iSDRX AI Starter includes up to 500 personalized AI emails per month and 1 user. The required one-time $995 AI Sales Launch Package also applies; trial and checkout terms are shown below.</p>
+        </div>
+
         {/* Trial banner */}
         <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <Sparkles className="w-6 h-6 text-sky-400 shrink-0" />
@@ -387,6 +360,7 @@ export default function Pricing() {
                 )}
                 <h3 className="font-bold text-lg">{tier.name}</h3>
               </div>
+              {tier.key === "starter" && <p className="mt-3 rounded-md bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">Special introductory offer · First 20 customers</p>}
               <p className="text-sm text-muted-foreground mt-2 min-h-[2.5rem]">{tier.tagline}</p>
               <div className="mt-4">
                 <span className={!tier.productName ? "text-2xl font-bold" : "text-3xl font-bold"}>
