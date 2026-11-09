@@ -1,3 +1,4 @@
+import { FOUNDING_TERMS } from "@workspace/api-client-react/marketing-plans";
 import { useEffect, type ReactNode } from "react";
 import { Link } from "wouter";
 
@@ -48,7 +49,7 @@ function LegalPage({
 export function TermsOfServicePage() {
   return (
     <LegalPage
-      effectiveDate="October 24, 2026"
+      effectiveDate="November 8, 2026"
       title="Terms of Service"
       description="Terms governing access to and use of iSDRX AI services."
     >
@@ -93,10 +94,10 @@ export function TermsOfServicePage() {
         subscription or $995 AI Sales Launch Package fee is charged during the trial. If you
         continue after 14 days, the selected monthly subscription and one-time $995 Launch Package
         fee are charged when the trial ends. Cancel before then to avoid both charges. If you select
-        Buy Now, billing begins when checkout is completed, including the $995 Launch Package fee.
+        Buy Now, billing begins when checkout is completed, including the $995 Launch Package fee unless waived by an accepted Founding20 redemption.
       </p>
       <p>
-        The one-time $995 AI Sales Launch Package is required for each new standard subscription.
+        The one-time $995 AI Sales Launch Package applies to new subscriptions except eligible Founding20 redemptions. {FOUNDING_TERMS}
         It includes account and domain configuration, DNS/email authentication, calendar integration,
         ICP and AI prompt customization, sales workflow, initial campaign and CRM setup, a live
         implementation session, and training. If AI+ is selected, the separate $1,000 AI+ onboarding

@@ -122,3 +122,9 @@ describe("deferred trial launch package", () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
+
+it("never adds onboarding to a Founding20 subscription after its trial", async () => {
+  retrieve.mockResolvedValue({ metadata: { launch_package_fee_status: "waived", founding_promotion_code: "Founding20" } });
+  expect(await addDeferredLaunchPackageToTrialEndInvoice(invoice, stripe)).toBe(false);
+  expect(create).not.toHaveBeenCalled();
+});

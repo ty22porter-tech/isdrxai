@@ -1,3 +1,4 @@
+import { PLAN_CATALOG, isCurrentPlanPrice, foundingDiscount, PromotionError } from "../lib/planPricing";
 import { Router } from "express";
 import { db, usersTable, conversionEventsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -8,7 +9,7 @@ import { buildPlanCheckoutConfig } from "../lib/checkoutConfig";
 const router = Router();
 router.use(requireAuth);
 
-const CURRENT_TERMS_VERSION = "2026-10-24";
+const CURRENT_TERMS_VERSION = "2026-11-08-founding20";
 
 router.get("/subscription", async (req, res) => {
   const user = req.dbUser;
@@ -35,10 +36,10 @@ async function getLaunchPackagePriceId(): Promise<string | null> {
     const products = await stripe.products.search({
       query: `name:'${LAUNCH_PACKAGE_NAME}' AND active:'true'`,
     });
-    const product = products.data[0];
+    const product = products.data.find(p => p.name === LAUNCH_PACKAGE_NAME);
     if (!product) return null;
-    const prices = await stripe.prices.list({ product: product.id, active: true });
-    const oneTime = prices.data.find((p) => !p.recurring);
+    const prices = await stripe.prices.list({ product: product.id, active: true, limit: 100 });
+    const oneTime = prices.data.find((p) => !p.recurring && p.currency === "usd" && p.unit_amount === 99500);
     launchPackagePriceId = oneTime?.id ?? null;
     return launchPackagePriceId;
   } catch {
@@ -46,27 +47,10 @@ async function getLaunchPackagePriceId(): Promise<string | null> {
   }
 }
 
-const SUBSCRIPTION_PLAN_NAMES = new Set([
-  "iSDRX AI Starter",
-  "iSDRX AI",
-  "iSDRX AI Growth",
-]);
-
-async function isAllowedPlanPrice(priceId: string): Promise<boolean> {
-  try {
-    const stripe = await getUncachableStripeClient();
-    const price = await stripe.prices.retrieve(priceId, { expand: ["product"] });
-    if (!price.active || price.recurring?.interval !== "month") return false;
-    const product = price.product;
-    if (typeof product === "string" || product.deleted) return false;
-    return product.active === true && SUBSCRIPTION_PLAN_NAMES.has(product.name);
-  } catch {
-    return false;
-  }
-}
+const SUBSCRIPTION_PLAN_NAMES = new Set(Object.keys(PLAN_CATALOG));
 
 router.post("/checkout", async (req, res) => {
-  const { priceId, acceptTerms, checkoutIntent } = req.body;
+  const { priceId, acceptTerms, checkoutIntent, promoCode } = req.body;
   if (!priceId || typeof priceId !== "string") {
     return res.status(400).json({ error: "priceId required" });
   }
@@ -79,12 +63,21 @@ router.post("/checkout", async (req, res) => {
     return res.status(400).json({ error: "A valid checkout option is required." });
   }
 
-  if (!(await isAllowedPlanPrice(priceId))) {
-    return res.status(400).json({ error: "Invalid plan selected" });
-  }
-
   const user = req.dbUser;
   const stripe = await getUncachableStripeClient();
+  let price;
+  try { price = await stripe.prices.retrieve(priceId, { expand: ["product"] }); }
+  catch { return res.status(400).json({ error: "Invalid plan selected" }); }
+  if (!isCurrentPlanPrice(price)) return res.status(400).json({ error: "Invalid plan selected" });
+  let promotion;
+  try { promotion = await foundingDiscount(stripe, promoCode, price); }
+  catch (error) {
+    if (error instanceof PromotionError) return res.status(400).json({ error: error.message });
+    req.log.error({ err: error }, "Promotion verification failed");
+    return res.status(503).json({ error: "Promotional code verification is unavailable. Please retry; no checkout was created." });
+  }
+  // A canceled previous subscription does not make the same account a new founding customer.
+  if (promotion && user.stripeSubscriptionId) return res.status(400).json({ error: "Founding20 is for new subscribing customers only." });
 
   // Existing subscribers manage plan changes through the billing portal —
   // never through a fresh checkout (which would grant another trial).
@@ -111,12 +104,11 @@ router.post("/checkout", async (req, res) => {
     customerId = customer.id;
   }
 
-  // The AI Sales Launch Package is a mandatory one-time fee for every new
-  // subscriber. If it can't be resolved, fail the checkout rather than
-  // silently dropping the required fee.
+  // The one-time onboarding fee applies to new subscribers except verified
+  // Founding20 redemptions. Fail closed if a required fee price is missing.
   const isNewSubscriber = !user.stripeSubscriptionId;
   let packagePriceId: string | null = null;
-  if (isNewSubscriber) {
+  if (isNewSubscriber && !promotion) {
     packagePriceId = await getLaunchPackagePriceId();
     if (!packagePriceId) {
       return res.status(500).json({
@@ -129,6 +121,7 @@ router.post("/checkout", async (req, res) => {
     packagePriceId,
     isNewSubscriber,
     checkoutIntent,
+    promotion,
   );
 
   // Record the server-owned terms version immediately before creating the
@@ -152,14 +145,19 @@ router.post("/checkout", async (req, res) => {
           custom_text: {
             submit: {
               message:
-                checkoutIntent === "free_trial"
+                promotion
+                  ? `Founding20 accepted: $249/month for the qualifying iSDRX AI subscription, with the $995 Launch Package waived. The discount continues while you keep this subscription. ${checkoutIntent === "free_trial" ? "No charge during your 14-day trial; $249/month begins if you continue. Cancel before trial end to avoid subscription charges." : "Subscription billing starts at checkout."}`
+                  : checkoutIntent === "free_trial"
                   ? "No subscription or $995 Onboarding / Sales Launch Package charge during your 14-day trial. If you continue, your first paid invoice includes your monthly subscription plus the one-time $995 package. Cancel before the trial ends to avoid both charges. The package includes account and email/domain setup, calendar integration, ideal customer targeting, campaign and CRM setup, implementation, and training."
                   : "Your purchase includes the one-time $995 Onboarding / Sales Launch Package, covering account and email/domain setup, calendar integration, ideal customer targeting, campaign and CRM setup, implementation, and training.",
             },
           },
         }
       : {}),
-    allow_promotion_codes: true,
+    // Codes must be entered in the app before Checkout, so both monthly price
+    // and onboarding treatment are computed together. Never expose a second
+    // Stripe-only code field that could discount the plan without waiving the fee.
+    ...(promotion ? {} : { allow_promotion_codes: false }),
     success_url: `${baseUrl}/app/billing?checkout=success&onboarding=1`,
     cancel_url: `${baseUrl}/app/pricing`,
   });
@@ -217,7 +215,7 @@ router.get("/products", async (_req, res) => {
           limit: 100,
         });
         const monthlyPrice = prices.data.find(
-          (price) => price.type === "recurring" && price.recurring?.interval === "month",
+          (price) => isCurrentPlanPrice({ ...price, product }),
         );
         if (!monthlyPrice) return null;
 

@@ -1,4 +1,4 @@
-import { STARTER_PLAN, ENTERPRISE_PLAN, STARTER_INTRO_OFFER } from "@workspace/api-client-react/marketing-plans";
+import { STANDARD_PLAN, GROWTH_PLAN, ENTERPRISE_PLAN, STARTER_INTRO_OFFER, FOUNDING_TERMS } from "@workspace/api-client-react/marketing-plans";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,6 +14,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -66,55 +67,8 @@ type Tier = {
 };
 
 const TIERS: Tier[] = [
-  {
-    key: "starter",
-    productName: "iSDRX AI Starter",
-    ...STARTER_PLAN,
-    cta: "Buy Now",
-  },
-  {
-    key: "growth",
-    productName: "iSDRX AI",
-    name: "iSDRX AI",
-    price: "$499",
-    priceNote: "/month",
-    emails: "Up to 1,000 personalized AI emails / month",
-    users: "Includes 1 user",
-    tagline: "Turn prospect research and buying signals into consistent, multi-step outreach and qualified pipeline.",
-    features: [
-      "Up to 1,000 personalized AI emails per month",
-      "1 User license",
-      "1 Sending Domain",
-      "Everything in iSDRX AI Starter",
-      "Advanced AI Personalization",
-      "Multi-Step AI Campaigns",
-      "Team Dashboard",
-      "Pipeline Reporting",
-      "Priority Support",
-    ],
-    popular: true,
-    cta: "Buy Now",
-  },
-  {
-    key: "professional",
-    productName: "iSDRX AI Growth",
-    name: "iSDRX AI Growth",
-    price: "$799",
-    priceNote: "/month",
-    emails: "Up to 2,500 personalized AI emails / month",
-    users: "Includes 3 users",
-    tagline: "Expand personalized prospecting, team visibility, and pipeline generation across a growing sales organization.",
-    features: [
-      "Up to 2,500 personalized AI emails per month",
-      "3 User licenses",
-      "1 Sending Domain",
-      "Everything in iSDRX AI",
-      "CRM Integration",
-      "API Access",
-      "Enhanced Implementation Support",
-    ],
-    cta: "Buy Now",
-  },
+  { key: "growth", productName: "iSDRX AI", ...STANDARD_PLAN, popular: true, cta: "Buy Now" },
+  { key: "professional", productName: "iSDRX AI Growth", ...GROWTH_PLAN, cta: "Buy Now" },
   {
     key: "ai-plus",
     productName: null,
@@ -158,38 +112,38 @@ const LAUNCH_PACKAGE_ITEMS = [
   "Customer Training",
 ];
 
-const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, string, string] }> = [
-  { label: "Personalized AI email capacity / month", values: ["Up to 500", "Up to 1,000", "Up to 2,500", "Selected base plan", "Custom"] },
-  { label: "User licenses", values: ["1", "1", "3", "Selected base plan", "5 or more"] },
-  { label: "Sending domains", values: ["1", "1", "1", "Selected base plan", "Unlimited"] },
-  { label: "AI email generation & follow-up", values: ["✓", "✓", "✓", "✓", "✓"] },
-  { label: "Prospect search & CSV upload", values: ["✓", "✓", "✓", "✓", "✓"] },
-  { label: "Appointment booking", values: ["✓", "✓", "✓", "✓", "✓"] },
-  { label: "Advanced AI personalization", values: ["—", "✓", "✓", "By base plan", "✓"] },
-  { label: "Multi-step AI campaigns", values: ["—", "✓", "✓", "By base plan", "✓"] },
-  { label: "Team dashboard & pipeline reporting", values: ["—", "✓", "✓", "By base plan", "✓"] },
-  { label: "CRM integration & API access", values: ["—", "—", "✓", "By base plan", "✓"] },
-  { label: "AI-Triggered Human Calling", values: ["—", "—", "—", "✓", "Custom"] },
-  { label: "Engaged-prospect phone follow-up", values: ["—", "—", "—", "✓", "Custom"] },
-  { label: "Interest confirmation & qualification", values: ["—", "—", "—", "✓", "Custom"] },
-  { label: "Live transfers & assisted scheduling", values: ["—", "—", "—", "✓", "Custom"] },
-  { label: "Call outcomes, notes & bookings tracked", values: ["—", "—", "—", "✓", "Custom"] },
-  { label: "Custom AI training & SSO", values: ["—", "—", "—", "By base plan", "✓"] },
-  { label: "Support", values: ["Email", "Priority", "Enhanced implementation", "Managed calling service", "Dedicated CSM + SLA"] },
+const COMPARISON_ROWS: Array<{ label: string; values: [string, string, string, string] }> = [
+  { label: "Personalized AI email capacity / month", values: ["Up to 1,000", "Up to 3,000", "Selected base plan", "Custom"] },
+  { label: "User licenses", values: ["1", "3", "Selected base plan", "5 or more"] },
+  { label: "Sending domains", values: ["1", "1", "Selected base plan", "Unlimited"] },
+  { label: "AI email generation & follow-up", values: ["✓", "✓", "✓", "✓"] },
+  { label: "Prospect search & CSV upload", values: ["✓", "✓", "✓", "✓"] },
+  { label: "Appointment booking", values: ["✓", "✓", "✓", "✓"] },
+  { label: "Advanced AI personalization", values: ["✓", "✓", "By base plan", "✓"] },
+  { label: "Multi-step AI campaigns", values: ["✓", "✓", "By base plan", "✓"] },
+  { label: "Team dashboard & pipeline reporting", values: ["✓", "✓", "By base plan", "✓"] },
+  { label: "CRM integration & API access", values: ["—", "✓", "By base plan", "✓"] },
+  { label: "AI-Triggered Human Calling", values: ["—", "—", "✓", "Custom"] },
+  { label: "Engaged-prospect phone follow-up", values: ["—", "—", "✓", "Custom"] },
+  { label: "Interest confirmation & qualification", values: ["—", "—", "✓", "Custom"] },
+  { label: "Live transfers & assisted scheduling", values: ["—", "—", "✓", "Custom"] },
+  { label: "Call outcomes, notes & bookings tracked", values: ["—", "—", "✓", "Custom"] },
+  { label: "Custom AI training & SSO", values: ["—", "—", "By base plan", "✓"] },
+  { label: "Support", values: ["Priority", "Enhanced implementation", "Managed calling service", "Dedicated CSM + SLA"] },
 ];
 
 const FAQS: Array<{ q: string; a: string }> = [
   {
     q: "How is iSDRX AI priced?",
-    a: "iSDRX AI is licensed per user — not per domain. iSDRX AI Starter and iSDRX AI each include 1 user, iSDRX AI Growth includes 3 users, and Enterprise covers 5 or more users. Each plan also includes monthly capacity for personalized AI emails sent through the platform. Need more capacity or users? Upgrade your plan anytime.",
+    a: "iSDRX AI is licensed per user — not per domain. iSDRX AI is $499/month for 1,000 emails and 1 user; Growth is $749/month for 3,000 emails and up to 3 users, and Enterprise covers 5 or more users. Each plan also includes monthly capacity for personalized AI emails sent through the platform. Need more capacity or users? Upgrade your plan anytime.",
   },
   {
     q: "How does the 14-day free trial work?",
-    a: "iSDRX AI Starter, iSDRX AI, and iSDRX AI Growth offer an optional 14-day free trial when you select Start Free Trial. A card is required, but no subscription or $995 AI Sales Launch Package fee is charged during the trial. If you continue, the selected monthly subscription and the one-time $995 Launch Package fee are charged when the trial ends. Cancel before the trial ends to avoid both charges. The Launch Package includes account and domain setup, DNS and email-platform authentication, calendar integration, ICP and AI prompt customization, sales workflow, initial campaign and CRM setup, a live implementation session, and training. If you select Buy Now, the $995 fee is charged at checkout. AI+ and Enterprise are sales-assisted services.",
+    a: "iSDRX AI and iSDRX AI Growth offer an optional 14-day free trial when you select Start Free Trial. A card is required, but no subscription or $995 AI Sales Launch Package fee is charged during the trial. If you continue, the selected monthly subscription and the one-time $995 Launch Package fee are charged when the trial ends. Cancel before the trial ends to avoid both charges. The Launch Package includes account and domain setup, DNS and email-platform authentication, calendar integration, ICP and AI prompt customization, sales workflow, initial campaign and CRM setup, a live implementation session, and training. If you select Buy Now, the $995 fee is charged at checkout. AI+ and Enterprise are sales-assisted services. An accepted Founding20 redemption instead waives onboarding and reduces the standard subscription to $249/month while it is kept.",
   },
   {
     q: "What is the AI Sales Launch Package and why is it required?",
-    a: "The AI Sales Launch Package ($995 one-time) is our hands-on implementation service: we configure your account, authenticate your sending domain (SPF, DKIM, DMARC), customize your AI prompts, build your ideal customer profile, set up your first campaign, and train your team. It's required for every subscription because proper setup is what makes AI outreach land in inboxes instead of spam folders.",
+    a: "The AI Sales Launch Package ($995 one-time) is our hands-on implementation service: we configure your account, authenticate your sending domain (SPF, DKIM, DMARC), customize your AI prompts, build your ideal customer profile, set up your first campaign, and train your team. It applies to new subscriptions except qualifying Founding20 redemptions, for which onboarding is waived. Proper setup supports sending readiness; inbox placement is not guaranteed.",
   },
   {
     q: "What happens if I use all my monthly email sends?",
@@ -201,7 +155,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: "Do you offer discounts or promo codes?",
-    a: "Yes — if you have a coupon or promotional code, you can enter it during checkout and the discount is applied automatically.",
+    a: FOUNDING_TERMS,
   },
   {
     q: "Is my payment information secure?",
@@ -211,6 +165,7 @@ const FAQS: Array<{ q: string; a: string }> = [
 
 export default function Pricing() {
   const { toast } = useToast();
+  const [promoCode, setPromoCode] = useState("");
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [pendingCheckout, setPendingCheckout] = useState<PendingCheckout | null>(null);
   const [hasReadTerms, setHasReadTerms] = useState(false);
@@ -278,7 +233,7 @@ export default function Pricing() {
       const data = await apiFetch("/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId, acceptTerms: true, checkoutIntent }),
+        body: JSON.stringify({ priceId, acceptTerms: true, checkoutIntent, ...(promoCode.trim() ? { promoCode: promoCode.trim() } : {}) }),
       });
       if (data.url) {
         trackEvent(
@@ -318,7 +273,8 @@ export default function Pricing() {
 
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 text-center">
           <p className="font-semibold text-primary">{STARTER_INTRO_OFFER}</p>
-          <p className="mt-1 text-sm text-muted-foreground">iSDRX AI Starter includes up to 500 personalized AI emails per month and 1 user. The required one-time $995 AI Sales Launch Package also applies; trial and checkout terms are shown below.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{FOUNDING_TERMS}</p>
+          <div className="mx-auto mt-4 max-w-sm text-left"><label htmlFor="founding-promo" className="text-sm font-medium">Promotional code (optional)</label><Input id="founding-promo" value={promoCode} onChange={event => setPromoCode(event.target.value)} placeholder="Enter Founding20" className="mt-2" /><p className="mt-2 text-xs text-muted-foreground">Code is verified before Stripe checkout. No code means $499/month plus onboarding for the standard plan. An invalid or exhausted code stops checkout.</p></div>
         </div>
 
         {/* Trial banner */}
@@ -329,15 +285,15 @@ export default function Pricing() {
             <div className="text-sm text-muted-foreground mt-0.5">
               Choose Start Free Trial for full access during the trial. A card is required, but no
               subscription or $995 Launch Package fee is charged during the trial. If you continue,
-              both the selected monthly plan and the one-time $995 fee are charged when the 14 days
-              end. Cancel before then to avoid both charges. Buy Now starts billing immediately.
+              the selected monthly plan and the one-time $995 fee are charged when the 14 days
+              end, unless an eligible Founding20 redemption waives onboarding and reduces the standard plan to $249/month. Cancel before then to avoid both charges. Buy Now starts billing immediately.
               AI+ and Enterprise are available by contacting us.
             </div>
           </div>
         </div>
 
         {/* Pricing cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {TIERS.map((tier) => (
             <div
               key={tier.key}
@@ -360,7 +316,6 @@ export default function Pricing() {
                 )}
                 <h3 className="font-bold text-lg">{tier.name}</h3>
               </div>
-              {tier.key === "starter" && <p className="mt-3 rounded-md bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">Special introductory offer · First 20 customers</p>}
               <p className="text-sm text-muted-foreground mt-2 min-h-[2.5rem]">{tier.tagline}</p>
               <div className="mt-4">
                 <span className={!tier.productName ? "text-2xl font-bold" : "text-3xl font-bold"}>
@@ -427,15 +382,14 @@ export default function Pricing() {
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-xl font-bold">AI Sales Launch Package</h2>
                 <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-0.5 text-xs font-semibold text-amber-300">
-                  Required for every subscription
+                  Waived with eligible Founding20 redemption
                 </span>
               </div>
               <p className="text-muted-foreground text-sm mt-2 max-w-3xl">
-                A one-time <span className="font-semibold text-foreground">$995</span> implementation
+                Eligible Founding20 customers pay no onboarding fee. Otherwise, a one-time <span className="font-semibold text-foreground">$995</span> implementation
                 fee. Buy Now customers are charged at checkout; free-trial customers are charged only
                 if they continue, when the trial ends. Cancel during the trial and this fee is not
-                charged. Our team sets up everything so your first campaign lands in inboxes — not
-                spam folders.
+                charged. Our team configures your account and sending setup; inbox placement is not guaranteed.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 mt-5">
                 {LAUNCH_PACKAGE_ITEMS.map((item) => (
@@ -457,7 +411,6 @@ export default function Pricing() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="text-left font-semibold p-4">Feature</th>
-                  <th className="text-center font-semibold p-4">iSDRX AI Starter</th>
                   <th className="text-center font-semibold p-4 text-primary">iSDRX AI</th>
                   <th className="text-center font-semibold p-4">iSDRX AI Growth</th>
                   <th className="text-center font-semibold p-4 text-primary">iSDRX AI+ add-on</th>
@@ -510,7 +463,7 @@ export default function Pricing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
               size="lg"
-              onClick={() => handleCheckout(TIERS[1], "pricing_bottom_cta", "buy_now")}
+              onClick={() => handleCheckout(TIERS[0], "pricing_bottom_cta", "buy_now")}
               disabled={loadingTier !== null}
             >
               {loadingTier === "growth" ? (
@@ -547,11 +500,12 @@ export default function Pricing() {
                 {pendingCheckout?.checkoutIntent === "free_trial"
                   ? "14-day trial: no subscription or $995 Launch Package fee is charged during the trial. If you continue, the selected monthly plan and one-time $995 fee are charged when the trial ends. Cancel before then to avoid both charges."
                   : "Buy Now: the selected monthly subscription and the one-time $995 Launch Package fee are charged at checkout."}
-                {" "}Scroll through the terms below to continue.
+                {" "}An accepted Founding20 code instead reduces the standard plan to $249/month while subscribed and waives onboarding. The code must be entered before continuing; eligibility is verified by the server. Scroll through the terms below to continue.
               </DialogDescription>
             </DialogHeader>
 
             <div
+              role="region" aria-label="Subscription terms"
               className="min-h-0 overflow-y-auto rounded-lg border bg-background/50 p-4 text-sm leading-relaxed text-muted-foreground"
               onScroll={(event) => {
                 const element = event.currentTarget;
@@ -560,6 +514,7 @@ export default function Pricing() {
                 }
               }}
             >
+              <div className="mb-4 rounded-lg border border-primary/30 p-4"><label htmlFor="checkout-promo" className="font-medium text-foreground">Promotional code (optional)</label><Input id="checkout-promo" className="mt-2" value={promoCode} onChange={event => setPromoCode(event.target.value)} placeholder="Founding20" /><p className="mt-2 text-xs">{FOUNDING_TERMS}</p></div>
               <TermsReview />
               <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4 text-foreground">
                 <p className="font-semibold">You have reached the end of the terms.</p>
@@ -633,7 +588,7 @@ function TermsReview() {
     <div className="space-y-5">
       <div>
         <p className="font-semibold text-foreground">iSDRX AI Terms of Service</p>
-        <p className="mt-1 text-xs">Effective October 24, 2026</p>
+        <p className="mt-1 text-xs">Effective November 8, 2026</p>
       </div>
 
       <p>
@@ -663,12 +618,12 @@ function TermsReview() {
       <section>
         <h3 className="font-semibold text-foreground">3. Fees, trial, and one-time services</h3>
         <p className="mt-1">
-          Subscription fees are billed in advance. A 14-day trial is available only when you
+          {FOUNDING_TERMS} Subscription fees are billed in advance. A 14-day trial is available only when you
           explicitly select Start Free Trial. No subscription or $995 AI Sales Launch Package fee
           is charged during the trial. If you continue, the selected monthly subscription and the
           one-time $995 Launch Package fee are charged when the trial ends. Cancel before the trial
           ends to avoid both charges. If you select Buy Now, billing begins at checkout and includes
-          the $995 Launch Package fee. The package includes account and domain configuration,
+          the $995 Launch Package fee unless waived by an accepted Founding20 redemption. The package includes account and domain configuration,
           DNS/email authentication, calendar integration, ICP and AI prompt customization, sales
           workflow, initial campaign and CRM setup, a live implementation session, and training.
           Once work begins, fees already charged are nonrefundable, except where required by law or

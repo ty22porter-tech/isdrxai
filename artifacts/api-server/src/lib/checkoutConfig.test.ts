@@ -35,3 +35,13 @@ describe("plan Checkout pricing", () => {
       .toThrow("Launch package price required");
   });
 });
+
+describe("Founding20 onboarding waiver", () => {
+  it.each(["buy_now", "free_trial"] as const)("applies the native capped promotion and never charges or defers onboarding for %s", intent => {
+    const config = buildPlanCheckoutConfig("price_base_499", null, true, intent, { promotionId: "promo_first20", code: "Founding20" });
+    expect(config.line_items).toEqual([{ price: "price_base_499", quantity: 1 }]);
+    expect(config.discounts).toEqual([{ promotion_code: "promo_first20" }]);
+    expect(config.subscription_data?.metadata).toEqual({ launch_package_fee_status: "waived", founding_promotion_code: "Founding20" });
+    expect(config.subscription_data?.trial_period_days).toBe(intent === "free_trial" ? 14 : undefined);
+  });
+});

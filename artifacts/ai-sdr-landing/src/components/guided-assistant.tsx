@@ -165,7 +165,7 @@ const QA_TREE = {
     ]
   },
   pricing: {
-    message: "The iSDRX AI Starter special introductory offer is $249 per month for the first 20 customers. Starter includes up to 500 personalized AI emails per month and 1 user. Enterprise offers custom capacity for 5 or more users; contact sales for details. Buy Now begins billing at checkout, or eligible first-time subscribers can explicitly choose a 14-day trial. Every subscription also includes the required one-time $995 AI Sales Launch Package.",
+    message: "iSDRX AI is $499/month for 1,000 personalized AI emails and 1 user. Enter Founding20 in the app before checkout: the first 20 eligible new customers to redeem it receive this same plan for $249/month while they keep the qualifying subscription, with the $995 onboarding fee waived. Without the accepted code, standard pricing and onboarding apply. Growth is $749/month for 3,000 emails and up to 3 users. Enterprise and AI+ remain sales-assisted. Optional 14-day trials are available on the self-service plans.",
     links: [
       { label: "View Pricing", href: "/#plans" }
     ],
@@ -183,7 +183,7 @@ const QA_TREE = {
     ]
   },
   setup_fee: {
-    message: "Yes, every subscription includes the required one-time $995 AI Sales Launch Package. Some enhanced services or iSDRX AI+ calling programs may require a different setup fee based on the level of preparation involved.",
+    message: "New subscriptions include a one-time $995 AI Sales Launch Package, except eligible Founding20 redemptions, for which that fee is waived. Some enhanced services or iSDRX AI+ calling programs may require a different setup fee based on the level of preparation involved.",
     options: [
       { label: "Back to Pricing & Services", target: "pricing_menu" }
     ]

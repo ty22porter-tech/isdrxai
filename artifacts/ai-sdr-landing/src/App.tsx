@@ -1,5 +1,5 @@
 import { IntroductoryPlans } from "@/components/introductory-plans";
-import { STARTER_INTRO_OFFER } from "@workspace/api-client-react/marketing-plans";
+import { STARTER_INTRO_OFFER, FOUNDING_TERMS } from "@workspace/api-client-react/marketing-plans";
 import React, { useState } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { 
@@ -168,7 +168,7 @@ function Hero() {
 
         <a href="#plans" className="mx-auto mb-7 block max-w-xl rounded-xl border border-primary/40 bg-primary/10 px-5 py-4 text-accent transition-colors hover:bg-primary/20">
           <span className="block font-semibold">{STARTER_INTRO_OFFER}</span>
-          <span className="mt-1 block text-sm text-gray-300">View Starter details and Enterprise options →</span>
+          <span className="mt-1 block text-sm text-gray-300">Full $499 plan features for $249 with Founding20, plus waived onboarding →</span>
         </a>
 
         <motion.div 
@@ -761,6 +761,7 @@ function ServiceTiers() {
           </motion.p>
         </div>
 
+        <p className="mx-auto mb-6 max-w-3xl text-center text-sm leading-relaxed text-muted-foreground">{FOUNDING_TERMS}</p>
         <IntroductoryPlans />
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -804,7 +805,7 @@ function ServiceTiers() {
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
                     AI Sales Launch Package
                   </div>
-                  <p className="text-sm font-semibold text-white mt-1">Required for every subscription</p>
+                  <p className="text-sm font-semibold text-white mt-1">Waived with eligible Founding20 redemption</p>
                 </div>
                 <div className="sm:text-right shrink-0">
                   <div className="text-3xl font-display font-bold text-white">$995</div>
@@ -812,7 +813,7 @@ function ServiceTiers() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed mt-4">
-                Added automatically at checkout. Our team sets up everything so your first campaign lands in inboxes—not spam folders.
+                Applies to new subscriptions unless waived by an accepted Founding20 redemption. Our team prepares your account and sending configuration; inbox placement is not guaranteed.
               </p>
               <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-5">
                 {[
@@ -839,7 +840,7 @@ function ServiceTiers() {
 
             <div className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/10">
               {[
-                { name: "iSDRX AI Growth", price: "$799/month" },
+                { name: "iSDRX AI Growth", price: "$749/month · 3,000 emails · up to 3 users" },
               ].map((tier) => (
                 <div key={tier.name} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
                   <span className="text-gray-300">{tier.name}</span>
@@ -917,7 +918,7 @@ function ServiceTiers() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-primary/20">
-                This is in addition to the required $995 AI Sales Launch Package for the base subscription.
+                This is in addition to the base subscription’s $995 AI Sales Launch Package, unless that base-plan onboarding fee is waived by an eligible Founding20 redemption. AI+ fees are unchanged.
               </p>
             </div>
 
