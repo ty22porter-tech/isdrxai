@@ -1,3 +1,4 @@
+import { chatModelSettings, withOutreachVoice } from "./aiModelSettings";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, lte, sql, or, isNotNull } from "drizzle-orm";
 import { db, giftOutreachRecordsTable as records, giftOutreachSettingsTable as settingsTable, prospectsTable, campaignsTable, usersTable, autopilotEnrollmentsTable as enrollments, appointmentsTable, emailsTable, emailLinksTable, activityTable } from "@workspace/db";
@@ -196,7 +197,7 @@ End with a low-pressure discovery-conversation invitation, pointing to the sched
   const base = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const key = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
   if (!base || !key) throw new GiftOutreachError("AI generation is not configured", 502);
-  const response = await fetch(`${base}/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify({ model: "gpt-5.4", max_completion_tokens: 700, messages: [{ role: "user", content: prompt }] }), signal: AbortSignal.timeout(60000) });
+  const response = await fetch(`${base}/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify({ ...chatModelSettings(700), messages: withOutreachVoice([{ role: "user", content: prompt }]) }), signal: AbortSignal.timeout(60000) });
   if (!response.ok) throw new GiftOutreachError(`AI draft generation failed (${response.status})`, 502);
   const result = await response.json() as { choices?: { message?: { content?: string } }[] };
   const body = result.choices?.[0]?.message?.content?.trim();

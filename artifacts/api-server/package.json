@@ -9,7 +9,8 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "pricing:configure": "tsx ./src/configure-pricing.ts"
+    "pricing:configure": "tsx ./src/configure-pricing.ts",
+    "ai:verify-astra": "tsx ./src/verify-astra.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.32",

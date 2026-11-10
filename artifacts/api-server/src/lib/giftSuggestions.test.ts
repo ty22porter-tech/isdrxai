@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fake = vi.hoisted(() => {
   const prospectsTable = { id: "prospect.id", clientId: "prospect.clientId", giftSuggestions: "prospect.giftSuggestions" };
@@ -76,6 +76,8 @@ function researchPayload(facts: any[]) {
     output_text: JSON.stringify({ facts }),
   };
 }
+
+afterEach(() => vi.unstubAllEnvs());
 
 beforeEach(() => {
   geminiGenerate.mockReset();
@@ -173,6 +175,8 @@ describe("prospect gift suggestions", () => {
   });
 
   it("uses honestly labeled alternate public-web research when Gemini omits grounding metadata", async () => {
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_BASE_URL", "https://synthetic.example");
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_API_KEY", "test-only");
     geminiGenerate.mockResolvedValue({ text: "ungrounded response", candidates: [{ content: {} }] });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(researchPayload([{
       type: "education",
@@ -196,6 +200,8 @@ describe("prospect gift suggestions", () => {
   });
 
   it("treats a malformed alternate response as research unavailable instead of a generation 502", async () => {
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_BASE_URL", "https://synthetic.example");
+    vi.stubEnv("AI_INTEGRATIONS_OPENAI_API_KEY", "test-only");
     geminiGenerate.mockResolvedValue({ text: "ungrounded response", candidates: [{ content: {} }] });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
       output_text: "not valid research json",

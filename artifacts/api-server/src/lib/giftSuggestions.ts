@@ -1,3 +1,4 @@
+import { researchModelSettings, chatModelSettings, withOutreachVoice } from "./aiModelSettings";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -316,11 +317,10 @@ async function requestOpenAIProspectGiftResearch(
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     signal: AbortSignal.timeout(35_000),
     body: JSON.stringify({
-      model: "gpt-5.4-mini",
+      ...researchModelSettings(4000),
       tools: [{ type: "web_search" }],
       tool_choice: { type: "web_search" },
       include: ["web_search_call.action.sources"],
-      max_output_tokens: 4000,
       input: `${buildProspectGiftResearchPrompt(identity, sellerVertical, checkedAt)}
 
 This is alternate public web research, not Google Search. Return JSON only:
@@ -387,9 +387,8 @@ export async function requestGiftSuggestionCompletion(prompt: string): Promise<s
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gpt-5.4",
-        max_completion_tokens: 1200,
-        messages: [{ role: "user", content: prompt }],
+        ...chatModelSettings(1200),
+        messages: withOutreachVoice([{ role: "user", content: prompt }]),
       }),
       signal: AbortSignal.timeout(60_000),
     });

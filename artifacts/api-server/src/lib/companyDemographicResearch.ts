@@ -1,3 +1,4 @@
+import { researchModelSettings } from "./aiModelSettings";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const FAILURE_CACHE_TTL_MS = 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -118,10 +119,9 @@ export async function researchCompanyDemographics(
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "gpt-5.4-mini",
+          ...researchModelSettings(350),
           tools: [{ type: "web_search" }],
           include: ["web_search_call.action.sources"],
-          max_output_tokens: 350,
           input: `Research the current approximate employee count for this exact organization using public internet sources or public records.
 
 ${identity}

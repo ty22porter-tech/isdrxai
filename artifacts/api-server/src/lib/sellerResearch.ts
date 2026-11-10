@@ -1,3 +1,4 @@
+import { researchModelSettings } from "./aiModelSettings";
 import { db, usersTable } from "@workspace/db";
 import type {
   SellerFactEvidence,
@@ -479,11 +480,10 @@ async function requestSellerResearch(input: SellerResearchInput): Promise<Seller
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "gpt-5.4-mini",
+        ...researchModelSettings(5000),
         tools: [{ type: "web_search" }],
         tool_choice: { type: "web_search" },
         include: ["web_search_call.action.sources"],
-        max_output_tokens: 5000,
          input: `Research the seller company named "${input.companyName}" for a sales workspace. The seller's Your Industry vertical is "${input.vertical}". This is the seller vertical, not a prospect industry. Today is ${new Date().toISOString().slice(0, 10)}.
 
 Use company-name web search and credible underlying sources to identify the correct company, including current names, former names, brands, acquisitions, and rebrands. Prioritize recent official announcements, newsroom/blog posts, press releases, and current official profiles when determining the current identity and offerings; do not let stale third-party articles override a newer official rebrand or acquisition announcement. Disambiguate same-name companies using the seller vertical and any identifying context available in search results. ${input.vertical === "recruiting_staffing"

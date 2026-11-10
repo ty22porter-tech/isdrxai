@@ -1,3 +1,4 @@
+import { chatModelSettings, withOutreachVoice } from "./aiModelSettings";
 import { recruitingEmailStyle, emailOpeningRule } from "./recruitingEmailStyle";
 import { db, autopilotEnrollmentsTable, prospectsTable, campaignsTable, usersTable, emailsTable, activityTable, emailLinksTable } from "@workspace/db";
 import type { OpportunityIntelligence } from "@workspace/db";
@@ -32,9 +33,8 @@ async function aiGenerate(prompt: string): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${AI_KEY}` },
     body: JSON.stringify({
-      model: "gpt-5.4",
-      max_completion_tokens: 400,
-      messages: [{ role: "user", content: prompt }],
+      ...chatModelSettings(400),
+      messages: withOutreachVoice([{ role: "user", content: prompt }]),
     }),
   });
   if (!res.ok) throw new Error(`AI error ${res.status}`);
