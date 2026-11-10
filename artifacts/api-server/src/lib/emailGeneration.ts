@@ -1,3 +1,4 @@
+import { chatModelSettings, withOutreachVoice } from "./aiModelSettings";
 import { recruitingEmailStyle, emailOpeningRule } from "./recruitingEmailStyle";
 import type { InferSelectModel } from "drizzle-orm";
 import type { prospectsTable, User, usersTable } from "@workspace/db";
@@ -42,9 +43,8 @@ export async function chatComplete(
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.4",
-      max_completion_tokens: maxTokens,
-      messages,
+      ...chatModelSettings(maxTokens),
+      messages: withOutreachVoice(messages),
     }),
     signal: AbortSignal.timeout(45_000),
   });

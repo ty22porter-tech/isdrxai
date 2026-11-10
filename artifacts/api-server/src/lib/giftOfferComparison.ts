@@ -1,3 +1,4 @@
+import { researchModelSettings } from "./aiModelSettings";
 import { and, eq, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -147,11 +148,10 @@ export async function requestGiftOfferResearch(giftName: string, checkedAt: stri
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({
-      model: "gpt-5.4-mini",
+      ...researchModelSettings(3500),
       tools: [{ type: "web_search" }],
       tool_choice: { type: "web_search" },
       include: ["web_search_call.action.sources"],
-      max_output_tokens: 3500,
       input: `Today is ${checkedAt.slice(0, 10)}. Compare current purchasable listings for the saved gift idea ${JSON.stringify(giftName)}. Search broadly and impartially across merchants. If the name identifies a college or university, include its official store and Rally House when they have a comparable listing, but do not favor them.
 
 Only include listings for materially comparable products that match the gift identity. Every offer URL must be a direct HTTPS product page returned by web search. Never invent a price, merchant, URL, shipping, or availability. Copy a short exact source excerpt containing the listed USD item price. Shipping is known only when the source explicitly states its unconditional numeric cost for this item, including explicit $0/free shipping; minimum-order, membership, subscription, or other conditional shipping is unknown. When known, copy a separate exact shippingEvidence excerpt; otherwise shippingKnown=false, shippingPriceUsd=null, shippingEvidence=null. Mark available only when the source indicates it can currently be purchased. Taxes are not part of this research.

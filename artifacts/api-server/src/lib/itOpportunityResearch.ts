@@ -1,3 +1,4 @@
+import { researchModelSettings } from "./aiModelSettings";
 import type { OpportunityIntelligence, OpportunitySignal } from "@workspace/db";
 import type { usersTable } from "@workspace/db";
 import crypto from "node:crypto";
@@ -805,11 +806,10 @@ async function researchItOpportunityIntelligenceInner(options: {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "gpt-5.4-mini",
+        ...researchModelSettings(6000),
         tools: [{ type: "web_search" }],
         tool_choice: { type: "web_search" },
         include: ["web_search_call.action.sources"],
-        max_output_tokens: 6000,
         input: `Research current, evidence-based opportunity intelligence for a ${verticalResearch.label} seller. Today is ${new Date().toISOString().slice(0, 10)}.
 
 Selected campaign industry: ${selectedIndustry}

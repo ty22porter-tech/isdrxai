@@ -36,6 +36,15 @@ describe("recruiting employer research", () => {
       }) }] },
     ] }), { status: 200 })));
     const result = await researchItOpportunityIntelligence(options);
+    const request = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);
+    expect(request.model).toBe("gpt-6-astra");
+    expect(request.reasoning).toEqual({ effort: "medium" });
+    expect(request.tools).toEqual([{ type: "web_search" }]);
+    expect(request.tool_choice).toEqual({ type: "web_search" });
+    expect(request.include).toContain("web_search_call.action.sources");
+    expect(request.instructions).toContain("separate verified facts from inference");
+    expect(request.max_output_tokens).toBeGreaterThan(8192);
+    expect(request).not.toHaveProperty("reasoning_effort");
     expect(result.itResearch.industryRelationship).toBe("mismatch");
     expect(result.itResearch.recruiting).toMatchObject({ employerIdentity: "confirmed", uniqueActiveJobs: 1 });
     expect(result.itResearch.recruiting?.jobs[0].status).toBe("active");
