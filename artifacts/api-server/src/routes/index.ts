@@ -1,3 +1,4 @@
+import { helpRouter } from "./help";
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import prospectSearchJobsRouter from "./prospectSearchJobs";
@@ -27,6 +28,7 @@ import giftVideosRouter from "./gift-videos";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/help", helpRouter);
 router.use("/prospects", prospectsRouter);
 router.use("/campaigns", campaignsRouter);
 router.use("/emails", emailsRouter);

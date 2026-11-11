@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm, cp } from "node:fs/promises";
+import { rm, cp, readFile } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -103,6 +103,10 @@ async function buildAll() {
     ],
     sourcemap: "linked",
     plugins: [
+      { name: "training-guide", setup(build) {
+        build.onResolve({ filter: /\.md\?raw$/ }, args => ({ path: path.resolve(args.resolveDir, args.path.replace(/\?raw$/, "")), namespace: "training-guide" }));
+        build.onLoad({ filter: /.*/, namespace: "training-guide" }, async args => ({ contents: await readFile(args.path, "utf8"), loader: "text" }));
+      } },
       // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
       esbuildPluginPino({ transports: ["pino-pretty"] })
     ],

@@ -1,3 +1,4 @@
+import { AskIsdrxAI } from "@/components/ask-isdrx-ai";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
@@ -363,6 +364,7 @@ export function Layout({ children }: LayoutProps) {
             {children}
           </div>
         </main>
+        <AskIsdrxAI email={user?.primaryEmailAddress?.emailAddress ?? ""} location={location} />
       </div>
     </div>
   );

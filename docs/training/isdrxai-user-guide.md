@@ -35,6 +35,16 @@ Use this guide alongside the left navigation menu. Available features depend on 
 | [Billing](#billing) | Review your subscription and available billing actions. |
 | [Settings](#settings) | Configure your business, email identity, and integrations. |
 
+## Ask iSDRX AI
+
+Use the **Ask iSDRX AI** button available throughout the signed-in app to ask how features, buttons, scores, and workflows work. Enter a question and select **Ask**. Answers use this training guide and link to supporting sections. The assistant explains app usage; it does not retrieve private account status or perform actions.
+
+If the guide cannot support an answer, the AI service is unavailable, or you need account-specific assistance, use **Contact Support** in the same window. Review your reply email and the editable question, then select **Send to Support**. The app sends only the question you submit, your account reference, and the app section—not an automatic conversation transcript. Do not include passwords or access keys.
+
+After a successful submission, you will see: **Your question has been sent to support. We’ll respond within 24 hours, seven days a week.** If sending fails, the app retains your question and shows an error instead of a delivery confirmation. You can retry or email info@isdrxai.com directly.
+
+The full **Help & Training** page remains available for searching and browsing the complete guide.
+
 ## Settings
 
 **Purpose:** Give the app accurate information about your business before it researches prospects or prepares messages.
@@ -609,6 +619,14 @@ Compare consistent time periods and consider the number of records behind each p
 If an outreach feature reports a subscription requirement or suspension, review Billing or contact your administrator before repeating the action.
 
 **Completion check:** Your account status and selected plan support the features you intend to use.
+
+### Current self-service pricing and Founding20
+
+The standard iSDRX AI plan is $499/month for up to 1,000 personalized AI emails and 1 user. Growth is $749/month for up to 3,000 emails and up to 3 users. Enterprise and AI+ remain sales-assisted options.
+
+Founding20 is a code-only discount on the same full standard plan, not a separate Starter tier. Eligible new subscribers must enter Founding20 in the app before Stripe checkout. The first 20 successful redeemers receive $249/month while keeping the qualifying subscription, with the $995 onboarding fee waived. Without an accepted code, standard pricing and onboarding apply. It does not apply to Growth, Enterprise, or AI+. Availability is checked at checkout; the guide does not establish how many redemptions remain.
+
+An optional 14-day trial must be explicitly selected. Standard trial customers are not charged during the trial; if they continue, the monthly subscription and one-time $995 onboarding fee apply at trial end. A qualifying Founding20 trial retains the discounted subscription and waived onboarding. Cancel before trial end to avoid subscription charges.
 
 ## Administrator sections
 
