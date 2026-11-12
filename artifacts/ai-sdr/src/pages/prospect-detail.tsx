@@ -43,7 +43,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 /** Opportunity intelligence can be refreshed for every supported seller vertical. */
 export function supportsOpportunityRefresh(vertical: unknown): boolean {
-  return vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps" || vertical === "recruiting_staffing";
+  return vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps" || vertical === "recruiting_staffing" || vertical === "ai_sales_automation";
 }
 
 interface TimelineItem {

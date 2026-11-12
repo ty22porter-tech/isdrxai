@@ -16,11 +16,11 @@ export const RECRUITING_INDUSTRIES = [
 
 export type RecruitingIndustry = (typeof RECRUITING_INDUSTRIES)[number];
 
-export type SellerVertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing";
+export type SellerVertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing" | "ai_sales_automation";
 
 /** Never falls through to janitorial for a known non-janitorial vertical. */
 export function normalizeVertical(value?: string | null): SellerVertical {
-  if (value === "it_services" || value === "fleet_wraps" || value === "recruiting_staffing") return value;
+  if (value === "it_services" || value === "fleet_wraps" || value === "recruiting_staffing" || value === "ai_sales_automation") return value;
   return "janitorial";
 }
 
@@ -29,6 +29,7 @@ export const VERTICAL_LABELS: Record<SellerVertical, string> = {
   it_services: "IT Services",
   fleet_wraps: "Fleet & Commercial Vehicle Wraps",
   recruiting_staffing: RECRUITING_LABEL,
+  ai_sales_automation: "AI Sales Automation",
 };
 
 export type RecruitingFilterState = {

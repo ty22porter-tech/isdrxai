@@ -713,11 +713,16 @@ export function parseItOpportunityResearchResponse(
   };
 }
 
-function verticalResearchInstructions(sellerVertical: string): {
+export function verticalResearchInstructions(sellerVertical: string): {
   label: string;
   focus: string;
   constraints: string;
 } {
+  if (sellerVertical === "ai_sales_automation") return {
+    label: "AI Sales Automation",
+    focus: "businesses that could buy sales automation software, documented B2B offerings, customer acquisition channels, sales or business development operations, expansion and relevant leadership",
+    constraints: "The seller sells a virtual sales employee, not the prospect's services. Keep the seller industry separate from the prospect's actual industry. When targeting Recruiting & Staffing, find staffing agencies that could buy this software, NOT employers seeking staffing services or candidates. Do not require job openings or apply recruiting qualification. Target owners, CEOs, sales leaders and business development leaders. Cite operational evidence; distinguish potential fit from buying intent. Never invent current spending, headcount costs, lost revenue, savings or purchase plans. Cost savings require seller-provided supporting cost-comparison evidence and are never guaranteed. Do not inject janitorial, fleet, security or hiring-service narratives.",
+  };
   if (sellerVertical === "recruiting_staffing") {
     return {
       label: "Recruiting & Staffing",

@@ -15,7 +15,7 @@ Adapt the reference to roles if no verified openings are available. End with ONE
 }
 
 export function emailOpeningRule(vertical: string | null | undefined): string {
-  return vertical === "recruiting_staffing"
+  return vertical === "ai_sales_automation" ? "Open warmly with curiosity about prospecting and follow-up; vary the wording. Explain the autonomous workflow and invite a 15-minute conversation." : vertical === "recruiting_staffing"
     ? "Use the conversational recruiting opening and role-specific flow described below."
     : 'Begin with relevant business value. Do not begin with "I noticed," "I came across," "I wanted to reach out," or "I hope this email finds you well."';
 }

@@ -365,7 +365,9 @@ function placeToLeadBase(place: PlaceResult, city: string, state: string, indust
   const fitText = fitSignals.length
     ? ` It ${fitSignals.join(", and ")}.`
     : "";
-  const whyTarget = `${industryLabel} companies in ${city}, ${state} are a strong fit for recurring commercial service contracts — they have facilities to maintain and typically rely on outside vendors for upkeep.${fitText}`;
+  const whyTarget = vertical === "ai_sales_automation"
+    ? `${companyName} was found in the ${industryLabel} business search. Research whether it sells to businesses and could benefit from autonomous prospecting, personalized outreach and follow-up; its sales workflow, current spending and purchase intent are unverified.`
+    : `${industryLabel} companies in ${city}, ${state} are a strong fit for recurring commercial service contracts — they have facilities to maintain and typically rely on outside vendors for upkeep.${fitText}`;
 
   return {
     companyName,

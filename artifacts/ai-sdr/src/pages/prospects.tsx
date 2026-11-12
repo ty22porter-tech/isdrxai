@@ -33,11 +33,12 @@ function mergeTpl(tpl: string, prospect: any): string {
   return mergeEmailTemplate(tpl, prospect);
 }
 function defaultSubject(campaignName: string, vertical: string = "janitorial") {
-  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : vertical === "recruiting_staffing" ? "Recruiting & Staffing" : "Janitorial Services";
+  const prefix = vertical === "ai_sales_automation" ? "AI Sales Automation" : vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : vertical === "recruiting_staffing" ? "Recruiting & Staffing" : "Janitorial Services";
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
 function fallbackBody(p: any, vertical: string = "janitorial", sellerProfile?: any) {
+  if (vertical === "ai_sales_automation") return generateIntroEmail(p, vertical, sellerProfile).body;
   if (vertical === "fleet_wraps") {
     return generateIntroEmail(p, "fleet_wraps", sellerProfile).body;
   }
@@ -939,7 +940,7 @@ export default function Prospects() {
       return res.json();
     },
   });
-  const vertical: string = me?.vertical === "it_services"
+  const vertical: string = me?.vertical === "ai_sales_automation" ? "ai_sales_automation" : me?.vertical === "it_services"
     ? "it_services"
     : me?.vertical === "fleet_wraps"
       ? "fleet_wraps"

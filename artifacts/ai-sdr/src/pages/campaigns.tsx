@@ -1,7 +1,8 @@
+import { AI_SALES_BUYER_INDUSTRIES } from "@workspace/db/ai-sales-automation";
 import { ensureRecruitingOpeningPlaceholder } from "@workspace/db/recruiting-email";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { generateEmailForStep, type ClientVertical } from "@/lib/email-ai";
+import { generateFollowUpEmail, generateEmailForStep, type ClientVertical } from "@/lib/email-ai";
 import { trackEvent } from "@/lib/analytics";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -160,6 +161,12 @@ const IT_FORM_OVERRIDES: Partial<Record<typeof FOLLOW_UP_KEYS[number], SequenceS
 };
 
 function blankForm(vertical: ClientVertical): CampaignForm {
+  if (vertical === "ai_sales_automation") {
+    const followups = Object.fromEntries([3, 4, 5, 7, 10, 14].map((dayDelay, i) => [`followUp${i + 1}`, {
+      dayDelay, ...generateFollowUpEmail({ companyName: "{{companyName}}", contactName: "{{contactName}}", industry: "{{industry}}" }, vertical),
+    }]));
+    return { ...BLANK_FORM, ...followups } as CampaignForm;
+  }
   if (vertical === "it_services") return { ...BLANK_FORM, ...IT_FORM_OVERRIDES } as CampaignForm;
   if (vertical === "fleet_wraps") {
     return {
@@ -299,7 +306,7 @@ function mergePreviewTemplate(template: string, industry: string): string {
 }
 
 function introPreviewSubject(campaignName: string, vertical: ClientVertical): string {
-  const prefix = vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : vertical === "recruiting_staffing" ? "Recruiting & Staffing" : "Janitorial Services";
+  const prefix = vertical === "ai_sales_automation" ? "AI Sales Automation" : vertical === "it_services" ? "Managed IT Services" : vertical === "fleet_wraps" ? "Fleet Graphics" : vertical === "recruiting_staffing" ? "Recruiting & Staffing" : "Janitorial Services";
   return `${prefix} for ${campaignName.split(" ").slice(0, 3).join(" ")}`;
 }
 
@@ -326,14 +333,14 @@ export default function Campaigns() {
       return res.json();
     },
   });
-  const vertical: ClientVertical = me?.vertical === "it_services"
+  const vertical: ClientVertical = me?.vertical === "ai_sales_automation" ? "ai_sales_automation" : me?.vertical === "it_services"
     ? "it_services"
     : me?.vertical === "fleet_wraps"
       ? "fleet_wraps"
       : me?.vertical === "recruiting_staffing"
         ? "recruiting_staffing"
         : "janitorial";
-  const campaignIndustries = vertical === "fleet_wraps" ? FLEET_INDUSTRIES : vertical === "recruiting_staffing" ? RECRUITING_CAMPAIGN_INDUSTRIES : INDUSTRIES;
+  const campaignIndustries = vertical === "ai_sales_automation" ? AI_SALES_BUYER_INDUSTRIES : vertical === "fleet_wraps" ? FLEET_INDUSTRIES : vertical === "recruiting_staffing" ? RECRUITING_CAMPAIGN_INDUSTRIES : INDUSTRIES;
 
   const { data: campaigns, isLoading } = useListCampaigns();
   const createCampaign = useCreateCampaign();

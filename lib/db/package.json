@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./recruiting-email": "./src/recruiting-email.ts",
-    "./job-posting-url": "./src/job-posting-url.ts"
+    "./job-posting-url": "./src/job-posting-url.ts",
+    "./ai-sales-automation": "./src/ai-sales-automation.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",

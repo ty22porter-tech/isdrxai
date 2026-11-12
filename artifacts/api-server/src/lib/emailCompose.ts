@@ -1,3 +1,5 @@
+import { assertSalesAutomationEmail, configuredSalesBookingUrl } from "@workspace/db/ai-sales-automation";
+import type { SellerIntelligenceProfile } from "@workspace/db";
 import { recruitingOpeningSummary } from "@workspace/db/recruiting-email";
 import { getPublicAppUrl } from "./publicUrl";
 import { getVerticalConfig } from "./verticals";
@@ -45,6 +47,8 @@ export function mergeOutboundEmailTemplate(
 }
 
 export interface ComposeClient {
+  calendlyUrl?: string | null;
+  sellerIntelligenceProfile?: SellerIntelligenceProfile | null;
   businessName?: string | null;
   senderName?: string | null;
   phone?: string | null;
@@ -112,6 +116,11 @@ export function composeEmail(
   }
   if (recruitingAutomationBlocked(prospect)) {
     throw new Error("Recruiting outreach is blocked: verify the hiring employer and review any no-agencies restrictions before pitching.");
+  }
+  if (client.vertical === "ai_sales_automation") {
+    assertSalesAutomationEmail(coreBody, client);
+    const bookingUrl = configuredSalesBookingUrl(client.calendlyUrl);
+    cta = bookingUrl ? { label: "Book a 15-minute conversation", url: bookingUrl } : undefined;
   }
   const baseUrl = getPublicAppUrl();
   const unsubscribePageUrl = `${baseUrl}/app/unsubscribe/${prospect.unsubscribeToken}`;

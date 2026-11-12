@@ -1,3 +1,4 @@
+import { COST_COMPARISON_HELP } from "@workspace/db/ai-sales-automation";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -241,6 +242,7 @@ export function CompanyIntelligenceEditor({ profile }: { profile: any }) {
       <div className="rounded-md border border-border bg-card/60 p-3 text-muted-foreground">
         Seller research summarizes publicly discovered offerings and evidence for this company, including rebrands when public sources connect the old and current identity. Fields marked as approved edits override same-company research on future refreshes.
       </div>
+      {profile.sellerIndustry === "ai_sales_automation" && <p className="rounded-md border p-3 text-muted-foreground">{COST_COMPARISON_HELP}</p>}
       <dl className="grid gap-2 rounded-md border border-border/70 p-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="seller-research-metadata">
         <div>
           <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Company</dt>

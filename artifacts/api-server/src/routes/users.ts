@@ -234,7 +234,7 @@ router.put("/settings", async (req, res) => {
     return res.status(400).json({ error: "One of the uploaded files could not be saved. Please re-upload and try again." });
   }
 
-  if (vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps" || vertical === "recruiting_staffing") {
+  if (vertical === "janitorial" || vertical === "it_services" || vertical === "fleet_wraps" || vertical === "recruiting_staffing" || vertical === "ai_sales_automation") {
     update.vertical = vertical;
     update.verticalSelected = true;
   }
