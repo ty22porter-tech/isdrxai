@@ -16,7 +16,7 @@ vi.mock("../lib/requireAuth", () => ({
   requireEntitlement: (_req: any, _res: any, next: any) => { next(); },
 }));
 vi.mock("../lib/verticals", () => ({
-  getVerticalConfig: (v: string | undefined) => ({ key: v === "it_services" || v === "fleet_wraps" || v === "recruiting_staffing" ? v : "janitorial" }),
+  getVerticalConfig: (v: string | undefined) => ({ key: v === "it_services" || v === "fleet_wraps" || v === "recruiting_staffing" || v === "ai_sales_automation" ? v : "janitorial" }),
 }));
 vi.mock("../lib/sellerResearch", () => ({
   ensureCurrentSellerResearch: vi.fn((_id: string, client: any) => client),
@@ -709,5 +709,17 @@ describe("recruiting search research failures", () => {
     expect(requiresRecruitingResearch({ recencyDays: 30 })).toBe(true);
     expect(requiresRecruitingResearch({ confidence: "high" })).toBe(true);
     expect(requiresRecruitingResearch({ signalType: "expansion" })).toBe(true);
+  });
+});
+
+
+describe("AI sales software buyer discovery", () => {
+  it("retains staffing as the buyer sector without facility or staffing-service narratives", () => {
+    const lead = placeToLeadBase({ ...PLACE, displayName: { text: "Example Staffing Agency" } }, "Chicago", "IL", "Recruiting & Staffing", "ai_sales_automation");
+    expect(lead.vertical).toBe("ai_sales_automation");
+    expect(lead.industry).toBe("Recruiting & Staffing");
+    expect(lead.whyTarget).toContain("could benefit from autonomous prospecting");
+    expect(lead.whyTarget).not.toMatch(/facilities to maintain|strong fit|verified hiring/);
+    expect(lead.email).toMatch(/\.invalid$/);
   });
 });

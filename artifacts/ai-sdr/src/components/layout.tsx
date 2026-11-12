@@ -129,12 +129,12 @@ function NotificationBell() {
   );
 }
 
-function VerticalOnboardingDialog({ open }: { open: boolean }) {
+export function VerticalOnboardingDialog({ open }: { open: boolean }) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const choose = async (vertical: "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing") => {
+  const choose = async (vertical: "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing" | "ai_sales_automation") => {
     setSaving(vertical);
     setError(null);
     try {
@@ -155,7 +155,7 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
 
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-2xl [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>What kind of business do you run?</DialogTitle>
           <DialogDescription>
@@ -195,6 +195,12 @@ function VerticalOnboardingDialog({ open }: { open: boolean }) {
           >
             <div className="font-semibold">Recruiting & Staffing</div>
             <div className="text-sm text-muted-foreground mt-1">Find employers with verified hiring and growth signals and book hiring-needs discovery calls.</div>
+          </button>
+          <button onClick={() => choose("ai_sales_automation")} disabled={saving !== null}
+            className="rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-60"
+            data-testid="button-choose-ai-sales-automation">
+            <div className="font-semibold">AI Sales Automation</div>
+            <div className="text-sm text-muted-foreground mt-1">A virtual sales employee designed to autonomously handle daily prospecting, personalized outreach and follow-up, helping generate appointments, sales opportunities and revenue growth while reducing the expense of filling that role.</div>
           </button>
           {error && (
             <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

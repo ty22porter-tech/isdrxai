@@ -1,3 +1,4 @@
+import { AI_SALES_DESCRIPTION } from "@workspace/db/ai-sales-automation";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trackEvent } from "@/lib/analytics";
@@ -600,11 +601,13 @@ export default function SettingsPage() {
             <label className="text-sm font-medium flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" /> Your Industry
             </label>
+            {vertical === "ai_sales_automation" && <p className="text-sm text-muted-foreground">{AI_SALES_DESCRIPTION}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { value: "janitorial", label: "Janitorial", desc: "Commercial cleaning outreach" },
                 { value: "it_services", label: "IT Services", desc: "Cybersecurity, MS365, Managed IT, MDM" },
                 { value: "fleet_wraps", label: "Fleet & Vehicle Wraps", desc: "Commercial vehicle graphics and fleet branding" },
+                { value: "ai_sales_automation", label: "AI Sales Automation", desc: "A virtual sales employee for autonomous prospecting, personalized outreach and follow-up" },
                 { value: "recruiting_staffing", label: "Recruiting & Staffing", desc: "Sell recruiting and staffing services to employers" },
               ].map(opt => (
                 <button

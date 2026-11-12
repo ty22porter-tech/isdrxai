@@ -1,3 +1,4 @@
+import { assertSalesAutomationEmail } from "@workspace/db/ai-sales-automation";
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { emailsTable, campaignsTable, prospectsTable, activityTable, usersTable, emailLinksTable } from "@workspace/db";
@@ -108,10 +109,15 @@ router.post("/", requireEntitlement, async (req, res) => {
   const trackingToken = randomUUID();
   const subject = mergeOutboundEmailTemplate(body.subject, prospect);
   const coreBody = mergeOutboundEmailTemplate(body.body, prospect);
+  try {
+    assertSalesAutomationEmail(`${subject}\n${coreBody}`, client);
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "Unsupported sales automation claim." });
+  }
   const composed = composeEmail(
     coreBody,
     client,
-    { companyName: prospect.companyName, unsubscribeToken },
+    { ...prospect, unsubscribeToken },
     undefined,
     { token: trackingToken },
   );

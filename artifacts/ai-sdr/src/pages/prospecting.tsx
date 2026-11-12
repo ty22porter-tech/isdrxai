@@ -1,3 +1,4 @@
+import { AI_SALES_BUYER_INDUSTRIES } from "@workspace/db/ai-sales-automation";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/react";
@@ -310,9 +311,10 @@ export default function Prospecting() {
   const isIT = me?.vertical === "it_services";
   const isFleet = me?.vertical === "fleet_wraps";
   const isRecruiting = me?.vertical === "recruiting_staffing";
-  const vertical = isIT ? "it_services" : isFleet ? "fleet_wraps" : isRecruiting ? "recruiting_staffing" : "janitorial";
-  const verticalLabel = isIT ? "IT Services" : isFleet ? "Fleet & Commercial Vehicle Wraps" : isRecruiting ? "Recruiting & Staffing" : "Janitorial";
-  const industryOptions = isIT ? IT_INDUSTRIES : isFleet ? FLEET_INDUSTRIES : INDUSTRIES;
+  const isAiSales = me?.vertical === "ai_sales_automation";
+  const vertical = isAiSales ? "ai_sales_automation" : isIT ? "it_services" : isFleet ? "fleet_wraps" : isRecruiting ? "recruiting_staffing" : "janitorial";
+  const verticalLabel = isAiSales ? "AI Sales Automation" : isIT ? "IT Services" : isFleet ? "Fleet & Commercial Vehicle Wraps" : isRecruiting ? "Recruiting & Staffing" : "Janitorial";
+  const industryOptions = isAiSales ? AI_SALES_BUYER_INDUSTRIES : isIT ? IT_INDUSTRIES : isFleet ? FLEET_INDUSTRIES : INDUSTRIES;
 
   // Recruiting filters persist per user and are cleared once the seller
   // vertical is anything else, so they never leak into another vertical.

@@ -1,3 +1,4 @@
+import { assertSalesAutomationEmail, salesAutomationEmailRules } from "@workspace/db/ai-sales-automation";
 import { chatModelSettings, withOutreachVoice } from "./aiModelSettings";
 import { recruitingEmailStyle, emailOpeningRule } from "./recruitingEmailStyle";
 import type { InferSelectModel } from "drizzle-orm";
@@ -257,6 +258,7 @@ End with one easy, low-pressure question about a short, relevant appointment or 
 Use the contact's first name in the greeting. ${emailOpeningRule(vc.key)}
 ${recruitingEmailStyle(vc.key)} Do not copy research labels or directives such as Focus on or Outreach angle.
 ${noSignatureRule}${bodyWordRule}
+${salesAutomationEmailRules(client)}
 Return ONLY valid JSON: {"subject":"...","body":"..."} with real line breaks in body and no markdown.`;
 
   const userPrompt = `Write an introductory email for:
@@ -397,5 +399,6 @@ Rewrite it once. Keep the exact validated offering and concern classification ru
     );
   }
 
+  assertSalesAutomationEmail(`${generated.subject}\n${generated.body}`, client);
   return { ...generated, relevanceScore: quality.score, regenerated };
 }

@@ -1,3 +1,4 @@
+import { salesAutomationEmailRules } from "@workspace/db/ai-sales-automation";
 import type { SellerIntelligenceProfile, User } from "@workspace/db";
 
 export interface SellerIntelligence {
@@ -112,6 +113,11 @@ export function sellerIntelligenceProfile(user?: User | null): SellerIntelligenc
 
 export function industryMatch(industry?: string | null, vertical?: string | null) {
   const label = industry?.trim() || "this industry";
+  if (vertical === "ai_sales_automation") return {
+    label, operation: `${label} businesses are potential buyers of AI sales automation software, not suppliers of the seller's service. Staffing agencies are buyers; employers seeking staffing services are not the target. Their sales process, costs and buying intent remain unverified.`,
+    challenges: ["consistent new-business prospecting", "personalized sales outreach and timely follow-up"],
+    outcome: "more capacity for sales conversations with potentially lower role costs, subject to a cost comparison",
+  };
   if (vertical === "recruiting_staffing") {
     return {
       label,
@@ -149,6 +155,7 @@ export function sellerContext(user: User | undefined, industry?: string | null, 
   const priorities = sellerPriorityServices(user);
   const match = industryMatch(industry, vertical);
   const lines = [
+    salesAutomationEmailRules(user),
     `PROSPECT INDUSTRY FRAMEWORK: ${match.operation}`,
     "Treat industry patterns as possible fit, never as verified facts about this prospect.",
   ];

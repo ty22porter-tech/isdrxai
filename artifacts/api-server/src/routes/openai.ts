@@ -1,3 +1,4 @@
+import { assertSalesAutomationEmail } from "@workspace/db/ai-sales-automation";
 import { recruitingEmailStyle, emailOpeningRule } from "../lib/recruitingEmailStyle";
 import { ensureRecruitingOpeningPlaceholder } from "@workspace/db/recruiting-email";
 import { Router } from "express";
@@ -120,7 +121,7 @@ router.post("/generate-email", requireEntitlement, async (req, res) => {
       ? "IT and technology partner"
       : vc.key === "fleet_wraps"
         ? "commercial vehicle-branding partner"
-        : vc.key === "recruiting_staffing" ? "recruiting and staffing partner for the hiring employer"
+        : vc.key === "ai_sales_automation" ? "sales automation software partner" : vc.key === "recruiting_staffing" ? "recruiting and staffing partner for the hiring employer"
         : "facility services partner";
     const frameworkStructure = vc.key === "recruiting_staffing"
       ? `Use the conversational Recruiting flow: first-name greeting, a friendly in-house versus outside recruiting statement, the supplied openings (or standalone {{jobOpenings}} in a reusable template), the actual seller and relevant approved services, then one easy conversation question. Avoid industry lectures. Vary the wording rather than copying a fixed script.`
@@ -161,7 +162,7 @@ Use these merge placeholders verbatim (do not replace them with real values):
 - Company: {{companyName}}
 - City: {{city}}
 
-This template targets ${industryLabel} businesses. Possible ${industryLabel} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : vc.key === "recruiting_staffing" ? "hiring and workforce" : "facility"} challenges to draw from (optional background, not verified prospect conditions):
+This template targets ${industryLabel} businesses. Possible ${industryLabel} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : vc.key === "ai_sales_automation" ? "sales prospecting and follow-up" : vc.key === "recruiting_staffing" ? "hiring and workforce" : "facility"} challenges to draw from (optional background, not verified prospect conditions):
 ${challengeList}
 
 Tone and approach: ${getStepTone(step, emailOfferName)}
@@ -180,7 +181,7 @@ The subject and body may draw on the ${industryLabel} industry's real challenges
 - Location: ${city}, ${state}
 ${campaignContext ? `- Campaign context: ${campaignContext}` : ""}
 
-Possible ${industry} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : vc.key === "recruiting_staffing" ? "hiring and workforce" : "facility"} challenges (optional background, not verified prospect conditions):
+Possible ${industry} ${vc.key === "it_services" ? "IT and technology" : vc.key === "fleet_wraps" ? "vehicle-branding and mobile-visibility" : vc.key === "ai_sales_automation" ? "sales prospecting and follow-up" : vc.key === "recruiting_staffing" ? "hiring and workforce" : "facility"} challenges (optional background, not verified prospect conditions):
 ${challengeList}
 
 Tone and approach: ${getStepTone(step, emailOfferName)}${exampleBlock}
@@ -245,6 +246,7 @@ Rewrite it once with materially stronger prospect relevance, one best-fit config
     if (templateMode && vc.key === "recruiting_staffing") {
       generated.body = ensureRecruitingOpeningPlaceholder(generated.body);
     }
+    assertSalesAutomationEmail(`${generated.subject}\n${generated.body}`, client);
     return res.json({
       subject: generated.subject,
       body: generated.body,

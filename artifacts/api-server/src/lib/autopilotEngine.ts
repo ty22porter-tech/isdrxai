@@ -173,6 +173,9 @@ async function generateCalendlyEmail(
   vc: VerticalConfig,
 ): Promise<string> {
   const firstName = contactFirstName(prospect.contactName);
+  if (vc.key === "ai_sales_automation") return aiGenerate(
+    `Write a short, warm email to ${firstName} at ${prospect.companyName} following their interest in AI sales automation. Invite a 15-minute conversation about their prospecting and follow-up workflow. Refer to the booking link below or let them reply with a preferred time. The email composer supplies the seller's actual configured booking link. Do not invent a URL, current spending, savings figures, guaranteed results, or a previous conversation. Do not mention a facility, IT assessment, staffing service, or a qualification questionnaire. End at the call to action without a signature.`
+  );
   const nextStepNoun = vc.key === "it_services" ? "their IT environment" : "their facility";
   return aiGenerate(
     `Write a short, warm, personal email to ${firstName} at ${prospect.companyName} who has shown interest in ${vc.serviceNoun}. Offer a low-pressure, brief conversation without claiming a specific duration. Suggest two easy alternatives such as a morning or afternoon window, and explicitly say they can reply with a preferred time instead of booking. Tell them the next step is simple: on one page they can either answer a few quick questions about ${nextStepNoun} before booking or skip the questions and pick a time immediately for a ${vc.offerName}. Refer to the "${LOW_FRICTION_CTA_LABEL}" link that appears just below your message — do NOT write out any URL or web address yourself. Keep it under 90 words. Plain text only. End immediately after the call to action — do NOT add any sign-off, signature, or placeholder tokens; a signature is appended automatically.`

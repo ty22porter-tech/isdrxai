@@ -14,7 +14,7 @@ const stem = (word: string) => {
   else if (s.length > 5 && s.endsWith("ed")) s = s.slice(0, -2);
   return s.length > 4 && s.endsWith("e") ? s.slice(0, -1) : s;
 };
-const words = (text: string) => [...new Set((clean(text).match(/[a-z0-9]+/g) ?? []).filter(w => w.length > 1 && !stop.has(w)).map(stem))];
+const words = (text: string) => [...new Set((clean(text).match(/[a-z0-9]+/g) ?? [] as string[]).filter(w => w.length > 1 && !stop.has(w)).map(stem))];
 
 /** Bundle the same guide used by Help & Training; no customer data or external search. */
 export const helpReferences: Reference[] = guide.split(/^## /m).slice(1).flatMap(section => {

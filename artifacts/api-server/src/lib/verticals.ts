@@ -1,7 +1,7 @@
-export type Vertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing";
+export type Vertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing" | "ai_sales_automation";
 
 export function normalizeVertical(v?: string | null): Vertical {
-  if (v === "it_services" || v === "fleet_wraps" || v === "recruiting_staffing") return v;
+  if (v === "it_services" || v === "fleet_wraps" || v === "recruiting_staffing" || v === "ai_sales_automation") return v;
   return "janitorial";
 }
 
@@ -366,7 +366,36 @@ const RECRUITING: VerticalConfig = {
   },
 };
 
+const AI_SALES_AUTOMATION: VerticalConfig = {
+  ...RECRUITING,
+  key: "ai_sales_automation", label: "AI Sales Automation",
+  serviceNoun: "autonomous sales prospecting, personalized outreach and follow-up",
+  senderDescriptor: "a provider of a virtual sales employee designed to autonomously handle daily prospecting, personalized outreach and follow-up, helping generate appointments, sales opportunities and revenue growth while reducing the expense of filling that role",
+  audience: "business owners, CEOs, sales leaders and business development leaders",
+  offerName: "15-minute sales automation conversation", offerCtaLabel: "Book a 15-minute conversation",
+  offerSubject: c => `Explore sales automation for ${c}`,
+  footerServicePhrase: "AI sales automation software",
+  stepSubject: (step, c) => step === 1 ? `Prospecting and follow-up at ${c}` : step === 7 ? `Closing the loop — ${c}` : `Following up — ${c}`,
+  fallbackEmailSubject: c => `A sales workflow question for ${c}`,
+  offerings: ["autonomous daily prospecting", "personalized sales outreach", "autonomous follow-up"],
+  industryChallenges: {},
+  fallbackChallenges: ["consistent new-business prospecting", "personalized outreach and timely follow-up"],
+  schedule: {
+    headline: "Discuss your sales workflow",
+    intro: (b, c) => `${b} would like to understand ${c}'s prospecting and follow-up. Share what you know, then choose a time.`,
+    providerQuestion: "How do you handle prospecting and follow-up today?",
+    frequencyQuestion: "People involved in prospecting (if disclosed)",
+    sizeLabel: "Sales workflow by location", sizeUnit: "people (if disclosed)",
+    locationQuestion: "How many teams or locations are involved?",
+    uploadLabel: "Workflow or cost comparison (optional)",
+    summaryTitle: c => `Sales automation conversation — ${c}`,
+    summaryIntro: "Prospect-disclosed sales workflow; costs and potential savings require a like-for-like comparison.",
+    summarySizeHeading: "SALES TEAMS", notificationSubject: c => `Sales automation conversation — ${c}`,
+  },
+};
+
 const CONFIGS: Record<Vertical, VerticalConfig> = {
+  ai_sales_automation: AI_SALES_AUTOMATION,
   janitorial: JANITORIAL,
   it_services: IT_SERVICES,
   fleet_wraps: FLEET_WRAPS,

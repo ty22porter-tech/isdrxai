@@ -17,6 +17,15 @@ interface ScheduleInfo {
 }
 
 const SCHEDULE_COPY = {
+  ai_sales_automation: {
+    headline: "Discuss your sales workflow",
+    intro: (b: string, c: string) => `${b} would like to understand ${c}'s prospecting and follow-up. Share what you know, then select a time below.`,
+    offerNoun: "sales automation conversation", providerQuestion: "How is prospecting and follow-up handled today?",
+    frequencyQuestion: "People involved in prospecting (if disclosed)", frequencyPlaceholder: "Optional", frequencyMax: 100000,
+    timesQuestion: "Best times to reach you?", locationQuestion: "How many teams or locations are involved?",
+    sizeLabel: "Sales workflow by location", sizePlaceholder: "Optional",
+    uploadLabel: "Workflow or cost comparison (optional)", uploadHint: "Click to upload (PDF or images, 25MB total)", uploadLimitError: "Uploads exceed the 25MB total limit.",
+  },
   janitorial: {
     headline: "Schedule your free walkthrough",
     intro: (b: string, c: string) => `${b} would love to learn about ${c}'s cleaning needs. Answer a few quick questions, then pick a time below.`,
@@ -422,7 +431,7 @@ export default function Schedule() {
 
   const isIT = info.vertical === "it_services";
   const isRecruiting = info.vertical === "recruiting_staffing";
-  const copy = isRecruiting ? SCHEDULE_COPY.recruiting_staffing : isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
+  const copy = info.vertical === "ai_sales_automation" ? SCHEDULE_COPY.ai_sales_automation : isRecruiting ? SCHEDULE_COPY.recruiting_staffing : isIT ? SCHEDULE_COPY.it_services : SCHEDULE_COPY.janitorial;
 
   const inputClass =
     "w-full rounded-lg border border-[#d8d6cf] bg-[#fffdfa] px-3 py-2 text-[#172b3a] placeholder-[#8a9295] focus:border-[#234d73] focus:outline-none focus:ring-2 focus:ring-[#234d73]/30";

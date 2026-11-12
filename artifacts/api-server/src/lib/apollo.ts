@@ -1,3 +1,4 @@
+import { isSalesBuyerContact } from "@workspace/db/ai-sales-automation";
 import { logger } from "./logger";
 import type { RecruitingJob } from "@workspace/db";
 import { recruitingContactTargets, RECRUITING_FALLBACK_TITLES, type RecruitingContactMatch } from "./recruitingContactTargeting";
@@ -73,7 +74,8 @@ function usableEmail(value: unknown): string | null {
 }
 
 /** Best-guess decision-maker titles by vertical, ordered by preference. */
-const DECISION_MAKER_TITLES: Record<string, string[]> = {
+export const DECISION_MAKER_TITLES: Record<string, string[]> = {
+  ai_sales_automation: ["owner", "founder", "ceo", "chief executive officer", "chief revenue officer", "vp sales", "head of sales", "sales director", "sales manager", "business development director", "head of business development", "business development manager"],
   recruiting_staffing: [
     "director of talent acquisition", "head of talent acquisition", "human resources director",
     "hr manager", "chief human resources officer", "hiring manager", "operations manager",
@@ -393,7 +395,7 @@ async function searchDecisionMaker(apiKey: string, input: {
   const attemptedIds = new Set<string>();
   // At most three reveals for preferred titles and five total across both
   // searches. Never pay to reveal the same person twice.
-  for (const withTitles of [true, false]) {
+  for (const withTitles of (vertical === "ai_sales_automation" ? [true] : [true, false])) {
     if (recruiting && withTitles && !titles.length) continue;
     const search = await runSearch(withTitles);
     if ("ok" in search) return search;
@@ -401,6 +403,7 @@ async function searchDecisionMaker(apiKey: string, input: {
     for (const chosen of sortCandidates(search.people)) {
       if (attemptedIds.size >= limit) break;
       if (!chosen?.id || attemptedIds.has(String(chosen.id))) continue;
+      if (vertical === "ai_sales_automation" && !isSalesBuyerContact(chosen.title)) continue;
       if (recruiting && !recruiting.classify(chosen.title ?? "", !withTitles)) continue;
       // Apollo's fuzzy search can return unrelated companies. Check both the
       // obfuscated search result and the revealed person before accepting it.

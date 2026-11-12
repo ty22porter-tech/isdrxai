@@ -1,3 +1,4 @@
+import { isSalesBuyerContact } from "@workspace/db/ai-sales-automation";
 import { recruitingOpeningSummary } from "@workspace/db/recruiting-email";
 import type {
   OpportunityIntelligence,
@@ -135,6 +136,7 @@ function supportsComplianceContext(signal: OpportunitySignal): boolean {
 }
 
 function signalChallenge(signal: OpportunitySignal, vertical: string): string {
+  if (vertical === "ai_sales_automation") return "keeping new-business prospecting, personalized outreach and follow-up consistent; verify the current process and costs before proposing savings";
   if (signal.signalType === "security_incident") {
     return "validating incident remediation, strengthening security controls, improving resilience, and documenting readiness without assuming the disclosed issue remains unresolved";
   }
@@ -193,6 +195,11 @@ function companyOperatingOutreach(signal: OpportunitySignal, vertical: string): 
   const operatingSummary = (evidence.match(/^.*?[.!?](?:\s|$)/)?.[0] || evidence)
     .trim()
     .replace(/[.!?]+$/, "");
+  if (vertical === "ai_sales_automation") return {
+    operatingSummary,
+    discoveryFocus: "new-business prospecting and follow-up are handled today",
+    offerMatchContext: "autonomous sales prospecting personalized outreach follow-up virtual sales employee sales automation software",
+  };
   if (vertical === "janitorial") {
     const janitorialProfiles = [
       {
@@ -399,7 +406,7 @@ export function buildOpportunityIntelligence(
   const recommendationReady = Boolean(sellerName && sellerRecommendations.length);
   const sellerCapability = sellerOffers[0];
   const sellerOutcome = seller.outcomes[0] || seller.valuePropositions[0];
-  const decisionMakerKnown = Boolean(
+  const decisionMakerKnown = vertical === "ai_sales_automation" ? isSalesBuyerContact(lead.contactTitle) : Boolean(
     lead.contactTitle?.trim() &&
     !/pending|unknown|owner$/i.test(lead.contactTitle.trim()),
   );
@@ -495,6 +502,7 @@ export function buildOpportunityIntelligence(
   });
 
   const rolePatterns: Record<string, RegExp> = {
+    ai_sales_automation: /\b(?:sales|business development|account executive|sdr|bdr)\b/i,
     fleet_wraps: /\b(?:hvac|field(?: service)?|mobile|maintenance|pest control|restoration|home health|utility|landscap|roof|plumb|electric|install|technician|(?:service|route|delivery|cdl) driver|driver|crew)\b/i,
     janitorial: /\b(?:facility|facilities|property|operations?|plant|warehouse|environmental services|production)\b/i,
     it_services: /\b(?:it manager|information technology|systems? administrator|help desk|cyber|network engineer|cloud engineer|information security|compliance|technology (?:director|manager))\b/i,
@@ -539,7 +547,7 @@ export function buildOpportunityIntelligence(
     }
     if (relevantHiring) {
       relevantHiringVerified = true;
-      const implication = vertical === "fleet_wraps"
+      const implication = vertical === "ai_sales_automation" ? "Sales-related hiring may make a conversation about prospecting capacity relevant, but does not prove software buying intent or current costs." : vertical === "fleet_wraps"
         ? "Relevant field-role hiring may increase future mobile workforce capacity and could create vehicle-branding considerations; it does not verify any vehicle purchase or fleet growth."
         : vertical === "it_services"
           ? "Relevant technology hiring may indicate changing support, infrastructure, security, or compliance demands."
@@ -562,7 +570,7 @@ export function buildOpportunityIntelligence(
     }
   }
 
-  const defaultUnknowns = vertical === "fleet_wraps"
+  const defaultUnknowns = vertical === "ai_sales_automation" ? ["Current prospecting and follow-up workflow", "Actual comparable role and software costs", "Sales automation buying intent and approval process"] : vertical === "fleet_wraps"
     ? ["Current fleet size", "Vehicle purchase or expansion plans", "Recent acquisition, company launch, or rebrand", "Current vehicle graphics provider"]
     : vertical === "it_services"
       ? ["Current IT provider", "Cybersecurity problems or incidents", "Technology contract timing and budget"]
@@ -722,7 +730,7 @@ export function buildOpportunityIntelligence(
         && signal.signalType === "fleet_mobile_operations",
       )
     : undefined;
-  const companyOperatingSignal = ["it_services", "janitorial"].includes(vertical)
+  const companyOperatingSignal = ["it_services", "janitorial", "ai_sales_automation"].includes(vertical)
     ? signals.find(signal =>
         signal.signalClassification === "verified"
         && signal.signalType === "company_operating_profile",
@@ -771,7 +779,7 @@ export function buildOpportunityIntelligence(
       );
       if (offer) {
         potentialNeeds.push(
-          `${possessiveName(lead.companyName)} documented operation raises a discovery question about how ${challenge}. ${sellerName}'s ${offer} could support ${sellerOutcome || (vertical === "janitorial" ? "a consistently clean and presentable workplace" : "reliable and secure operations")}.`,
+          `${possessiveName(lead.companyName)} documented operation raises a discovery question about how ${challenge}. ${sellerName}'s ${offer} could support ${sellerOutcome || (vertical === "ai_sales_automation" ? "consistent prospecting and follow-up" : vertical === "janitorial" ? "a consistently clean and presentable workplace" : "reliable and secure operations")}.`,
         );
       }
     }
@@ -799,7 +807,7 @@ export function buildOpportunityIntelligence(
     : fleetOperationalSignal
       ? `${fleetOperationalSignal.signalTitle}: ${fleetOperationalSignal.signalDescription} This verifies a mobile or customer-site operating model, but not fleet size or a current graphics need.`
       : companyOperatingSignal
-        ? `${companyOperatingSignal.signalTitle}: ${companyOperatingSignal.signalDescription} This provides company-specific discovery context, but does not prove ${vertical === "janitorial" ? "a current cleaning-service gap" : "a current IT problem"} or purchase intent.`
+        ? `${companyOperatingSignal.signalTitle}: ${companyOperatingSignal.signalDescription} This provides company-specific discovery context, but does not prove ${vertical === "ai_sales_automation" ? "a sales process gap" : vertical === "janitorial" ? "a current cleaning-service gap" : "a current IT problem"} or purchase intent.`
         : "";
   const outreachChallenge = strongestBuyingSignal
     ? signalChallenge(strongestBuyingSignal, vertical)
@@ -839,7 +847,7 @@ export function buildOpportunityIntelligence(
         : fleetOperationalSignal
           ? `For ${lead.companyName}, reference its ${fleetOperationalLabel} and ask how those customer-facing vehicles are identified today and where consistency becomes difficult. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved Fleet & Vehicle Wraps solution for that documented operation${outreachOutcome ? `, with the goal of ${outreachOutcome}` : ""}; then ${outreachCta}.`
           : companyOperatingSignal && companyOperatingRecommendation
-            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved ${vertical === "janitorial" ? "Janitorial" : "IT Services ICP"} solution for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
+            ? `For ${lead.companyName}, reference its documented operation — ${companyOperatingRecommendation.operatingSummary} — and ask how ${companyOperatingRecommendation.discoveryFocus}. Lead with ${sellerName}'s ${outreachOffer} as the best-matching approved ${vertical === "ai_sales_automation" ? "AI Sales Automation" : vertical === "janitorial" ? "Janitorial" : "IT Services ICP"} solution for supporting that workflow${outreachOutcome ? ` and ${outreachOutcome}` : ""}.`
             : "";
 
   return {

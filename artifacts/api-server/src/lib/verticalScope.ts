@@ -5,13 +5,13 @@ import { normalizeVertical } from "./verticals";
 export function belongsToVertical(recordVertical: string | null | undefined, selectedVertical: string | null | undefined) {
   const selected = normalizeVertical(selectedVertical);
   // Pre-isolation legacy rows cannot safely be attributed to the new recruiting vertical.
-  return recordVertical ? recordVertical === selected : selected !== "recruiting_staffing";
+  return recordVertical ? recordVertical === selected : !["recruiting_staffing", "ai_sales_automation"].includes(selected);
 }
 
 export function prospectScope(clientId: string, vertical?: string | null) {
   const selected = normalizeVertical(vertical);
   return and(eq(prospectsTable.clientId, clientId),
-    selected === "recruiting_staffing"
+    ["recruiting_staffing", "ai_sales_automation"].includes(selected)
       ? eq(prospectsTable.vertical, selected)
       : or(eq(prospectsTable.vertical, selected), isNull(prospectsTable.vertical)));
 }
@@ -19,7 +19,7 @@ export function prospectScope(clientId: string, vertical?: string | null) {
 export function campaignScope(clientId: string, vertical?: string | null) {
   const selected = normalizeVertical(vertical);
   return and(eq(campaignsTable.clientId, clientId),
-    selected === "recruiting_staffing"
+    ["recruiting_staffing", "ai_sales_automation"].includes(selected)
       ? eq(campaignsTable.vertical, selected)
       : or(eq(campaignsTable.vertical, selected), isNull(campaignsTable.vertical)));
 }

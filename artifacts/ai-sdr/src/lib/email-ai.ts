@@ -475,7 +475,7 @@ const FLEET_INDUSTRY_PROFILES: Record<string, IndustryProfile> = {
   },
 };
 
-export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing";
+export type ClientVertical = "janitorial" | "it_services" | "fleet_wraps" | "recruiting_staffing" | "ai_sales_automation";
 
 const DEFAULT_RECRUITING_PROFILE: IndustryProfile = {
   label: "Employer",
@@ -527,6 +527,10 @@ function getSeller(profile?: SellerFallbackProfile | null) {
 }
 
 function getProfile(industry: string, vertical: ClientVertical = "janitorial"): IndustryProfile {
+  if (vertical === "ai_sales_automation") return {
+    label: industry || "Business", painPoints: ["consistent prospecting", "personalized outreach", "timely follow-up"],
+    challenges: ["New-business development"], valueProps: [], closingLine: "Discuss the current sales workflow without assuming costs or buying intent.",
+  };
   if (vertical === "it_services") return IT_INDUSTRY_PROFILES[industry] ?? DEFAULT_IT_PROFILE;
   if (vertical === "fleet_wraps") return FLEET_INDUSTRY_PROFILES[industry] ?? DEFAULT_FLEET_PROFILE;
   if (vertical === "recruiting_staffing") return { ...DEFAULT_RECRUITING_PROFILE, label: industry || DEFAULT_RECRUITING_PROFILE.label };
@@ -534,6 +538,7 @@ function getProfile(industry: string, vertical: ClientVertical = "janitorial"): 
 }
 
 const WORDING: Record<ClientVertical, { serviceNoun: string; offer: string; offerAction: string }> = {
+  ai_sales_automation: { serviceNoun: "AI sales automation", offer: "15-minute conversation", offerAction: "discuss the sales workflow with" },
   janitorial: {
     serviceNoun: "janitorial services",
     offer: "complimentary walkthrough",
@@ -582,6 +587,10 @@ export function generateIntroEmail(prospect: {
     ? seller.ctas[0]
     : `Would a brief conversation about how ${company} handles this today be useful?`;
 
+  if (vertical === "ai_sales_automation") return {
+    subject: pick([`Prospecting at ${company}`, `A sales workflow question for ${company}`, `Following up with new prospects`]),
+    body: `Hi ${contact},\n\n${pick(["I’d like to learn how your team handles prospecting and follow-up today.", "Keeping new-business conversations moving takes steady attention.", "I’m curious how your team balances finding prospects with following up."])}\n\n${sellerProfile?.sellerCompanyName?.trim() ? `At ${sellerProfile.sellerCompanyName.trim()}, our virtual sales employee is` : "A virtual sales employee is"} designed to handle daily prospecting, personalized outreach and follow-up autonomously, helping create appointments and sales opportunities while potentially reducing the expense of filling that role.\n\nWould a 15-minute conversation about whether this could fit your workflow be useful?`,
+  };
   if (vertical === "fleet_wraps") {
     const city = prospect.city ?? "{{city}}";
     const openingByIndustry: Record<string, string> = {
@@ -650,6 +659,10 @@ export function generateFollowUpEmail(prospect: {
   const p = getProfile(prospect.industry ?? "", vertical);
   const seller = getSeller(sellerProfile);
   const company = prospect.companyName ?? "{{companyName}}";
+  if (vertical === "ai_sales_automation") return {
+    subject: pick([`Following up — ${company}`, `A prospecting question for ${company}`, "Keeping sales conversations moving"]),
+    body: `Hi ${contactFirstName(prospect.contactName)},\n\n${pick(["I thought I’d follow up on the prospecting side of your workflow.", "Finding the next customer and keeping in touch can take steady effort.", "A quick follow-up on handling daily outreach."])}\n\nA virtual sales employee is designed to find prospects, personalize outreach and follow up autonomously, helping create more sales conversations with potentially lower role costs. The fit depends on your process.\n\nWould it be useful to compare notes for 15 minutes?`,
+  };
   const challenge = pick(p.painPoints);
   const subject = vertical === "fleet_wraps"
     ? `A vehicle-branding question for ${company}`
